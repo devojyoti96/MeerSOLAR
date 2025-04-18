@@ -1,0 +1,8 @@
+include meersolar/data/*
+include README.md
+include LICENSE
+include meersolar/solstar/dem_python/data/*
+include meersolar/solstar/GRFF/binaries/*
+include meersolar/solstar/GRFF/source/*
+include meersolar/solstar/GRFF/binaries/*
+
