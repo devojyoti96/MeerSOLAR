@@ -1,5 +1,6 @@
 import numpy as np, os, time, traceback, gc
 from meersolar.pipeline.basic_func import *
+from casatools import msmetadata
 from optparse import OptionParser
 from casatasks import casalog
 from dask import delayed, compute
@@ -48,6 +49,14 @@ def split_scan(
     """
     limit_threads(n_threads=n_threads)
     from casatasks import split, clearcal
+    msmd=msmetadata()
+    msmd.open(msname)
+    fields=msmd.fieldsforscan(int(scan))
+    msmd.close()
+    fields_str=""
+    for f in fields:
+        fields_str+=str(f)+","
+    fields_str=fields_str[:-1]
 
     if os.path.exists(outputvis):
         os.system("rm -rf " + outputvis)
@@ -55,11 +64,12 @@ def split_scan(
         os.system("rm -rf " + outputvis + ".flagversions")
     print(f"Spliting scan : {scan} of ms: {msname}\n")
     print(
-        f"split(vis='{msname}',outputvis='{outputvis}',scan={scan},spw='{spw}',timerange='{timerange}',width={width},timebin='{timebin}',datacolumn='{datacolumn}')\n"
+        f"split(vis='{msname}',outputvis='{outputvis}',field='{fields_str}',scan={scan},spw='{spw}',timerange='{timerange}',width={width},timebin='{timebin}',datacolumn='{datacolumn}')\n"
     )
     split(
         vis=msname,
         outputvis=outputvis,
+        field=fields_str,
         scan=scan,
         spw=spw,
         timerange=timerange,

@@ -4,21 +4,22 @@ from casatools import msmetadata
 from astropy.io import fits
 from meersolar.pipeline.basic_func import *
 from optparse import OptionParser
+from casatasks import casalog
 
-os.system("rm -rf casa*log")
+logfile = casalog.logfile()
+os.system("rm -rf " + logfile)
 
 """
-This code is written by Devojyoti Kansabanik, Sep 9, 2024
+This code is written by Devojyoti Kansabanik, Apr 18, 2025
 """
-
-
+    
 def single_selfcal_iteration(
     msname,
     cellsize,
     imsize,
     round_number=0,
     multiscale_scales=[],
-    minuv=0,
+    uvrange="",
     calmode="ap",
     solmode="",
     solint="inf",
@@ -28,11 +29,9 @@ def single_selfcal_iteration(
     threshold=5,
     weight="briggs",
     robust=0.0,
-    vis_weight=False,
-    do_uvsub_flag=False,
+    use_solar_mask=True,
     ncpu=-1,
     mem=-1,
-    verbose=False,
 ):
     """
     A single self-calibration round
@@ -44,40 +43,36 @@ def single_selfcal_iteration(
         Cellsize in arcsec
     imsize :  int
         Image pixel size
-    round_number : int
+    round_number : int, optional
         Selfcal iteration number
-    multiscale_scales : list
+    multiscale_scales : list, optional
         Multiscale scales in pixel size
-    minuv : float
-    '   Minimum UV in lambda
-    calmode : str
+    uvrange : float, optional
+       Uv range for calibration
+    calmode : str, optional
         Calibration mode ('p' or 'ap')
-    solmode : str
+    solmode : str, optional
         Solver mode
-    solint : str
+    solint : str, optional
         Solution intervals
-    refant : str
+    refant : str, optional
         Reference antenna
-    applymode : str
+    applymode : str, optional
         Solution apply mode (calonly or calflag)
-    pol : str
+    pol : str, optional
         Imaging polarization
-    threshold : float
+    threshold : float, optional
         Imaging and auto-masking threshold
-    weight : str
+    weight : str, optional
         Image weighting
-    robust : float
+    robust : float, optional
         Robust parameter for briggs weighting
-    vis_weight : bool
-        Do baseline dependent weighting or not
-    do_uvsub_flag : bool
-        Perform UV-sub flagging or not
-    ncpu : int
+    use_solar_mask : bool, optional
+        Use solar disk mask or not
+    ncpu : int, optional
         Number of CPUs to use in WSClean
-    mem : float
+    mem : float, optional
         Memory usage limit in WSClean
-    verbose: bool
-        Verbose output or not
     Returns
     -------
     float
@@ -87,8 +82,13 @@ def single_selfcal_iteration(
     str
         Image name
     str
-        Model name
+        Model image name
+    str
+        Residual image name
     """
+    ##################################
+    # Setup wsclean params
+    ##################################
     prefix = msname.split(".ms")[0] + "_selfcal_" + str(round_number)
     os.system("rm -rf " + prefix + "*")
     if weight == "briggs":
@@ -102,11 +102,9 @@ def single_selfcal_iteration(
         "-pol " + str(pol),
         "-niter 10000",
         "-mgain 0.85",
-        "-nmiter 10",
+        "-nmiter 5",
         "-gain 0.1",
         "-auto-threshold " + str(threshold) + " -auto-mask " + str(threshold + 0.1),
-        "-minuv-l 200",
-        "-nwlayers 1",
     ]
     if len(multiscale_scales) > 0:
         wsclean_args.append("-multiscale")
@@ -116,97 +114,78 @@ def single_selfcal_iteration(
         wsclean_args.append("-j " + str(ncpu))
     if mem > 0:
         wsclean_args.append("-abs-mem " + str(mem))
-    fits_mask = msname.split(".ms")[0] + "_solar-mask.fits"
-    if os.path.exists(fits_mask) == False:
-        fits_mask = create_circular_mask(msname, cellsize, imsize, mask_radius=20)
-    wsclean_args.append("-fits-mask " + fits_mask)
+    ################################################
+    # Creating and using a 40arcmin solar mask
+    ################################################
+    if use_solar_mask:
+        fits_mask = msname.split(".ms")[0] + "_solar-mask.fits"
+        if os.path.exists(fits_mask) == False:
+            fits_mask = create_circular_mask(msname, cellsize, imsize, mask_radius=20)
+        if fits_mask!=None and os.path.exists(fits_mask):
+            wsclean_args.append("-fits-mask " + fits_mask)
+                
+    ######################################
+    # Running imaging
+    ######################################
     wsclean_cmd = "wsclean " + " ".join(wsclean_args) + " " + msname
-    if verbose:
-        print(wsclean_cmd + "\n")
-    os.system(wsclean_cmd + " > tmp_wsclean")
-    os.system("rm -rf tmp_wsclean")
+    msg = run_wsclean(wsclean_cmd, container_name)
+    if msg!=0:
+        print ("Imaging is not successful.")
+        return 1, 0, 0, "", "", ""
+    
+    #####################################
+    # Analyzing images
+    #####################################
     wsclean_images = glob.glob(prefix + "*image.fits")
     wsclean_models = glob.glob(prefix + "*model.fits")
+    wsclean_residuals = glob.glob(prefix + "*residual.fits")
     model_flux, rms_DR, neg_DR = calc_dyn_range(
         wsclean_images, wsclean_models, fits_mask
     )
     if model_flux == 0:
         print("No model flux.\n")
-        return 1, 0, 0, "", ""
-    casa_image = wsclean_to_casaimage(
-        wsclean_images=wsclean_images,
-        casaimage_prefix=prefix,
-        imagetype="image",
-        keep_wsclean_images=False,
-    )
-    casa_model = wsclean_to_casaimage(
-        wsclean_images=wsclean_models,
-        casaimage_prefix=prefix,
-        imagetype="model",
-        keep_wsclean_images=False,
-    )
-    os.system("rm -rf " + prefix + "*.fits")
-    if vis_weight:
-        print("Visibility weighting...\n")
-        statwt(vis=msname, datacolumn="corrected")
-    if verbose:
-        print(
-            "gaincal(vis='"
-            + msname
-            + "',caltable='"
-            + prefix
-            + ".gcal',uvrange='>"
-            + str(minuv)
-            + "lambda',refant='"
-            + str(refant)
-            + "',calmode='"
-            + calmode
-            + "',solmode='"
-            + solmode
-            + "',rmsthresh=[10,7,5,3.5],solint='"
-            + str(solint)
-            + "',solnorm=True)\n"
-        )
+        return 1, 0, 0, "", "", ""
+    image_cube=make_stokes_wsclean_imagecube(wsclean_images, prefix+"_IQUV_image.fits", keep_wsclean_images=False)
+    model_cube=make_stokes_wsclean_imagecube(wsclean_models, prefix+"_IQUV_model.fits", keep_wsclean_images=False)
+    residual_cube=make_stokes_wsclean_imagecube(wsclean_residuals, prefix+"_IQUV_residual.fits", keep_wsclean_images=False)
+    
+    #####################
+    # Perform calibration
+    #####################
+    delay_caltable=prefix+".kcal"
+    gain_caltable=prefix+".gcal"
+    delaycal(msname,delay_caltable,str(refant),solint=solint)
+    if os.path.exists(delay_caltable)==False:
+        gaintable=[]
+    else:
+        gaintable=[delay_caltable]
     gaincal(
         vis=msname,
-        caltable=prefix + ".gcal",
-        uvrange=">" + str(minuv) + "lambda",
+        caltable=gain_caltable,
+        uvrange=uvrange,
         refant=refant,
         calmode=calmode,
         solmode=solmode,
         rmsthresh=[10, 7, 5, 3.5],
         solint=solint,
         solnorm=True,
+        gaintable=gaintable,
     )
-    if os.path.exists(prefix + ".gcal") == False:
+    if os.path.exists(delay_caltable)==False and os.path.exists(gain_caltable)==False:
         print("No gain solutions are found.\n")
-        return 2, 0, 0, "", ""
-    if do_uvsub_flag:
-        flag_uvbin(
-            msname, uvbin=1000, datacolumn="residual", mode="rflag", flagbackup=True
-        )
-    if verbose:
-        print(
-            "applycal(vis='"
-            + msname
-            + "',gaintable=['"
-            + prefix
-            + ".gcal'],interp=['nearest'],applymode='"
-            + applymode
-            + "',calwt=[True])\n"
-        )
+        return 2, 0, 0, "", "", ""
+    gaintable.append(gain_caltable)
     applycal(
         vis=msname,
-        gaintable=[prefix + ".gcal"],
-        interp=["nearest"],
+        gaintable=gaintable,
+        interp=["nearest"]*len(gaintable),
         applymode=applymode,
-        calwt=[True],
+        calwt=[False],
     )
     os.system("cp -r " + msname + " " + prefix + ".ms")
-    return 0, rms_DR, neg_DR, casa_image, casa_model
+    return 0, rms_DR, neg_DR, image_cube, model_cube, residual_cube
 
-
-def do_solar_selfcal(
+def do_selfcal(
     msname,
     spw,
     timerange,

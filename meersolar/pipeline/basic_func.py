@@ -1,4 +1,4 @@
-import sys, glob, time, gc
+import sys, glob, time, gc, tempfile
 import os, numpy as np, dask, psutil
 from datetime import datetime as dt, timezone
 from casatasks import (
@@ -1143,7 +1143,7 @@ def radec_sun(msname, scan_number):
     radeg = radeg % 360
     decdeg = sun_coord.dec.deg
     decdeg = decdeg % 360
-    return sun_radec_string, radeg, decdeg
+    return sun_radec_string, sun_ra, sun_dec, radeg, decdeg
 
 
 def get_phasecenter(msname, field):
@@ -1206,66 +1206,24 @@ def angular_separation_equatorial(ra1, dec1, ra2, dec2):
     return theta_deg
 
 
-def split_move_sun(msname, scan_number, n_threads=-1):
+def move_to_sun(msname):
     """
-    Move the phasecenter of the measurement set at the center of the Sun for a given scan and split
+    Move the phasecenter of the measurement set at the center of the Sun (Assuming ms has one scan)
     Parameters
     ----------
     msname : str
         Name of the measurement set
-    scan_nuber : int
-        Scan number
-    n_threads : int, optional
-        Number of OpenMP threads
     Returns
     -------
-    str
-        Output ms name
+    int
+        Success message
     """
-    limit_threads(n_threads=n_threads)
-    from casatasks import phaseshift
-
-    sun_radec_string, sunra_deg, sundec_deg = radec_sun(msname, scan_number)
-    outputvis = msname.split(".ms")[0] + "_" + str(scan_number) + "_sun.ms"
-    if os.path.isdir(outputvis):
-        os.system("rm -rf " + outputvis)
-    msmd = msmetadata()
-    msmd.open(msname)
-    field = msmd.fieldsforscan(int(scan_number))[0]
-    msmd.close()
-    msmd.done()
-    print(
-        "phaseshift(vis='"
-        + msname
-        + "', outputvis='"
-        + outputvis
-        + "', field='"
-        + str(field)
-        + "', scan='"
-        + str(scan_number)
-        + "', phasecenter='"
-        + str(sun_radec_string)
-        + "',datacolumn='all')\n"
-    )
-    phaseshift(
-        vis=msname,
-        outputvis=outputvis,
-        field=str(field),
-        scan=str(scan_number),
-        phasecenter=sun_radec_string,
-        datacolumn="all",
-    )
-    print(
-        "Phasecenter of the scan: "
-        + str(scan_number)
-        + " is moved to solar center at :"
-        + str(sun_radec_string)
-        + "\n"
-    )
-    os.system("rm -rf casa*log")
+    sun_radec_string, sunra, sundec, sunra_deg, sundec_deg = radec_sun(msname, scan_number)
+    msg=run_chgcenter(msname, sunra, sundec, 'meerwsclean')
     gc.collect() 
-    return outputvis
-
+    if msg!=0:
+        print ("Phasecenter could not be shifted.")
+    return msg
 
 def check_scan_in_caltable(caltable, scan):
     """
@@ -1410,6 +1368,34 @@ def calc_maxuv(msname):
     maxuv = np.nanmax([maxu, maxv])
     return maxuv, maxuv / wavelength
 
+def calc_field_of_view(msname, FWHM=True):
+    """
+    Calculate optimum field of view in arcsec.
+    Parameters
+    ----------
+    msname : str
+        Measurement set name
+    FWHM : bool, optional
+        Upto FWHM, otherwise upto first null
+    Returns
+    -------
+    float
+        Field of view in arcsec
+    """
+    msmd=msmetadata()
+    msmd.open(msname)
+    freq=msmd.chanfreqs(0)[0]
+    msmd.close()
+    tb = table()
+    tb.open(msname)
+    dish_dia = np.nanmin(tb.getcol("DISH_DIAMETER"))
+    tb.close()
+    wavelength = 299792458.0/freq
+    if FWHM == True:
+        FOV = 1.22 * wavelength/dish_dia
+    else:
+        FOV = 2.04 * wavelength/dish_dia
+    return FOV * 3600  ### In arcsecs
 
 def calc_bw_smearing_freqwidth(msname):
     """
@@ -1435,6 +1421,60 @@ def calc_bw_smearing_freqwidth(msname):
     delta_nu /= 10**6
     return round(delta_nu, 2)
 
+def calc_time_smearing_timewidth(msname):
+    """
+    Calculate maximum time averaging to avoid time smearing over full FoV.
+    Parameters
+    ----------
+    b_m : float
+        Baseline length in meters.
+    freq_Hz : float
+        Observing frequency in Hz.
+    fov_deg : float
+        Desired field of view (diameter) in degrees.
+
+    Returns
+    -------
+    delta_t_max : float
+        Maximum allowable time averaging in seconds.
+    """
+    msmd=msmetadata()
+    msmd.open(msname)
+    freq_Hz=msmd.chanfreqs(0)[0]
+    msmd.close()
+    c = 299792458.0  # speed of light in m/s
+    omega_E = 7.2921159e-5  # Earth rotation rate in rad/s
+    lam = c / freq_Hz  # wavelength in meters
+    fov_deg=calc_field_of_view(msname)/3600.0
+    fov_rad = np.deg2rad(fov_deg)
+    uv, uvlambda = calc_maxuv(msname)
+    # Approximate maximum allowable time to avoid >10% amplitude loss
+    delta_t_max = lam / (2 * np.pi * uv * omega_E * fov_rad)
+    return delta_t_max
+
+def max_time_solar_smearing(msname):
+    """
+    Max allowable time averaging to avoid solar motion smearing.
+    Parameters
+    ----------
+    msname : str
+        Measurement set name
+    Returns
+    -------
+    t_max : float
+        Maximum time averaging in seconds.
+    """
+    msmd=msmetadata()
+    msmd.open(msname)
+    freq_Hz=msmd.chanfreqs(0)[0]
+    msmd.close()
+    uv, uvlambda = calc_maxuv(msname)
+    c = 299792458.0  # speed of light (m/s)
+    omega_sun = 7.2722e-5  # solar apparent motion (rad/s)
+    lam = c / freq_Hz  # wavelength
+    theta_beam = lam / uv  # radians
+    t_max = 0.5 * (theta_beam / omega_sun)  # seconds
+    return t_max
 
 def calc_psf(msname):
     """
@@ -1496,80 +1536,50 @@ def calc_multiscale_scales(msname, num_pixel_in_psf, max_scale=16):
         multiscale_scales.append(scale)
     return multiscale_scales
 
-
-def wsclean_to_casaimage(
-    wsclean_images=[],
-    casaimage_prefix="CASA",
-    imagetype="image",
-    keep_wsclean_images=True,
-):
+def delaycal(vis,caltable,refant,solint="inf"):
     """
-    Convert WSClean images to CASA format.
-
+    General delay calibration using CASA, not assuming any point source
     Parameters
     ----------
-    wsclean_images : list
-        List of WSClean FITS image file paths.
-    casaimage_prefix : str, optional
-        Prefix for the output CASA image name (default: 'CASA').
-    imagetype : str, optional
-        Type of CASA image (e.g., 'image', 'model', 'residual', 'dirty') (default: 'image').
-    keep_wsclean_images : bool, optional
-        Whether to retain the original WSClean images after conversion (default: True).
+    vis : str
+        Measurement set
+    caltable : str
+        Caltable name
+    refant : str
+        Reference antenna
+    solint : str, optional
+        Solution interval
     Returns
     -------
     str
-        Name of the output CASA image.
+        Caltable name
     """
-    wsclean_images = sorted(wsclean_images)
-    stokes = sorted(
-        set(
-            (
-                os.path.basename(i).split(".fits")[0].split(" - ")[-2]
-                if " - " in i
-                else "I"
-            )
-            for i in wsclean_images
-        )
-    )
-    valid_stokes_sets = [
-        {"I"},
-        {"I", "V"},
-        {"I", "Q", "U", "V"},
-        {"XX", "YY"},
-        {"LL", "RR"},
-        {"Q", "U"},
-        {"I", "Q"},
-    ]
-    if set(stokes) not in valid_stokes_sets:
-        print("Invalid Stokes combination.")
-        return
-    imagename = f"{casaimage_prefix}.{imagetype}"
-    if os.path.isdir(imagename):
-        os.system(f"rm - rf {imagename}")
-    data, header = fits.getdata(wsclean_images[0]), fits.getheader(wsclean_images[0])
-    for img in wsclean_images[1:]:
-        data = np.append(data, fits.getdata(img), axis=0)
-    header.update(
-        {"NAXIS4": len(stokes), "CRVAL4": 1.0 if "I" in stokes else -5.0, "CDELT4": 1.0}
-    )
-    temp_fits = f"{casaimage_prefix}_{''.join(stokes)}.fits"
-    fits.writeto(temp_fits, data=data, header=header, overwrite=True)
-    importfits(
-        fitsimage=temp_fits,
-        imagename=imagename,
-        defaultaxes=True,
-        defaultaxesvalues=["ra", "dec", "stokes", "freq"],
-    )
-    os.system(f"rm - rf {temp_fits}")
-    if not keep_wsclean_images:
-        for img in wsclean_images:
-            os.system(f"rm - rf {img}")
-    return imagename
-
-
-def make_stokes_wsclean_image_cube(
-    wsclean_images, outfile_name, imagetype="casa", keep_wsclean_images=True
+    from casatasks import bandpass, gaincal
+    os.system("rm -rf "+caltable+"*")
+    gaincal(vis=vis,caltable=caltable,refant=refant,gaintype='K',solint=solint)
+    bandpass(vis=vis,caltable=caltable+'.tempbcal',refant=refant,solint=solint)
+    tb=table()
+    tb.open(caltable+".tempbcal/SPECTRAL_WINDOW")
+    freq=tb.getcol("CHAN_FREQ").flatten()
+    tb.close()
+    tb.open(caltable+'.tempbcal')
+    gain=tb.getcol("CPARAM")
+    phase=np.angle(gain)
+    tb.close()
+    tb.open(caltable,nomodify=False)
+    delay_gain=tb.getcol("FPARAM")*0.0
+    for i in range(gain.shape[0]):
+        for j in range(gain.shape[2]):
+            delay=np.polyfit(2*np.pi*freq,phase[i,:,j],deg=1)[0]/(10**-9) # Delay in nanosecond
+            delay_gain[i,:,j]=delay
+    tb.putcol("FPARAM",delay_gain)
+    tb.flush()
+    tb.close()
+    os.system("rm -rf "+caltable+".tempbcal")
+    return caltable
+    
+def make_stokes_wsclean_imagecube(
+    wsclean_images, outfile_name, keep_wsclean_images=True
 ):
     """
     Convert WSClean images into a Stokes cube image.
@@ -1580,8 +1590,6 @@ def make_stokes_wsclean_image_cube(
         List of WSClean images.
     outfile_name : str
         Name of the output file.
-    imagetype : str, optional
-        'casa' or 'fits' image format (default: 'casa').
     keep_wsclean_images : bool, optional
         Whether to retain the original WSClean images (default: True).
     Returns
@@ -1620,32 +1628,10 @@ def make_stokes_wsclean_image_cube(
         {"NAXIS4": len(stokes), "CRVAL4": 1 if "I" in stokes else -5, "CDELT4": 1}
     )
     temp_fits = imagename_prefix + ".fits"
-    fits.writeto(temp_fits, data=data, header=header, overwrite=True)
-    if os.path.isdir(imagename):
-        os.system(f"rm - rf {imagename}")
-    importfits(
-        fitsimage=temp_fits,
-        imagename=imagename,
-        defaultaxes=True,
-        defaultaxesvalues=["ra", "dec", "stokes", "freq"],
-    )
-    os.system(f"rm - rf {temp_fits}")
+    fits.writeto(outfile_name, data=data, header=header, overwrite=True)
     if not keep_wsclean_images:
         for img in wsclean_images:
-            os.system(f"rm - rf {img}")
-    if os.path.exists(outfile_name):
-        os.system(f"rm - rf {outfile_name}")
-    if imagetype == "casa":
-        os.system(f"mv {imagename} {outfile_name}")
-    else:
-        exportfits(
-            imagename=imagename,
-            fitsimage=outfile_name,
-            dropstokes=False,
-            dropdeg=False,
-            overwrite=True,
-        )
-        os.system(f"rm - rf {imagename}")
+            os.system(f"rm -rf {img}")
     return outfile_name
 
 
@@ -2001,29 +1987,32 @@ def create_circular_mask(msname, cellsize, imsize, mask_radius=20):
     imagename_prefix = msname.split(".ms")[0] + "_solar"
     imsize = int(imsize)
     wsclean_args = [
-        "-scale " + str(cellsize) + "asec",
+        "-quiet","-scale " + str(cellsize) + "asec",
         "-size " + str(imsize) + " " + str(imsize),
         "-niter 0 -name " + imagename_prefix,
     ]
     wsclean_cmd = "wsclean " + " ".join(wsclean_args) + " " + msname
-    os.system(wsclean_cmd + "> tmp_wsclean")
-    os.system("rm -rf tmp_wsclean")
-    center = (int(imsize / 2), int(imsize / 2))
-    radius = mask_radius * 60 / cellsize
-    Y, X = np.ogrid[:imsize, :imsize]
-    dist_from_center = np.sqrt((X - center[0]) ** 2 + (Y - center[1]) ** 2)
-    mask = dist_from_center <= radius
-    os.system("cp -r " + imagename_prefix + "-image.fits mask.fits")
-    os.system("rm -rf " + imagename_prefix + "*")
-    data = fits.getdata("mask.fits")
-    header = fits.getheader("mask.fits")
-    data[0, 0, ...][mask] = 1.0
-    data[0, 0, ...][~mask] = 0.0
-    fits.writeto(
-        imagename_prefix + "-mask.fits", data=data, header=header, overwrite=True
-    )
-    os.system("rm -rf mask.fits")
-    return imagename_prefix + "-mask.fits"
+    msg = run_wsclean(wsclean_cmd,'meerwsclean')
+    if msg==0:
+        center = (int(imsize / 2), int(imsize / 2))
+        radius = mask_radius * 60 / cellsize
+        Y, X = np.ogrid[:imsize, :imsize]
+        dist_from_center = np.sqrt((X - center[0]) ** 2 + (Y - center[1]) ** 2)
+        mask = dist_from_center <= radius
+        os.system("cp -r " + imagename_prefix + "-image.fits mask.fits")
+        os.system("rm -rf " + imagename_prefix + "*")
+        data = fits.getdata("mask.fits")
+        header = fits.getheader("mask.fits")
+        data[0, 0, ...][mask] = 1.0
+        data[0, 0, ...][~mask] = 0.0
+        fits.writeto(
+            imagename_prefix + "-mask.fits", data=data, header=header, overwrite=True
+        )
+        os.system("rm -rf mask.fits")
+        return imagename_prefix + "-mask.fits"
+    else:
+        print ("Circular mask could not be created.")
+        return
 
 
 def calc_dyn_range(imagename, modelname, fits_mask):
@@ -2107,54 +2096,100 @@ def initialize_wsclean_container(name):
     bool
         Whether initialized successfully or not
     """
-    wsclean_docker_image = datadir+"/wsclean-full_22.04.tar"
-    name=name.rstrip(":latest")
-    a = os.system("udocker import " + wsclean_docker_image+" "+name+":latest")
-    if a != 0:
-        print("Could not load docker image from " + wsclean_docker_image)
-        return 
-    else:
-        a=os.system("udocker create --name="+name+" "+name+":latest")
+    a=os.system("udocker pull devojyoti96/wsclean-full:22.04")
+    if a==0:
+        a=os.system(f"udocker create --name={name} devojyoti96/wsclean-full:22.04")
         print (f"Container started with name : {name}") 
         return name
-
-def run_wsclean(wsclean_cmd, container_name, workdir):
+    else:
+        print (f"Container could not be created with name : {name}")
+        return 
+    
+def run_wsclean(wsclean_cmd, container_name):
     """
     Run WSClean inside a udocker container (no root permission required).
-
     Parameters
     ----------
-    msname : str
-        Name of the measurement set.
     wsclean_cmd : str
         Full WSClean command as a string.
-    verbose : bool, optional
-        Verbose output.
+    container_name : str
+        Container name
     Returns
     -------
     int
-        0 if successful, 1 otherwise.
+        Success message
     """
+    container_present=check_udocker_container(container_name)
+    if container_present==False:
+        container_name=initialize_wsclean_container(container_name)
+        if container_name==None:
+            print ("Container {container_name} is not initiated. First initiate container and then run.")
+            return 1
+    msname=wsclean_cmd.split(" ")[-1]
+    msname = os.path.abspath(msname)
+    mspath = os.path.dirname(msname)
+    temp_docker_path = tempfile.mkdtemp(prefix="wsclean_udocker_",dir=mspath)
+    wsclean_cmd_args=wsclean_cmd.split(" ")[:-1]
+    if '-name' not in wsclean_cmd_args:
+        wsclean_cmd_args.append("-name "+temp_docker_path+"/"+os.path.basename(msname).split(".ms")[0])
+    else:
+        index=wsclean_cmd_args.index("-name")
+        name=wsclean_cmd_args[index+1]
+        namedir=os.path.dirname(os.path.abspath(name))
+        basename=os.path.basename(os.path.abspath(name))
+        wsclean_cmd_args.remove(name)
+        wsclean_cmd_args.insert(index+1,temp_docker_path+"/"+basename)
+    if '-temp-dir' not in wsclean_cmd_args:
+        wsclean_cmd_args.append("-temp-dir "+temp_docker_path)
+    else:
+        index=wsclean_cmd_args.index("-temp-dir")
+        name=os.path.abspath(wsclean_cmd_args[index+1])
+        wsclean_cmd_args.remove(name)
+        wsclean_cmd_args.insert(index+1,temp_docker_path)
+    wsclean_cmd=" ".join(wsclean_cmd_args)+" "+temp_docker_path+"/"+os.path.basename(msname)    
     try:
-        msname = os.path.abspath(msname)
-        mspath = os.path.dirname(msname)
-        # Create a unique non - existing temporary directory
-        temp_docker_path = tempfile.mkdtemp(prefix="wsclean_udocker_")
-        temp_docker_ms = os.path.join(temp_docker_path, os.path.basename(msname))
-        # Create symbolic link for the MS file
-        os.symlink(msname, temp_docker_ms)
-        # Construct and execute udocker command
-        full_command = (
-            f"udocker run -- nobanner -- volume = {mspath}:{temp_docker_path} "
-            f" -- workdir {temp_docker_path} paircars_wsclean "
-            f'/bin/bash -c "{wsclean_cmd} {temp_docker_ms}"'
-        )
-        if verbose:
-            print(full_command)
+        full_command = f"udocker run --nobanner --volume={mspath}:{temp_docker_path} --workdir {temp_docker_path} meerwsclean {wsclean_cmd}" 
         exit_code = os.system(full_command)
-        # Cleanup temporary files
-        os.system(f"rm - rf {temp_docker_path}")
+        os.system(f"rm -rf {temp_docker_path}")
         return 0 if exit_code == 0 else 1
     except Exception as e:
-        print(f"Error: {e}")
+        os.system(f"rm -rf {temp_docker_path}")
+        traceback.print_exc()
+        return 1
+        
+def run_chgcenter(msname, ra, dec, container_name):
+    """
+    Run chgcenter inside a udocker container (no root permission required).
+    Parameters
+    ----------
+    msname : str
+        Name of the measurement set
+    ra : str
+        RA can either be 00h00m00.0s or 00:00:00.0
+    dec : str
+        Dec can either be 00d00m00.0s or 00.00.00.0
+    Returns
+    -------
+    int
+        Success message
+    """
+    container_present=check_udocker_container(container_name)
+    if container_present==False:
+        container_name=initialize_wsclean_container(container_name)
+        if container_name==None:
+            print ("Container {container_name} is not initiated. First initiate container and then run.")
+            return 1 
+    msname = os.path.abspath(msname)
+    mspath = os.path.dirname(msname)
+    temp_docker_path = tempfile.mkdtemp(prefix="chgcenter_udocker_",dir=mspath)
+    cmd="chgcentre "+temp_docker_path+"/"+os.path.basename(msname)+" "+ra+" "+dec    
+    try:
+        full_command = f"udocker run --nobanner --volume={mspath}:{temp_docker_path} --workdir {temp_docker_path} meerwsclean {cmd}" 
+        print(full_command)
+        exit_code = os.system(full_command)
+        os.system(f"rm -rf {temp_docker_path}")
+        return 0 if exit_code == 0 else 1
+    except Exception as e:
+        os.system(f"rm -rf {temp_docker_path}")
+        traceback.print_exc()
         return 1

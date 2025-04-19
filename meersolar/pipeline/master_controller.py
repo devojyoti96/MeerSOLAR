@@ -493,6 +493,8 @@ def master_control(
     do_imaging=True,
     weight="briggs",
     robust=0.0,
+    freqavg=-1,
+    timeavg=-1,
     image_freqres=-1,
     image_timeres=-1,
     target_freq_chunk=-1,
@@ -520,6 +522,18 @@ def master_control(
     caldir = workdir + "/caltables"
     selfcaldir = workdir + "/selfcaltables"
 
+    ##########################################################
+    # Determining maximum allowed time and frequency averaging
+    ##########################################################
+    if freqavg>0:
+        max_freqres=calc_bw_smearing_freqwidth(msname)
+        if freqavg>max_freqres:
+            freqavg=max_freqres
+    if timeavg>0:
+        max_timeres=calc_bw_smearing_freqwidth(msname)
+        if timeavg>max_timeres:
+            timeavg=max_timeres
+            
     #############################
     # Reset any previous weights
     ############################
@@ -554,8 +568,8 @@ def master_control(
             msname,
             workdir,
             datacolumn="data",
-            timeres=image_timeres,
-            freqres=image_freqres,
+            timeres=timeavg,
+            freqres=freqavg,
             target_freq_chunk=target_freq_chunk,
             cpu_frac=round(0.2*cpu_frac,2),
             mem_frac=round(0.2*mem_frac,2),
