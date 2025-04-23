@@ -9,14 +9,15 @@ os.system("rm -rf " + logfile)
 
 
 def single_mstransform(
-    msname,
-    outputms,
+    msname="",
+    outputms="",
     field="",
     scan="",
     width=1,
     timebin="",
     datacolumn="DATA",
     n_threads=-1,
+    dry_run=False,
 ):
     """
     Perform mstransform of a single scan
@@ -45,7 +46,10 @@ def single_mstransform(
     """
     limit_threads(n_threads=n_threads)
     from casatasks import mstransform
-
+    if dry_run:
+        process = psutil.Process(os.getpid())
+        mem = round(process.memory_info().rss / 1024**3, 2)  # in GB
+        return mem
     print(
         f"Transforming scan : {scan}, channel averaging: {width}, time averaging: {timebin}\n"
     )
@@ -78,7 +82,7 @@ def single_mstransform(
             separationaxis="scan",
             numsubms=1,
         )
-        gc.collect() 
+        gc.collect()
         return outputms
     except Exception as e:
         if os.path.exists(outputms):
@@ -132,6 +136,8 @@ def partion_ms(
     valid_scans = get_valid_scans(msname, min_scan_time=1)
     msmd = msmetadata()
     msname = os.path.abspath(msname.rstrip("/"))
+    mspath=os.path.dirname(msname)
+    os.chdir(mspath)
     msmd.open(msname)
     if scans != "":
         scan_list = scans.split(",")
@@ -172,26 +178,28 @@ def partion_ms(
     field_names = msmd.fieldnames()
     for scan in scan_list:
         field = msmd.fieldsforscan(scan)[0]
-        field_list.append(field_names[field])
+        field_list.append(str(field_names[field]))
     msmd.close()
     msmd.done()
-
+    field=",".join(field_list)
+    
     ###########################
     # Dask local cluster setup
     ###########################
+    task = delayed(single_mstransform)(dry_run=True)
+    mem_limit=run_limited_memory_task(task)
     dask_client, dask_cluster, n_jobs, n_threads = get_dask_client(
-        len(scan_list), cpu_frac, mem_frac
+        len(scan_list), cpu_frac, mem_frac, min_mem_per_job = mem_limit/0.8
     )
     tasks = []
     for i in range(len(scan_list)):
         scan = scan_list[i]
-        field = field_list[i]
         outputvis = os.path.dirname(msname) + "/scan_" + str(scan) + ".ms"
         task = delayed(single_mstransform)(
             msname,
             outputvis,
             scan=str(scan),
-            field=str(field),
+            field="",
             width=width,
             timebin=timebin,
             n_threads=n_threads,
@@ -216,13 +224,12 @@ def partion_ms(
     else:
         print("Making multi-MS ....")
         from casatasks import virtualconcat
-
         virtualconcat(vis=splited_ms_list, concatvis=outputms)
 
     print("##################")
     print("Total time taken : " + str(time.time() - start_time) + "s")
     print("##################\n")
-    gc.collect() 
+    gc.collect()
     return outputms
 
 

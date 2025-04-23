@@ -11,9 +11,14 @@ from casatasks import casalog
 logfile = casalog.logfile()
 os.system("rm -rf " + logfile)
 
-def split_casatask(msname, outputvis, scan, time_range, n_threads=-1):
+
+def split_casatask(msname="", outputvis="", scan="", time_range="", n_threads=-1, dry_run=False):
     limit_threads(n_threads=n_threads)
     from casatasks import split
+    if dry_run:
+        process = psutil.Process(os.getpid())
+        mem = round(process.memory_info().rss / 1024**3, 2)  # in GB
+        return mem
     split(
         vis=msname,
         outputvis=outputvis,
@@ -23,16 +28,19 @@ def split_casatask(msname, outputvis, scan, time_range, n_threads=-1):
         uvrange="0",
         correlation="XX,YY",
     )
-    gc.collect() 
     return outputvis
 
 
-def applycal_casatask(msname, caltable, applymode, n_threads=-1):
+def applycal_casatask(msname="", caltable="", applymode="", n_threads=-1, dry_run=False):
     limit_threads(n_threads=n_threads)
     from casatasks import applycal
+    if dry_run:
+        process = psutil.Process(os.getpid())
+        mem = round(process.memory_info().rss / 1024**3, 2)  # in GB
+        return mem
     applycal(vis=msname, gaintable=caltable, applymode=applymode)
-    gc.collect() 
-    return 
+    return
+
 
 def split_autocorr(
     msname, workdir, scan_list, time_window=-1, cpu_frac=0.8, mem_frac=0.8
@@ -59,8 +67,10 @@ def split_autocorr(
         Splited ms list
     """
     msname = msname.rstrip("/")
+    task = delayed(split_casatask)(dry_run=True)
+    mem_limit=run_limited_memory_task(task)
     dask_client, dask_cluster, n_jobs, n_threads = get_dask_client(
-        len(scan_list), cpu_frac, mem_frac
+        len(scan_list), cpu_frac, mem_frac, min_mem_per_job=mem_limit/0.8,
     )
     tasks = []
     for scan in scan_list:
@@ -99,10 +109,11 @@ def split_autocorr(
     dask_client.close()
     dask_cluster.close()
     os.system("rm -rf casa*log")
-    gc.collect() 
+
     return autocorr_mslist
 
-def get_on_off_power(msname,ant_list,on_cal,off_cal):
+
+def get_on_off_power(msname="", ant_list=[], on_cal="", off_cal="", dry_run=False):
     """
     Get noise diode on and off power averaged over antennas
     Parameters
@@ -122,6 +133,10 @@ def get_on_off_power(msname,ant_list,on_cal,off_cal):
     numpy.array
         Off average spectrum of power
     """
+    if dry_run:
+        process = psutil.Process(os.getpid())
+        mem = round(process.memory_info().rss / 1024**3, 2)  # in GB
+        return mem
     # Load caltables
     tb = table()
     tb.open(on_cal)
@@ -136,14 +151,14 @@ def get_on_off_power(msname,ant_list,on_cal,off_cal):
     ######################
     mstool = casamstool()
     mstool.open(msname)
-    mstool.select({'antenna1': ant_list, 'antenna2': ant_list, 'uvdist': [0., 0.]})
-    mstool.selectpolarization(['XX', 'YY'])
-    data_dict = mstool.getdata(['DATA', 'FLAG'], ifraxis=True)
+    mstool.select({"antenna1": ant_list, "antenna2": ant_list, "uvdist": [0.0, 0.0]})
+    mstool.selectpolarization(["XX", "YY"])
+    data_dict = mstool.getdata(["DATA", "FLAG"], ifraxis=True)
     mstool.close()
     del mstool
-    gc.collect()
-    data = np.abs(data_dict['data'])
-    data[data_dict['flag']] = np.nan
+
+    data = np.abs(data_dict["data"])
+    data[data_dict["flag"]] = np.nan
     del data_dict
     n_tstamps = min(data[..., ::2].shape[-1], data[..., 1::2].shape[-1])
     antslice = slice(min(ant_list), max(ant_list) + 1)
@@ -157,21 +172,26 @@ def get_on_off_power(msname,ant_list,on_cal,off_cal):
     gain_on_slice = gain_on[..., antslice]
     gain_off_slice = gain_off[..., antslice]
     del gain_on, gain_off
-    gc.collect()
+
     gain_on_exp = np.repeat(gain_on_slice[..., np.newaxis], data_on.shape[-1], axis=-1)
-    gain_off_exp = np.repeat(gain_off_slice[..., np.newaxis], data_off.shape[-1], axis=-1)
+    gain_off_exp = np.repeat(
+        gain_off_slice[..., np.newaxis], data_off.shape[-1], axis=-1
+    )
     del gain_on_slice, gain_off_slice
-    gc.collect()
+
     data_on /= gain_on_exp**2
     data_off /= gain_off_exp**2
     avg_on = np.nanmean(data_on, axis=2)
     avg_off = np.nanmean(data_off, axis=2)
     # Cleanup per chunk
     del data, data_on, data_off, gain_on_exp, gain_off_exp
-    gc.collect()
-    return avg_on,avg_off
 
-def get_power_diff(msname, on_cal, off_cal, n_threads=-1, memory_limit=-1):
+    return avg_on, avg_off
+
+
+def get_power_diff(
+    msname="", on_cal="", off_cal="", n_threads=-1, memory_limit=-1, dry_run=False
+):
     """
     Estimate power level difference between alternative correlator dumps.
 
@@ -193,7 +213,12 @@ def get_power_diff(msname, on_cal, off_cal, n_threads=-1, memory_limit=-1):
     numpy.array
         Power level difference spectra for both polarizations
     """
+    if dry_run:
+        process = psutil.Process(os.getpid())
+        mem = round(process.memory_info().rss / 1024**3, 2)  # in GB
+        return mem
     import warnings
+
     warnings.filterwarnings("ignore")
     starttime = time.time()
     limit_threads(n_threads=n_threads)
@@ -214,18 +239,22 @@ def get_power_diff(msname, on_cal, off_cal, n_threads=-1, memory_limit=-1):
     ntime = int(nrow / nbaselines)
     msmd.close()
     # Estimate per-antenna memory requirement
-    per_ant_memory = (npol * nchan * ntime * 16 * 5) / 1024.**3 #5 objects: data, data_on, data_off, gain_on_exp, gain_off_exp 
-    per_ant_flag_memory = (npol * nchan * ntime) / 1024.**3 # One flag object
-    memory_limit -= (2 * per_ant_memory/ 5.0) # 2 objects are in memory always
+    per_ant_memory = (
+        npol * nchan * ntime * 16 * 5
+    ) / 1024.0**3  # 5 objects: data, data_on, data_off, gain_on_exp, gain_off_exp
+    per_ant_flag_memory = (npol * nchan * ntime) / 1024.0**3  # One flag object
+    memory_limit -= 2 * per_ant_memory / 5.0  # 2 objects are in memory always
     nant_per_chunk = max(2, int(memory_limit / (per_ant_memory + per_ant_flag_memory)))
     nant_per_chunk = min(int(nant_per_chunk), nant)
     ant_blocks = [
-        list(range(i, min(i + nant_per_chunk, nant))) for i in range(0, nant, nant_per_chunk)]
+        list(range(i, min(i + nant_per_chunk, nant)))
+        for i in range(0, nant, nant_per_chunk)
+    ]
     on_data_avg = None
     off_data_avg = None
     for i, ant_block in enumerate(ant_blocks):
-        avg_on,avg_off=get_on_off_power(msname,ant_block,on_cal,off_cal)
-        gc.collect()
+        avg_on, avg_off = get_on_off_power(msname, ant_block, on_cal, off_cal)
+
         if i == 0:
             on_data_avg = avg_on
             off_data_avg = avg_off
@@ -234,7 +263,7 @@ def get_power_diff(msname, on_cal, off_cal, n_threads=-1, memory_limit=-1):
             off_data_avg = (off_data_avg + avg_off) / 2.0
     diff = np.nanmean((on_data_avg - off_data_avg), axis=-1)
     del on_data_avg, off_data_avg
-    gc.collect()
+
     return diff
 
 
@@ -311,15 +340,17 @@ def estimate_att(
         )
         if len(autocorr_mslist) == 0:
             print("No scans splited.")
-            gc.collect() 
+
             return 1, None, None
 
         ########################################
         # Apply solutions
         ########################################
-        print ("Applying calibrartion solutions auto-correlation measurement sets ...")
+        print("Applying calibrartion solutions auto-correlation measurement sets ...")
+        task = delayed(applycal_casatask)(dry_run=True)
+        mem_limit=run_limited_memory_task(task)
         dask_client, dask_cluster, n_jobs, n_threads = get_dask_client(
-            len(autocorr_mslist), cpu_frac, mem_frac
+            len(autocorr_mslist), cpu_frac, mem_frac, min_mem_per_job=mem_limit/0.8,
         )
         tasks = []
         for autocorr_msname in autocorr_mslist:
@@ -338,18 +369,20 @@ def estimate_att(
         ##########################################
         # Flagging on corrected data
         ##########################################
-        print ("Flagging auto-correlation measurement sets ...")
+        print("Flagging auto-correlation measurement sets ...")
         fluxcal_fields, fluxcal_scans = get_fluxcals(msname)
         badspw = get_bad_chans(msname)
         bad_ants, bad_ants_str = get_bad_ants(msname, fieldnames=fluxcal_fields)
+        task = delayed(single_ms_flag)(dry_run=True)
+        mem_limit=run_limited_memory_task(task)
         dask_client, dask_cluster, n_jobs, n_threads = get_dask_client(
-            len(autocorr_mslist), cpu_frac, mem_frac
+            len(autocorr_mslist), cpu_frac, mem_frac, min_mem_per_job=mem_limit/0.8,
         )
         workers = list(dask_client.scheduler_info()["workers"].items())
         addr, stats = workers[0]
-        memory_limit=stats['memory_limit']/1024**3
-        target_frac=config.get("distributed.worker.memory.target")
-        memory_limit*=target_frac
+        memory_limit = stats["memory_limit"] / 1024**3
+        target_frac = config.get("distributed.worker.memory.target")
+        memory_limit *= target_frac
         tasks = []
         for autocorr_msname in autocorr_mslist:
             tasks.append(
@@ -373,32 +406,34 @@ def estimate_att(
         # Calculating fluxcal power levels
         ###########################################
         total_cpus = psutil.cpu_count(logical=True)
-        free_cpu_percentages = 100-psutil.cpu_percent(interval=1)
-        total_cpus=int(total_cpus*free_cpu_percentages/100.0)
+        free_cpu_percentages = 100 - psutil.cpu_percent(interval=1)
+        total_cpus = int(total_cpus * free_cpu_percentages / 100.0)
         usable_cpus = int(total_cpus * (1 - cpu_frac))
         n_threads = max(1, usable_cpus)
         total_mem = psutil.virtual_memory().available
-        memory_limit = (total_mem * (1 - mem_frac))/1024**3
+        memory_limit = (total_mem * (1 - mem_frac)) / 1024**3
         d_fluxcal_spectra = get_power_diff(
             f"{workdir}/autocorr_scan_{noise_diode_flux_scan}.ms",
             noise_on_caltable,
             noise_off_caltable,
-            n_threads = n_threads,
-            memory_limit=memory_limit
+            n_threads=n_threads,
+            memory_limit=memory_limit,
         )
         att_level = {}
         ########################################
         # Calculating per scan level
         ########################################
-        print ("Calculating noise-diode power difference ...")
+        print("Calculating noise-diode power difference ...")
+        task = delayed(get_power_diff)(dry_run=True)
+        mem_limit=run_limited_memory_task(task)
         dask_client, dask_cluster, n_jobs, n_threads = get_dask_client(
-            len(valid_target_scans), cpu_frac, mem_frac
+            len(valid_target_scans), cpu_frac, mem_frac, min_mem_per_job=mem_limit/0.8
         )
         workers = list(dask_client.scheduler_info()["workers"].items())
         addr, stats = workers[0]
-        memory_limit=stats['memory_limit']/1024**3
-        target_frac=config.get("distributed.worker.memory.target")
-        memory_limit*=target_frac
+        memory_limit = stats["memory_limit"] / 1024**3
+        target_frac = config.get("distributed.worker.memory.target")
+        memory_limit *= target_frac
         all_scaling_files = []
         filtered_scans = []
         tasks = []
@@ -411,8 +446,8 @@ def estimate_att(
                     f"{workdir}/autocorr_scan_{scan}.ms",
                     noise_off_caltable,
                     noise_off_caltable,
-                    n_threads = n_threads,
-                    memory_limit=memory_limit
+                    n_threads=n_threads,
+                    memory_limit=memory_limit,
                 )
             )
             filtered_scans.append(scan)
@@ -436,12 +471,12 @@ def estimate_att(
             np.save(filename, np.array([scan, freqs, att_value], dtype="object"))
             all_scaling_files.append(filename + ".npy")
         os.system("rm -rf casa*log")
-        gc.collect() 
+
         return 0, att_level, all_scaling_files
     except Exception as e:
         traceback.print_exc()
         os.system("rm -rf casa*log")
-        gc.collect() 
+
         return 1, None, None
 
 
@@ -477,6 +512,7 @@ def run_noise_cal(
     """
     start_time = time.time()
     try:
+        os.chdir(workdir)
         msname = msname.rstrip("/")
         workdir = workdir.rstrip("/")
         print("##############################################")
@@ -485,7 +521,9 @@ def run_noise_cal(
         ###################################
         # Determining noise diode cal scans
         ###################################
-        target_scans, cal_scans, f_scans, g_scans, p_scans = get_cal_target_scans(msname)
+        target_scans, cal_scans, f_scans, g_scans, p_scans = get_cal_target_scans(
+            msname
+        )
         valid_scans = get_valid_scans(msname)
         noise_diode_cal_scan = ""
         for scan in cal_scans:
@@ -503,7 +541,7 @@ def run_noise_cal(
             print("##################")
             print("Total time taken : ", time.time() - start_time)
             print("##################\n")
-            gc.collect() 
+
             return 1, None, None
 
         ##############################
@@ -647,11 +685,11 @@ def run_noise_cal(
         print("Total time taken : ", time.time() - start_time)
         print("##################\n")
         os.system("rm -rf casa*log")
-        gc.collect() 
+
         return msg, att_level, all_scaling_files
     except Exception as e:
         traceback.print_exc()
-        '''os.system(
+        """os.system(
             "rm -rf "
             + noisecal_ms
             + " "
@@ -661,12 +699,12 @@ def run_noise_cal(
             + " "
             + workdir
             + "/autocorr_scan_*.ms*"
-        )'''
+        )"""
         print("##################")
         print("Total time taken : ", time.time() - start_time)
         print("##################\n")
         os.system("rm -rf casa*log")
-        gc.collect() 
+
         return 1, None, None
 
 

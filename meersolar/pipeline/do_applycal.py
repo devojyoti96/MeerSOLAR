@@ -11,6 +11,7 @@ from casatasks import casalog
 logfile = casalog.logfile()
 os.system("rm -rf " + logfile)
 
+
 def interpolate_nans(data):
     """Linearly interpolate NaNs in 1D array."""
     nans = np.isnan(data)
@@ -62,7 +63,7 @@ def filter_outliers(data, threshold=5, max_iter=3):
         # Replace outliers with NaN
         filtered_data = np.where(combined_mask, data, np.nan)
         data = copy.deepcopy(filtered_data)
-    gc.collect() 
+
     return filtered_data
 
 
@@ -86,10 +87,10 @@ def scale_bandpass(bandpass_table, att_table, n=15):
     warnings.filterwarnings("ignore", category=RuntimeWarning)
     if att_table == "":
         print(f"No attenuation caltable is provided for scan : {scan}")
-        return 
+        return
     print(f"Attenuation table: {att_table}")
     scan, freqs, att_values = np.load(att_table, allow_pickle=True)
-    output_table=bandpass_table.split(".bcal")[0] + "_scan_" + str(scan) + ".bcal"
+    output_table = bandpass_table.split(".bcal")[0] + "_scan_" + str(scan) + ".bcal"
     tb = table()
     tb.open(f"{bandpass_table}/SPECTRAL_WINDOW")
     caltable_freqs = tb.getcol("CHAN_FREQ").flatten()
@@ -138,11 +139,12 @@ def scale_bandpass(bandpass_table, att_table, n=15):
     tb.flush()
     tb.close()
     os.system("rm -rf casa*log")
-    gc.collect() 
+
     return output_table
 
+
 def applysol(
-    msname, scan, gaintable=[], gainfield=[], interp=[], n_threads=-1
+    msname="", scan="", gaintable=[], gainfield=[], interp=[], n_threads=-1, dry_run=False
 ):
     """
     Apply flux calibrated and attenuation calibrated solutions
@@ -164,6 +166,10 @@ def applysol(
     limit_threads(n_threads=n_threads)
     from casatasks import applycal
 
+    if dry_run:
+        process = psutil.Process(os.getpid())
+        mem = round(process.memory_info().rss / 1024**3, 2)  # in GB
+        return mem
     print(f"Applying solutions on ms: {msname} of scan : {scan}")
     try:
         applycal(
@@ -176,16 +182,24 @@ def applysol(
             flagbackup=True,
         )
         os.system("rm -rf casa*log")
-        gc.collect() 
+
         return 0
     except Exception as e:
         traceback.print_exc()
         os.system("rm -rf casa*log")
-        gc.collect() 
+
         return 1
 
 
-def run_all_applysol(mslist, workdir, caldir, use_only_bandpass=False, use_only_fluxcal=False, cpu_frac=0.8, mem_frac=0.8):
+def run_all_applysol(
+    mslist,
+    workdir,
+    caldir,
+    use_only_bandpass=False,
+    use_only_fluxcal=False,
+    cpu_frac=0.8,
+    mem_frac=0.8,
+):
     """
     Apply calibrator solutions on all target scans
     Parameters
@@ -211,76 +225,86 @@ def run_all_applysol(mslist, workdir, caldir, use_only_bandpass=False, use_only_
     """
     start_time = time.time()
     try:
-        mslist=np.unique(mslist).tolist()
+        os.chdir(workdir)
+        mslist = np.unique(mslist).tolist()
         os.system("rm -rf " + caldir + "/*scan*.bcal")
         att_caltables = glob.glob(caldir + "/*_attval_scan_*.npy")
         bandpass_table = glob.glob(caldir + "/*.bcal")
         delay_table = glob.glob(caldir + "/*.kcal")
         gain_table = glob.glob(caldir + "/*.gcal")
         flux_table = glob.glob(caldir + "/*.fcal")
-        gaintable=[]
+        gaintable = []
         if len(bandpass_table) == 0:
-            print (f"No bandpass table is present in calibration directory : {caldir}.")
+            print(f"No bandpass table is present in calibration directory : {caldir}.")
             return []
         if len(gain_table) == 0 and len(flux_table) == 0:
-            print (f"No time-dependent gaintable is present in calibration directory : {caldir}. Applying only bandpass solutions.") 
-            use_only_bandpass=True
+            print(
+                f"No time-dependent gaintable is present in calibration directory : {caldir}. Applying only bandpass solutions."
+            )
+            use_only_bandpass = True
         if len(gain_table) != 0 and len(flux_table) == 0:
-            print (f"No time-dependent fluxscaled gaintable is present in calibration directory : {caldir}. Applying solutions only from fluxcal.") 
-            use_only_fluxcal=True
-            flux_table=gain_table
+            print(
+                f"No time-dependent fluxscaled gaintable is present in calibration directory : {caldir}. Applying solutions only from fluxcal."
+            )
+            use_only_fluxcal = True
+            flux_table = gain_table
         ################################
         # Scale bandpass for attenuators
         ################################
-        if len(att_caltables)==0:
-            print ("No attenuation table is present. Bandpass is scaled for attenuation.")
-        else: 
+        if len(att_caltables) == 0:
+            print(
+                "No attenuation table is present. Bandpass is scaled for attenuation."
+            )
+        else:
             dask_client, dask_cluster, n_jobs, n_threads = get_dask_client(
                 len(att_caltables), cpu_frac, mem_frac
             )
-            tasks = []  
+            tasks = []
             for att in att_caltables:
-                tasks.append(
-                    delayed(scale_bandpass)(bandpass_table[0],att))
-            scaled_bandpass_list = compute(*tasks)  
+                tasks.append(delayed(scale_bandpass)(bandpass_table[0], att))
+            scaled_bandpass_list = compute(*tasks)
             dask_client.close()
-            dask_cluster.close()   
+            dask_cluster.close()
         ###############################
         # Arranging applycal parameters
-        ############################### 
-        if len(delay_table)!=0:
+        ###############################
+        if len(delay_table) != 0:
             gaintable = delay_table
-        if len(flux_table)!=0 and use_only_bandpass==False:
-            gaintable+=flux_table
-        gainfield=[]
-        if use_only_fluxcal==True:
+        if len(flux_table) != 0 and use_only_bandpass == False:
+            gaintable += flux_table
+        gainfield = []
+        if use_only_fluxcal == True:
             print("Using only fluxcal solutions")
-            fluxcal_fields=get_caltable_fields(bandpass_table[0])
-            gainfield=["",','.join(fluxcal_fields)]     
+            fluxcal_fields = get_caltable_fields(bandpass_table[0])
+            gainfield = ["", ",".join(fluxcal_fields)]
         ####################################
         # Applycal jobs
         ####################################
-        print (f"Total ms list: {len(mslist)}")
+        print(f"Total ms list: {len(mslist)}")
+        task = delayed(applysol)(dry_run=True)
+        mem_limit=run_limited_memory_task(task)
         dask_client, dask_cluster, n_jobs, n_threads = get_dask_client(
-            len(mslist), cpu_frac, mem_frac
+            len(mslist), cpu_frac, mem_frac, min_mem_per_job=mem_limit/0.8
         )
         tasks = []
-        scaled_bandpass_scans=[int(a.split('scan_')[-1].split('.bcal')[0]) for a in scaled_bandpass_list]
+        scaled_bandpass_scans = [
+            int(a.split("scan_")[-1].split(".bcal")[0]) for a in scaled_bandpass_list
+        ]
         msmd = msmetadata()
         for ms in mslist:
             msmd.open(ms)
             scans = msmd.scannumbers()
             msmd.close()
             for scan in scans:
-                pos=scaled_bandpass_scans.index(scan)
-                bandpass_table=scaled_bandpass_list[pos]
+                pos = scaled_bandpass_scans.index(scan)
+                bandpass_table = scaled_bandpass_list[pos]
                 gainfield.append("")
                 interp = ["nearest"] * len(gaintable)
                 tasks.append(
                     delayed(applysol)(
                         ms,
                         scan,
-                        gaintable=gaintable+[bandpass_table],
+                        gaintable=gaintable + [bandpass_table],
                         gainfield=gaintable,
                         interp=interp,
                         n_threads=n_threads,

@@ -17,7 +17,8 @@ This code is written by Devojyoti Kansabanik, Jul 30, 2023
 # Polarization models needs to modified for final use
 #####################################################
 
-datadir=get_datadir()
+datadir = get_datadir()
+
 
 def get_polmodel_coeff(model_file):
     """
@@ -32,22 +33,23 @@ def get_polmodel_coeff(model_file):
         Reference frequency in GHz
     float
         Stokes I flux density in Jy at reference frequency
-    list 
+    list
         Stokes I spectrum log-polynomial coefficients
     list
         List of linear polarization fraction polynomial coefficients
     list
-        List of linear polarization angle (in radians) coefficients 
+        List of linear polarization angle (in radians) coefficients
     """
-    freq, I, pfrac, pangle = np.loadtxt(model_file,unpack=True,skiprows=5)
-    ref_freq=freq[0]
-    x=(freq-ref_freq)/ref_freq
-    polyI=np.polyfit(np.log10(x[1:]),np.log10(I[1:]),deg=5)[::-1]
-    poly_pfrac=np.polyfit(x,pfrac,deg=5)[::-1]
-    poly_pangle=np.polyfit(x,pangle,deg=5)[::-1]
-    return ref_freq,I[0],polyI[1:],poly_pfrac,poly_pangle
+    freq, I, pfrac, pangle = np.loadtxt(model_file, unpack=True, skiprows=5)
+    ref_freq = freq[0]
+    x = (freq - ref_freq) / ref_freq
+    polyI = np.polyfit(np.log10(x[1:]), np.log10(I[1:]), deg=5)[::-1]
+    poly_pfrac = np.polyfit(x, pfrac, deg=5)[::-1]
+    poly_pangle = np.polyfit(x, pangle, deg=5)[::-1]
+    return ref_freq, I[0], polyI[1:], poly_pfrac, poly_pangle
 
-def polcal_setjy(msname, scan , n_threads = -1):
+
+def polcal_setjy(msname="", scan="", n_threads=-1, dry_run=False):
     """
     Setjy polcal fields (3C286 or 3C138)
     Parameters
@@ -59,20 +61,29 @@ def polcal_setjy(msname, scan , n_threads = -1):
     n_threads : int, optional
         Number of OpenMP threads
     """
-    try: 
-        limit_threads(n_threads=n_threads)
-        from casatasks import setjy
-        msmd=msmetadata()
+    limit_threads(n_threads=n_threads)
+    from casatasks import setjy
+
+    if dry_run:
+        process = psutil.Process(os.getpid())
+        mem = round(process.memory_info().rss / 1024**3, 2)  # in GB
+        return mem
+    try:
+        msmd = msmetadata()
         msmd.open(msname)
-        field_names=msmd.fieldnames()
-        field=msmd.fieldsforscan(int(scan))[0]
+        field_names = msmd.fieldnames()
+        field = msmd.fieldsforscan(int(scan))[0]
         msmd.close()
-        field_name=field_names[field]
-        print (f"Polarization calibrator field name : {field_name}")
+        field_name = field_names[field]
+        print(f"Polarization calibrator field name : {field_name}")
         if field_name in ["3C286", "1328+307", "1331+305", "J1331+3030"]:
-            ref_freq,I,polyI,poly_pfrac,poly_pangle=get_polmodel_coeff(datadir+'/3C286_pol_model.txt')
+            ref_freq, I, polyI, poly_pfrac, poly_pangle = get_polmodel_coeff(
+                datadir + "/3C286_pol_model.txt"
+            )
         elif field_name in ["3C138", "0518+165", "0521+166", "J0521+1638"]:
-            ref_freq,I,polyI,poly_pfrac,poly_pangle=get_polmodel_coeff(datadir+'/3C138_pol_model.txt')
+            ref_freq, I, polyI, poly_pfrac, poly_pangle = get_polmodel_coeff(
+                datadir + "/3C138_pol_model.txt"
+            )
         else:
             print("Field name is not either of the polcal, 3C286 or 3C138.")
             return 1
@@ -88,13 +99,14 @@ def polcal_setjy(msname, scan , n_threads = -1):
             polindex=poly_pfrac,
             polangle=poly_pangle,
             rotmeas=0,
-            usescratch=True
+            usescratch=True,
         )
     except Exception as e:
         traceback.print_exc()
-    return 
+    return
 
-def phasecal_setjy(msname,field='',ismms=False,n_threads=-1):
+
+def phasecal_setjy(msname="", field="", ismms=False, n_threads=-1, dry_run=False):
     """
     Setjy phasecal fields
     Parameters
@@ -108,14 +120,26 @@ def phasecal_setjy(msname,field='',ismms=False,n_threads=-1):
     n_threads : int, optional
         Number of OpenMP threads
     """
+    limit_threads(n_threads=n_threads)
+    from casatasks import setjy
+    if dry_run:
+        process = psutil.Process(os.getpid())
+        mem = round(process.memory_info().rss / 1024**3, 2)  # in GB
+        return mem
     try:
-        limit_threads(n_threads=n_threads)
-        from casatasks import setjy
-        setjy(vis=msname,field=field,standard="manual",fluxdensity=[1.0, 0, 0, 0],usescratch=True,ismms=ismms)
+        setjy(
+            vis=msname,
+            field=field,
+            standard="manual",
+            fluxdensity=[1.0, 0, 0, 0],
+            usescratch=True,
+            ismms=ismms,
+        )
     except Exception as e:
         traceback.print_exc()
     return
-    
+
+
 def import_fluxcal_models(msname, ncpus=1, mem_frac=0.8):
     """
     Import model visibilities using crystalball
@@ -142,11 +166,11 @@ def import_fluxcal_models(msname, ncpus=1, mem_frac=0.8):
         print("##############################")
         bandname = get_band_name(msname)
         cpu_count = psutil.cpu_count()
-        ncpus=max(1,ncpus)
-        ncpus=min(ncpus,cpu_count-1)
-        mem_frac = max(mem_frac,0.8)
+        ncpus = max(1, ncpus)
+        ncpus = min(ncpus, cpu_count - 1)
+        mem_frac = max(mem_frac, 0.8)
         for fluxcal in fluxcal_fields:
-            modelname = datadir+"/"+fluxcal + "_" + bandname + "_model.txt"
+            modelname = datadir + "/" + fluxcal + "_" + bandname + "_model.txt"
             crys_cmd_args = [
                 "-sm " + modelname,
                 "-f " + fluxcal,
@@ -168,7 +192,8 @@ def import_fluxcal_models(msname, ncpus=1, mem_frac=0.8):
         traceback.print_exc()
         return 1
 
-def import_phasecal_models(msname,cpu_frac=0.8,mem_frac=0.8):
+
+def import_phasecal_models(msname, cpu_frac=0.8, mem_frac=0.8):
     """
     Import model visibilities for phasecal
     Parameters
@@ -189,19 +214,30 @@ def import_phasecal_models(msname,cpu_frac=0.8,mem_frac=0.8):
         print("Import phasecal models")
         print("##########################")
         phasecal_fields, phasecal_scans, phasecal_flux_list = get_phasecals(msname)
-        target_scans, cal_scans, f_scans, g_scans, p_scans = get_cal_target_scans(msname)
+        target_scans, cal_scans, f_scans, g_scans, p_scans = get_cal_target_scans(
+            msname
+        )
         if os.path.exists(msname + "/SUBMSS"):
             mslist, scans = get_submsname_scans(msname)
+            task = delayed(phasecal_setjy)(dry_run=True)
+            mem_limit=run_limited_memory_task(task)
             dask_client, dask_cluster, n_jobs, n_threads = get_dask_client(
-                len(mslist), cpu_frac, mem_frac
+                len(mslist), cpu_frac, mem_frac, min_mem_per_job=mem_limit/0.8,
             )
-            tasks=[]
+            tasks = []
             for i in range(len(mslist)):
-                ms=mslist[i]
-                scan=scans[i]
+                ms = mslist[i]
+                scan = scans[i]
                 if scan in g_scans:
-                    tasks.append(delayed(phasecal_setjy)(ms,field=",".join(phasecal_fields),ismms=True,n_threads=n_threads))
-            results=compute(*tasks)
+                    tasks.append(
+                        delayed(phasecal_setjy)(
+                            ms,
+                            field=",".join(phasecal_fields),
+                            ismms=True,
+                            n_threads=n_threads,
+                        )
+                    )
+            results = compute(*tasks)
             dask_client.close()
             dask_cluster.close()
         else:
@@ -209,9 +245,11 @@ def import_phasecal_models(msname,cpu_frac=0.8,mem_frac=0.8):
                 print("No phase calibrator fields.")
                 return 1
             cpu_count = psutil.cpu_count()
-            ncpus=max(1,ncpus)
-            ncpus=min(ncpus,cpu_count-1)
-            phasecal_setjy(msname,field=",".join(phasecal_fields),ismms=False,n_threads=ncpus)
+            ncpus = max(1, ncpus)
+            ncpus = min(ncpus, cpu_count - 1)
+            phasecal_setjy(
+                msname, field=",".join(phasecal_fields), ismms=False, n_threads=ncpus
+            )
         print("Phasecal models are initiated.\n")
         return 0
     except Exception as e:
@@ -219,7 +257,8 @@ def import_phasecal_models(msname,cpu_frac=0.8,mem_frac=0.8):
         traceback.print_exc()
         return 1
 
-def import_polcal_model(msname, cpu_frac = 0.8, mem_frac = 0.8):
+
+def import_polcal_model(msname, cpu_frac=0.8, mem_frac=0.8):
     """
     Import model for polarization calibrators (3C286 or 3C138)
     Parameters
@@ -234,22 +273,28 @@ def import_polcal_model(msname, cpu_frac = 0.8, mem_frac = 0.8):
         Success message
     """
     try:
-        target_scans, cal_scans, f_scans, g_scans, p_scans = get_cal_target_scans(msname)
-        if len(p_scans)==0:
-            print ("No polarization calibrator scans is present.")
+        target_scans, cal_scans, f_scans, g_scans, p_scans = get_cal_target_scans(
+            msname
+        )
+        if len(p_scans) == 0:
+            print("No polarization calibrator scans is present.")
             return 1
         if os.path.exists(msname + "/SUBMSS"):
             mslist, scans = get_submsname_scans(msname)
+            task = delayed(polcal_setjy)(dry_run=True)
+            mem_limit=run_limited_memory_task(task)
             dask_client, dask_cluster, n_jobs, n_threads = get_dask_client(
-                len(p_scans), cpu_frac, mem_frac
+                len(p_scans), cpu_frac, mem_frac, min_mem_per_job=mem_limit/0.8
             )
-            tasks=[]
+            tasks = []
             for i in range(len(mslist)):
-                ms=mslist[i]
-                scan=scans[i]
+                ms = mslist[i]
+                scan = scans[i]
                 if scan in p_scans:
-                    tasks.append(delayed(polcal_setjy)(ms,scan,ismms=True,n_threads=n_threads))
-            results=compute(*tasks)
+                    tasks.append(
+                        delayed(polcal_setjy)(ms, scan, ismms=True, n_threads=n_threads)
+                    )
+            results = compute(*tasks)
             dask_client.close()
             dask_cluster.close()
             return 0
@@ -258,13 +303,14 @@ def import_polcal_model(msname, cpu_frac = 0.8, mem_frac = 0.8):
                 print("No polarization calibrator scans.")
                 return 1
             cpu_count = psutil.cpu_count()
-            ncpus=max(1,ncpus)
-            ncpus=min(ncpus,cpu_count-1)
+            ncpus = max(1, ncpus)
+            ncpus = min(ncpus, cpu_count - 1)
             for scan in p_scans:
-                polcal_setjy(msname,scan,ismms=False,n_threads=ncpus)
+                polcal_setjy(msname, scan, ismms=False, n_threads=ncpus)
     except Exception as e:
         traceback.print_exc()
         return 1
+
 
 def import_all_models(msname, cpu_frac=0.8, mem_frac=0.8):
     """
@@ -287,14 +333,21 @@ def import_all_models(msname, cpu_frac=0.8, mem_frac=0.8):
     ncpu = int(cpu_threads * cpu_frac)
     mem_frac = 1 - mem_frac
     try:
+        msname=msname.rstrip("/")
+        mspath=os.path.dirname(os.path.abspath(msname))
+        os.chdir(mspath)
         fluxcal_result = import_fluxcal_models(msname, ncpus=ncpu, mem_frac=mem_frac)
         if fluxcal_result != 0:
             print("##################")
             print("Total time taken : " + str(time.time() - start_time) + "s")
             print("##################\n")
             return fluxcal_result, 1, 1
-        phasecal_result = import_phasecal_models(msname, cpu_frac=cpu_frac, mem_frac=mem_frac)
-        polcal_result = import_polcal_model(msname, cpu_frac = cpu_frac, mem_frac = mem_frac)
+        phasecal_result = import_phasecal_models(
+            msname, cpu_frac=cpu_frac, mem_frac=mem_frac
+        )
+        polcal_result = import_polcal_model(
+            msname, cpu_frac=cpu_frac, mem_frac=mem_frac
+        )
         if phasecal_result != 0:
             print(
                 "Phasecal model was not import, but fluxcal model import is successful."
@@ -369,15 +422,15 @@ def main():
                 cpu_frac=float(options.cpu_frac),
                 mem_frac=float(options.mem_frac),
             )
-            os.system("touch "+workdir+"/.fluxcal_"+str(fluxcal_result))
-            os.system("touch "+workdir+"/.phasecal_"+str(phasecal_result))
-            os.system("touch "+workdir+"/.polcal_"+str(polcal_result))
+            os.system("touch " + workdir + "/.fluxcal_" + str(fluxcal_result))
+            os.system("touch " + workdir + "/.phasecal_" + str(phasecal_result))
+            os.system("touch " + workdir + "/.polcal_" + str(polcal_result))
             return 0
         except Exception as e:
             traceback.print_exc()
-            os.system("touch "+workdir+"/.fluxcal_1")
-            os.system("touch "+workdir+"/.phasecal_1")
-            os.system("touch "+workdir+"/.polcal_1")
+            os.system("touch " + workdir + "/.fluxcal_1")
+            os.system("touch " + workdir + "/.phasecal_1")
+            os.system("touch " + workdir + "/.polcal_1")
             return 1
     else:
         print("Please provide correct measurement set.\n")

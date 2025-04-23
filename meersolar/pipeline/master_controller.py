@@ -8,9 +8,7 @@ logfile = casalog.logfile()
 os.system("rm -rf " + logfile)
 
 
-def run_flag(
-    msname, workdir, flag_calibrators=True, cpu_frac=0.8, mem_frac=0.8
-):
+def run_flag(msname, workdir, flag_calibrators=True, cpu_frac=0.8, mem_frac=0.8):
     """
     Run flagging jobs
     Parameters
@@ -213,7 +211,7 @@ def run_noise_diode_cal(msname, workdir, cpu_frac=0.8, mem_frac=0.8):
         print("Performing noise diode based flux calibration .....")
         print("###########################\n")
         msname = msname.rstrip("/")
-        noisecal_basename = "noise_cal" 
+        noisecal_basename = "noise_cal"
         noise_cal_cmd = (
             "run_fluxcal --msname "
             + msname
@@ -237,9 +235,7 @@ def run_noise_diode_cal(msname, workdir, cpu_frac=0.8, mem_frac=0.8):
         return 1
 
 
-def run_partion(
-    msname, workdir, partition_cal=True, cpu_frac=0.8, mem_frac=0.8
-):
+def run_partion(msname, workdir, partition_cal=True, cpu_frac=0.8, mem_frac=0.8):
     """
     Perform basic calibration
     Parameters
@@ -376,15 +372,15 @@ def run_target_split(
         print("spliting target scans .....")
         print("###########################\n")
         msname = msname.rstrip("/")
-        if target_freq_chunk>0:
-            msmd=msmetadata()
+        if target_freq_chunk > 0:
+            msmd = msmetadata()
             msmd.open(msname)
-            chanres=msmd.chanres(0,unit='MHz')[0]
+            chanres = msmd.chanres(0, unit="MHz")[0]
             msmd.close()
-            spectral_chunk=int(target_freq_chunk/chanres)
-            spectral_chunk=max(1,spectral_chunk)
+            spectral_chunk = int(target_freq_chunk / chanres)
+            spectral_chunk = max(1, spectral_chunk)
         else:
-            spectral_chunk=1    
+            spectral_chunk = 1
         split_basename = "split_targets"
         split_cmd = (
             "run_target_split --msname "
@@ -415,7 +411,15 @@ def run_target_split(
         return 1
 
 
-def run_applycal(target_mslist, workdir, caldir, use_only_bandpass=False, use_only_fluxcal=False,  cpu_frac=0.8, mem_frac=0.8):
+def run_applycal(
+    target_mslist,
+    workdir,
+    caldir,
+    use_only_bandpass=False,
+    use_only_fluxcal=False,
+    cpu_frac=0.8,
+    mem_frac=0.8,
+):
     """
     Apply calibration solutions on splited target scans
     Parameters
@@ -472,6 +476,29 @@ def run_applycal(target_mslist, workdir, caldir, use_only_bandpass=False, use_on
         traceback.print_exc()
         return 1
 
+def check_status(workdir,basename):
+    """
+    Check job status
+    Parameters
+    ----------
+    workdir : str
+        Work directory
+    basename : str
+        Basename
+    Returns
+    -------
+    int
+        Success code
+    """
+    finished_file = glob.glob(workdir + "/.Finished_" + basename + "*")
+    if len(finished_file) > 0:
+        success_index_split_target = int(finished_file[0].split("_")[-1])
+        if success_index_split_target == 0:
+            return 0
+        else:
+            return 1
+    else:
+        return 1
 
 def master_control(
     msname,
@@ -503,9 +530,6 @@ def master_control(
     n_nodes=1,
     verbose=False,
 ):
-    cpu_frac_bkp, mem_frac_bkp = copy.deepcopy(cpu_frac), copy.deepcopy(
-        mem_frac
-    )
     print("###########################")
     print("Starting the pipeline .....")
     print("###########################\n")
@@ -519,21 +543,25 @@ def master_control(
         workdir = workdir[:-1]
     if os.path.exists(workdir) == False:
         os.makedirs(workdir)
+    os.chdir(workdir)
     caldir = workdir + "/caltables"
     selfcaldir = workdir + "/selfcaltables"
-
+    frac_compute_use = 1.0 # Fraction of total allocated compute resource to use 
+    
     ##########################################################
     # Determining maximum allowed time and frequency averaging
     ##########################################################
-    if freqavg>0:
-        max_freqres=calc_bw_smearing_freqwidth(msname)
-        if freqavg>max_freqres:
-            freqavg=max_freqres
-    if timeavg>0:
-        max_timeres=calc_bw_smearing_freqwidth(msname)
-        if timeavg>max_timeres:
-            timeavg=max_timeres
-            
+    if freqavg > 0:
+        max_freqres = calc_bw_smearing_freqwidth(msname)
+        if freqavg > max_freqres:
+            freqavg = round(max_freqres, 2)
+    if timeavg > 0:
+        max_timeres = min(
+            calc_time_smearing_timewidth(msname), max_time_solar_smearing(msname)
+        )
+        if timeavg > max_timeres:
+            timeavg = round(max_timeres, 2)
+
     #############################
     # Reset any previous weights
     ############################
@@ -542,27 +570,22 @@ def master_control(
         total_cpus = psutil.cpu_count(logical=True)
         available_cpus = int(total_cpus * (1 - cpu_usage / 100.0))
         available_cpus = max(1, available_cpus)  # Avoid zero workers
-        reset_weights_and_flags(
-            msname, n_threads=available_cpus
-        )
-
+        reset_weights_and_flags(msname, n_threads=available_cpus)
+        
     ##############################
     # Run partitioning jobs
     ##############################
     calibrator_msname = workdir + "/calibrator.ms"
     target_msname = workdir + "/target.ms"
     if do_partition or os.path.exists(workdir + "/calibrator.ms") == False:
-        msg = run_partion(
-            msname, workdir, cpu_frac=cpu_frac, mem_frac=mem_frac
-        )
+        msg = run_partion(msname, workdir, cpu_frac=round(frac_compute_use*cpu_frac,2), mem_frac=round(frac_compute_use*mem_frac,2))
         if msg != 0:
             print("!!!! WARNING: Error in partitioning calibrator fields. !!!!")
             return 1
-
+   
     #########################################
     # Spliting target scans
     #########################################
-    frac=1.0
     if do_target_split:
         msg = run_target_split(
             msname,
@@ -571,14 +594,13 @@ def master_control(
             timeres=timeavg,
             freqres=freqavg,
             target_freq_chunk=target_freq_chunk,
-            cpu_frac=round(0.2*cpu_frac,2),
-            mem_frac=round(0.2*mem_frac,2),
+            cpu_frac=round(0.2 * cpu_frac, 2),
+            mem_frac=round(0.2 * mem_frac, 2),
         )
-        frac=0.8
+        frac_compute_use = frac_compute_use-0.2
         if msg != 0:
             print("!!!! WARNING: Error in running spliting target scans. !!!!")
-            
-
+               
     ##################################
     # Run flagging jobs on calibrators
     ##################################
@@ -587,13 +609,15 @@ def master_control(
             calibrator_msname,
             workdir,
             flag_calibrators=True,
-            cpu_frac=round(frac*cpu_frac,2),
-            mem_frac=round(frac*mem_frac,2),
+            cpu_frac=round(frac_compute_use * cpu_frac, 2),
+            mem_frac=round(frac_compute_use * mem_frac, 2),
         )
         if msg != 0:
             print("!!!! WARNING: Flagging error. !!!!")
             return 1
-
+    if do_target_split and check_status(workdir,"split_targets")==0:
+        frac_compute_use+=0.2
+    
     #################################
     # Import model
     #################################
@@ -606,40 +630,49 @@ def master_control(
         msg = run_import_model(
             calibrator_msname,
             workdir,
-            cpu_frac=round(frac*cpu_frac,2),
-            mem_frac=round(frac*mem_frac,2),
+            cpu_frac=round(frac_compute_use * cpu_frac, 2),
+            mem_frac=round(frac_compute_use * mem_frac, 2),
         )  # Run model import
         if msg != 0:
             print(
                 "!!!! WARNING: Error in importing calibrator models. Not continuing calibration. !!!!"
             )
             return 1
-
+    if do_target_split and check_status(workdir,"split_targets")==0:
+        frac_compute_use+=0.2
+        
     ########################################
     # Run noise-diode based flux calibration
     ########################################
     if do_noise_cal:
-        frac=frac/2.0
+        frac_compute_use-=0.2
         msg = run_noise_diode_cal(
-            msname, workdir, cpu_frac=round(frac*cpu_frac,2), mem_frac=round(frac*mem_frac,2)
+            msname,
+            workdir,
+            cpu_frac=round(0.2 * cpu_frac, 2),
+            mem_frac=round(0.2 * mem_frac, 2),
         )  # Run noise diode based flux calibration
         if msg != 0:
             print(
                 "!!!! WARNING: Error in running noise-diode based flux calibration. Not continuing further. !!!!"
             )
             return 1
-
+    if do_target_split and check_status(workdir,"split_targets")==0:
+        frac_compute_use+=0.2
+    if do_noise_cal and check_status(workdir,"noise_cal")==0:
+        frac_compute_use+=0.2
+        
     ###############################
     # Run basic calibration
     ###############################
-    use_only_bandpass=False
-    use_only_fluxcal=False
+    use_only_bandpass = False
+    use_only_fluxcal = False
     if do_basic_cal:
         msg = run_basic_cal(
             calibrator_msname,
             workdir,
-            cpu_frac=round(frac*cpu_frac,2),
-            mem_frac=round(frac*mem_frac,2),
+            cpu_frac=round(frac_compute_use * cpu_frac, 2),
+            mem_frac=round(frac_compute_use * mem_frac, 2),
         )  # Run basic calibration
         if msg != 0:
             print(
@@ -648,14 +681,24 @@ def master_control(
             return 1
     else:
         if len(glob.glob(caldir + "/*.bcal")) == 0:
-            print (f"No bandpass table is present in calibration directory : {caldir}.")
+            print(f"No bandpass table is present in calibration directory : {caldir}.")
             return 1
-        if len(glob.glob(caldir + "/*.gcal")) == 0 and len(glob.glob(caldir + "/*.fcal")) == 0:
-            print (f"No time-dependent gaintable is present in calibration directory : {caldir}. Applying only bandpass solutions.") 
-            use_only_bandpass=True
-        if len(glob.glob(caldir + "/*.gcal")) != 0 and len(glob.glob(caldir + "/*.fcal")) == 0:
-            print (f"No time-dependent fluxscaled gaintable is present in calibration directory : {caldir}. Applying solutions only from fluxcal.") 
-            use_only_fluxcal=True
+        if (
+            len(glob.glob(caldir + "/*.gcal")) == 0
+            and len(glob.glob(caldir + "/*.fcal")) == 0
+        ):
+            print(
+                f"No time-dependent gaintable is present in calibration directory : {caldir}. Applying only bandpass solutions."
+            )
+            use_only_bandpass = True
+        if (
+            len(glob.glob(caldir + "/*.gcal")) != 0
+            and len(glob.glob(caldir + "/*.fcal")) == 0
+        ):
+            print(
+                f"No time-dependent fluxscaled gaintable is present in calibration directory : {caldir}. Applying solutions only from fluxcal."
+            )
+            use_only_fluxcal = True
 
     #######################################
     # Check noise diode cal finished or not
@@ -671,12 +714,13 @@ def master_control(
     success_index_noisecal = int(finished_file[0].split("_")[-1])
     if success_index_noisecal == 0:
         print("Noise-diode based flux-calibration is done successfully.\n")
+        frac_compute_use+=0.2
     else:
         print(
             "!!!! WARNING: Error in noise-diode based flux calibration. Not continuing further. !!!!"
         )
         return 1
-    
+
     #############################################
     # Check spliting target scans finished or not
     #############################################
@@ -691,6 +735,7 @@ def master_control(
     success_index_split_target = int(finished_file[0].split("_")[-1])
     if success_index_split_target == 0:
         print("Spliting target scans are done successfully.\n")
+        frac_compute_use+=0.2
     else:
         print(
             "!!!! WARNING: Error in spliting target scans. Not continuing further. !!!!"
@@ -702,7 +747,7 @@ def master_control(
         print("No splited target scan ms are available in work directory.")
         return 1
     print(f"Target scan mslist : {target_mslist}")
-   
+    
     #########################################
     # Applying solutions on target scans
     #########################################
@@ -714,8 +759,8 @@ def master_control(
             caldir,
             use_only_bandpass=use_only_bandpass,
             use_only_fluxcal=use_only_fluxcal,
-            cpu_frac=cpu_frac,
-            mem_frac=mem_frac,
+            cpu_frac=round(frac_compute_use*cpu_frac,2),
+            mem_frac=round(frac_compute_use*mem_frac,2),
         )
         if msg != 0:
             print("!!!! WARNING: Error in applying solutions on target scans. !!!!")
@@ -976,7 +1021,9 @@ def master_control(
             for chan in range(start_chan, end_chan):
                 bad_chan_list.append(chan)
         # Target scans and timeranges
-        target_scans, cal_scans, f_scans, g_scans, p_scans = get_cal_target_scans(msname)
+        target_scans, cal_scans, f_scans, g_scans, p_scans = get_cal_target_scans(
+            msname
+        )
         max_chunk = 4096
         total_cpu = psutil.cpu_count()
         total_mem = psutil.virtual_memory().total / 1024**3

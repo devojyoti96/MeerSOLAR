@@ -1,6 +1,5 @@
 import numpy as np, os, time, traceback, gc
 from meersolar.pipeline.basic_func import *
-from casatools import msmetadata
 from optparse import OptionParser
 from casatasks import casalog
 from dask import delayed, compute
@@ -10,15 +9,16 @@ os.system("rm -rf " + logfile)
 
 
 def split_scan(
-    msname,
-    outputvis,
-    scan,
-    width,
-    timebin,
-    datacolumn,
+    msname="",
+    outputvis="",
+    scan="",
+    width="",
+    timebin="",
+    datacolumn="",
     spw="",
     timerange="",
     n_threads=-1,
+    dry_run=False,
 ):
     """
     Split a single target scan
@@ -49,14 +49,20 @@ def split_scan(
     """
     limit_threads(n_threads=n_threads)
     from casatasks import split, clearcal
-    msmd=msmetadata()
+    from casatools import msmetadata
+    msmd = msmetadata()
+    if dry_run:
+        process = psutil.Process(os.getpid())
+        mem = round(process.memory_info().rss / 1024**3, 2)  # in GB
+        return mem
     msmd.open(msname)
-    fields=msmd.fieldsforscan(int(scan))
+    fields = msmd.fieldsforscan(int(scan))
     msmd.close()
-    fields_str=""
+    del msmd
+    fields_str = ""
     for f in fields:
-        fields_str+=str(f)+","
-    fields_str=fields_str[:-1]
+        fields_str += str(f) + ","
+    fields_str = fields_str[:-1]
 
     if os.path.exists(outputvis):
         os.system("rm -rf " + outputvis)
@@ -77,10 +83,8 @@ def split_scan(
         timebin=timebin,
         datacolumn=datacolumn,
     )
-    gc.collect() 
-    clearcal(vis=outputvis,addmodel=True)
+    clearcal(vis=outputvis, addmodel=True)
     return outputvis
-
 
 def split_target_scans(
     msname,
@@ -128,23 +132,27 @@ def split_target_scans(
     """
     start_time = time.time()
     try:
+        os.chdir(workdir)
         print(f"Spliting ms : {msname}")
-        target_scans, cal_scans, f_scans, g_scans, p_scans = get_cal_target_scans(msname)
+        target_scans, cal_scans, f_scans, g_scans, p_scans = get_cal_target_scans(
+            msname
+        )
         valid_scans = get_valid_scans(msname)
         filtered_scan_list = []
         for scan in target_scans:
             if scan in valid_scans:
                 if len(scans) == 0 or (len(scans) > 0 and scan in scans):
                     filtered_scan_list.append(scan)
-                                
+
         #######################################
         # Extracting time frequency information
         #######################################
+        from casatools import msmetadata
         msmd = msmetadata()
         msmd.open(msname)
         chanres = msmd.chanres(0, unit="MHz")[0]
-        nchan=msmd.nchan(0)
-        msmd.close()        
+        nchan = msmd.nchan(0)
+        msmd.close()
         if freqres > 0:  # Image resolution is in MHz
             chanwidth = int(freqres / chanres)
             if chanwidth < 1:
@@ -155,63 +163,69 @@ def split_target_scans(
             timebin = str(timeres) + "s"
         else:
             timebin = ""
-            
+
         #############################
         # Making spectral chunks
-        #############################   
-        bad_spws=get_bad_chans(msname).split('0:')[-1].split(';')
-        good_spws=[]
-        for i in range(len(bad_spws)-1):
-            start_chan=int(bad_spws[i].split('~')[-1])+1
-            end_chan=int(bad_spws[i+1].split('~')[0])-1
-            good_spws.append(f'{start_chan}~{end_chan}')
-        if spw!='':
-            good_spws='0:'+';'.join(good_spws)
-            common_spws=get_common_spw(good_spws,spws)
-            good_spws=common_spws.split('0:')[-1].split(';') 
-        chanlist=[]  
-        if chanchunk>0:
-            nchan_per_chunk=int(nchan/chanchunk)
+        #############################
+        bad_spws = get_bad_chans(msname).split("0:")[-1].split(";")
+        good_spws = []
+        for i in range(len(bad_spws) - 1):
+            start_chan = int(bad_spws[i].split("~")[-1]) + 1
+            end_chan = int(bad_spws[i + 1].split("~")[0]) - 1
+            good_spws.append(f"{start_chan}~{end_chan}")
+        if spw != "":
+            good_spws = "0:" + ";".join(good_spws)
+            common_spws = get_common_spw(good_spws, spws)
+            good_spws = common_spws.split("0:")[-1].split(";")
+        chanlist = []
+        if chanchunk > 0:
+            nchan_per_chunk = int(nchan / chanchunk)
             for good_spw in good_spws:
-                start_chan=int(good_spw.split('~')[0])
-                end_chan=int(good_spw.split('~')[-1])
-                for s in range(start_chan,end_chan,nchan_per_chunk):
-                    e=s+nchan_per_chunk-1
-                    if e>end_chan:
-                        e=end_chan
-                chanlist.append(f'{s}~{e}')    
+                start_chan = int(good_spw.split("~")[0])
+                end_chan = int(good_spw.split("~")[-1])
+                for s in range(start_chan, end_chan, nchan_per_chunk):
+                    e = s + nchan_per_chunk - 1
+                    if e > end_chan:
+                        e = end_chan
+                chanlist.append(f"{s}~{e}")
         else:
-            chanlist=good_spws
+            chanlist = good_spws
         ##################################
-        # Time range 
+        # Time range
         ##################################
-        if timerange!='':
-            scan_timerange_dic=scans_in_timerange(msname,timerange)   
-            scan_list=list(scan_timerange_dic.keys())
-            filtered_scan_list_bkp=copy.deepcopy(filtered_scan_list)
+        if timerange != "":
+            scan_timerange_dic = scans_in_timerange(msname, timerange)
+            scan_list = list(scan_timerange_dic.keys())
+            filtered_scan_list_bkp = copy.deepcopy(filtered_scan_list)
             for s in filtered_scan_list_bkp:
                 if s not in scan_list:
                     filtered_scan_list.remove(s)
-            del filtered_scan_list_bkp 
+            del filtered_scan_list_bkp
         else:
-            scan_timerange_dic={}
-        
+            scan_timerange_dic = {}
+
         ##################################
         # Parallel spliting
-        ##################################    
-        if len(chanlist)>0:
-            total_chunks=len(chanlist)*len(filtered_scan_list)        
+        ##################################
+        if len(chanlist) > 0:
+            total_chunks = len(chanlist) * len(filtered_scan_list)
         else:
-            total_chunks=len(filtered_scan_list)        
+            total_chunks = len(filtered_scan_list)
+        #############################################
+        # Memory limit
+        #############################################
+        task = delayed(split_scan)(dry_run=True)
+        mem_limit=run_limited_memory_task(task)
+        #######################
         dask_client, dask_cluster, n_jobs, n_threads = get_dask_client(
-            total_chunks, cpu_frac, mem_frac
+            total_chunks, cpu_frac, mem_frac, min_mem_per_job=mem_limit/0.8,
         )
         tasks = []
         for scan in filtered_scan_list:
-            if timerange!="":
-                time_range=scan_timerange_dic[scan]
+            if timerange != "":
+                time_range = scan_timerange_dic[scan]
             else:
-                time_range=""
+                time_range = ""
             for chanrange in chanlist:
                 outputvis = f"{workdir}/target_scan_{scan}_spw_{chanrange}.ms"
                 task = delayed(split_scan)(
@@ -221,22 +235,27 @@ def split_target_scans(
                     chanwidth,
                     timebin,
                     datacolumn,
-                    spw='0:'+chanrange,
+                    spw="0:" + chanrange,
                     timerange=time_range,
                     n_threads=n_threads,
                 )
                 tasks.append(task)
-
         splited_ms_list = compute(*tasks)
-        
         dask_client.close()
         dask_cluster.close()
+                           
+        splited_ms_list_phaserotated = []
+        for ms in splited_ms_list:
+            outputvis = correct_solar_sidereal_motion(
+                ms, cpu_frac=cpu_frac, mem_frac=mem_frac, keep_original=False
+            )
+            splited_ms_list_phaserotated.append(outputvis)
         os.system("rm -rf casa*log")
         print("##################")
         print("Spliting of target scans are done successfully.")
         print("Total time taken : ", time.time() - start_time)
         print("##################\n")
-        return 0, splited_ms_list
+        return 0, splited_ms_list_phaserotated
     except Exception as e:
         traceback.print_exc()
         print("##################")

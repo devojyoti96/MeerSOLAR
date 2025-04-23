@@ -16,7 +16,7 @@ This code is written by Devojyoti Kansabanik, Jul 30, 2024
 
 
 def single_ms_flag(
-    msname,
+    msname="",
     badspw="",
     bad_ants_str="",
     datacolumn="DATA",
@@ -25,7 +25,8 @@ def single_ms_flag(
     flagdimension="freqtime",
     flag_autocorr=True,
     n_threads=-1,
-    memory_limit=-1
+    memory_limit=-1,
+    dry_run=False,
 ):
     """
     Flag on a single ms
@@ -51,10 +52,16 @@ def single_ms_flag(
         Number of OpenMP threads
     memory_limit : float, optional
         Memory limit in GB
+    dry_run : bool, optional
+        Return the amount of pre-occupied memory in GB
     """
     limit_threads(n_threads=n_threads)
     from casatasks import flagdata
 
+    if dry_run:
+        process = psutil.Process(os.getpid())
+        mem = round(process.memory_info().rss / 1024**3, 2)  # in GB
+        return mem
     msname = msname.rstrip("/")
     ##############################
     # Flagging bad channels
@@ -67,7 +74,7 @@ def single_ms_flag(
             cmdreason="badchan",
             flagbackup=False,
         )
-        gc.collect() 
+
     ##############################
     # Flagging bad antennas
     ##############################
@@ -79,7 +86,7 @@ def single_ms_flag(
             cmdreason="badant",
             flagbackup=False,
         )
-        gc.collect() 
+
     #################################
     # Clip zero amplitude data points
     #################################
@@ -91,7 +98,7 @@ def single_ms_flag(
         autocorr=flag_autocorr,
         flagbackup=False,
     )
-    gc.collect() 
+
     #################################
     # Flag auto-correlations
     #################################
@@ -103,53 +110,63 @@ def single_ms_flag(
             datacolumn=datacolumn,
             flagbackup=False,
         )
-        gc.collect()
-    ncol=3
+
+    ncol = 3
     ####################################################
-    # Check if required columns are present for residual 
-    #################################################### 
-    if datacolumn=="residual" or datacolumn=="RESIDUAL":
-        modelcolumn_present=check_datacolumn_valid(msname,datacolumn="MODEL_DATA")
-        corcolumn_present=check_datacolumn_valid(msname,datacolumn="CORRECTED_DATA")
-        if modelcolumn_present==False or corcolumn_present==False:
-            datacolumn="corrected"
-    elif datacolumn=="RESIDUAL_DATA":
-        modelcolumn_present=check_datacolumn_valid(msname,datacolumn="MODEL_DATA")
-        datacolumn_present=check_datacolumn_valid(msname,datacolumn="DATA")
-        if modelcolumn_present==False or datacolumn_present==False:
-            datacolumn="corrected"
+    # Check if required columns are present for residual
+    ####################################################
+    if datacolumn == "residual" or datacolumn == "RESIDUAL":
+        modelcolumn_present = check_datacolumn_valid(msname, datacolumn="MODEL_DATA")
+        corcolumn_present = check_datacolumn_valid(msname, datacolumn="CORRECTED_DATA")
+        if modelcolumn_present == False or corcolumn_present == False:
+            datacolumn = "corrected"
+    elif datacolumn == "RESIDUAL_DATA":
+        modelcolumn_present = check_datacolumn_valid(msname, datacolumn="MODEL_DATA")
+        datacolumn_present = check_datacolumn_valid(msname, datacolumn="DATA")
+        if modelcolumn_present == False or datacolumn_present == False:
+            datacolumn = "corrected"
     ########################################################
     # Whenther memory is sufficient for calculating residual
-    ########################################################    
-    if datacolumn=="residual" or datacolumn=="RESIDUAL" or datacolumn=="RESIDUAL_DATA":
-        colsize=get_column_size(msname)
-        if memory_limit>(3*colsize):
-            ncol=4
+    ########################################################
+    if (
+        datacolumn == "residual"
+        or datacolumn == "RESIDUAL"
+        or datacolumn == "RESIDUAL_DATA"
+    ):
+        colsize = get_column_size(msname)
+        if memory_limit > (3 * colsize):
+            ncol = 4
         else:
-            print ("Total available memory for this job is not sufficient to calculate residual.")
-            if datacolumn=="residual":
-                datacolumn="corrected"
+            print(
+                "Total available memory for this job is not sufficient to calculate residual."
+            )
+            if datacolumn == "residual":
+                datacolumn = "corrected"
             else:
-                datacolumn="data"
+                datacolumn = "data"
     #################################################
     # Whether corrected data column is present or not
     #################################################
-    if datacolumn=="corrected" or datacolumn=="CORRECTED_DATA":
-        corcolumn_present=check_datacolumn_valid(msname,datacolumn="CORRECTED_DATA")
-        if corcolumn_present==False:
-            print ("Corrected data column is chosen for flagging, but it is not present.")
+    if datacolumn == "corrected" or datacolumn == "CORRECTED_DATA":
+        corcolumn_present = check_datacolumn_valid(msname, datacolumn="CORRECTED_DATA")
+        if corcolumn_present == False:
+            print(
+                "Corrected data column is chosen for flagging, but it is not present."
+            )
             return
     ##############
     # Tfcrop flag
     ##############
     if use_tfcrop:
-        time_chunk,baseline_chunk=get_chunk_size(msname,memory_limit=memory_limit,ncol=ncol)
-        if baseline_chunk==None or time_chunk==None:
-            print ("Memory limit is too small to work. Do not flagging.")
-            gc.collect()
+        time_chunk, baseline_chunk = get_chunk_size(
+            msname, memory_limit=memory_limit, ncol=ncol
+        )
+        if baseline_chunk == None or time_chunk == None:
+            print("Memory limit is too small to work. Do not flagging.")
+
             return
-        baseline_name_list=baseline_names(msname)
-        if baseline_chunk>len(baseline_name_list):
+        baseline_name_list = baseline_names(msname)
+        if baseline_chunk > len(baseline_name_list):
             flagdata(
                 vis=msname,
                 mode="tfcrop",
@@ -168,9 +185,12 @@ def single_ms_flag(
                 writeflags=True,
                 datacolumn=datacolumn,
             )
-            gc.collect() 
+
         else:
-            baseline_blocks = [';'.join(str(x) for x in baseline_name_list[i:i+baseline_chunk]) for i in range(0, len(baseline_name_list), baseline_chunk)]
+            baseline_blocks = [
+                ";".join(str(x) for x in baseline_name_list[i : i + baseline_chunk])
+                for i in range(0, len(baseline_name_list), baseline_chunk)
+            ]
             for ant_str in baseline_blocks:
                 flagdata(
                     vis=msname,
@@ -189,21 +209,22 @@ def single_ms_flag(
                     overwrite=True,
                     writeflags=True,
                     datacolumn=datacolumn,
-                    antenna=ant_str
+                    antenna=ant_str,
                 )
-                gc.collect() 
-        
+
     #############
     # Rflag flag
     #############
     if use_rflag:
-        time_chunk,baseline_chunk=get_chunk_size(msname,memory_limit=memory_limit,ncol=ncol)
-        if baseline_chunk==None or time_chunk==None:
-            print ("Memory limit is too small to work. Do not flagging.")
-            gc.collect()
+        time_chunk, baseline_chunk = get_chunk_size(
+            msname, memory_limit=memory_limit, ncol=ncol
+        )
+        if baseline_chunk == None or time_chunk == None:
+            print("Memory limit is too small to work. Do not flagging.")
+
             return
-        baseline_name_list=baseline_names(msname)
-        if baseline_chunk>len(baseline_name_list):
+        baseline_name_list = baseline_names(msname)
+        if baseline_chunk > len(baseline_name_list):
             flagdata(
                 vis=msname,
                 mode="rflag",
@@ -221,9 +242,12 @@ def single_ms_flag(
                 writeflags=True,
                 datacolumn=datacolumn,
             )
-            gc.collect() 
+
         else:
-            baseline_blocks = [';'.join(str(x) for x in baseline_name_list[i:i+baseline_chunk]) for i in range(0, len(baseline_name_list), baseline_chunk)]
+            baseline_blocks = [
+                ";".join(str(x) for x in baseline_name_list[i : i + baseline_chunk])
+                for i in range(0, len(baseline_name_list), baseline_chunk)
+            ]
             for ant_str in baseline_blocks:
                 flagdata(
                     vis=msname,
@@ -241,21 +265,22 @@ def single_ms_flag(
                     overwrite=True,
                     writeflags=True,
                     datacolumn=datacolumn,
-                    antenna=ant_str
+                    antenna=ant_str,
                 )
-                gc.collect()  
-                   
+
     ##############
     # Extend flag
     ##############
     if use_tfcrop or use_rflag:
-        time_chunk,baseline_chunk=get_chunk_size(msname,memory_limit=memory_limit,ncol=ncol)
-        if baseline_chunk==None or time_chunk==None:
-            print ("Memory limit is too small to work. Do not flagging.")
-            gc.collect()
+        time_chunk, baseline_chunk = get_chunk_size(
+            msname, memory_limit=memory_limit, ncol=ncol
+        )
+        if baseline_chunk == None or time_chunk == None:
+            print("Memory limit is too small to work. Do not flagging.")
+
             return
-        baseline_name_list=baseline_names(msname)
-        if baseline_chunk>len(baseline_name_list):
+        baseline_name_list = baseline_names(msname)
+        if baseline_chunk > len(baseline_name_list):
             flagdata(
                 vis=msname,
                 mode="extend",
@@ -274,9 +299,12 @@ def single_ms_flag(
                 overwrite=True,
                 writeflags=True,
             )
-            gc.collect() 
+
         else:
-            baseline_blocks = [';'.join(str(x) for x in baseline_name_list[i:i+baseline_chunk]) for i in range(0, len(baseline_name_list), baseline_chunk)]
+            baseline_blocks = [
+                ";".join(str(x) for x in baseline_name_list[i : i + baseline_chunk])
+                for i in range(0, len(baseline_name_list), baseline_chunk)
+            ]
             for ant_str in baseline_blocks:
                 flagdata(
                     vis=msname,
@@ -295,9 +323,9 @@ def single_ms_flag(
                     flagbackup=False,
                     overwrite=True,
                     writeflags=True,
-                    antenna=ant_str
+                    antenna=ant_str,
                 )
-                gc.collect()     
+
     return
 
 
@@ -341,6 +369,9 @@ def do_flagging(
     """
     start_time = time.time()
     try:
+        msname=msname.rstrip("/")
+        mspath=os.path.dirname(os.path.abspath(msname))
+        os.chdir(mspath)
         print("###########################")
         print("Flagging measurement set : ", msname)
         print("###########################\n")
@@ -354,16 +385,21 @@ def do_flagging(
             subms_list = glob.glob(msname + "/SUBMSS/*")
         else:
             subms_list = [msname]
+        task = delayed(single_ms_flag)(dry_run=True)
+        mem_limit=run_limited_memory_task(task)
         dask_client, dask_cluster, n_jobs, n_threads = get_dask_client(
-            len(subms_list), cpu_frac, mem_frac
+            len(subms_list),
+            cpu_frac,
+            mem_frac,
+            min_mem_per_job=mem_limit/0.8,
         )
         if flag_backup:
             do_flag_backup(msname, flagtype="flagdata")
         workers = list(dask_client.scheduler_info()["workers"].items())
         addr, stats = workers[0]
-        memory_limit=stats['memory_limit']/1024**3
-        target_frac=config.get("distributed.worker.memory.target")
-        memory_limit*=target_frac
+        memory_limit = stats["memory_limit"] / 1024**3
+        target_frac = config.get("distributed.worker.memory.target")
+        memory_limit *= target_frac
         tasks = [
             delayed(single_ms_flag)(
                 ms,

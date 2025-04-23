@@ -13,17 +13,18 @@ This code is written by Devojyoti Kansabanik, March 14, 2025
 
 
 def run_delaycal(
-    msname,
+    msname="",
     field="",
     scan="",
     refant="",
-    refantmode='flex',
+    refantmode="flex",
     solint="inf",
     combine="",
     gaintable=[],
     gainfield=[],
     interp=[],
     n_threads=-1,
+    dry_run=False,
 ):
     """
     Perform delay calibration
@@ -31,6 +32,10 @@ def run_delaycal(
     limit_threads(n_threads=n_threads)
     from casatasks import gaincal
 
+    if dry_run:
+        process = psutil.Process(os.getpid())
+        mem = round(process.memory_info().rss / 1024**3, 2)  # in GB
+        return mem
     print(f"Performing delay calibration on : {msname}")
     caltable_prefix = os.path.basename(msname).split(".ms")[0]
     gaincal(
@@ -48,12 +53,11 @@ def run_delaycal(
         gainfield=gainfield,
         interp=interp,
     )
-    gc.collect() 
     return caltable_prefix + ".kcal"
 
 
 def run_bandpass(
-    msname,
+    msname="",
     field="",
     scan="",
     uvrange="",
@@ -65,6 +69,7 @@ def run_bandpass(
     gainfield=[],
     interp=[],
     n_threads=-1,
+    dry_run=False,
 ):
     """
     Perform bandpass calibration
@@ -72,6 +77,10 @@ def run_bandpass(
     limit_threads(n_threads=n_threads)
     from casatasks import bandpass
 
+    if dry_run:
+        process = psutil.Process(os.getpid())
+        mem = round(process.memory_info().rss / 1024**3, 2)  # in GB
+        return mem
     print(f"Performing bandpass calibration on : {msname}")
     caltable_prefix = os.path.basename(msname).split(".ms")[0]
     bandpass(
@@ -88,12 +97,11 @@ def run_bandpass(
         gainfield=gainfield,
         interp=interp,
     )
-    gc.collect() 
     return caltable_prefix + ".bcal"
 
 
 def run_gaincal(
-    msname,
+    msname="",
     field="",
     scan="",
     uvrange="",
@@ -101,7 +109,7 @@ def run_gaincal(
     gaintype="G",
     solint="inf",
     calmode="ap",
-    refantmode='flex',
+    refantmode="flex",
     solmode="",
     smodel=[],
     rmsthresh=[],
@@ -111,6 +119,7 @@ def run_gaincal(
     gainfield=[],
     interp=[],
     n_threads=-1,
+    dry_run=False,
 ):
     """
     Perform gain calibration
@@ -118,6 +127,10 @@ def run_gaincal(
     limit_threads(n_threads=n_threads)
     from casatasks import gaincal
 
+    if dry_run:
+        process = psutil.Process(os.getpid())
+        mem = round(process.memory_info().rss / 1024**3, 2)  # in GB
+        return mem
     print(f"Performing gain calibration on : {msname}")
     caltable_prefix = os.path.basename(msname).split(".ms")[0]
     gaincal(
@@ -140,11 +153,11 @@ def run_gaincal(
         gainfield=gainfield,
         interp=interp,
     )
-    gc.collect() 
     return caltable_prefix + ".gcal"
-    
+
+
 def run_leakagecal(
-    msname,
+    msname="",
     field="",
     scan="",
     uvrange="",
@@ -154,6 +167,7 @@ def run_leakagecal(
     gainfield=[],
     interp=[],
     n_threads=-1,
+    dry_run=False,
 ):
     """
     Perform relative leakage calibration (pol-conversion calibration)
@@ -161,6 +175,10 @@ def run_leakagecal(
     limit_threads(n_threads=n_threads)
     from casatasks import polcal
 
+    if dry_run:
+        process = psutil.Process(os.getpid())
+        mem = round(process.memory_info().rss / 1024**3, 2)  # in GB
+        return mem
     print(f"Performing relative leakage calibration on : {msname}")
     caltable_prefix = os.path.basename(msname).split(".ms")[0]
     polcal(
@@ -172,16 +190,16 @@ def run_leakagecal(
         refant=refant,
         solint="inf,10MHz",
         combine=combine,
-        poltype="Dflls",
+        poltype="Df",
         gaintable=gaintable,
         gainfield=gainfield,
         interp=interp,
     )
-    gc.collect() 
     return caltable_prefix + ".dcal"
 
+
 def run_polcal(
-    msname,
+    msname="",
     field="",
     scan="",
     uvrange="",
@@ -191,6 +209,7 @@ def run_polcal(
     gainfield=[],
     interp=[],
     n_threads=-1,
+    dry_run=False,
 ):
     """
     Perform cross-hand phase calibration
@@ -198,6 +217,10 @@ def run_polcal(
     limit_threads(n_threads=n_threads)
     from casatasks import gaincal, polcal
 
+    if dry_run:
+        process = psutil.Process(os.getpid())
+        mem = round(process.memory_info().rss / 1024**3, 2)  # in GB
+        return mem
     print(f"Performing relative leakage calibration on : {msname}")
     caltable_prefix = os.path.basename(msname).split(".ms")[0]
     gaincal(
@@ -207,15 +230,14 @@ def run_polcal(
         scan=str(scan),
         uvrange=uvrange,
         refant=refant,
-        refantmode='flex',
+        refantmode="flex",
         solint="inf",
         combine=combine,
-        gaintype='KCROSS',
+        gaintype="KCROSS",
         gaintable=gaintable,
         gainfield=gainfield,
         interp=interp,
     )
-    gc.collect()
     if os.path.exists(caltable_prefix + ".kcrosscal"):
         gaintable.append(caltable_prefix + ".kcrosscal")
         gainfield.append(str(field))
@@ -229,12 +251,11 @@ def run_polcal(
             refant=refant,
             solint="inf,10MHz",
             combine=combine,
-            poltype='Xf',
+            poltype="Xf",
             gaintable=gaintable,
             gainfield=gainfield,
             interp=interp,
         )
-        gc.collect() 
         if os.path.exists(caltable_prefix + ".xfcal"):
             gaintable.append(caltable_prefix + ".xfcal")
             gainfield.append(str(field))
@@ -246,18 +267,23 @@ def run_polcal(
                 scan=str(scan),
                 uvrange=uvrange,
                 refant=refant,
-                refantmode='flex',
+                refantmode="flex",
                 solint="inf,10MHz",
                 combine="obs,scan",
-                poltype='PosAng',
+                poltype="PosAng",
                 gaintable=gaintable,
                 gainfield=gainfield,
                 interp=interp,
             )
-    return caltable_prefix + ".kcrosscal", caltable_prefix + ".xfcal", caltable_prefix + ".panglecal"
+    return (
+        caltable_prefix + ".kcrosscal",
+        caltable_prefix + ".xfcal",
+        caltable_prefix + ".panglecal",
+    )
+
 
 def run_applycal(
-    msname,
+    msname="",
     field="",
     scan="",
     applymode="",
@@ -268,13 +294,17 @@ def run_applycal(
     calwt=[],
     parang=False,
     n_threads=-1,
+    dry_run=False,
 ):
     """
     Perform apply calibration
     """
     limit_threads(n_threads=n_threads)
     from casatasks import applycal
-
+    if dry_run:
+        process = psutil.Process(os.getpid())
+        mem = round(process.memory_info().rss / 1024**3, 2)  # in GB
+        return mem
     print(f"Applying calibration solutions on : {msname}")
     applycal(
         vis=msname,
@@ -288,71 +318,97 @@ def run_applycal(
         flagbackup=flagbackup,
         parang=parang,
     )
-    gc.collect() 
     return
 
 
 def run_postcal_flag(
-    msname, datacolumn="corrected", mode="rflag", n_threads=-1, memory_limit = -1
+    msname="",
+    datacolumn="corrected",
+    mode="rflag",
+    n_threads=-1,
+    memory_limit=-1,
+    dry_run=False,
 ):
     """
     Perform apply calibration
     """
     limit_threads(n_threads=n_threads)
     from casatasks import flagdata
-    ncol=3
+
+    if dry_run:
+        process = psutil.Process(os.getpid())
+        mem = round(process.memory_info().rss / 1024**3, 2)  # in GB
+        return mem
+    ncol = 3
     ####################################################
-    # Check if required columns are present for residual 
-    #################################################### 
-    if datacolumn=="residual" or datacolumn=="RESIDUAL":
-        modelcolumn_present=check_datacolumn_valid(msname,datacolumn="MODEL_DATA")
-        corcolumn_present=check_datacolumn_valid(msname,datacolumn="CORRECTED_DATA")
-        if modelcolumn_present==False or corcolumn_present==False:
-            datacolumn="corrected"
-    elif datacolumn=="RESIDUAL_DATA":
-        modelcolumn_present=check_datacolumn_valid(msname,datacolumn="MODEL_DATA")
-        datacolumn_present=check_datacolumn_valid(msname,datacolumn="DATA")
-        if modelcolumn_present==False or datacolumn_present==False:
-            datacolumn="corrected"
+    # Check if required columns are present for residual
+    ####################################################
+    if datacolumn == "residual" or datacolumn == "RESIDUAL":
+        modelcolumn_present = check_datacolumn_valid(msname, datacolumn="MODEL_DATA")
+        corcolumn_present = check_datacolumn_valid(msname, datacolumn="CORRECTED_DATA")
+        if modelcolumn_present == False or corcolumn_present == False:
+            datacolumn = "corrected"
+    elif datacolumn == "RESIDUAL_DATA":
+        modelcolumn_present = check_datacolumn_valid(msname, datacolumn="MODEL_DATA")
+        datacolumn_present = check_datacolumn_valid(msname, datacolumn="DATA")
+        if modelcolumn_present == False or datacolumn_present == False:
+            datacolumn = "corrected"
     ########################################################
     # Whenther memory is sufficient for calculating residual
-    ########################################################    
-    if datacolumn=="residual" or datacolumn=="RESIDUAL" or datacolumn=="RESIDUAL_DATA":
-        colsize=get_column_size(msname)
-        if memory_limit>(3*colsize):
-            ncol=4
+    ########################################################
+    if (
+        datacolumn == "residual"
+        or datacolumn == "RESIDUAL"
+        or datacolumn == "RESIDUAL_DATA"
+    ):
+        colsize = get_column_size(msname)
+        if memory_limit > (3 * colsize):
+            ncol = 4
         else:
-            print ("Total available memory for this job is not sufficient to calculate residual.")
-            if datacolumn=="residual":
-                datacolumn="corrected"
+            print(
+                "Total available memory for this job is not sufficient to calculate residual."
+            )
+            if datacolumn == "residual":
+                datacolumn = "corrected"
             else:
-                datacolumn="data"
+                datacolumn = "data"
     #################################################
     # Whether corrected data column is present or not
     #################################################
-    if datacolumn=="corrected" or datacolumn=="CORRECTED_DATA":
-        corcolumn_present=check_datacolumn_valid(msname,datacolumn="CORRECTED_DATA")
-        if corcolumn_present==False:
-            print ("Corrected data column is chosen for flagging, but it is not present.")
+    if datacolumn == "corrected" or datacolumn == "CORRECTED_DATA":
+        corcolumn_present = check_datacolumn_valid(msname, datacolumn="CORRECTED_DATA")
+        if corcolumn_present == False:
+            print(
+                "Corrected data column is chosen for flagging, but it is not present."
+            )
             return
-        
+
     try:
-        time_chunk,baseline_chunk=get_chunk_size(msname,memory_limit=memory_limit,ncol=ncol)
-        if baseline_chunk==None or time_chunk==None:
-            print ("Memory limit is too small to work. Do not flagging.")
-            gc.collect()
+        time_chunk, baseline_chunk = get_chunk_size(
+            msname, memory_limit=memory_limit, ncol=ncol
+        )
+        if baseline_chunk == None or time_chunk == None:
+            print("Memory limit is too small to work. Do not flagging.")
             return
-        baseline_name_list=baseline_names(msname)
+        baseline_name_list = baseline_names(msname)
         print(f"Performing post-calibration flagging on : {msname}")
-        if baseline_chunk>len(baseline_name_list):
+        if baseline_chunk > len(baseline_name_list):
             flagdata(vis=msname, mode=mode, datacolumn=datacolumn, flagbackup=False)
         else:
-            baseline_blocks = [';'.join(str(x) for x in baseline_name_list[i:i+baseline_chunk]) for i in range(0, len(baseline_name_list), baseline_chunk)]
+            baseline_blocks = [
+                ";".join(str(x) for x in baseline_name_list[i : i + baseline_chunk])
+                for i in range(0, len(baseline_name_list), baseline_chunk)
+            ]
             for ant_str in baseline_blocks:
-                flagdata(vis=msname, mode=mode, datacolumn=datacolumn, flagbackup=False, antenna=ant_str)    
+                flagdata(
+                    vis=msname,
+                    mode=mode,
+                    datacolumn=datacolumn,
+                    flagbackup=False,
+                    antenna=ant_str,
+                )
     except Exception as e:
         traceback.print_exc()
-    gc.collect() 
     return
 
 
@@ -397,7 +453,7 @@ def single_round_cal_and_flag(
         Phasecal field names
     phasecal_fluxes : dict
         Phasecal fluxes
-    polcal_scans : list, optional   
+    polcal_scans : list, optional
         Polarized calibrator scans
     polcal_fields : list, optional
         Polarized calibrator fields
@@ -406,7 +462,7 @@ def single_round_cal_and_flag(
     do_leakagecal : bool, optional
         Perform leakage calibration or nor
     do_phasecal : bool, optional
-        Perform calibration using polcal fields 
+        Perform calibration using polcal fields
         (Note: leakage calibration is always done using unpolarized fluxcal. This is for crossphase and polarization angle calibration)
     do_postcal_flag : bool, optional
         Peform post-calibration flagging
@@ -431,7 +487,7 @@ def single_round_cal_and_flag(
         msmd.open(msname)
         npol = msmd.ncorrforpol()[0]
         msmd.close()
-        parang=False
+        parang = False
         ######################################
         # Removing previous rounds caltables
         ######################################
@@ -439,10 +495,10 @@ def single_round_cal_and_flag(
         bpass_caltable = caltable_prefix + ".bcal"
         gain_caltable = caltable_prefix + ".gcal"
         fluxscale_caltable = caltable_prefix + ".fcal"
-        leakage_caltable=caltable_prefix + ".dcal"
-        kcross_caltable=caltable_prefix + ".kcrosscal"
-        crossphase_caltable=caltable_prefix + ".xfcal"
-        pangle_caltable=caltable_prefix + ".panglecal"
+        leakage_caltable = caltable_prefix + ".dcal"
+        kcross_caltable = caltable_prefix + ".kcrosscal"
+        crossphase_caltable = caltable_prefix + ".xfcal"
+        pangle_caltable = caltable_prefix + ".panglecal"
 
         if os.path.exists(delay_caltable):
             os.system("rm -rf " + delay_caltable)
@@ -465,12 +521,12 @@ def single_round_cal_and_flag(
         if result != None:  # If multi-ms
             mslist, scans = result
         else:
-            print ("Please provide a multi-MS with scans partitioned.")
-            return 1, []            
+            print("Please provide a multi-MS with scans partitioned.")
+            return 1, []
         fluxcal_mslist = []
         phasecal_mslist = []
-        polcal_mslist=[]
-        
+        polcal_mslist = []
+
         for fluxcal_field in fluxcal_fields:
             scan_list = fluxcal_scans[fluxcal_field]
             for scan in scan_list:
@@ -482,7 +538,7 @@ def single_round_cal_and_flag(
             for scan in scan_list:
                 pos = scans.index(scan)
                 phasecal_mslist.append(str(mslist[pos]))
-                
+
         for polcal_field in polcal_fields:
             scan_list = polcal_scans[polcal_field]
             for scan in scan_list:
@@ -495,20 +551,28 @@ def single_round_cal_and_flag(
         print("\n##############################")
         print("Calibrating fluxcal fields ....")
         print("###############################\n")
-        applycal_gaintable=[]
-        applycal_gainfield=[]
-        applycal_interp=[]
-        
+        applycal_gaintable = []
+        applycal_gainfield = []
+        applycal_interp = []
+
         ##############################
         # Delay calibration
         ##############################
-        if len(fluxcal_mslist)>0 or len(phasecal_mslist)>0:
+        if len(fluxcal_mslist) > 0 or len(phasecal_mslist) > 0:
             if do_phasecal:
-                delaycal_mslist=fluxcal_mslist+phasecal_mslist
+                delaycal_mslist = fluxcal_mslist + phasecal_mslist
             else:
-                delaycal_mslist=fluxcal_mslist
+                delaycal_mslist = fluxcal_mslist
+            #############################################
+            # Memory limit
+            #############################################
+            task = delayed(run_delaycal)(dry_run=True)
+            mem_limit=run_limited_memory_task(task)
             dask_client, dask_cluster, n_jobs, n_threads = get_dask_client(
-                len(delaycal_mslist), cpu_frac, mem_frac
+                len(delaycal_mslist),
+                cpu_frac,
+                mem_frac,
+                min_mem_per_job= mem_limit/0.8,
             )
             tasks = [
                 delayed(run_delaycal)(
@@ -516,26 +580,31 @@ def single_round_cal_and_flag(
                 )
                 for sub_msname in delaycal_mslist
             ]
-            delaycal_tables=list(compute(*tasks))
+            delaycal_tables = list(compute(*tasks))
             delay_caltable = merge_caltables(
                 delaycal_tables, delay_caltable, keepcopy=False
             )
             dask_client.close()
             dask_cluster.close()
-            if delay_caltable!=None and os.path.exists(delay_caltable):
+            if delay_caltable != None and os.path.exists(delay_caltable):
                 applycal_gaintable.append(delay_caltable)
                 applycal_gainfield.append("")
                 applycal_interp.append("nearest")
         else:
-            print ("No flux calibrator or phase calibrator is present.")
+            print("No flux calibrator or phase calibrator is present.")
             return 1, []
 
         ##############################
         # Bandpass calibration
         ##############################
-        if len(fluxcal_mslist)>0:
+        if len(fluxcal_mslist) > 0:
+            task = delayed(run_bandpass)(dry_run=True)
+            mem_limit=run_limited_memory_task(task)
             dask_client, dask_cluster, n_jobs, n_threads = get_dask_client(
-                len(fluxcal_mslist), cpu_frac, mem_frac
+                len(fluxcal_mslist),
+                cpu_frac,
+                mem_frac,
+                min_mem_per_job=mem_limit/0.8,
             )
             tasks = [
                 delayed(run_bandpass)(
@@ -549,32 +618,34 @@ def single_round_cal_and_flag(
                 )
                 for sub_msname in fluxcal_mslist
             ]
-            bandpass_tables=list(compute(*tasks))
+            bandpass_tables = list(compute(*tasks))
             bpass_caltable = merge_caltables(
                 bandpass_tables, bpass_caltable, keepcopy=False
             )
             dask_client.close()
             dask_cluster.close()
-            if bpass_caltable!=None and os.path.exists(bpass_caltable):
+            if bpass_caltable != None and os.path.exists(bpass_caltable):
                 applycal_gaintable.append(bpass_caltable)
                 applycal_gainfield.append("")
                 applycal_interp.append("nearest,nearestflag")
             else:
-                print ("Bandpass calibration is not successful.")
+                print("Bandpass calibration is not successful.")
                 return 1, []
         else:
-            print ("No flux calibrator is present.")
+            print("No flux calibrator is present.")
             return 1, []
 
         ##########################################
         # Gain calibration on fluxcal (and polcal)
         ##########################################
-        gaincal_mslist=fluxcal_mslist
-        if do_polcal and len(polcal_mslist)>0 and npol==4:
-            gaincal_mslist=fluxcal_mslist+polcal_mslist
-        if len(gaincal_mslist)>0:
+        gaincal_mslist = fluxcal_mslist
+        if do_polcal and len(polcal_mslist) > 0 and npol == 4:
+            gaincal_mslist = fluxcal_mslist + polcal_mslist
+        if len(gaincal_mslist) > 0:
+            task = delayed(run_gaincal)(dry_run=True)
+            mem_limit=run_limited_memory_task(task)
             dask_client, dask_cluster, n_jobs, n_threads = get_dask_client(
-                len(gaincal_mslist), cpu_frac, mem_frac
+                len(gaincal_mslist), cpu_frac, mem_frac, min_mem_per_job=mem_limit/0.8
             )
             tasks = [
                 delayed(run_gaincal)(
@@ -594,11 +665,13 @@ def single_round_cal_and_flag(
             gain_caltable = merge_caltables(gain_tables, gain_caltable, keepcopy=False)
             dask_client.close()
             dask_cluster.close()
-        
+
         ######################################
         # Gain calibrations on phasecals
         ######################################
-        if do_phasecal==False and (gain_caltable!=None and os.path.exists(gain_caltable)):
+        if do_phasecal == False and (
+            gain_caltable != None and os.path.exists(gain_caltable)
+        ):
             applycal_gaintable.append(gain_caltable)
             applycal_gainfield.append("")
             applycal_interp.append("nearest")
@@ -609,13 +682,20 @@ def single_round_cal_and_flag(
             ##############################
             # Gain calibration
             ##############################
-            if len(phasecal_mslist)==0 and (gain_caltable!=None and os.path.exists(gain_caltable)):
+            if len(phasecal_mslist) == 0 and (
+                gain_caltable != None and os.path.exists(gain_caltable)
+            ):
                 applycal_gaintable.append(gain_caltable)
                 applycal_gainfield.append("")
                 applycal_interp.append("nearest")
             else:
+                task = delayed(run_gaincal)(dry_run=True)
+                mem_limit=run_limited_memory_task(task)
                 dask_client, dask_cluster, n_jobs, n_threads = get_dask_client(
-                    len(phasecal_mslist), cpu_frac, mem_frac
+                    len(phasecal_mslist),
+                    cpu_frac,
+                    mem_frac,
+                    min_mem_per_job=mem_limit/0.8,
                 )
                 tasks = [
                     delayed(run_gaincal)(
@@ -638,15 +718,18 @@ def single_round_cal_and_flag(
                 )
                 dask_client.close()
                 dask_cluster.close()
-                
+
                 #################################
                 # Flux scaling
                 #################################
                 if os.path.exists(caltable_prefix + ".listfcal"):
                     os.system("rm -rf " + caltable_prefix + ".listfcal")
                 from casatasks import fluxscale
-                if gain_caltable!=None and os.path.exists(gain_caltable)==False:
-                    print ("Gain calibration was not successful and did not produce gain caltable.")
+
+                if gain_caltable != None and os.path.exists(gain_caltable) == False:
+                    print(
+                        "Gain calibration was not successful and did not produce gain caltable."
+                    )
                 else:
                     fluxscale(
                         vis=msname,
@@ -662,15 +745,19 @@ def single_round_cal_and_flag(
                     os.system("rm -rf " + caltable_prefix + ".listfcal")
                     fluxes = []
                     field_names = []
-                    fluxscale_fields = fluxcal_fields+phasecal_fields+polcal_fields
+                    fluxscale_fields = fluxcal_fields + phasecal_fields + polcal_fields
                     for line in lines:
                         field_name = line.split("for ")[-1].split(" in")[0]
                         catalog_flux = phasecal_fluxes[field_name]
                         flux = float(line.split("is: ")[-1].split(" +/-")[0])
-                        percent_err = round((abs(flux - catalog_flux) / catalog_flux) * 100, 2)
+                        percent_err = round(
+                            (abs(flux - catalog_flux) / catalog_flux) * 100, 2
+                        )
                         print("\n###################################")
                         if percent_err > 10:
-                            print("There is flux scaling issue for field: " + field_name)
+                            print(
+                                "There is flux scaling issue for field: " + field_name
+                            )
                             fluxscale_fields.remove(field_name)
                         else:
                             print(
@@ -681,7 +768,9 @@ def single_round_cal_and_flag(
                                 + "%"
                             )
                         print("###################################\n")
-                    if fluxscale_caltable!=None and os.path.exists(fluxscale_caltable):
+                    if fluxscale_caltable != None and os.path.exists(
+                        fluxscale_caltable
+                    ):
                         applycal_gaintable.append(fluxscale_caltable)
                         applycal_gainfield.append("")
                         applycal_interp.append("nearest")
@@ -690,11 +779,13 @@ def single_round_cal_and_flag(
         # Leakage calibration
         ##############################
         if do_leakagecal:
-            if npol!=4:
-                print ("Measurement set is not full-polar.")
-            elif len(fluxcal_mslist)>0:
+            if npol != 4:
+                print("Measurement set is not full-polar.")
+            elif len(fluxcal_mslist) > 0:
+                task = delayed(run_leakagecal)(dry_run=True)
+                mem_limit=run_limited_memory_task(task)
                 dask_client, dask_cluster, n_jobs, n_threads = get_dask_client(
-                    len(fluxcal_mslist), cpu_frac, mem_frac
+                    len(fluxcal_mslist), cpu_frac, mem_frac, min_mem_per_job=mem_limit/0.8,
                 )
                 tasks = [
                     delayed(run_leakagecal)(
@@ -702,36 +793,43 @@ def single_round_cal_and_flag(
                         uvrange=uvrange,
                         refant=refant,
                         gaintable=applycal_gaintable,
-                        gainfield=["","",",".join(fluxcal_fields)],
+                        gainfield=["", "", ",".join(fluxcal_fields)],
                         interp=applycal_interp,
                         n_threads=n_threads,
                     )
                     for sub_msname in fluxcal_mslist
                 ]
                 leakage_tables = list(compute(*tasks))
-                leakage_caltable = merge_caltables(leakage_tables, leakage_caltable, keepcopy=False)
+                leakage_caltable = merge_caltables(
+                    leakage_tables, leakage_caltable, keepcopy=False
+                )
                 dask_client.close()
                 dask_cluster.close()
-                if leakage_caltable!=None and os.path.exists(leakage_caltable):
+                if leakage_caltable != None and os.path.exists(leakage_caltable):
                     applycal_gaintable.append(leakage_caltable)
                     applycal_gainfield.append("")
                     applycal_interp.append("nearest,nearestflag")
-                    if parang==False:
-                        parang=True
-                    
+                    if parang == False:
+                        parang = True
+
         ########################################
         # Calibration using polarized calibrator
         ########################################
         if do_polcal and do_leakagecal:
-            if len(polcal_mslist)==0:
-                print ("No polarized calibrator fields are present.")
-            elif npol!=4:
-                print ("Measurement set is not full-polar.")
-            elif os.path.exists(leakage_caltable)==False:
-                print ("Leakage solutions are present.")
+            if len(polcal_mslist) == 0:
+                print("No polarized calibrator fields are present.")
+            elif npol != 4:
+                print("Measurement set is not full-polar.")
+            elif os.path.exists(leakage_caltable) == False:
+                print("Leakage solutions are present.")
             else:
+                task = delayed(run_polcal)(dry_run=True)
+                mem_limit=run_limited_memory_task(task)
                 dask_client, dask_cluster, n_jobs, n_threads = get_dask_client(
-                    len(polcal_mslist), cpu_frac, mem_frac
+                    len(polcal_mslist),
+                    cpu_frac,
+                    mem_frac,
+                    min_mem_per_job=mem_limit/0.8,
                 )
                 tasks = [
                     delayed(run_polcal)(
@@ -740,16 +838,21 @@ def single_round_cal_and_flag(
                         refant=refant,
                         solint="inf",
                         gaintable=applycal_gaintable,
-                        gainfield=["","",",".join(polcal_fields), ",".join(fluxcal_fields)],
+                        gainfield=[
+                            "",
+                            "",
+                            ",".join(polcal_fields),
+                            ",".join(fluxcal_fields),
+                        ],
                         interp=applycal_interp,
                         n_threads=n_threads,
                     )
                     for sub_msname in polcal_mslist
                 ]
-                results=list(compute(*tasks))
-                kcross_tables=[]
-                crossphase_tables=[]
-                pangle_tables=[]
+                results = list(compute(*tasks))
+                kcross_tables = []
+                crossphase_tables = []
+                pangle_tables = []
                 for r in results:
                     kcross_tables.append(r[0])
                     crosspphase_tables.append(r[1])
@@ -765,40 +868,50 @@ def single_round_cal_and_flag(
                 )
                 dask_client.close()
                 dask_cluster.close()
-                if kcross_caltable!=None and os.path.exists(kcross_caltable):
+                if kcross_caltable != None and os.path.exists(kcross_caltable):
                     applycal_gaintable.append(kcross_caltable)
                     applycal_gainfield.append("")
                     applycal_interp.append("nearest")
-                    if parang==False:
-                        parang=True
-                    if crossphase_caltable!=None and os.path.exists(crossphase_caltable):      
+                    if parang == False:
+                        parang = True
+                    if crossphase_caltable != None and os.path.exists(
+                        crossphase_caltable
+                    ):
                         applycal_gaintable.append(crossphase_caltable)
                         applycal_gainfield.append("")
                         applycal_interp.append("nearest,nearestflag")
-                        if pangle_caltable!=None and os.path.exists(pangle_caltable):
+                        if pangle_caltable != None and os.path.exists(pangle_caltable):
                             applycal_gaintable.append(pangle_caltable)
                             applycal_gainfield.append("")
                             applycal_interp.append("nearest,nearestflag")
                         else:
-                            print ("Absolute polarization angle calibration could not be done.")
+                            print(
+                                "Absolute polarization angle calibration could not be done."
+                            )
                     else:
-                        print ("Crosshand phase and absolute polarization angle calibration could not be done.")
+                        print(
+                            "Crosshand phase and absolute polarization angle calibration could not be done."
+                        )
                 else:
-                    print ("Crosshand delay, crosshand phase and absolute polarization angle calibration could not be done.")
-                    
+                    print(
+                        "Crosshand delay, crosshand phase and absolute polarization angle calibration could not be done."
+                    )
+
         ##############################
         # Apply calibration
         ##############################
-        all_mslist = copy.deepcopy(fluxcal_mslist) 
-        if len(phasecal_mslist)>0:
-            all_mslist+= phasecal_mslist 
-        if len(polcal_mslist)>0:
-            all_mslist+= polcal_mslist
-        if len(all_mslist)>0:
+        all_mslist = copy.deepcopy(fluxcal_mslist)
+        if len(phasecal_mslist) > 0:
+            all_mslist += phasecal_mslist
+        if len(polcal_mslist) > 0:
+            all_mslist += polcal_mslist
+        if len(all_mslist) > 0:
             do_flag_backup(msname, flagtype="applycal")
+            task = delayed(run_applycal)(dry_run=True)
+            mem_limit=run_limited_memory_task(task)
             dask_client, dask_cluster, n_jobs, n_threads = get_dask_client(
-                    len(all_mslist), cpu_frac, mem_frac
-                )
+                len(all_mslist), cpu_frac, mem_frac, min_mem_per_job=mem_limit/0.8,
+            )
             tasks = [
                 delayed(run_applycal)(
                     sub_msname,
@@ -819,25 +932,35 @@ def single_round_cal_and_flag(
         ##############################
         # Post calibration flagging
         ##############################
-        if do_postcal_flag and len(all_mslist)>0:
+        if do_postcal_flag and len(all_mslist) > 0:
             do_flag_backup(msname, flagtype="flagdata")
+            task = delayed(run_postcal_flag)(dry_run=True)
+            mem_limit=run_limited_memory_task(task)
             dask_client, dask_cluster, n_jobs, n_threads = get_dask_client(
-                len(all_mslist), cpu_frac, mem_frac
+                len(all_mslist), cpu_frac, mem_frac, min_mem_per_job=mem_limit/0.8,
             )
             workers = list(dask_client.scheduler_info()["workers"].items())
             addr, stats = workers[0]
-            memory_limit=stats['memory_limit']/1024**3
-            target_frac=config.get("distributed.worker.memory.target")
-            memory_limit*=target_frac
-            tasks=[]
-            if len(all_mslist)>0:
+            memory_limit = stats["memory_limit"] / 1024**3
+            target_frac = config.get("distributed.worker.memory.target")
+            memory_limit *= target_frac
+            tasks = []
+            if len(all_mslist) > 0:
                 tasks = []
                 for sub_msname in all_mslist:
                     if sub_msname in fluxcal_mslist:
-                        datacolumn="residual"
+                        datacolumn = "residual"
                     else:
-                        datacolumn="corrected"
-                    tasks.append(delayed(run_postcal_flag)(sub_msname,datacolumn=datacolumn,mode="rflag",n_threads=n_threads,memory_limit=memory_limit))
+                        datacolumn = "corrected"
+                    tasks.append(
+                        delayed(run_postcal_flag)(
+                            sub_msname,
+                            datacolumn=datacolumn,
+                            mode="rflag",
+                            n_threads=n_threads,
+                            memory_limit=memory_limit,
+                        )
+                    )
             results = compute(*tasks)
             dask_client.close()
             dask_cluster.close()
@@ -845,17 +968,56 @@ def single_round_cal_and_flag(
         ###############################
         # Finished calibration round
         ###############################
-        delay_caltable = delay_caltable if (delay_caltable!=None and os.path.exists(delay_caltable)) else None
-        bpass_caltable = bpass_caltable if (bpass_caltable!=None and os.path.exists(bpass_caltable)) else None
-        gain_caltable = gain_caltable if (gain_caltable!=None and os.path.exists(gain_caltable)) else None
-        fluxscale_caltable = (
-            fluxscale_caltable if (fluxscale_caltable!=None and os.path.exists(fluxscale_caltable)) else None
+        delay_caltable = (
+            delay_caltable
+            if (delay_caltable != None and os.path.exists(delay_caltable))
+            else None
         )
-        leakage_caltable = leakage_caltable if (leakage_caltable!=None and os.path.exists(leakage_caltable)) else None
-        kcross_caltable = kcross_caltable if (kcross_caltable!=None and os.path.exists(kcross_caltable)) else None
-        crossphase_caltable = crossphase_caltable if (crossphase_caltable!=None and os.path.exists(crossphase_caltable)) else None
-        pangle_caltable = pangle_caltable if (pangle_caltable!=None and os.path.exists(pangle_caltable)) else None
-        return 0, [delay_caltable, bpass_caltable, gain_caltable, fluxscale_caltable, leakage_caltable, kcross_caltable, crossphase_caltable, pangle_caltable]   
+        bpass_caltable = (
+            bpass_caltable
+            if (bpass_caltable != None and os.path.exists(bpass_caltable))
+            else None
+        )
+        gain_caltable = (
+            gain_caltable
+            if (gain_caltable != None and os.path.exists(gain_caltable))
+            else None
+        )
+        fluxscale_caltable = (
+            fluxscale_caltable
+            if (fluxscale_caltable != None and os.path.exists(fluxscale_caltable))
+            else None
+        )
+        leakage_caltable = (
+            leakage_caltable
+            if (leakage_caltable != None and os.path.exists(leakage_caltable))
+            else None
+        )
+        kcross_caltable = (
+            kcross_caltable
+            if (kcross_caltable != None and os.path.exists(kcross_caltable))
+            else None
+        )
+        crossphase_caltable = (
+            crossphase_caltable
+            if (crossphase_caltable != None and os.path.exists(crossphase_caltable))
+            else None
+        )
+        pangle_caltable = (
+            pangle_caltable
+            if (pangle_caltable != None and os.path.exists(pangle_caltable))
+            else None
+        )
+        return 0, [
+            delay_caltable,
+            bpass_caltable,
+            gain_caltable,
+            fluxscale_caltable,
+            leakage_caltable,
+            kcross_caltable,
+            crossphase_caltable,
+            pangle_caltable,
+        ]
     except Exception as e:
         traceback.print_exc()
         return 1, []
@@ -892,11 +1054,12 @@ def run_basic_cal_rounds(
     -------
     int
         Success message
-    list 
+    list
         Caltables
     """
     start_time = time.time()
     try:
+        os.chdir(workdir)
         print("Measurement set : ", msname)
         print("Extracting metadata from measurement set ....")
         correct_missing_col_subms(msname)
@@ -907,32 +1070,36 @@ def run_basic_cal_rounds(
         msmd.open(msname)
         npol = msmd.ncorrforpol()[0]
         msmd.close()
-        if npol==4 or len(polcal_fields)>0 or len(phasecal_fields)>0:
+        if npol == 4 or len(polcal_fields) > 0 or len(phasecal_fields) > 0:
             n_rounds = 3
         else:
             n_rounds = 2
         print(f"Total calibration rounds: {n_rounds}")
-        do_phasecal=False
-        do_polcal=False
-        do_leakagecal=False
+        do_phasecal = False
+        do_polcal = False
+        do_leakagecal = False
         do_postcal_flag = True
         ###################################################
         # Determining what calibrations will be done or not
         ###################################################
-        if len(phasecal_fields)>0:
+        if len(phasecal_fields) > 0:
             perform_phasecal = True
         else:
             perform_phasecal = False
-        if npol==4:
-            perform_leakagecal=True
-            if len(polcal_fields)>0:
-                perform_polcal = True # Leakage calibration is always done using unpolarized fluxcal
+        if npol == 4:
+            perform_leakagecal = True
+            if len(polcal_fields) > 0:
+                perform_polcal = (
+                    True  # Leakage calibration is always done using unpolarized fluxcal
+                )
             else:
                 perform_polcal = False
-        else: # If not a full polar ms
-            print ("Measurement set is not full-polar. Do not performing any polarization calibration.")
-            perform_leakagecal=False
-            perform_polcal=False
+        else:  # If not a full polar ms
+            print(
+                "Measurement set is not full-polar. Do not performing any polarization calibration."
+            )
+            perform_leakagecal = False
+            perform_polcal = False
         #####################################################
         if refant == "":
             refant = get_refant(msname)
@@ -951,24 +1118,22 @@ def run_basic_cal_rounds(
                     do_polcal = True
                 if perform_leakagecal:
                     do_leakagecal = True
-            msg, caltables = (
-                single_round_cal_and_flag(
-                    msname,
-                    cal_round,
-                    refant,
-                    uvrange,
-                    fluxcal_scans,
-                    fluxcal_fields,
-                    phasecal_scans,
-                    phasecal_fields,
-                    phasecal_fluxes,
-                    do_phasecal=do_phasecal,
-                    do_leakagecal=do_leakagecal,
-                    do_polcal = do_polcal,
-                    do_postcal_flag=do_postcal_flag,
-                    cpu_frac=cpu_frac,
-                    mem_frac=mem_frac,
-                )
+            msg, caltables = single_round_cal_and_flag(
+                msname,
+                cal_round,
+                refant,
+                uvrange,
+                fluxcal_scans,
+                fluxcal_fields,
+                phasecal_scans,
+                phasecal_fields,
+                phasecal_fluxes,
+                do_phasecal=do_phasecal,
+                do_leakagecal=do_leakagecal,
+                do_polcal=do_polcal,
+                do_postcal_flag=do_postcal_flag,
+                cpu_frac=cpu_frac,
+                mem_frac=mem_frac,
             )
             if keep_backup:
                 print("Backup directory: " + workdir + "/backup")
@@ -977,10 +1142,17 @@ def run_basic_cal_rounds(
                 else:
                     os.system("rm -rf " + workdir + "/backup/*")
                 for caltable in caltables:
-                    if caltable!=None and os.path.exists(caltable):
-                        cal_ext=os.path.basename(caltable).split(".")[-1]
-                        outputname=workdir+ "/backup/"+ os.path.basename(caltable).split(f".{cal_ext}")[0]+ "_round_"+ str(cal_round)+ f".{cal_ext}"
-                        os.system("cp -r "+caltable+" "+outputname)   
+                    if caltable != None and os.path.exists(caltable):
+                        cal_ext = os.path.basename(caltable).split(".")[-1]
+                        outputname = (
+                            workdir
+                            + "/backup/"
+                            + os.path.basename(caltable).split(f".{cal_ext}")[0]
+                            + "_round_"
+                            + str(cal_round)
+                            + f".{cal_ext}"
+                        )
+                        os.system("cp -r " + caltable + " " + outputname)
             if msg == 1:
                 print("##################")
                 print("Basic calibration is not successful.")
@@ -1075,21 +1247,19 @@ def main():
                 os.makedirs(caldir)
             if eval(str(options.print_casalog)) == True:
                 casalog.showconsole(True)
-            msg, caltables = (
-                run_basic_cal_rounds(
-                    options.msname,
-                    workdir,
-                    refant=str(options.refant),
-                    uvrange=str(options.uvrange),
-                    keep_backup=eval(str(options.keep_backup)),
-                    cpu_frac=float(options.cpu_frac),
-                    mem_frac=float(options.mem_frac),
-                )
+            msg, caltables = run_basic_cal_rounds(
+                options.msname,
+                workdir,
+                refant=str(options.refant),
+                uvrange=str(options.uvrange),
+                keep_backup=eval(str(options.keep_backup)),
+                cpu_frac=float(options.cpu_frac),
+                mem_frac=float(options.mem_frac),
             )
-            os.system("rm -rf "+caldir+"/*")
+            os.system("rm -rf " + caldir + "/*")
             for caltable in caltables:
-                if caltable!=None and os.path.exists(caltable):
-                    os.system("mv " + caltable + " " + caldir)    
+                if caltable != None and os.path.exists(caltable):
+                    os.system("mv " + caltable + " " + caldir)
             return msg
         except Exception as e:
             traceback.print_exc()
