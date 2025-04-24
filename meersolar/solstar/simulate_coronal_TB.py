@@ -1,5 +1,6 @@
 import ctypes, sys, os
 from numpy.ctypeslib import ndpointer
+from meersolar.pipeline.basic_func import get_datadir
 import numpy as np, gc
 import matplotlib.pyplot as plt
 import h5py
@@ -53,7 +54,8 @@ def simulate_GRFF(dem_file, outfile, start_freq, end_freq):
     print("########################")
     print("Estimating coronal brightness temperature for free-free emission ......")
     print("########################")
-    libname = os.path.dirname(__file__) + "/GRFF/binaries/GRFF_DEM_Transfer.so"
+    datadir=get_datadir()
+    libname = datadir+"/GRFF_DEM_Transfer.so"
     start_freq *= 10**6
     end_freq *= 10**6
     Nf = int(
