@@ -144,7 +144,15 @@ def scale_bandpass(bandpass_table, att_table, n=15):
 
 
 def applysol(
-    msname="", scan="", gaintable=[], gainfield=[], interp=[], n_threads=-1, dry_run=False
+    msname="",
+    scan="",
+    gaintable=[],
+    gainfield=[],
+    interp=[],
+    overwrite_datacolumn=False,
+    n_threads=-1,
+    memory_limit=-1,
+    dry_run=False,
 ):
     """
     Apply flux calibrated and attenuation calibrated solutions
@@ -160,8 +168,12 @@ def applysol(
         Gain field list
     interp : list
         Gain interpolation
+    overwrite_datacolumn : bool, optional
+        Overwrite data column with corrected solutions
     n_threads : int, optional
         Number of OpenMP threads
+    memory_limit : float, optional
+        Memory limit in GB
     """
     limit_threads(n_threads=n_threads)
     from casatasks import applycal
@@ -182,12 +194,29 @@ def applysol(
             flagbackup=True,
         )
         os.system("rm -rf casa*log")
-
+        if overwrite_datacolumn:
+            colsize = get_column_size(msname)
+            tb = table()
+            tb.open(msname, nomodify=False)
+            if memory_limit > (1.5 * colsize) or memory_limit == -1:
+                cor_data = tb.getcol("CORRECTED_DATA")
+                tb.putcol("DATA", cor_data)
+            else:
+                chunk_size = int((1.5 * colsize) / memory_limit)
+                nrow = tb.nrows()
+                for i in range(0, nrow, chunk_size):
+                    if i + chunk_size > nrow:
+                        n = -1
+                    else:
+                        n = chunk_size
+                    cor_data = tb.getcol("CORRECTED_DATA", startrow=i, nrow=n)
+                    tb.putcol("DATA", cor_data, startrow=i, nrow=n)
+            tb.flush()
+            tb.close()
         return 0
     except Exception as e:
         traceback.print_exc()
         os.system("rm -rf casa*log")
-
         return 1
 
 
@@ -197,6 +226,7 @@ def run_all_applysol(
     caldir,
     use_only_bandpass=False,
     use_only_fluxcal=False,
+    overwrite_datacolumn=False,
     cpu_frac=0.8,
     mem_frac=0.8,
 ):
@@ -214,6 +244,8 @@ def run_all_applysol(
         Use only bandpass solutions
     use_only_fluxcal : bool, optional
         Use only fluxcal solutions
+    overwrite_datacolumn : bool, optional
+        Overwrite data column or not
     cpu_frac : float, optional
         CPU fraction to use
     mem_frac : float, optional
@@ -282,14 +314,19 @@ def run_all_applysol(
         ####################################
         print(f"Total ms list: {len(mslist)}")
         task = delayed(applysol)(dry_run=True)
-        mem_limit=run_limited_memory_task(task)
+        mem_limit = run_limited_memory_task(task)
         dask_client, dask_cluster, n_jobs, n_threads = get_dask_client(
-            len(mslist), cpu_frac, mem_frac, min_mem_per_job=mem_limit/0.8
+            len(mslist), cpu_frac, mem_frac, min_mem_per_job=mem_limit / 0.8
         )
         tasks = []
         scaled_bandpass_scans = [
             int(a.split("scan_")[-1].split(".bcal")[0]) for a in scaled_bandpass_list
         ]
+        workers = list(dask_client.scheduler_info()["workers"].items())
+        addr, stats = workers[0]
+        memory_limit = stats["memory_limit"] / 1024**3
+        target_frac = config.get("distributed.worker.memory.target")
+        memory_limit *= target_frac
         msmd = msmetadata()
         for ms in mslist:
             msmd.open(ms)
@@ -305,9 +342,11 @@ def run_all_applysol(
                         ms,
                         scan,
                         gaintable=gaintable + [bandpass_table],
-                        gainfield=gaintable,
+                        gainfield=gainfield,
+                        overwrite_datacolumn=overwrite_datacolumn,
                         interp=interp,
                         n_threads=n_threads,
+                        memory_limit=memory_limit,
                     )
                 )
         results = compute(*tasks)
@@ -370,6 +409,13 @@ def main():
         metavar="Boolean",
     )
     parser.add_option(
+        "--overwrite_datacolumn",
+        dest="overwrite_datacolumn",
+        default=False,
+        help="Overwrite data column or not",
+        metavar="Boolean",
+    )
+    parser.add_option(
         "--print_casalog",
         dest="print_casalog",
         default=False,
@@ -395,7 +441,7 @@ def main():
         casalog.showconsole(True)
     if options.mslist != "":
         print("\n###################################")
-        print("Starting applying solutions and spliting target scans.")
+        print("Starting applying solutions...")
         print("###################################\n")
         try:
             if options.workdir == "" or os.path.exists(options.workdir) == False:
@@ -410,6 +456,7 @@ def main():
                 options.caldir,
                 use_only_bandpass=eval(str(options.use_only_bandpass)),
                 use_only_fluxcal=eval(str(options.use_only_fluxcal)),
+                overwrite_datacolumn=eval(str(options.overwrite_datacolumn)),
                 cpu_frac=float(options.cpu_frac),
                 mem_frac=float(options.mem_frac),
             )
@@ -425,6 +472,6 @@ def main():
 if __name__ == "__main__":
     result = main()
     print(
-        "\n###################\nApply calibration solutions are done.\n###################\n"
+        "\n###################\nApplying calibration solutions are done.\n###################\n"
     )
     os._exit(result)

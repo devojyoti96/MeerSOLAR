@@ -66,7 +66,7 @@ def split_noise_diode_scans(
     scan="",
     datacolumn="data",
     n_threads=-1,
-    dry_run=True
+    dry_run=True,
 ):
     """
     Split noise diode on and off timestamps into two seperate measurement sets
@@ -93,12 +93,13 @@ def split_noise_diode_scans(
     """
     limit_threads(n_threads=n_threads)
     from casatasks import split
+
     if dry_run:
         process = psutil.Process(os.getpid())
         mem = round(process.memory_info().rss / 1024**3, 2)  # in GB
         return mem
-    msname=msname.rstrip("/")
-    mspath=os.path.dirname(os.path.abspath(msname))
+    msname = msname.rstrip("/")
+    mspath = os.path.dirname(os.path.abspath(msname))
     os.chdir(mspath)
     print(f"Spliting ms: {msname} into noise diode on and off measurement sets.")
     if noise_on_ms == "":
@@ -298,12 +299,13 @@ def get_bad_ants(msname="", fieldnames=[], n_threads=-1, dry_run=False):
     """
     limit_threads(n_threads=n_threads)
     from casatasks import visstat
+
     if dry_run:
         process = psutil.Process(os.getpid())
         mem = round(process.memory_info().rss / 1024**3, 2)  # in GB
         return mem
-    msname=msname.rstrip("/")
-    mspath=os.path.dirname(os.path.abspath(msname))
+    msname = msname.rstrip("/")
+    mspath = os.path.dirname(os.path.abspath(msname))
     os.chdir(mspath)
     msmd = msmetadata()
     good_chan = get_good_chans(msname)
@@ -388,7 +390,7 @@ def get_common_spw(spw1, spw2):
     return to_str(to_set(spw1) & to_set(spw2))
 
 
-def scans_in_timerange(msname="", timerange="",dry_run = False):
+def scans_in_timerange(msname="", timerange="", dry_run=False):
     """
     Get scans in the given timerange
     Parameters
@@ -403,12 +405,13 @@ def scans_in_timerange(msname="", timerange="",dry_run = False):
         Scan dict for timerange
     """
     from casatools import ms, quanta
+
     if dry_run:
         process = psutil.Process(os.getpid())
         mem = round(process.memory_info().rss / 1024**3, 2)  # in GB
         return mem
-    msname=msname.rstrip("/")
-    mspath=os.path.dirname(os.path.abspath(msname))
+    msname = msname.rstrip("/")
+    mspath = os.path.dirname(os.path.abspath(msname))
     os.chdir(mspath)
     qa = quanta()
     ms_tool = ms()
@@ -454,7 +457,7 @@ def scans_in_timerange(msname="", timerange="",dry_run = False):
     return valid_scans
 
 
-def get_refant(msname="", n_threads=-1, dry_run = False):
+def get_refant(msname="", n_threads=-1, dry_run=False):
     """
     Get reference antenna
     Parameters
@@ -470,12 +473,13 @@ def get_refant(msname="", n_threads=-1, dry_run = False):
     """
     limit_threads(n_threads=n_threads)
     from casatasks import visstat
+
     if dry_run:
         process = psutil.Process(os.getpid())
         mem = round(process.memory_info().rss / 1024**3, 2)  # in GB
         return mem
-    msname=msname.rstrip("/")
-    mspath=os.path.dirname(os.path.abspath(msname))
+    msname = msname.rstrip("/")
+    mspath = os.path.dirname(os.path.abspath(msname))
     os.chdir(mspath)
     casalog.filter("SEVERE")
     fluxcal_fields, fluxcal_scans = get_fluxcals(msname)
@@ -567,12 +571,13 @@ def get_chans_flag(msname="", field="0", n_threads=-1, dry_run=False):
     """
     limit_threads(n_threads=n_threads)
     from casatasks import flagdata
+
     if dry_run:
         process = psutil.Process(os.getpid())
         mem = round(process.memory_info().rss / 1024**3, 2)  # in GB
         return mem
-    msname=msname.rstrip("/")
-    mspath=os.path.dirname(os.path.abspath(msname))
+    msname = msname.rstrip("/")
+    mspath = os.path.dirname(os.path.abspath(msname))
     os.chdir(mspath)
     casalog.filter("SEVERE")
     summary = flagdata(vis=msname, field=field, mode="summary", spwchan=True)
@@ -589,7 +594,7 @@ def get_chans_flag(msname="", field="0", n_threads=-1, dry_run=False):
     return unflag_chans, flag_chans
 
 
-def reset_weights_and_flags(msname="", restore_flag=True, n_threads=-1, dry_run = False):
+def reset_weights_and_flags(msname="", restore_flag=True, n_threads=-1, dry_run=False):
     """
     Reset weights and flags for the ms
     Parameters
@@ -603,12 +608,13 @@ def reset_weights_and_flags(msname="", restore_flag=True, n_threads=-1, dry_run 
     """
     limit_threads(n_threads=n_threads)
     from casatasks import flagdata
+
     if dry_run:
         process = psutil.Process(os.getpid())
         mem = round(process.memory_info().rss / 1024**3, 2)  # in GB
         return mem
-    msname=msname.rstrip("/")
-    mspath=os.path.dirname(os.path.abspath(msname))
+    msname = msname.rstrip("/")
+    mspath = os.path.dirname(os.path.abspath(msname))
     os.chdir(mspath)
     if restore_flag:
         print(f"Restoring flags of measurement set : {msname}")
@@ -694,12 +700,13 @@ def get_unflagged_antennas(msname="", scan="", n_threads=-1, dry_run=False):
     """
     limit_threads(n_threads=n_threads)
     from casatasks import flagdata
+
     if dry_run:
         process = psutil.Process(os.getpid())
         mem = round(process.memory_info().rss / 1024**3, 2)  # in GB
         return mem
-    msname=msname.rstrip("/")
-    mspath=os.path.dirname(os.path.abspath(msname))
+    msname = msname.rstrip("/")
+    mspath = os.path.dirname(os.path.abspath(msname))
     os.chdir(mspath)
     flag_summary = flagdata(vis=msname, scan=str(scan), mode="summary")
     antenna_flags = flag_summary["antenna"]
@@ -715,7 +722,7 @@ def get_unflagged_antennas(msname="", scan="", n_threads=-1, dry_run=False):
     return unflagged_antenna_names, flag_frac_list
 
 
-def calc_flag_fraction(msname="", field="", scan="", n_threads=-1, dry_run = False):
+def calc_flag_fraction(msname="", field="", scan="", n_threads=-1, dry_run=False):
     """
     Function to calculate the fraction of total data flagged.
 
@@ -736,12 +743,13 @@ def calc_flag_fraction(msname="", field="", scan="", n_threads=-1, dry_run = Fal
     """
     limit_threads(n_threads=n_threads)
     from casatasks import flagdata
+
     if dry_run:
         process = psutil.Process(os.getpid())
         mem = round(process.memory_info().rss / 1024**3, 2)  # in GB
         return mem
-    msname=msname.rstrip("/")
-    mspath=os.path.dirname(os.path.abspath(msname))
+    msname = msname.rstrip("/")
+    mspath = os.path.dirname(os.path.abspath(msname))
     os.chdir(mspath)
     summary = flagdata(vis=msname, field=field, scan=scan, mode="summary")
     flagged_fraction = summary["flagged"] / summary["total"]
@@ -1092,6 +1100,7 @@ def mjdsec_to_timestamp(mjdsec, str_format=0):
             CASA time stamp in UTC at ISOT format
     """
     from casatools import measures, quanta
+
     me = measures()
     qa = quanta()
     today = me.epoch("utc", "today")
@@ -1317,12 +1326,14 @@ def split_and_move_to_solarcenter(
     """
     limit_threads(n_threads=n_threads)
     from casatasks import split
+
+    casalog.filter("SEVERE")
     if dry_run:
         process = psutil.Process(os.getpid())
         mem = round(process.memory_info().rss / 1024**3, 2)  # in GB
         return mem
-    msname=msname.rstrip("/")
-    mspath=os.path.dirname(os.path.abspath(msname))
+    msname = msname.rstrip("/")
+    mspath = os.path.dirname(os.path.abspath(msname))
     os.chdir(mspath)
     if os.path.exists(outputms):
         os.system("rm -rf " + outputms)
@@ -1370,14 +1381,19 @@ def correct_solar_sidereal_motion(
     available_cpu_pct = 100 - psutil.cpu_percent(interval=1)
     available_cpus = int(total_cpus * available_cpu_pct / 100.0)
     usable_cpus = max(1, int(total_cpus * cpu_frac))
-    npcu = min(1, int(usable_cpus * cpu_frac))
+    ncpu = min(1, int(usable_cpus * cpu_frac))
     limit_threads(n_threads=ncpu)
     from casatasks import concat
+
+    casalog.filter("SEVERE")
     if dry_run:
         process = psutil.Process(os.getpid())
         mem = round(process.memory_info().rss / 1024**3, 2)  # in GB
         return mem
     msname = msname.rstrip("/")
+    if os.path.exists(msname + "/.sidereal"):
+        print(f"Sidereal motion is already corrected for ms: {msname}")
+        return msname
     print(f"Correcting sidereal motion of the Sun for ms: {msname}")
     msname = os.path.abspath(msname)
     mspath = os.path.dirname(msname)
@@ -1391,9 +1407,9 @@ def correct_solar_sidereal_motion(
     msmd.close()
     timestamps = [mjdsec_to_timestamp(i, str_format=1) for i in times]
     task = delayed(split_and_move_to_solarcenter)(dry_run=True)
-    mem_limit=run_limited_memory_task(task)
+    mem_limit = run_limited_memory_task(task)
     dask_client, dask_cluster, n_jobs, n_threads = get_dask_client(
-        len(timestamps), cpu_frac, mem_frac, min_mem_per_job=mem_limit/0.8
+        len(timestamps), cpu_frac, mem_frac, min_mem_per_job=mem_limit / 0.8
     )
     tasks = []
     if len(timestamps) > 0:
@@ -1429,6 +1445,7 @@ def correct_solar_sidereal_motion(
         os.system("mv " + outputms + " " + msname)
         outputms = msname
     os.system("rm -rf " + mspath + "/t_*.ms")
+    os.system("touch " + msname + "/.sidereal")
     print(f"Total time taken: {round(time.time()-starttime,2)}s")
     return outputms
 
@@ -1710,7 +1727,7 @@ def calc_cellsize(msname, num_pixel_in_psf):
             Pixel size in arcsec
     """
     psf = calc_psf(msname)
-    pixel = round(psf / num_pixel_in_psf, 2)
+    pixel = round(psf / num_pixel_in_psf, 1)
     return pixel
 
 
@@ -1745,7 +1762,6 @@ def calc_multiscale_scales(msname, num_pixel_in_psf, max_scale=16, nmax=5):
         multiscale_scales.append(max_scale_pixel)
     return multiscale_scales
 
-
 def delaycal(msname="", caltable="", refant="", solint="inf", dry_run=False):
     """
     General delay calibration using CASA, not assuming any point source
@@ -1765,19 +1781,32 @@ def delaycal(msname="", caltable="", refant="", solint="inf", dry_run=False):
         Caltable name
     """
     from casatasks import bandpass, gaincal
+
     if dry_run:
         process = psutil.Process(os.getpid())
         mem = round(process.memory_info().rss / 1024**3, 2)  # in GB
         return mem
-    msname=msname.rstrip("/")
-    mspath=os.path.dirname(os.path.abspath(msname))
+    import warnings
+
+    warnings.filterwarnings("ignore")
+    msname = msname.rstrip("/")
+    mspath = os.path.dirname(os.path.abspath(msname))
     os.chdir(mspath)
     os.system("rm -rf " + caltable + "*")
     gaincal(
-        vis=msname, caltable=caltable, refant=refant, gaintype="K", solint=solint, minsnr=1
+        vis=msname,
+        caltable=caltable,
+        refant=refant,
+        gaintype="K",
+        solint=solint,
+        minsnr=1,
     )
     bandpass(
-        vis=msname, caltable=caltable + ".tempbcal", refant=refant, solint=solint, minsnr=1
+        vis=msname,
+        caltable=caltable + ".tempbcal",
+        refant=refant,
+        solint=solint,
+        minsnr=1,
     )
     tb = table()
     tb.open(caltable + ".tempbcal/SPECTRAL_WINDOW")
@@ -1799,9 +1828,11 @@ def delaycal(msname="", caltable="", refant="", solint="inf", dry_run=False):
                 delay = np.polyfit(2 * np.pi * freq, phase[:, j], deg=1)[0] / (
                     10**-9
                 )  # Delay in nanosecond
+                if np.isnan(delay):
+                    delay = 0.0
                 delay_gain[i, :, j] = delay
             except:
-                delay_flag[:, :, j] = True
+                delay_gain[i, :, j] = 0.0
     tb.putcol("FPARAM", delay_gain)
     tb.putcol("FLAG", delay_flag)
     tb.flush()
@@ -2085,6 +2116,7 @@ def get_dask_client(n_jobs, cpu_frac=0.8, mem_frac=0.8, min_mem_per_job=-1):
 
     return client, cluster, n_workers, threads_per_worker
 
+
 def run_limited_memory_task(task, timeout=30):
     """
     Run a task for a limited time, then kill and return memory usage.
@@ -2100,21 +2132,24 @@ def run_limited_memory_task(task, timeout=30):
         Memory used by task (in GB)
     """
     import warnings
+
     warnings.filterwarnings("ignore")
     client = Client()
     future = client.compute(task)
     start = time.time()
+
     def get_worker_memory_info():
         proc = psutil.Process()
         return {
             "rss_GB": proc.memory_info().rss / 1024**3,
-            "vms_GB": proc.memory_info().vms / 1024**3
+            "vms_GB": proc.memory_info().vms / 1024**3,
         }
+
     while not future.done():
         if time.time() - start > timeout:
             try:
                 mem_info = client.run(get_worker_memory_info)
-                total_rss = sum(v['rss_GB'] for v in mem_info.values())
+                total_rss = sum(v["rss_GB"] for v in mem_info.values())
                 per_worker_mem = total_rss
             except Exception as e:
                 per_worker_mem = None
@@ -2123,10 +2158,11 @@ def run_limited_memory_task(task, timeout=30):
             return per_worker_mem
         time.sleep(1)
     mem_info = client.run(get_worker_memory_info)
-    total_rss = sum(v['rss_GB'] for v in mem_info.values())
+    total_rss = sum(v["rss_GB"] for v in mem_info.values())
     per_worker_mem = total_rss
     client.close()
     return per_worker_mem
+
 
 def baseline_names(msname):
     """
@@ -2197,15 +2233,13 @@ def get_chunk_size(msname, memory_limit=-1, ncol=3):
     return time_chunk, baseline_chunk
 
 
-def get_column_size(msname, datacolumn=""):
+def get_column_size(msname):
     """
     Get time chunk size for a memory limit
     Parameters
     ----------
     msname : str
         Measurement set
-    datacolumn : str, optional
-        Data column
     Returns
     -------
     float
@@ -2271,7 +2305,6 @@ def create_circular_mask(msname, cellsize, imsize, mask_radius=20):
     str
         Fits mask file name
     """
-    print("Creating solar mask of size: " + str(mask_radius) + " arcmin.\n")
     imagename_prefix = msname.split(".ms")[0] + "_solar"
     wsclean_args = [
         "-quiet",
@@ -2283,7 +2316,7 @@ def create_circular_mask(msname, cellsize, imsize, mask_radius=20):
         "-interval 0 1",
     ]
     wsclean_cmd = "wsclean " + " ".join(wsclean_args) + " " + msname
-    msg = run_wsclean(wsclean_cmd, "meerwsclean")
+    msg = run_wsclean(wsclean_cmd, "meerwsclean", verbose=False)
     if msg == 0:
         center = (int(imsize / 2), int(imsize / 2))
         radius = mask_radius * 60 / cellsize
@@ -2300,10 +2333,33 @@ def create_circular_mask(msname, cellsize, imsize, mask_radius=20):
             imagename_prefix + "-mask.fits", data=data, header=header, overwrite=True
         )
         os.system("rm -rf mask.fits")
-        return imagename_prefix + "-mask.fits"
+        if os.path.exists(imagename_prefix + "-mask.fits"):
+            return imagename_prefix + "-mask.fits"
+        else:
+            print("Circular mask could not be created.")
+            return
     else:
         print("Circular mask could not be created.")
         return
+
+
+def calc_fractional_bandwidth(msname):
+    """
+    Calculate fractional bandwidh
+    Parameters
+    ----------
+    msname : str
+        Name of measurement set
+    Returns
+    -------
+    float
+        Fraction bandwidth in percentage
+    """
+    msmd = msmetadata()
+    msmd.open(msname)
+    frac_bandwidth = msmd.bandwidths(0) / msmd.meanfreq(0)
+    msmd.close()
+    return round(frac_bandwidth * 100.0, 2)
 
 
 def calc_dyn_range(imagename, modelname, fits_mask=""):
@@ -2325,6 +2381,8 @@ def calc_dyn_range(imagename, modelname, fits_mask=""):
         Total model flux.
     dyn_range_rms : float
         Max/RMS dynamic range.
+    rms : float
+        RMS of the image
     dyn_range_min : float
         Max/|Min| dynamic range.
     """
@@ -2360,7 +2418,7 @@ def calc_dyn_range(imagename, modelname, fits_mask=""):
         model = load_data(mod)
         model_flux += np.nansum(model[mask_data] if use_mask else model)
 
-    return model_flux, round(dr1, 2), round(dr2, 2)
+    return model_flux, round(dr1, 2), round(rms, 2), round(dr2, 2)
 
 
 ####################
@@ -2408,7 +2466,7 @@ def initialize_wsclean_container(name):
         return
 
 
-def run_wsclean(wsclean_cmd, container_name):
+def run_wsclean(wsclean_cmd, container_name, verbose=False):
     """
     Run WSClean inside a udocker container (no root permission required).
     Parameters
@@ -2469,7 +2527,8 @@ def run_wsclean(wsclean_cmd, container_name):
     )
     try:
         full_command = f"udocker run --nobanner --volume={mspath}:{temp_docker_path} --workdir {temp_docker_path} meerwsclean {wsclean_cmd}"
-        print(wsclean_cmd)
+        if verbose:
+            print(wsclean_cmd)
         exit_code = os.system(full_command)
         os.system(f"rm -rf {temp_docker_path}")
         return 0 if exit_code == 0 else 1
@@ -2518,7 +2577,7 @@ def run_chgcenter(msname, ra, dec, container_name):
     )
     try:
         full_command = f"udocker --quiet run --nobanner --volume={mspath}:{temp_docker_path} --workdir {temp_docker_path} meerwsclean {cmd}"
-        exit_code = os.system(full_command)  # +" >>tmp1 >> tmp2")
+        exit_code = os.system(full_command + " >>tmp1 >> tmp2")
         os.system(f"rm -rf {temp_docker_path} tmp1 tmp2")
         return 0 if exit_code == 0 else 1
     except Exception as e:

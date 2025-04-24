@@ -122,6 +122,7 @@ def phasecal_setjy(msname="", field="", ismms=False, n_threads=-1, dry_run=False
     """
     limit_threads(n_threads=n_threads)
     from casatasks import setjy
+
     if dry_run:
         process = psutil.Process(os.getpid())
         mem = round(process.memory_info().rss / 1024**3, 2)  # in GB
@@ -220,9 +221,12 @@ def import_phasecal_models(msname, cpu_frac=0.8, mem_frac=0.8):
         if os.path.exists(msname + "/SUBMSS"):
             mslist, scans = get_submsname_scans(msname)
             task = delayed(phasecal_setjy)(dry_run=True)
-            mem_limit=run_limited_memory_task(task)
+            mem_limit = run_limited_memory_task(task)
             dask_client, dask_cluster, n_jobs, n_threads = get_dask_client(
-                len(mslist), cpu_frac, mem_frac, min_mem_per_job=mem_limit/0.8,
+                len(mslist),
+                cpu_frac,
+                mem_frac,
+                min_mem_per_job=mem_limit / 0.8,
             )
             tasks = []
             for i in range(len(mslist)):
@@ -282,9 +286,9 @@ def import_polcal_model(msname, cpu_frac=0.8, mem_frac=0.8):
         if os.path.exists(msname + "/SUBMSS"):
             mslist, scans = get_submsname_scans(msname)
             task = delayed(polcal_setjy)(dry_run=True)
-            mem_limit=run_limited_memory_task(task)
+            mem_limit = run_limited_memory_task(task)
             dask_client, dask_cluster, n_jobs, n_threads = get_dask_client(
-                len(p_scans), cpu_frac, mem_frac, min_mem_per_job=mem_limit/0.8
+                len(p_scans), cpu_frac, mem_frac, min_mem_per_job=mem_limit / 0.8
             )
             tasks = []
             for i in range(len(mslist)):
@@ -333,8 +337,8 @@ def import_all_models(msname, cpu_frac=0.8, mem_frac=0.8):
     ncpu = int(cpu_threads * cpu_frac)
     mem_frac = 1 - mem_frac
     try:
-        msname=msname.rstrip("/")
-        mspath=os.path.dirname(os.path.abspath(msname))
+        msname = msname.rstrip("/")
+        mspath = os.path.dirname(os.path.abspath(msname))
         os.chdir(mspath)
         fluxcal_result = import_fluxcal_models(msname, ncpus=ncpu, mem_frac=mem_frac)
         if fluxcal_result != 0:

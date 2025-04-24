@@ -1,5 +1,6 @@
 import numpy as np, os, sys, glob
 from matplotlib import pyplot as plt
+from meersolar.pipeline.basic_func import get_datadir
 from meersolar.solstar.dem_python.dn2dem_pos import dn2dem_pos
 import astropy.units as u
 from sunpy.map import Map
@@ -49,7 +50,8 @@ def make_dem(fits_files, outfile, fov, resolution, ncpu=-1):
     y2 = int(fov[3])
     low_temp = 5.2  ## in log10
     high_temp = 7.2  ## in log10
-    trin = io.readsav(os.path.dirname(__file__) + "/dem_python/data/aia_tresp_en.dat")
+    datadir=get_datadir()
+    trin = io.readsav(datadir+"/aia_tresp_en.dat")
     wavenum = ["94", "131", "171", "193", "211", "335"]
     channels = []
     for i in np.arange(len(wavenum)):

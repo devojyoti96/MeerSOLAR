@@ -12,9 +12,12 @@ logfile = casalog.logfile()
 os.system("rm -rf " + logfile)
 
 
-def split_casatask(msname="", outputvis="", scan="", time_range="", n_threads=-1, dry_run=False):
+def split_casatask(
+    msname="", outputvis="", scan="", time_range="", n_threads=-1, dry_run=False
+):
     limit_threads(n_threads=n_threads)
     from casatasks import split
+
     if dry_run:
         process = psutil.Process(os.getpid())
         mem = round(process.memory_info().rss / 1024**3, 2)  # in GB
@@ -31,9 +34,12 @@ def split_casatask(msname="", outputvis="", scan="", time_range="", n_threads=-1
     return outputvis
 
 
-def applycal_casatask(msname="", caltable="", applymode="", n_threads=-1, dry_run=False):
+def applycal_casatask(
+    msname="", caltable="", applymode="", n_threads=-1, dry_run=False
+):
     limit_threads(n_threads=n_threads)
     from casatasks import applycal
+
     if dry_run:
         process = psutil.Process(os.getpid())
         mem = round(process.memory_info().rss / 1024**3, 2)  # in GB
@@ -68,9 +74,12 @@ def split_autocorr(
     """
     msname = msname.rstrip("/")
     task = delayed(split_casatask)(dry_run=True)
-    mem_limit=run_limited_memory_task(task)
+    mem_limit = run_limited_memory_task(task)
     dask_client, dask_cluster, n_jobs, n_threads = get_dask_client(
-        len(scan_list), cpu_frac, mem_frac, min_mem_per_job=mem_limit/0.8,
+        len(scan_list),
+        cpu_frac,
+        mem_frac,
+        min_mem_per_job=mem_limit / 0.8,
     )
     tasks = []
     for scan in scan_list:
@@ -348,9 +357,12 @@ def estimate_att(
         ########################################
         print("Applying calibrartion solutions auto-correlation measurement sets ...")
         task = delayed(applycal_casatask)(dry_run=True)
-        mem_limit=run_limited_memory_task(task)
+        mem_limit = run_limited_memory_task(task)
         dask_client, dask_cluster, n_jobs, n_threads = get_dask_client(
-            len(autocorr_mslist), cpu_frac, mem_frac, min_mem_per_job=mem_limit/0.8,
+            len(autocorr_mslist),
+            cpu_frac,
+            mem_frac,
+            min_mem_per_job=mem_limit / 0.8,
         )
         tasks = []
         for autocorr_msname in autocorr_mslist:
@@ -374,9 +386,12 @@ def estimate_att(
         badspw = get_bad_chans(msname)
         bad_ants, bad_ants_str = get_bad_ants(msname, fieldnames=fluxcal_fields)
         task = delayed(single_ms_flag)(dry_run=True)
-        mem_limit=run_limited_memory_task(task)
+        mem_limit = run_limited_memory_task(task)
         dask_client, dask_cluster, n_jobs, n_threads = get_dask_client(
-            len(autocorr_mslist), cpu_frac, mem_frac, min_mem_per_job=mem_limit/0.8,
+            len(autocorr_mslist),
+            cpu_frac,
+            mem_frac,
+            min_mem_per_job=mem_limit / 0.8,
         )
         workers = list(dask_client.scheduler_info()["workers"].items())
         addr, stats = workers[0]
@@ -425,9 +440,9 @@ def estimate_att(
         ########################################
         print("Calculating noise-diode power difference ...")
         task = delayed(get_power_diff)(dry_run=True)
-        mem_limit=run_limited_memory_task(task)
+        mem_limit = run_limited_memory_task(task)
         dask_client, dask_cluster, n_jobs, n_threads = get_dask_client(
-            len(valid_target_scans), cpu_frac, mem_frac, min_mem_per_job=mem_limit/0.8
+            len(valid_target_scans), cpu_frac, mem_frac, min_mem_per_job=mem_limit / 0.8
         )
         workers = list(dask_client.scheduler_info()["workers"].items())
         addr, stats = workers[0]

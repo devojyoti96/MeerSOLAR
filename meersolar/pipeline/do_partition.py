@@ -46,6 +46,7 @@ def single_mstransform(
     """
     limit_threads(n_threads=n_threads)
     from casatasks import mstransform
+
     if dry_run:
         process = psutil.Process(os.getpid())
         mem = round(process.memory_info().rss / 1024**3, 2)  # in GB
@@ -136,7 +137,7 @@ def partion_ms(
     valid_scans = get_valid_scans(msname, min_scan_time=1)
     msmd = msmetadata()
     msname = os.path.abspath(msname.rstrip("/"))
-    mspath=os.path.dirname(msname)
+    mspath = os.path.dirname(msname)
     os.chdir(mspath)
     msmd.open(msname)
     if scans != "":
@@ -181,15 +182,15 @@ def partion_ms(
         field_list.append(str(field_names[field]))
     msmd.close()
     msmd.done()
-    field=",".join(field_list)
-    
+    field = ",".join(field_list)
+
     ###########################
     # Dask local cluster setup
     ###########################
     task = delayed(single_mstransform)(dry_run=True)
-    mem_limit=run_limited_memory_task(task)
+    mem_limit = run_limited_memory_task(task)
     dask_client, dask_cluster, n_jobs, n_threads = get_dask_client(
-        len(scan_list), cpu_frac, mem_frac, min_mem_per_job = mem_limit/0.8
+        len(scan_list), cpu_frac, mem_frac, min_mem_per_job=mem_limit / 0.8
     )
     tasks = []
     for i in range(len(scan_list)):
@@ -224,6 +225,7 @@ def partion_ms(
     else:
         print("Making multi-MS ....")
         from casatasks import virtualconcat
+
         virtualconcat(vis=splited_ms_list, concatvis=outputms)
 
     print("##################")

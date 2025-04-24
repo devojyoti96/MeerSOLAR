@@ -301,6 +301,7 @@ def run_applycal(
     """
     limit_threads(n_threads=n_threads)
     from casatasks import applycal
+
     if dry_run:
         process = psutil.Process(os.getpid())
         mem = round(process.memory_info().rss / 1024**3, 2)  # in GB
@@ -567,12 +568,12 @@ def single_round_cal_and_flag(
             # Memory limit
             #############################################
             task = delayed(run_delaycal)(dry_run=True)
-            mem_limit=run_limited_memory_task(task)
+            mem_limit = run_limited_memory_task(task)
             dask_client, dask_cluster, n_jobs, n_threads = get_dask_client(
                 len(delaycal_mslist),
                 cpu_frac,
                 mem_frac,
-                min_mem_per_job= mem_limit/0.8,
+                min_mem_per_job=mem_limit / 0.8,
             )
             tasks = [
                 delayed(run_delaycal)(
@@ -599,12 +600,12 @@ def single_round_cal_and_flag(
         ##############################
         if len(fluxcal_mslist) > 0:
             task = delayed(run_bandpass)(dry_run=True)
-            mem_limit=run_limited_memory_task(task)
+            mem_limit = run_limited_memory_task(task)
             dask_client, dask_cluster, n_jobs, n_threads = get_dask_client(
                 len(fluxcal_mslist),
                 cpu_frac,
                 mem_frac,
-                min_mem_per_job=mem_limit/0.8,
+                min_mem_per_job=mem_limit / 0.8,
             )
             tasks = [
                 delayed(run_bandpass)(
@@ -643,9 +644,9 @@ def single_round_cal_and_flag(
             gaincal_mslist = fluxcal_mslist + polcal_mslist
         if len(gaincal_mslist) > 0:
             task = delayed(run_gaincal)(dry_run=True)
-            mem_limit=run_limited_memory_task(task)
+            mem_limit = run_limited_memory_task(task)
             dask_client, dask_cluster, n_jobs, n_threads = get_dask_client(
-                len(gaincal_mslist), cpu_frac, mem_frac, min_mem_per_job=mem_limit/0.8
+                len(gaincal_mslist), cpu_frac, mem_frac, min_mem_per_job=mem_limit / 0.8
             )
             tasks = [
                 delayed(run_gaincal)(
@@ -690,12 +691,12 @@ def single_round_cal_and_flag(
                 applycal_interp.append("nearest")
             else:
                 task = delayed(run_gaincal)(dry_run=True)
-                mem_limit=run_limited_memory_task(task)
+                mem_limit = run_limited_memory_task(task)
                 dask_client, dask_cluster, n_jobs, n_threads = get_dask_client(
                     len(phasecal_mslist),
                     cpu_frac,
                     mem_frac,
-                    min_mem_per_job=mem_limit/0.8,
+                    min_mem_per_job=mem_limit / 0.8,
                 )
                 tasks = [
                     delayed(run_gaincal)(
@@ -783,9 +784,12 @@ def single_round_cal_and_flag(
                 print("Measurement set is not full-polar.")
             elif len(fluxcal_mslist) > 0:
                 task = delayed(run_leakagecal)(dry_run=True)
-                mem_limit=run_limited_memory_task(task)
+                mem_limit = run_limited_memory_task(task)
                 dask_client, dask_cluster, n_jobs, n_threads = get_dask_client(
-                    len(fluxcal_mslist), cpu_frac, mem_frac, min_mem_per_job=mem_limit/0.8,
+                    len(fluxcal_mslist),
+                    cpu_frac,
+                    mem_frac,
+                    min_mem_per_job=mem_limit / 0.8,
                 )
                 tasks = [
                     delayed(run_leakagecal)(
@@ -824,12 +828,12 @@ def single_round_cal_and_flag(
                 print("Leakage solutions are present.")
             else:
                 task = delayed(run_polcal)(dry_run=True)
-                mem_limit=run_limited_memory_task(task)
+                mem_limit = run_limited_memory_task(task)
                 dask_client, dask_cluster, n_jobs, n_threads = get_dask_client(
                     len(polcal_mslist),
                     cpu_frac,
                     mem_frac,
-                    min_mem_per_job=mem_limit/0.8,
+                    min_mem_per_job=mem_limit / 0.8,
                 )
                 tasks = [
                     delayed(run_polcal)(
@@ -908,9 +912,12 @@ def single_round_cal_and_flag(
         if len(all_mslist) > 0:
             do_flag_backup(msname, flagtype="applycal")
             task = delayed(run_applycal)(dry_run=True)
-            mem_limit=run_limited_memory_task(task)
+            mem_limit = run_limited_memory_task(task)
             dask_client, dask_cluster, n_jobs, n_threads = get_dask_client(
-                len(all_mslist), cpu_frac, mem_frac, min_mem_per_job=mem_limit/0.8,
+                len(all_mslist),
+                cpu_frac,
+                mem_frac,
+                min_mem_per_job=mem_limit / 0.8,
             )
             tasks = [
                 delayed(run_applycal)(
@@ -935,9 +942,12 @@ def single_round_cal_and_flag(
         if do_postcal_flag and len(all_mslist) > 0:
             do_flag_backup(msname, flagtype="flagdata")
             task = delayed(run_postcal_flag)(dry_run=True)
-            mem_limit=run_limited_memory_task(task)
+            mem_limit = run_limited_memory_task(task)
             dask_client, dask_cluster, n_jobs, n_threads = get_dask_client(
-                len(all_mslist), cpu_frac, mem_frac, min_mem_per_job=mem_limit/0.8,
+                len(all_mslist),
+                cpu_frac,
+                mem_frac,
+                min_mem_per_job=mem_limit / 0.8,
             )
             workers = list(dask_client.scheduler_info()["workers"].items())
             addr, stats = workers[0]

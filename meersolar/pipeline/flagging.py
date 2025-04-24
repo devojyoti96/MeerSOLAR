@@ -369,8 +369,8 @@ def do_flagging(
     """
     start_time = time.time()
     try:
-        msname=msname.rstrip("/")
-        mspath=os.path.dirname(os.path.abspath(msname))
+        msname = msname.rstrip("/")
+        mspath = os.path.dirname(os.path.abspath(msname))
         os.chdir(mspath)
         print("###########################")
         print("Flagging measurement set : ", msname)
@@ -386,12 +386,12 @@ def do_flagging(
         else:
             subms_list = [msname]
         task = delayed(single_ms_flag)(dry_run=True)
-        mem_limit=run_limited_memory_task(task)
+        mem_limit = run_limited_memory_task(task)
         dask_client, dask_cluster, n_jobs, n_threads = get_dask_client(
             len(subms_list),
             cpu_frac,
             mem_frac,
-            min_mem_per_job=mem_limit/0.8,
+            min_mem_per_job=mem_limit / 0.8,
         )
         if flag_backup:
             do_flag_backup(msname, flagtype="flagdata")
