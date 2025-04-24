@@ -1,6 +1,6 @@
 import os, glob, gc, time
 from optparse import OptionParser
-from solstar.aia_download_n_calib import download_aia_data
+from meersolar.solstar.aia_download_n_calib import download_aia_data
 
 def get_observatory_info(observatory_name):
     """
@@ -24,6 +24,7 @@ def get_observatory_info(observatory_name):
         "ASKAP": {"latitude": -26.696, "longitude": 116.630, "altitude": 377},  # In meters
         "FASR": {"latitude": 38.430, "longitude": -79.839, "altitude": 820},  # Approximate value
         "SKAO-MID": {"latitude": -30.721, "longitude": 21.411, "altitude": 1060},  # Approximate location
+        "SKAO-LOW": {"latitude": -26.7033, "longitude": 116.6319, "altitude": 377},  # Approximate location
         "JVLA": {"latitude": 34.0784, "longitude": -107.6184, "altitude": 2124},  # In meters
     }
     keys=list(observatories.keys())
@@ -95,7 +96,7 @@ def main():
         "--observatory",
         dest="observatory_name",
         default=None,
-        help="Observatory name (MeerKAT, uGMRT, eOVSA, ASKAP, FASR, SKAO-MID)",
+        help="Observatory name (MeerKAT, uGMRT, eOVSA, ASKAP, FASR, SKAO-MID, SKAO-LOW, JVLA)",
         metavar="String",
     )
     parser.add_option(
@@ -198,7 +199,7 @@ def main():
         + level15_dir
         + " --fov -2000,2000,-2000,2000 --resolution "+str(options.resolution)+" --outfile "
         + str(options.workdir)
-        + "/DEM.h5 --ncpu "+str(ncpu)
+        + "/DEM.h5 --ncpu "+str(options.ncpu)
     )
     print(dem_cmd + "\n")
     os.system(dem_cmd)
