@@ -2456,9 +2456,9 @@ def initialize_wsclean_container(name):
     bool
         Whether initialized successfully or not
     """
-    a = os.system("udocker pull devojyoti96/wsclean-full:22.04")
+    a = os.system("udocker pull devojyoti96/wscleansolar:latest")
     if a == 0:
-        a = os.system(f"udocker create --name={name} devojyoti96/wsclean-full:22.04")
+        a = os.system(f"udocker create --name={name} devojyoti96/wscleansolar:latest")
         print(f"Container started with name : {name}")
         return name
     else:
