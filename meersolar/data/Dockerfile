@@ -50,5 +50,5 @@ RUN cd /opt/wsclean && \
 ENV PATH="/usr/local/bin:$PATH"
 
 # Set entrypoint to bash for interactive or udocker use
-ENTRYPOINT ["/bin/bash"]
+CMD ["/bin/bash"]
 

@@ -1282,7 +1282,6 @@ def angular_separation_equatorial(ra1, dec1, ra2, dec2):
     theta_deg = np.degrees(theta_rad)
     return theta_deg
 
-
 def move_to_sun(msname):
     """
     Move the phasecenter of the measurement set at the center of the Sun (Assuming ms has one scan)
@@ -1296,159 +1295,31 @@ def move_to_sun(msname):
         Success message
     """
     sun_radec_string, sunra, sundec, sunra_deg, sundec_deg = radec_sun(msname)
-    msg = run_chgcenter(msname, sunra, sundec, "meerwsclean")
+    msg = run_chgcenter(msname, sunra, sundec, container_name="meerwsclean")
     if msg != 0:
         print("Phasecenter could not be shifted.")
     return msg
 
-
-def split_and_move_to_solarcenter(
-    msname="", outputms="", timestamp="", field="", n_threads=-1, dry_run=False
-):
+def correct_solar_sidereal_motion(msname="", verbose = False, dry_run = False):
     """
-    Split and move phasecenter to the Sun
+    Correct sodereal motion of the Sun
     Parameters
     ----------
     msname : str
-       Measurement set
-    outputms : str
-        Output msname
-    timestamp : str
-        Time stamp
-    field : str, optional
-        Field name or ID
+        Name of the measurement set
     Returns
     -------
     int
         Success message
-    str
-        Output msname
     """
-    limit_threads(n_threads=n_threads)
-    from casatasks import split
-
-    casalog.filter("SEVERE")
     if dry_run:
-        process = psutil.Process(os.getpid())
-        mem = round(process.memory_info().rss / 1024**3, 2)  # in GB
+        mem=run_solar_sidereal_cor(dry_run=True)
         return mem
-    msname = msname.rstrip("/")
-    mspath = os.path.dirname(os.path.abspath(msname))
-    os.chdir(mspath)
-    if os.path.exists(outputms):
-        os.system("rm -rf " + outputms)
-    if os.path.exists(outputms + ".flagversions"):
-        os.system("rm -rf " + outputms + ".flagversions")
-    split(
-        vis=msname,
-        outputvis=outputms,
-        field=str(field),
-        spw="",
-        scan="",
-        datacolumn="all",
-        timerange=timestamp,
-    )
-    if os.path.exists(outputms) == False:
-        return 1, ""
-    else:
-        msg = move_to_sun(outputms)
-        return 0, outputms
-
-
-def correct_solar_sidereal_motion(
-    msname="", cpu_frac=0.8, mem_frac=0.8, keep_original=False, dry_run=False
-):
-    """
-    Correct the shift in RA DEC of the Sun due to sidereal motion
-    Shift each timestamp visibilities phase center to the solar center
-    Parameters
-    ----------
-    msname : str
-        Measurement set name
-    cpu_frac : float, optional
-        CPU fraction to use
-    mem_frac : float, optional
-        Memory fraction to use
-    keep_original : bool, optional
-        Keep original msname or not
-    Returns
-    -------
-    str
-        Phase rotated measurement set
-    """
-    starttime = time.time()
-    total_cpus = psutil.cpu_count(logical=True)
-    available_cpu_pct = 100 - psutil.cpu_percent(interval=1)
-    available_cpus = int(total_cpus * available_cpu_pct / 100.0)
-    usable_cpus = max(1, int(total_cpus * cpu_frac))
-    ncpu = min(1, int(usable_cpus * cpu_frac))
-    limit_threads(n_threads=ncpu)
-    from casatasks import concat
-
-    casalog.filter("SEVERE")
-    if dry_run:
-        process = psutil.Process(os.getpid())
-        mem = round(process.memory_info().rss / 1024**3, 2)  # in GB
-        return mem
-    msname = msname.rstrip("/")
-    if os.path.exists(msname + "/.sidereal"):
-        print(f"Sidereal motion is already corrected for ms: {msname}")
-        return msname
-    print(f"Correcting sidereal motion of the Sun for ms: {msname}")
-    msname = os.path.abspath(msname)
-    mspath = os.path.dirname(msname)
-    os.chdir(mspath)
-    msmd = msmetadata()
-    msmd.open(msname)
-    times = msmd.timesforspws(0)
-    total_time = times[1] - times[0]
-    scan = int(msmd.scannumbers()[0])
-    field = int(msmd.fieldsforscan(scan)[0])
-    msmd.close()
-    timestamps = [mjdsec_to_timestamp(i, str_format=1) for i in times]
-    task = delayed(split_and_move_to_solarcenter)(dry_run=True)
-    mem_limit = run_limited_memory_task(task)
-    dask_client, dask_cluster, n_jobs, n_threads = get_dask_client(
-        len(timestamps), cpu_frac, mem_frac, min_mem_per_job=mem_limit / 0.8
-    )
-    tasks = []
-    if len(timestamps) > 0:
-        tasks = []
-        for i in range(len(timestamps)):
-            outputms = mspath + "/t_" + str(i) + ".ms"
-            tasks.append(
-                delayed(split_and_move_to_solarcenter)(
-                    msname, outputms, timestamps[i], field=field, n_threads=n_threads
-                )
-            )
-    results = compute(*tasks)
-    dask_client.close()
-    dask_cluster.close()
-    splited_mslist_time_index = sorted(
-        [
-            int(os.path.basename(i).split(".ms")[0].split("t_")[-1])
-            for i in glob.glob(mspath + "/t_*.ms")
-        ]
-    )
-    min_time_index = min(splited_mslist_time_index)
-    vis = [
-        mspath + "/t_" + str(t_index) + ".ms" for t_index in splited_mslist_time_index
-    ]
-    outputms = msname.split(".ms")[0] + "_rotated.ms"
-    if os.path.exists(outputms):
-        os.system("rm -rf " + outputms)
-    if os.path.exists(outputms + ".flagversions"):
-        os.system("rm -rf " + outputms + ".flagversions")
-    concat(vis=vis, concatvis=outputms, dirtol="3600arcsec", timesort=True)
-    if keep_original == False:
-        os.system("rm -rf " + msname)
-        os.system("mv " + outputms + " " + msname)
-        outputms = msname
-    os.system("rm -rf " + mspath + "/t_*.ms")
-    os.system("touch " + msname + "/.sidereal")
-    print(f"Total time taken: {round(time.time()-starttime,2)}s")
-    return outputms
-
+    print (f"Correcting sidereal motion for ms: {msname}")
+    msg = run_solar_sidereal_cor(msname=msname, container_name="meerwsclean",verbose=verbose)
+    if msg != 0:
+        print("Sidereal motion correction is not successful.")
+    return msg
 
 def check_scan_in_caltable(caltable, scan):
     """
@@ -2466,7 +2337,7 @@ def initialize_wsclean_container(name):
         return
 
 
-def run_wsclean(wsclean_cmd, container_name, verbose=False):
+def run_wsclean(wsclean_cmd, container_name, verbose=False, dry_run=False):
     """
     Run WSClean inside a udocker container (no root permission required).
     Parameters
@@ -2488,6 +2359,15 @@ def run_wsclean(wsclean_cmd, container_name, verbose=False):
                 "Container {container_name} is not initiated. First initiate container and then run."
             )
             return 1
+    if dry_run:
+        cmd="chgenter >>tmp1 >>tmp2"   
+        cwd=os.getcwd()
+        full_command = f"udocker --quiet run --nobanner --volume={cwd}:{cwd} meerwsclean {cmd}" 
+        os.system(full_command)
+        process = psutil.Process(os.getpid())
+        mem = round(process.memory_info().rss / 1024**3, 2)  # in GB
+        os.system("rm -rf tmp1 tmp2")
+        return mem
     msname = wsclean_cmd.split(" ")[-1]
     msname = os.path.abspath(msname)
     mspath = os.path.dirname(msname)
@@ -2527,7 +2407,9 @@ def run_wsclean(wsclean_cmd, container_name, verbose=False):
     )
     try:
         full_command = f"udocker run --nobanner --volume={mspath}:{temp_docker_path} --workdir {temp_docker_path} meerwsclean {wsclean_cmd}"
-        if verbose:
+        if verbose==False:
+            full_command+=" >> tmp1 >> tmp2"
+        else:
             print(wsclean_cmd)
         exit_code = os.system(full_command)
         os.system(f"rm -rf {temp_docker_path}")
@@ -2537,18 +2419,17 @@ def run_wsclean(wsclean_cmd, container_name, verbose=False):
         traceback.print_exc()
         return 1
 
-
-def run_chgcenter(msname, ra, dec, container_name):
+def run_solar_sidereal_cor(msname="", container_name="meerwsclean", verbose = False, dry_run=False):
     """
-    Run chgcenter inside a udocker container (no root permission required).
+    Run chgcenter inside a udocker container to correct solar sidereal motion (no root permission required).
     Parameters
     ----------
     msname : str
         Name of the measurement set
-    ra : str
-        RA can either be 00h00m00.0s or 00:00:00.0
-    dec : str
-        Dec can either be 00d00m00.0s or 00.00.00.0
+    container_name : str, optional
+        Container name
+    verbose : bool, optional
+        Verbose output or not
     Returns
     -------
     int
@@ -2562,6 +2443,77 @@ def run_chgcenter(msname, ra, dec, container_name):
                 "Container {container_name} is not initiated. First initiate container and then run."
             )
             return 1
+            
+    if dry_run:
+        cmd="chgcentre >> tmp1 >> tmp2"   
+        cwd=os.getcwd()
+        full_command = f"udocker --quiet run --nobanner --volume={cwd}:{cwd} meerwsclean {cmd}" 
+        os.system(full_command)
+        process = psutil.Process(os.getpid())
+        mem = round(process.memory_info().rss / 1024**3, 2)  # in GB
+        os.system("rm -rf tmp1 tmp2")
+        return mem
+        
+    msname = os.path.abspath(msname)
+    mspath = os.path.dirname(msname)
+    temp_docker_path = tempfile.mkdtemp(prefix="chgcenter_udocker_", dir=mspath)
+    cmd = (
+        "chgcentre -solarcenter "
+        + temp_docker_path
+        + "/"
+        + os.path.basename(msname)
+    )
+    try:
+        full_command = f"udocker --quiet run --nobanner --volume={mspath}:{temp_docker_path} --workdir {temp_docker_path} meerwsclean {cmd}"
+        if verbose==False:
+            full_command+=" >> tmp1 >> tmp2"
+        else:
+            print (cmd)
+        exit_code = os.system(full_command)
+        os.system(f"rm -rf {temp_docker_path} tmp1 tmp2")
+        return 0 if exit_code == 0 else 1
+    except Exception as e:
+        os.system(f"rm -rf {temp_docker_path} tmp1 tmp2")
+        traceback.print_exc()
+        return 1
+
+def run_chgcenter(msname, ra, dec, container_name="meerwsclean", verbose=False, dry_run=False):
+    """
+    Run chgcenter inside a udocker container (no root permission required).
+    Parameters
+    ----------
+    msname : str
+        Name of the measurement set
+    ra : str
+        RA can either be 00h00m00.0s or 00:00:00.0
+    dec : str
+        Dec can either be 00d00m00.0s or 00.00.00.0
+    container_name : str, optional
+        Container name
+    verbose : bool, optional
+        Verbose output
+    Returns
+    -------
+    int
+        Success message
+    """
+    container_present = check_udocker_container(container_name)
+    if container_present == False:
+        container_name = initialize_wsclean_container(container_name)
+        if container_name == None:
+            print(
+                "Container {container_name} is not initiated. First initiate container and then run."
+            )
+            return 1
+    if dry_run:
+        cmd="chgenter >> tmp1 >> tmp2"   
+        cwd=os.getcwd()
+        full_command = f"udocker --quiet run --nobanner --volume={cwd}:{cwd} meerwsclean {cmd}" 
+        os.system(full_command)
+        process = psutil.Process(os.getpid())
+        mem = round(process.memory_info().rss / 1024**3, 2)  # in GB
+        os.system("rm -rf tmp1 tmp2")
+        return mem
     msname = os.path.abspath(msname)
     mspath = os.path.dirname(msname)
     temp_docker_path = tempfile.mkdtemp(prefix="chgcenter_udocker_", dir=mspath)
@@ -2577,7 +2529,11 @@ def run_chgcenter(msname, ra, dec, container_name):
     )
     try:
         full_command = f"udocker --quiet run --nobanner --volume={mspath}:{temp_docker_path} --workdir {temp_docker_path} meerwsclean {cmd}"
-        exit_code = os.system(full_command + " >>tmp1 >> tmp2")
+        if verbose==False:
+            full_command+=" >> tmp1 >> tmp2"
+        else:
+            print (cmd)
+        exit_code = os.system(cmd)
         os.system(f"rm -rf {temp_docker_path} tmp1 tmp2")
         return 0 if exit_code == 0 else 1
     except Exception as e:

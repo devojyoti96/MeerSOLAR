@@ -276,18 +276,42 @@ def split_target_scans(
             dask_client.close()
             dask_cluster.close()
 
-        splited_ms_list_phaserotated = []
+        #############################################
+        # Memory limit
+        #############################################
+        task = delayed(correct_solar_sidereal_motion)(dry_run=True)
+        mem_limit = run_limited_memory_task(task)
+        #######################
+        splited_ms_list_phaserotated=[]
+        dask_client, dask_cluster, n_jobs, n_threads = get_dask_client(
+            len(splited_ms_list),
+            cpu_frac,
+            mem_frac,
+            min_mem_per_job=mem_limit / 0.8,
+        )
+        tasks = []
         for ms in splited_ms_list:
-            outputvis = correct_solar_sidereal_motion(
-                ms, cpu_frac=cpu_frac, mem_frac=mem_frac, keep_original=False
-            )
-            splited_ms_list_phaserotated.append(outputvis)
-        os.system("rm -rf casa*log")
-        print("##################")
-        print("Spliting of target scans are done successfully.")
-        print("Total time taken : ", time.time() - start_time)
-        print("##################\n")
-        return 0, splited_ms_list_phaserotated
+            tasks.append(delayed(correct_solar_sidereal_motion)(ms))
+        results=compute(*tasks)
+        dask_client.close()
+        dask_cluster.close()
+        for i in range(len(results)):
+            msg=results[i]
+            if msg==0:
+                splited_ms_list_phaserotated.append(splited_ms_list[i])
+        if len(splited_ms_list_phaserotated)==0:
+            print ("Sidereal motion correction is not successful for any measurement set.")
+            print("##################")
+            print("Spliting of target scans are done successfully.")
+            print("Total time taken : ", time.time() - start_time)
+            print("##################\n")
+            return 0, splited_ms_list
+        else:
+            print("##################")
+            print("Spliting of target scans are done successfully.")
+            print("Total time taken : ", time.time() - start_time)
+            print("##################\n")
+            return 0, splited_ms_list_phaserotated
     except Exception as e:
         traceback.print_exc()
         print("##################")
