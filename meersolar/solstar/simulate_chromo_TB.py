@@ -3,7 +3,7 @@ import numpy as np, os
 import matplotlib.pyplot as plt
 import astropy.units as u
 import sys
-import h5py,gc
+import h5py, gc
 from astropy.coordinates import SkyCoord
 from optparse import OptionParser
 

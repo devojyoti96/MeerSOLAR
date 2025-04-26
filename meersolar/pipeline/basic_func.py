@@ -2119,8 +2119,10 @@ def get_column_size(msname):
     msmd = msmetadata()
     msmd.open(msname)
     nrow = int(msmd.nrows())
+    nchan=msmd.nchan(0)
+    npol = msmd.ncorrforpol()[0]
     msmd.close()
-    datasize = nrow * 16 / (1024.0**3)
+    datasize = nrow * nchan* npol * 16 / (1024.0**3)
     return datasize
 
 

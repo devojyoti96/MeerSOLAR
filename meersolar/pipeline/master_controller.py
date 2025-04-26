@@ -410,14 +410,14 @@ def run_target_split(
         traceback.print_exc()
         return 1
 
-
-def run_applycal(
+def run_applycal_sol(
     target_mslist,
     workdir,
     caldir,
     use_only_bandpass=False,
     use_only_fluxcal=False,
     overwrite_datacolumn=False,
+    apply_selfcal=False,
     cpu_frac=0.8,
     mem_frac=0.8,
 ):
@@ -435,6 +435,8 @@ def run_applycal(
         Use only bandpass solutions
     use_only_fluxcal : bool
         Use only fluxcal solutions
+    apply_selfcal : bool, optional
+        Applying self-calibration solutions or not
     cpu_frac : float, optional
         CPU fraction to use
     mem_frac : float, optional
@@ -447,10 +449,18 @@ def run_applycal(
         Success message for applying calibration solutions and spliting target scans
     """
     try:
-        print("###########################")
-        print("Applying calibration solutions on splited target scans .....")
-        print("###########################\n")
-        applycal_basename = "applycal_targets"
+        if apply_selfcal:
+            print("###########################")
+            print("Applying basic and self-calibration solutions on target scans .....")
+            print("###########################\n")
+            applycal_basename = "apply_selfcal"
+            use_only_bandpass=False
+            use_only_fluxcal=False
+        else:
+            print("###########################")
+            print("Applying basic calibration solutions on target scans .....")
+            print("###########################\n")
+            applycal_basename = "apply_basiccal"
         applycal_cmd = (
             "run_applycal --mslist "
             + ",".join(target_mslist)
@@ -468,6 +478,8 @@ def run_applycal(
             + str(mem_frac)
             + " --overwrite_datacolumn "
             + str(overwrite_datacolumn)
+            + " --include_selfcal "
+            + str(apply_selfcal)
         )
         if os.path.isdir(workdir + "/logs") == False:
             os.makedirs(workdir + "/logs")
@@ -476,7 +488,19 @@ def run_applycal(
         )
         print(applycal_cmd + "\n")
         os.system("bash " + batch_file)
-        return 0
+        print("Waiting to finish applycal...\n")
+        while True:
+            finished_file = glob.glob(workdir + "/.Finished_" + applycal_basename + "*")
+            if len(finished_file) > 0:
+                break
+            else:
+                time.sleep(1)
+        success_index_cal = int(finished_file[0].split("_")[-1])
+        if success_index_cal == 0:
+            print("Applying calibration is done successfully.\n")
+        else:
+            print("Applying calibration is unsuccessful.\n")
+        return success_index_cal
     except Exception as e:
         traceback.print_exc()
         return 1
@@ -484,12 +508,25 @@ def run_applycal(
 def run_selfcal(
     mslist,
     workdir,
-    caldir,
-    use_only_bandpass=False,
-    use_only_fluxcal=False,
-    overwrite_datacolumn=False,
     cpu_frac=0.8,
     mem_frac=0.8,
+    start_thresh=-1,
+    stop_thresh=-1,
+    max_iter=-1,
+    max_DR=-1,
+    min_iter=-1,
+    conv_frac=-1,
+    solint="",
+    do_apcal="",
+    solar_selfcal="",
+    keep_backup="",
+    uvrange="",
+    minuv=-1,
+    weight="",
+    robust="",
+    applymode="",
+    gaintype="",
+    min_fractional_bw=-1,
 ):
     """
     Self-calibration on target scans
@@ -499,85 +536,111 @@ def run_selfcal(
         Target measurement set list
     workdir : str
         Working directory
-    caldir : str
-        Caltable directory
-    use_only_bandpass : bool
-        Use only bandpass solutions
-    use_only_fluxcal : bool
-        Use only fluxcal solutions
     cpu_frac : float, optional
         CPU fraction to use
     mem_frac : float, optional
         Memory fraction to use
-    overwrite_datacolumn : bool
-        Overwrite data column or not
+    start_threshold : int, optional
+        Start CLEAN threhold
+    end_threshold : int, optional
+        End CLEAN threshold
+    max_iter : int, optional
+        Maximum numbers of selfcal iterations
+    max_DR : float, optional
+        Maximum dynamic range
+    min_iter : int, optional
+        Minimum numbers of seflcal iterations at different stages
+    conv_frac : float, optional
+        Dynamic range fractional change to consider as converged
+    uvrange : str, optional
+        UV-range for calibration
+    minuv : float, optionial
+        Minimum UV-lambda to use in imaging
+    solint : str, optional
+        Solutions interval
+    weight : str, optional
+        Imaging weighting
+    robust : float, optional
+        Briggs weighting robust parameter (-1 to 1)
+    do_apcal : bool, optional
+        Perform ap-selfcal or not
+    min_fractional_bw : float, optional
+        Minimum fractional bandwidth of spectral chunk in percentage
+    applymode : str, optional
+        Solution apply mode
+    gaintype : str, optional
+        Gaintype, G or T
+    solar_selfcal : bool, optional
+        Whether is is solar selfcal or not
     Returns
     -------
     int
-        Success message for applying calibration solutions and spliting target scans
+        Success message for self-calibration 
     """
     try:
         print("###########################")
         print("Performing self-calibration of target scans .....")
         print("###########################\n")
         selfcal_basename = "selfcal_targets"
-        selfcal_cmd = "run_selfcal --mslist "+",".join(mslist)+" --workdir "+workdir
-                        
-  --start_thresh=Float  Starting CLEANing threshold
-  --stop_thresh=Float   Stop CLEANing threshold
-  --max_iter=Integer    Maximum numbers of selfcal iterations
-  --max_DR=Integer      Maximum dynamic range
-  --min_iter=Integer    Minimum numbers of selfcal iterations
-  --conv_frac=Float     Fractional change in DR to determine convergence
-  --solint=String       Solution interval
-  --do_apcal=Boolean    Peform ap-selfcal or not
-  --solar_selfcal=Boolean
-                        Peforming solar self-calibration or not
-  --cpu_frac=Float      CPU fraction to use
-  --mem_frac=Float      Memory fraction to use
-  --keep_backup=Boolean
-                        Keep backup of self-calibration rounds
-  --uvrange=String      Calibration UV-range (CASA format)
-  --minuv=Float         Minimum UV-lambda used for imaging
-  --weight=String       Imaging weight
-  --robust=Float        Robust parameter for briggs weight
-  --applymode=String    Solution apply mode
-  --gaintype=String     Gain solution type
-  --min_fractional_bw=Float
-                        Minimum fractional bandwidth of spectral chunk in
-                        percentage"
-        
-        
-        applycal_cmd = (
-            "run_applycal --mslist "
-            + ",".join(target_mslist)
-            + " --workdir "
-            + workdir
-            + " --caldir "
-            + caldir
-            + " --use_only_bandpass "
-            + str(use_only_bandpass)
-            + " --use_only_fluxcal "
-            + str(use_only_fluxcal)
-            + " --cpu_frac "
-            + str(cpu_frac)
-            + " --mem_frac "
-            + str(mem_frac)
-            + " --overwrite_datacolumn "
-            + str(overwrite_datacolumn)
-        )
+        selfcal_cmd = "run_selfcal --mslist "+",".join(mslist)+" --workdir "+workdir+" --cpu_frac "+str(cpu_frac)+" --mem_frac "+str(mem_frac)
+        if start_thresh>0:
+            selfcal_cmd+=" --start_thresh "+str(start_thresh)
+            if stop_thresh>0 and stop_thresh<start_thresh:
+                selfcal_cmd+=" --stop_threshold "+str(stop_thresh)
+        if max_iter>0:
+            selfcal_cmd+=" --max_iter "+str(max_iter)
+        if max_DR>0:
+            selfcal_cmd+=" --max_DR "+str(max_DR)
+        if min_iter>0:
+            selfcal_cmd+=" --min_iter "+str(min_iter)
+        if conv_frac>0:
+            selfcal_cmd+=" --conv_frac "+str(conv_frac)
+        if solint!="":
+            selfcal_cmd+=" --solint "+solint
+        if do_apcal!="":
+            selfcal_cmd+=" --do_apcal "+str(do_apcal)
+        if solar_selfcal!="":
+            selfcal_cmd+=" --solar_selfcal "+str(solar_selfcal)
+        if keep_backup!="":
+            selfcal_cmd+=" --keep_backup "+str(keep_backup)
+        if uvrange!="":
+            selfcal_cmd+=" --uvrange "+str(uvrange)
+        if minuv>0:
+            selfcal_cmd+=" --minuv "+str(minuv)
+        if weight!="":
+            selfcal_cmd+=" --weight "+str(weight)
+        if robust!="":
+             selfcal_cmd+=" --robust "+str(robust)
+        if applymode!="":
+            selfcal_cmd+=" --applymode "+str(applymode)
+        if gaintype!="":
+            selfcal_cmd+=" --gaintype "+str(gaintype)
+        if min_fractional_bw>0:
+            selfcal_cmd+=" --min_fractional_bw "+str(min_fractional_bw)
         if os.path.isdir(workdir + "/logs") == False:
             os.makedirs(workdir + "/logs")
         batch_file = create_batch_script_nonhpc(
-            applycal_cmd, workdir, applycal_basename
+            selfcal_cmd, workdir, selfcal_basename
         )
-        print(applycal_cmd + "\n")
+        print(selfcal_cmd + "\n")
         os.system("bash " + batch_file)
-        return 0
+        print("Waiting to finish self-calibration...\n")
+        while True:
+            finished_file = glob.glob(workdir + "/.Finished_" + selfcal_basename + "*")
+            if len(finished_file) > 0:
+                break
+            else:
+                time.sleep(1)
+        success_index_cal = int(finished_file[0].split("_")[-1])
+        if success_index_cal == 0:
+            print("Self-calibration is done successfully.\n")
+        else:
+            print("Self-calibration is unsuccessful.\n")
+        return success_index_cal
     except Exception as e:
         traceback.print_exc()
         return 1
-
+        
 def check_status(workdir, basename):
     """
     Check job status
@@ -617,7 +680,7 @@ def master_control(
     do_noise_cal=True,
     do_applycal=True,
     do_selfcal=True,
-    do_ap_selfcal=True,
+    do_apply_selfcal=True,
     solint=15,
     time_window=5,
     do_imaging=True,
@@ -694,7 +757,12 @@ def master_control(
     #########################################
     # Spliting target scans
     #########################################
+    split_use_frac=1.0
     if do_target_split:
+        if (do_flag==False and do_import_model==False and do_basic_cal==False) or do_noise_cal==False:
+            pass
+        else:
+            split_use_frac=0.2
         msg = run_target_split(
             msname,
             workdir,
@@ -702,10 +770,11 @@ def master_control(
             timeres=timeavg,
             freqres=freqavg,
             target_freq_chunk=target_freq_chunk,
-            cpu_frac=round(0.2 * cpu_frac, 2),
-            mem_frac=round(0.2 * mem_frac, 2),
+            cpu_frac=round(split_use_frac * cpu_frac, 2),
+            mem_frac=round(split_use_frac * mem_frac, 2),
         )
-        frac_compute_use = frac_compute_use - 0.2
+        if split_use_frac==0.2:
+            frac_compute_use = frac_compute_use - 0.2
         if msg != 0:
             print("!!!! WARNING: Error in running spliting target scans. !!!!")
 
@@ -723,7 +792,7 @@ def master_control(
         if msg != 0:
             print("!!!! WARNING: Flagging error. !!!!")
             return 1
-    if do_target_split and check_status(workdir, "split_targets") == 0:
+    if split_use_frac==0.2 and do_target_split and check_status(workdir, "split_targets") == 0:
         frac_compute_use += 0.2
 
     #################################
@@ -746,7 +815,7 @@ def master_control(
                 "!!!! WARNING: Error in importing calibrator models. Not continuing calibration. !!!!"
             )
             return 1
-    if do_target_split and check_status(workdir, "split_targets") == 0:
+    if split_use_frac==0.2 and do_target_split and check_status(workdir, "split_targets") == 0:
         frac_compute_use += 0.2
 
     ########################################
@@ -765,7 +834,7 @@ def master_control(
                 "!!!! WARNING: Error in running noise-diode based flux calibration. Not continuing further. !!!!"
             )
             return 1
-    if do_target_split and check_status(workdir, "split_targets") == 0:
+    if split_use_frac==0.2 and do_target_split and check_status(workdir, "split_targets") == 0:
         frac_compute_use += 0.2
     if do_noise_cal and check_status(workdir, "noise_cal") == 0:
         frac_compute_use += 0.2
@@ -811,71 +880,53 @@ def master_control(
     #######################################
     # Check noise diode cal finished or not
     #######################################
-    print("Waiting to finish noise-diode based flux calibration...\n")
-    noisecal_basename = "noise_cal"
-    while True:
-        finished_file = glob.glob(workdir + "/.Finished_" + noisecal_basename + "*")
-        if len(finished_file) > 0:
-            break
+    if do_noise_cal:
+        print("Waiting to finish noise-diode based flux calibration...\n")
+        noisecal_basename = "noise_cal"
+        while True:
+            finished_file = glob.glob(workdir + "/.Finished_" + noisecal_basename + "*")
+            if len(finished_file) > 0:
+                break
+            else:
+                time.sleep(1)
+        success_index_noisecal = int(finished_file[0].split("_")[-1])
+        if success_index_noisecal == 0:
+            print("Noise-diode based flux-calibration is done successfully.\n")
+            frac_compute_use += 0.2
         else:
-            time.sleep(1)
-    success_index_noisecal = int(finished_file[0].split("_")[-1])
-    if success_index_noisecal == 0:
-        print("Noise-diode based flux-calibration is done successfully.\n")
-        frac_compute_use += 0.2
-    else:
-        print(
-            "!!!! WARNING: Error in noise-diode based flux calibration. Not continuing further. !!!!"
-        )
-        return 1
+            print(
+                "!!!! WARNING: Error in noise-diode based flux calibration. Not continuing further. !!!!"
+            )
+            return 1
 
     #############################################
     # Check spliting target scans finished or not
     #############################################
-    print("Waiting to finish spliting of target scans...\n")
-    split_basename = "split_targets"
-    while True:
-        finished_file = glob.glob(workdir + "/.Finished_" + split_basename + "*")
-        if len(finished_file) > 0:
-            break
+    if do_target_split:
+        print("Waiting to finish spliting of target scans...\n")
+        split_basename = "split_targets"
+        while True:
+            finished_file = glob.glob(workdir + "/.Finished_" + split_basename + "*")
+            if len(finished_file) > 0:
+                break
+            else:
+                time.sleep(1)
+        success_index_split_target = int(finished_file[0].split("_")[-1])
+        if success_index_split_target == 0:
+            print("Spliting target scans are done successfully.\n")
+            if split_use_frac==0.2:
+                frac_compute_use += 0.2
         else:
-            time.sleep(1)
-    success_index_split_target = int(finished_file[0].split("_")[-1])
-    if success_index_split_target == 0:
-        print("Spliting target scans are done successfully.\n")
-        frac_compute_use += 0.2
-    else:
-        print(
-            "!!!! WARNING: Error in spliting target scans. Not continuing further. !!!!"
-        )
-        return 1
+            print(
+                "!!!! WARNING: Error in spliting target scans. Not continuing further. !!!!"
+            )
+            return 1
 
     target_mslist = glob.glob(workdir + "/target_scan*.ms")
     if len(target_mslist) == 0:
         print("No splited target scan ms are available in work directory.")
         return 1
-    print(f"Target scan mslist : {target_mslist}")
-
-    #########################################
-    # Applying solutions on target scans
-    #########################################
-    if do_applycal and len(target_mslist) > 0:
-        caldir = workdir + "/caltables"
-        msg = run_applycal(
-            target_mslist,
-            workdir,
-            caldir,
-            use_only_bandpass=use_only_bandpass,
-            use_only_fluxcal=use_only_fluxcal,
-            overwrite_datacolumn=True,
-            cpu_frac=round(frac_compute_use * cpu_frac, 2),
-            mem_frac=round(frac_compute_use * mem_frac, 2),
-        )
-        if msg != 0:
-            print("!!!! WARNING: Error in applying solutions on target scans. !!!!")
-            return 1
-        else:
-            print("Calibration solutions are applied successfully.\n")
+    print(f"Target scan mslist : {[os.path.basename(i) for i in target_mslist]}")
 
     ########################################
     # Performing self-calibration
@@ -887,10 +938,56 @@ def master_control(
         for ms in target_mslist:
             ms_spw=os.path.basename(ms).rstrip(".ms").split('_')[-1]
             if ms_spw not in spw_list:
-                selfcal_mslist.append(ms)
                 spw_list.append(ms_spw)
-        
-
+        chosen_spw=spw_list[int(len(spw_list)/2)]
+        for ms in target_mslist:
+            if chosen_spw in os.path.basename(ms):
+                selfcal_mslist.append(ms)
+        #########################################################
+        # Applying solutions on target scans for self-calibration
+        #########################################################
+        if len(selfcal_mslist) > 0:
+            caldir = workdir + "/caltables"
+            msg = run_applycal_sol(
+                selfcal_mslist,
+                workdir,
+                caldir,
+                use_only_bandpass=use_only_bandpass,
+                use_only_fluxcal=use_only_fluxcal,
+                overwrite_datacolumn=False,
+                apply_selfcal=False,
+                cpu_frac=round(frac_compute_use * cpu_frac, 2),
+                mem_frac=round(frac_compute_use * mem_frac, 2),
+            )
+            if msg != 0:
+                print("!!!! WARNING: Error in applying solutions on target scans. Not continuing further. !!!!")
+                return 1
+            msg=run_selfcal(selfcal_mslist,workdir,cpu_frac=round(frac_compute_use*cpu_frac,2),mem_frac=round(frac_compute_use*mem_frac,2))
+            if msg != 0:
+                print("!!!! WARNING: Error in self-calibration on target scans. Not applying self-calibration. !!!!")
+                do_apply_selfcal=False
+        else:
+            print ("!!!! WARNING: No measurement set is present for self-calibration. !!!!")
+            do_apply_selfcal=False
+            
+    ########################################
+    # Apply self-calibration
+    ########################################
+    if do_apply_selfcal:
+        target_mslist=sorted(target_mslist)
+        caldir = workdir + "/caltables"
+        msg = run_applycal_sol(
+            target_mslist,
+            workdir,
+            caldir,
+            overwrite_datacolumn=False,
+            apply_selfcal=True,
+            cpu_frac=round(frac_compute_use * cpu_frac, 2),
+            mem_frac=round(frac_compute_use * mem_frac, 2),
+        )
+        if msg != 0:
+            print("!!!! WARNING: Error in applying self-calibration solutions on target scans. !!!!")
+            
     #####################################
     # Imaging
     ######################################

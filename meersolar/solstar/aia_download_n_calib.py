@@ -16,6 +16,7 @@ warnings.filterwarnings("ignore")
 # Set maximum timeout globally
 config.set("downloads", "timeout", "30")
 
+
 def download_aia_data(
     obs_date="2021-01-01", obs_time="09:00:00", outdir_prefix="aia_data"
 ):
@@ -62,17 +63,15 @@ def download_aia_data(
     wavelength_attrs = a.Wavelength(wavelengths[0] * u.angstrom)
     for w in wavelengths[1:]:
         wavelength_attrs |= a.Wavelength(w * u.angstrom)
-    #for w in wavelengths:
+    # for w in wavelengths:
     if use_alt_timerange == False:
-        search_result = Fido.search(
-            time_range, a.Instrument.aia, wavelength_attrs
-        )
+        search_result = Fido.search(time_range, a.Instrument.aia, wavelength_attrs)
         # Check if results are found
         if len(search_result) == 0:
             print("No data found for the specified time range and wavelength.")
         else:
             # Step 3: Download the data
-            config.set('downloads', 'max_conn', len(search_result))
+            config.set("downloads", "max_conn", len(search_result))
             try:
                 downloaded_files = Fido.fetch(
                     search_result, path=str(level1_dir / "{file}"), progress=True
@@ -86,28 +85,28 @@ def download_aia_data(
             print("#####################################")
         else:
             for w in wavelengths:
-                w_files=glob.glob(level1_dir_name + "/*" + str(w)+"*")
-                if len(w_files)==0:
-                    use_alt_timerange=True
+                w_files = glob.glob(level1_dir_name + "/*" + str(w) + "*")
+                if len(w_files) == 0:
+                    use_alt_timerange = True
                     break
-                elif len(w_files)>1:
+                elif len(w_files) > 1:
                     for k in w_files[1:]:
-                        os.system("rm -rf "+k)         
+                        os.system("rm -rf " + k)
         time.sleep(1)
     if use_alt_timerange == True:
         time_range = alt_time_range
-        search_result = Fido.search(
-            time_range, a.Instrument.aia, wavelength_attrs
-        )
+        search_result = Fido.search(time_range, a.Instrument.aia, wavelength_attrs)
         # Check if results are found
         if len(search_result) == 0:
             print("############################")
-            print("Error in downloading AIA data : No data is found in the given timerange.")
+            print(
+                "Error in downloading AIA data : No data is found in the given timerange."
+            )
             print("############################")
-            return 1,None
+            return 1, None
         else:
             # Step 3: Download the data
-            config.set('downloads', 'max_conn', len(search_result))
+            config.set("downloads", "max_conn", len(search_result))
             try:
                 downloaded_files = Fido.fetch(
                     search_result, path=str(level1_dir / "{file}"), progress=True
@@ -124,33 +123,40 @@ def download_aia_data(
         print("############################")
         print("Calibrating AIA data to Level 1.5...")
         print("############################")
-        pointing_table=None
-        correction_table=None
+        pointing_table = None
+        correction_table = None
         for lev1_file in level1_files:
-            try: 
+            try:
                 # Load the Level 1 data as a SunPy Map
                 aia_map = Map(lev1_file)
-                if pointing_table==None:
-                    pointing_table = get_pointing_table("JSOC", time_range=(aia_map.date - 12 * u.h, aia_map.date + 12 * u.h))
+                if pointing_table == None:
+                    pointing_table = get_pointing_table(
+                        "JSOC",
+                        time_range=(aia_map.date - 12 * u.h, aia_map.date + 12 * u.h),
+                    )
                 # Step 1: Pointing correction
-                try:    
-                    pointing_corrected_map=update_pointing(aia_map,pointing_table=pointing_table)
+                try:
+                    pointing_corrected_map = update_pointing(
+                        aia_map, pointing_table=pointing_table
+                    )
                 except Exception as e:
-                    print ("WARNING! AIA pointing correction could not be done.")
+                    print("WARNING! AIA pointing correction could not be done.")
                     traceback.print_exc()
-                    pointing_corrected_map=aia_map
+                    pointing_corrected_map = aia_map
                 # Step 2: register (we are skipping PSF deconvolution)
                 registered_map = register(pointing_corrected_map)
                 # Step 3: instrument degradation correction
-                if correction_table==None:
+                if correction_table == None:
                     correction_table = get_correction_table(source="jsoc")
                 try:
-                    corrected_map=correct_degradation(registered_map, correction_table=correction_table)
+                    corrected_map = correct_degradation(
+                        registered_map, correction_table=correction_table
+                    )
                 except Exception as e:
-                    print ("WARNING! Instrument degradation could not be corrected.")
+                    print("WARNING! Instrument degradation could not be corrected.")
                     traceback.print_exc()
-                    corrected_map=registered_map
-                
+                    corrected_map = registered_map
+
                 # Step 4: Normalize by exposure time
                 normalized_data = (
                     corrected_map.data / corrected_map.exposure_time.to(u.s).value

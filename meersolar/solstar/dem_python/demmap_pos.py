@@ -7,7 +7,9 @@ from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor, as_compl
 from tqdm import tqdm
 from threadpoolctl import threadpool_limits
 import multiprocessing
+
 multiprocessing.set_start_method("spawn", force=True)
+
 
 def demmap_pos(
     dd,
@@ -23,7 +25,7 @@ def demmap_pos(
     nmu=42,
     warn=False,
     l_emd=False,
-    n_jobs=-1
+    n_jobs=-1,
 ):
     """
     demmap_pos
@@ -131,44 +133,51 @@ def demmap_pos(
         niter = int(np.floor((na) / n_par))
         #       Put this here to make sure running dem calc in parallel, not the underlying np/gsvd stuff (this correct/needed?)
         total_cpus = psutil.cpu_count(logical=True)
-        free_cpu_percentages = 100-psutil.cpu_percent(interval=1)
-        total_cpus=int(total_cpus*free_cpu_percentages/100.0)
+        free_cpu_percentages = 100 - psutil.cpu_percent(interval=1)
+        total_cpus = int(total_cpus * free_cpu_percentages / 100.0)
         usable_cpus = max(1, total_cpus)
         from concurrent.futures import wait
-        if n_jobs<0:
+
+        if n_jobs < 0:
             n_jobs = max(1, usable_cpus)
         else:
-            n_jobs=min(usable_cpus,n_jobs)
-            
-        batch_size = n_jobs  # number of parallel jobs at once (tune based on your RAM/CPUs)
+            n_jobs = min(usable_cpus, n_jobs)
+
+        batch_size = (
+            n_jobs  # number of parallel jobs at once (tune based on your RAM/CPUs)
+        )
 
         with threadpool_limits(limits=1):
             with ProcessPoolExecutor(max_workers=batch_size) as exe:
-                for batch_start in tqdm(range(0, niter, batch_size), desc="DEM batches", unit="batch"):
+                for batch_start in tqdm(
+                    range(0, niter, batch_size), desc="DEM batches", unit="batch"
+                ):
                     futures = []
                     for j in range(batch_size):
                         i = batch_start + j
                         if i >= niter:
                             break
-                        futures.append((
-                            i,
-                            exe.submit(
-                                dem_unwrap,
-                                dd[i * n_par : (i + 1) * n_par, :],
-                                ed[i * n_par : (i + 1) * n_par, :],
-                                rmatrix,
-                                logt,
-                                dlogt,
-                                glc,
-                                reg_tweak=reg_tweak,
-                                max_iter=max_iter,
-                                rgt_fact=rgt_fact,
-                                dem_norm0=dem_norm0[i * n_par : (i + 1) * n_par, :],
-                                nmu=nmu,
-                                warn=warn,
-                                l_emd=l_emd,
+                        futures.append(
+                            (
+                                i,
+                                exe.submit(
+                                    dem_unwrap,
+                                    dd[i * n_par : (i + 1) * n_par, :],
+                                    ed[i * n_par : (i + 1) * n_par, :],
+                                    rmatrix,
+                                    logt,
+                                    dlogt,
+                                    glc,
+                                    reg_tweak=reg_tweak,
+                                    max_iter=max_iter,
+                                    rgt_fact=rgt_fact,
+                                    dem_norm0=dem_norm0[i * n_par : (i + 1) * n_par, :],
+                                    nmu=nmu,
+                                    warn=warn,
+                                    l_emd=l_emd,
+                                ),
                             )
-                        ))
+                        )
 
                     wait([f for _, f in futures])
 
@@ -182,8 +191,6 @@ def demmap_pos(
                             dn_reg[i * n_par : (i + 1) * n_par, :] = result[4]
                         except Exception as e:
                             print(f"[Batch {i}] Task failed:", e)
-
-
 
     # else we execute in serial
     else:

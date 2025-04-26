@@ -2,9 +2,10 @@ import os, glob, gc, time
 from optparse import OptionParser
 from meersolar.solstar.aia_download_n_calib import download_aia_data
 
+
 def get_observatory_info(observatory_name):
     """
-    Parameters 
+    Parameters
     ----------
     observatory_name : str
         Name of the observatory
@@ -16,31 +17,66 @@ def get_observatory_info(observatory_name):
         Observatory longitude
     float
         Observatory altitude
-    """                
+    """
     observatories = {
-        "MeerKAT": {"latitude": -30.713, "longitude": 21.443, "altitude": 1038},  # In meters
-        "uGMRT": {"latitude": 19.096, "longitude": 74.050, "altitude": 650},  # In meters
-        "eOVSA": {"latitude": 37.233, "longitude": -118.283, "altitude": 1222},  # In meters
-        "ASKAP": {"latitude": -26.696, "longitude": 116.630, "altitude": 377},  # In meters
-        "FASR": {"latitude": 38.430, "longitude": -79.839, "altitude": 820},  # Approximate value
-        "SKAO-MID": {"latitude": -30.721, "longitude": 21.411, "altitude": 1060},  # Approximate location
-        "SKAO-LOW": {"latitude": -26.7033, "longitude": 116.6319, "altitude": 377},  # Approximate location
-        "JVLA": {"latitude": 34.0784, "longitude": -107.6184, "altitude": 2124},  # In meters
+        "MeerKAT": {
+            "latitude": -30.713,
+            "longitude": 21.443,
+            "altitude": 1038,
+        },  # In meters
+        "uGMRT": {
+            "latitude": 19.096,
+            "longitude": 74.050,
+            "altitude": 650,
+        },  # In meters
+        "eOVSA": {
+            "latitude": 37.233,
+            "longitude": -118.283,
+            "altitude": 1222,
+        },  # In meters
+        "ASKAP": {
+            "latitude": -26.696,
+            "longitude": 116.630,
+            "altitude": 377,
+        },  # In meters
+        "FASR": {
+            "latitude": 38.430,
+            "longitude": -79.839,
+            "altitude": 820,
+        },  # Approximate value
+        "SKAO-MID": {
+            "latitude": -30.721,
+            "longitude": 21.411,
+            "altitude": 1060,
+        },  # Approximate location
+        "SKAO-LOW": {
+            "latitude": -26.7033,
+            "longitude": 116.6319,
+            "altitude": 377,
+        },  # Approximate location
+        "JVLA": {
+            "latitude": 34.0784,
+            "longitude": -107.6184,
+            "altitude": 2124,
+        },  # In meters
     }
-    keys=list(observatories.keys())
+    keys = list(observatories.keys())
     if observatory_name not in keys:
-        print ("Observatory: "+observatory_name+" is not in the list.\n")
-        print ("Available observatories: MeerKAT, uGMRT, eOVSA, ASKAP, FASR, SKAO-MID, JVLA.\n")
-        return 
-    else:    
-        pos=observatories[observatory_name]
-        lat=pos['latitude']
-        lon=pos['longitude']
-        alt=pos['altitude']
-        return lat,lon,alt
+        print("Observatory: " + observatory_name + " is not in the list.\n")
+        print(
+            "Available observatories: MeerKAT, uGMRT, eOVSA, ASKAP, FASR, SKAO-MID, JVLA.\n"
+        )
+        return
+    else:
+        pos = observatories[observatory_name]
+        lat = pos["latitude"]
+        lon = pos["longitude"]
+        alt = pos["altitude"]
+        return lat, lon, alt
+
 
 def main():
-    start_time=time.time()
+    start_time = time.time()
     usage = "Simulate radio spectral cube at GHz frequencies at closest user-given time"
     parser = OptionParser(usage=usage)
     parser.add_option(
@@ -197,9 +233,12 @@ def main():
     dem_cmd = (
         "gen_dem --fits_dir "
         + level15_dir
-        + " --fov -2000,2000,-2000,2000 --resolution "+str(options.resolution)+" --outfile "
+        + " --fov -2000,2000,-2000,2000 --resolution "
+        + str(options.resolution)
+        + " --outfile "
         + str(options.workdir)
-        + "/DEM.h5 --ncpu "+str(options.ncpu)
+        + "/DEM.h5 --ncpu "
+        + str(options.ncpu)
     )
     print(dem_cmd + "\n")
     os.system(dem_cmd)
@@ -263,16 +302,16 @@ def main():
     ############################################
     # Making radio spectral cubes
     ############################################
-    obslat=options.obs_lat
-    obslon=options.obs_lon
-    obs_alt=options.obs_alt   
-    if options.observatory_name!=None:
-        pos=get_observatory_info(options.observatory_name)
-        if pos!=None:
-            obslat,obslon,obsalt=pos
-       
+    obslat = options.obs_lat
+    obslon = options.obs_lon
+    obs_alt = options.obs_alt
+    if options.observatory_name != None:
+        pos = get_observatory_info(options.observatory_name)
+        if pos != None:
+            obslat, obslon, obsalt = pos
+
     spectral_cube_cmd = (
-        "make_GHz_solar_spectral_cube --total_tb_file "
+        "simulate_solar_spectral_cube --total_tb_file "
         + str(options.workdir)
         + "/TotalTB.h5 --obs_time "
         + str(options.obs_date)
@@ -302,6 +341,14 @@ def main():
     os.system(spectral_cube_cmd)
     print("#################\n")
     gc.collect()
-    end_time=time.time()
-    print ("Total run time: "+str(round(end_time-start_time,1))+"s\n")
+    end_time = time.time()
+    print("Total run time: " + str(round(end_time - start_time, 1)) + "s\n")
     return 0
+    
+if __name__ == "__main__":
+    result = main()
+    os.system("rm -rf casa*log")
+    if result > 0:
+        result = 1
+    print("\n###################\nSolar image simulation is done.\n###################\n")
+    os._exit(result)

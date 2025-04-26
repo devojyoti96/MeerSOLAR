@@ -34,11 +34,11 @@ def make_dem(fits_files, outfile, fov, resolution, ncpu=-1):
     print("########################")
     print("Producing DEM map ......")
     print("########################")
-    if resolution<=0.6:
-        resolution=0.6
-    avg_length=int(resolution/0.6) # 0.6arcsecond in AIA image pixel resolution  
-    if avg_length<1:
-        avg_length=1  
+    if resolution <= 0.6:
+        resolution = 0.6
+    avg_length = int(resolution / 0.6)  # 0.6arcsecond in AIA image pixel resolution
+    if avg_length < 1:
+        avg_length = 1
     pwd = os.getcwd()
     if os.path.dirname(outfile) == "":
         outfile = pwd + "/" + outfile
@@ -50,8 +50,8 @@ def make_dem(fits_files, outfile, fov, resolution, ncpu=-1):
     y2 = int(fov[3])
     low_temp = 5.2  ## in log10
     high_temp = 7.2  ## in log10
-    datadir=get_datadir()
-    trin = io.readsav(datadir+"/aia_tresp_en.dat")
+    datadir = get_datadir()
+    trin = io.readsav(datadir + "/aia_tresp_en.dat")
     wavenum = ["94", "131", "171", "193", "211", "335"]
     channels = []
     for i in np.arange(len(wavenum)):
@@ -136,7 +136,7 @@ def make_dem(fits_files, outfile, fov, resolution, ncpu=-1):
         temperatures,
         dem_norm0=dem_norm0,
         max_iter=30,
-        n_jobs=ncpu
+        n_jobs=ncpu,
     )
     logt_bin = np.zeros(temp_bin_num)
     for i in np.arange(temp_bin_num):
@@ -228,7 +228,11 @@ def main():
             print("Please provide AIA images at all wavelengths.")
             return 1
     dem_file = make_dem(
-        filtered_fits_files, options.outfile, options.fov, float(options.resolution), ncpu = int(options.ncpu)
+        filtered_fits_files,
+        options.outfile,
+        options.fov,
+        float(options.resolution),
+        ncpu=int(options.ncpu),
     )
     if dem_file != None:
         print("DEM file name: ", dem_file)

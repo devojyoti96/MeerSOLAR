@@ -928,7 +928,7 @@ def main():
     if options.workdir == "" or os.path.exists(options.workdir) == False:
         print("Please provide a valid working directory.")
         return 1
-    caldir = options.workdir + "/selfcal_caltables"
+    caldir = options.workdir + "/caltables"
     if os.path.exists(caldir) == False:
         os.makedirs(caldir)
     task = delayed(do_selfcal)(dry_run=True)

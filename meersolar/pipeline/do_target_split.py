@@ -67,7 +67,7 @@ def split_scan(
 
     if os.path.exists(outputvis):
         os.system("rm -rf " + outputvis)
-    if os.path.exists(outputvis + ".flagvrsions"):
+    if os.path.exists(outputvis + ".flagversions"):
         os.system("rm -rf " + outputvis + ".flagversions")
     print(f"Spliting scan : {scan} of ms: {msname}\n")
     print(
@@ -209,36 +209,12 @@ def split_target_scans(
             scan_timerange_dic = {}
 
         ##################################
-        # Correcting solar differential rotation
-        ##################################
-        if do_only_sidereal_cor:
-            if len(chanlist) > 0:
-                total_chunks = len(chanlist) * len(filtered_scan_list)
-            else:
-                total_chunks = len(filtered_scan_list)
-            splited_ms_list = []
-            for scan in filtered_scan_list:
-                if timerange != "":
-                    time_range = scan_timerange_dic[scan]
-                else:
-                    time_range = ""
-                for chanrange in chanlist:
-                    outputvis = f"{workdir}/target_scan_{scan}_spw_{chanrange}.ms"
-                    if os.path.exists(outputvis):
-                        data_valid = check_datacolumn_valid(
-                            outputvis, datacolumn="DATA"
-                        )
-                        if data_valid:
-                            splited_ms_list.append(outputvis)
-                        else:
-                            os.system("rm -rf " + outputvis)
-                if len(splited_ms_list) == 0:
-                    print("No good splited ms is present. Starting with spliting.")
-                    do_only_sidereal_cor = False
-
-        ##################################
         # Parallel spliting
         ##################################
+        if len(chanlist) > 0:
+            total_chunks = len(chanlist) * len(filtered_scan_list)
+        else:
+            total_chunks = len(filtered_scan_list)
         if do_only_sidereal_cor == False:
             #############################################
             # Memory limit
@@ -275,6 +251,29 @@ def split_target_scans(
             splited_ms_list = compute(*tasks)
             dask_client.close()
             dask_cluster.close()
+        else:
+            ########################################
+            # Correcting solar differential rotation
+            ########################################
+            splited_ms_list = []
+            for scan in filtered_scan_list:
+                if timerange != "":
+                    time_range = scan_timerange_dic[scan]
+                else:
+                    time_range = ""
+                for chanrange in chanlist:
+                    outputvis = f"{workdir}/target_scan_{scan}_spw_{chanrange}.ms"
+                    if os.path.exists(outputvis):
+                        data_valid = check_datacolumn_valid(
+                            outputvis, datacolumn="DATA"
+                        )
+                        if data_valid:
+                            splited_ms_list.append(outputvis)
+                        else:
+                            os.system("rm -rf " + outputvis)
+                if len(splited_ms_list) == 0:
+                    print("No good splited ms is present. Starting with spliting.")
+                    do_only_sidereal_cor = False
 
         #############################################
         # Memory limit

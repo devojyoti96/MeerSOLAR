@@ -8,16 +8,61 @@ from astropy.io import fits
 from sunpy.map import Map
 from joblib import Parallel, delayed
 from optparse import OptionParser
-import warnings,signal,psutil
+import warnings, signal, psutil
 from astropy.utils.exceptions import AstropyWarning
+from casatools import image,simulator,measures,quanta, table
+from casatasks import exportfits, importfits, casalog
 
 # Suppress all Astropy warnings
 warnings.simplefilter("ignore", category=AstropyWarning)
 
+
 def signal_handler(sig, frame):
     print("Interrupt received. Cleaning up...")
     raise SystemExit(0)
-    
+
+def makeimage(ra, dec, freq, freqres, cell, flux, imagename):
+    '''
+    ra dec: center of image in radians
+    freq: in GHz
+    freqres: frequency resolution in MHz
+    cell: cell size, e.g., '2' (for 2 arcsec)
+    flux: 2D array
+    imagename: output image name
+    '''
+    print (f"Image : {imagename}")
+    shape = np.shape(flux)
+    qa = quanta()
+    ia = image()
+    # Remove existing image if present
+    ia.close()
+    if os.path.exists(imagename):
+        os.system("rm -rf " + imagename)
+    # Create a new empty image
+    ia.fromshape(imagename,[shape[2],shape[3],1,1],overwrite=True)
+    # Create coordinate system
+    cs = ia.coordsys()
+    cs.setunits(['rad', 'rad', '', 'Hz'])  # direction1, direction2, stokes, frequency
+    cell_rad = qa.convert(qa.quantity(str(cell) + "arcsec"), "rad")['value']
+    cs.setincrement([-cell_rad, cell_rad], 'direction')
+    cs.setreferencevalue([ra, dec], type="direction")
+    cs.setreferencevalue(freq, 'spectral')
+    cs.setreferencepixel([0], 'spectral')
+    cs.setincrement(freqres, 'spectral')
+    # Apply coordinate system
+    ia.setcoordsys(cs.torecord())
+    # Set image units and initialize
+    ia.setbrightnessunit("Jy/pixel")
+    ia.set(0.0)
+    ia.close()
+    # Now reopen, put data
+    ia.open(imagename)
+    data = ia.getchunk()
+    data = flux.T
+    ia.putchunk(data)
+    ia.close()
+    return imagename
+	
 def convert_hpc_to_radec(
     data,
     header,
@@ -85,43 +130,10 @@ def convert_hpc_to_radec(
     data = hpc_data[np.newaxis, np.newaxis, ...]
     # Convert reference coordinate to GCRS
     ref_coord_gcrs = ref_coord_arcsec.transform_to("gcrs")
-    wcs = WCS(hpc_header)
-    new_header = wcs.to_header()
-    new_header["CTYPE1"] = "RA---SIN"
-    new_header["CTYPE2"] = "DEC--SIN"
-    new_header["CTYPE3"] = "FREQ"
-    new_header["CTYPE4"] = "STOKES"
-    new_header["CUNIT1"] = "deg"
-    new_header["CUNIT2"] = "deg"
-    new_header["CUNIT3"] = "Hz"
-    new_header["CUNIT4"] = ""
-    new_header["CRVAL1"] = ref_coord_gcrs.ra.deg
-    new_header["CRVAL2"] = ref_coord_gcrs.dec.deg
-    new_header["CRVAL3"] = freq
-    new_header["CRVAL4"] = 1.0000
-    new_header["CRPIX1"] = hpc_header["crpix1"]
-    new_header["CRPIX2"] = hpc_header["crpix2"]
-    new_header["CRPIX3"] = 1.0000
-    new_header["CRPIX4"] = 1.0000
-    new_header["CDELT1"] = hpc_header["cdelt2"] / 3600.0
-    new_header["CDELT2"] = hpc_header["cdelt1"] / 3600.0
-    new_header["CDELT3"] = freqres
-    new_header["CDELT4"] = 1.0000
-    new_header["DATE-OBS"] = obstime
-    new_header["EQUINOX"] = 2.000000000000e03
-    new_header["RADESYS"] = "FK5"
-    if datatype == "TB":
-        new_header["BUNIT"] = "K"
-    else:
-        new_header["BUNIT"] = "Jy"
-    new_header["VELREF"] = 257
-    new_header["SPECSYS"] = "LSRK"
-    # Write to a new FITS file
-    if os.path.exists(output_fitsfile):
-        os.system("rm -rf " + output_fitsfile)
-    fits.writeto(output_fitsfile, data, new_header, overwrite=True)
-    gc.collect()
-    return output_fitsfile
+    cell=hpc_header["cdelt2"] 
+    output_image=makeimage(ref_coord_gcrs.ra.rad,ref_coord_gcrs.ra.rad,freq,freqres,cell,data,output_fitsfile.split('.fits')[0]+'.image')
+    print (f"Saved: {output_image}")
+    return output_image
 
 
 def make_spectral_map(total_tb_file, start_freq, end_freq, freqres, output_unit="TB"):
@@ -169,10 +181,10 @@ def make_spectral_map(total_tb_file, start_freq, end_freq, freqres, output_unit=
         print(
             "WARNING! Frequency range is outside data cube range. Extrapolation will be done.\n"
         )
-    if len(freqs)<5:
-        interp_mode="linear"
+    if len(freqs) < 5:
+        interp_mode = "linear"
     else:
-        interp_mode="cubic" 
+        interp_mode = "cubic"
     for i in range(tb.shape[0]):
         for j in range(tb.shape[1]):
             if output_unit == "TB":
@@ -238,15 +250,18 @@ def make_spectral_slices(
     freqres_Hz = freqres * 10**6  # In Hz
     signal.signal(signal.SIGINT, signal_handler)
     try:
-        n_jobs=psutil.cpu_count()
-        results = Parallel(n_jobs=n_jobs,backend='threading')(
+        n_jobs = psutil.cpu_count()
+        results = Parallel(n_jobs=n_jobs, backend="threading")(
             delayed(convert_hpc_to_radec)(
                 data_cube[:, :, i],
                 metadata,
                 obs_time,
                 freqs[i],
                 freqres_Hz,
-                os.path.dirname(total_tb_file)+"/spectral_slice_freq_" + str(round(freqs[i] / 10**6, 1)) + "MHz.fits",
+                os.path.dirname(os.path.abspath(total_tb_file))
+                + "/spectral_slice_freq_"
+                + str(round(freqs[i] / 10**6, 1))
+                + "MHz.fits",
                 obs_lat,
                 obs_lon,
                 obs_alt,
@@ -255,34 +270,41 @@ def make_spectral_slices(
             for i in range(data_cube.shape[-1])
         )
     except SystemExit:
-        print("Exiting cleanly.")    
+        print("Exiting cleanly.")
     if make_cube:
         header = fits.getheader(results[0])
         for i in range(len(results)):
             if i == 0:
                 data = fits.getdata(results[i])
-                filename = 'spectral_cube.dat'
-                shape = (1,len(results),data.shape[2], data.shape[3])  # Example large array shape
-                dtype = 'float32'       # Use lower precision if possible to save memory
+                filename = "spectral_cube.dat"
+                shape = (
+                    1,
+                    len(results),
+                    data.shape[2],
+                    data.shape[3],
+                )  # Example large array shape
+                dtype = "float32"  # Use lower precision if possible to save memory
                 # Create a memory-mapped file for the array
-                spectral_array = np.memmap(filename, dtype=dtype, mode='w+', shape=shape)
-                spectral_array[0,0,:,:]=data[0,0,...]
+                spectral_array = np.memmap(
+                    filename, dtype=dtype, mode="w+", shape=shape
+                )
+                spectral_array[0, 0, :, :] = data[0, 0, ...]
             else:
-                data=fits.getdata(results[i])
-                spectral_array[0,i,:,:]=data[0,0,...]
+                data = fits.getdata(results[i])
+                spectral_array[0, i, :, :] = data[0, 0, ...]
         header["CRPIX3"] = float(min(freqs))
         header["CRPIX3"] = float(1.0)
         header["CDELT3"] = freqres * 10**6
         data = np.zeros(shape, dtype=dtype)
         hdu = fits.PrimaryHDU(data=data, header=header)
         hdu.writeto(output_fitsfile_prefix + "_cube.fits", overwrite=True)
-        with fits.open(output_fitsfile_prefix + "_cube.fits", mode='update') as hdul:
+        with fits.open(output_fitsfile_prefix + "_cube.fits", mode="update") as hdul:
             for i in range(len(results)):
-                hdul[0].data[:,i,:,:] = spectral_array[:,i,:,:]
+                hdul[0].data[:, i, :, :] = spectral_array[:, i, :, :]
             hdul.flush()
         for r in results:
             os.system("rm -rf " + r)
-        os.system("rm -rf "+filename)    
+        os.system("rm -rf " + filename)
         gc.collect()
         return output_fitsfile_prefix + "_cube.fits"
     else:

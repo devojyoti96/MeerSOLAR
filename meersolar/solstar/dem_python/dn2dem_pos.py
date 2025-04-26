@@ -19,7 +19,7 @@ def dn2dem_pos(
     emd_ret=False,
     l_emd=False,
     non_pos=False,
-    n_jobs=-1
+    n_jobs=-1,
 ):
     """
     Performs a Regularization on solar data, returning the Differential Emission Measure (DEM)
@@ -252,7 +252,7 @@ def dn2dem_pos(
             nmu=nmu,
             warn=warn,
             l_emd=l_emd,
-            n_jobs=n_jobs
+            n_jobs=n_jobs,
         )
     else:
         dem1d, edem1d, elogt1d, chisq1d, dn_reg1d = demmap_pos.demmap_pos(
@@ -269,7 +269,7 @@ def dn2dem_pos(
             nmu=nmu,
             warn=warn,
             l_emd=l_emd,
-            n_jobs=n_jobs
+            n_jobs=n_jobs,
         )
     # reshape the 1d arrays to original dimensions and squeeze extra dimensions
     dem = ((np.reshape(dem1d, [nx, ny, nt])) * sclf).squeeze()

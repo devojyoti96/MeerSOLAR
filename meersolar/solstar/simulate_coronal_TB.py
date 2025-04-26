@@ -54,15 +54,15 @@ def simulate_GRFF(dem_file, outfile, start_freq, end_freq):
     print("########################")
     print("Estimating coronal brightness temperature for free-free emission ......")
     print("########################")
-    datadir=get_datadir()
-    libname = datadir+"/GRFF_DEM_Transfer.so"
+    datadir = get_datadir()
+    libname = datadir + "/GRFF_DEM_Transfer.so"
     start_freq *= 10**6
     end_freq *= 10**6
     Nf = int(
         (np.log10(end_freq) - np.log10(start_freq)) / 0.01
     )  # number of frequencies
-    if Nf<10:
-        Nf=10
+    if Nf < 10:
+        Nf = 10
     NSteps = 1  # number of nodes along the line-of-sight
     # Conversion units
     sfu2cgs = 1e-19
@@ -111,8 +111,8 @@ def simulate_GRFF(dem_file, outfile, start_freq, end_freq):
         15, dtype="double"
     )  # array of voxel parameters - for a single voxel
     ParmLocal[0] = (
-        depth_cm 
-    )  # source depth, cm (total depth - the depths for individual voxels will be computed later)
+        depth_cm  # source depth, cm (total depth - the depths for individual voxels will be computed later)
+    )
     ParmLocal[1] = 1e6  # plasma temperature, K (not used in this example)
     ParmLocal[2] = (
         1e10  # electron/atomic concentration, cm^{-3} (not used in this example)

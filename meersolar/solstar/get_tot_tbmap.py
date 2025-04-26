@@ -40,8 +40,8 @@ def make_TB_maps(coronal_tbfile, chrom_tbfile, outfile):
     hf1 = h5py.File(chrom_tbfile)
     chrom_tb = np.array(hf1["tb"])
     total_tb = coronal_tb + np.expand_dims(chrom_tb, axis=2)
-    pos=np.where(total_tb<1000)
-    total_tb[pos]=0.0
+    pos = np.where(total_tb < 1000)
+    total_tb[pos] = 0.0
     meta = hf1.attrs
     keys = hf1.attrs.keys()
     hf2 = h5py.File(outfile, "w")
@@ -56,7 +56,7 @@ def make_TB_maps(coronal_tbfile, chrom_tbfile, outfile):
     flux_tot = (
         2 * kb * total_tb * (freqs * 1e9) ** 2 * sr / (vc**2 * jy2cgs)
     )  ### converting Tb to Jy
-    flux_tot[pos]=0.0
+    flux_tot[pos] = 0.0
     hf2.create_dataset("flux_jy", data=flux_tot)
     hf2.close()
     hf1.close()

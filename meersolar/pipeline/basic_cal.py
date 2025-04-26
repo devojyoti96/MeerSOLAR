@@ -683,9 +683,7 @@ def single_round_cal_and_flag(
             ##############################
             # Gain calibration
             ##############################
-            if len(phasecal_mslist) == 0 and (
-                gain_caltable != None and os.path.exists(gain_caltable)
-            ):
+            if len(phasecal_mslist) == 0 and (gain_caltable != None and os.path.exists(gain_caltable)):
                 applycal_gaintable.append(gain_caltable)
                 applycal_gainfield.append("")
                 applycal_interp.append("nearest")
@@ -740,41 +738,41 @@ def single_round_cal_and_flag(
                         transfer=phasecal_fields,
                         listfile=caltable_prefix + ".listfcal",
                     )
-                    fcal_file = open(caltable_prefix + ".listfcal", "r")
-                    lines = fcal_file.readlines()
-                    fcal_file.close()
-                    os.system("rm -rf " + caltable_prefix + ".listfcal")
-                    fluxes = []
-                    field_names = []
-                    fluxscale_fields = fluxcal_fields + phasecal_fields + polcal_fields
-                    for line in lines:
-                        field_name = line.split("for ")[-1].split(" in")[0]
-                        catalog_flux = phasecal_fluxes[field_name]
-                        flux = float(line.split("is: ")[-1].split(" +/-")[0])
-                        percent_err = round(
-                            (abs(flux - catalog_flux) / catalog_flux) * 100, 2
-                        )
-                        print("\n###################################")
-                        if percent_err > 10:
-                            print(
-                                "There is flux scaling issue for field: " + field_name
-                            )
-                            fluxscale_fields.remove(field_name)
-                        else:
-                            print(
-                                "Flux level matched for phasecal "
-                                + str(field_name)
-                                + " with catalog value within : "
-                                + str(percent_err)
-                                + "%"
-                            )
-                        print("###################################\n")
-                    if fluxscale_caltable != None and os.path.exists(
-                        fluxscale_caltable
-                    ):
-                        applycal_gaintable.append(fluxscale_caltable)
+                    if fluxscale_caltable != None and os.path.exists(fluxscale_caltable):
+                        if os.path.exists(gain_caltable):
+                            os.system("rm -rf "+gain_caltable)
+                        os.system(f"mv {fluxscale_caltable} {gain_caltable}")
+                        applycal_gaintable.append(gain_caltable)
                         applycal_gainfield.append("")
                         applycal_interp.append("nearest")
+                        fcal_file = open(caltable_prefix + ".listfcal", "r")
+                        lines = fcal_file.readlines()
+                        fcal_file.close()
+                        os.system("rm -rf " + caltable_prefix + ".listfcal")
+                        fluxes = []
+                        field_names = []
+                        for line in lines:
+                            field_name = line.split("for ")[-1].split(" in")[0]
+                            catalog_flux = phasecal_fluxes[field_name]
+                            flux = float(line.split("is: ")[-1].split(" +/-")[0])
+                            percent_err = round(
+                                (abs(flux - catalog_flux) / catalog_flux) * 100, 2
+                            )
+                            print("\n###################################")
+                            if percent_err > 10:
+                                print(
+                                    "There is flux scaling issue for field: " + field_name
+                                )
+                            else:
+                                print(
+                                    "Flux level matched for phasecal "
+                                    + str(field_name)
+                                    + " with catalog value within : "
+                                    + str(percent_err)
+                                    + "%"
+                                )
+                            print("###################################\n")
+                    
 
         ##############################
         # Leakage calibration
@@ -993,11 +991,6 @@ def single_round_cal_and_flag(
             if (gain_caltable != None and os.path.exists(gain_caltable))
             else None
         )
-        fluxscale_caltable = (
-            fluxscale_caltable
-            if (fluxscale_caltable != None and os.path.exists(fluxscale_caltable))
-            else None
-        )
         leakage_caltable = (
             leakage_caltable
             if (leakage_caltable != None and os.path.exists(leakage_caltable))
@@ -1022,7 +1015,6 @@ def single_round_cal_and_flag(
             delay_caltable,
             bpass_caltable,
             gain_caltable,
-            fluxscale_caltable,
             leakage_caltable,
             kcross_caltable,
             crossphase_caltable,

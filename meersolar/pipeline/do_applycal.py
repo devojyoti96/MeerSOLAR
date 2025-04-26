@@ -149,6 +149,7 @@ def applysol(
     gaintable=[],
     gainfield=[],
     interp=[],
+    parang=False,
     overwrite_datacolumn=False,
     n_threads=-1,
     memory_limit=-1,
@@ -162,57 +163,77 @@ def applysol(
         Measurement set
     scan : int
         Scan number
-    gaintable : list
+    gaintable : list, optional
         Caltable list
-    gainfield : list
+    gainfield : list, optional
         Gain field list
-    interp : list
+    interp : list, optional
         Gain interpolation
+    parang : bool, optional
+        Parallectiv angle apply or not
     overwrite_datacolumn : bool, optional
         Overwrite data column with corrected solutions
     n_threads : int, optional
         Number of OpenMP threads
     memory_limit : float, optional
         Memory limit in GB
+    Returns
+    -------
+    int
+        Success message
     """
     limit_threads(n_threads=n_threads)
-    from casatasks import applycal
+    from casatasks import applycal, flagmanager
 
     if dry_run:
         process = psutil.Process(os.getpid())
         mem = round(process.memory_info().rss / 1024**3, 2)  # in GB
         return mem
-    print(f"Applying solutions on ms: {msname} of scan : {scan}")
+    print(f"Applying solutions on ms: {os.path.basename(msname)} of scan : {scan} from caltables: {','.join([os.path.basename(i) for i in gaintable])}\n")
     try:
+        flags=flagmanager(vis=msname,mode='list')
+        keys=flags.keys()
+        for k in keys:
+            if k=='MS':
+                pass
+            else:
+                version=flags[0]['name']
+                try:
+                    flagmanager(vis=msname,mode='restore',versionname=version)
+                    flagmanager(vis=msname,mode='delete',versionname=version)
+                except:
+                    pass
         applycal(
             vis=msname,
             scan=str(scan),
             gaintable=gaintable,
             applymode="calflag",
             calwt=[False],
-            parang=True,
+            parang=parang,
             flagbackup=True,
         )
         os.system("rm -rf casa*log")
         if overwrite_datacolumn:
+            print (f"Copying corrected data to datacolumn for ms: {msname}.")
             colsize = get_column_size(msname)
             tb = table()
             tb.open(msname, nomodify=False)
-            if memory_limit > (1.5 * colsize) or memory_limit == -1:
-                cor_data = tb.getcol("CORRECTED_DATA")
-                tb.putcol("DATA", cor_data)
-            else:
-                chunk_size = int((1.5 * colsize) / memory_limit)
-                nrow = tb.nrows()
-                for i in range(0, nrow, chunk_size):
-                    if i + chunk_size > nrow:
-                        n = -1
-                    else:
-                        n = chunk_size
-                    cor_data = tb.getcol("CORRECTED_DATA", startrow=i, nrow=n)
-                    tb.putcol("DATA", cor_data, startrow=i, nrow=n)
-            tb.flush()
+            nrow = tb.nrows()
+            chunk_size=int(memory_limit/colsize)
+            for i in range(0, nrow, chunk_size):
+                if i + chunk_size > nrow:
+                    n = -1
+                else:
+                    n = chunk_size
+                tb = table()
+                tb.open(msname, nomodify=False)
+                cor_data = tb.getcol("CORRECTED_DATA", startrow=i, nrow=n)
+                tb.putcol("DATA", cor_data, startrow=i, nrow=n)
+                tb.flush()
+                del cor_data
             tb.close()
+            del tb
+            gc.collect()
         return 0
     except Exception as e:
         traceback.print_exc()
@@ -227,6 +248,7 @@ def run_all_applysol(
     use_only_bandpass=False,
     use_only_fluxcal=False,
     overwrite_datacolumn=False,
+    include_selfcal=False,
     cpu_frac=0.8,
     mem_frac=0.8,
 ):
@@ -246,6 +268,8 @@ def run_all_applysol(
         Use only fluxcal solutions
     overwrite_datacolumn : bool, optional
         Overwrite data column or not
+    include_selfcal : bool, optional
+        Apply self-calibratioin solutions or not
     cpu_frac : float, optional
         CPU fraction to use
     mem_frac : float, optional
@@ -259,27 +283,33 @@ def run_all_applysol(
     try:
         os.chdir(workdir)
         mslist = np.unique(mslist).tolist()
+        parang=False
         os.system("rm -rf " + caldir + "/*scan*.bcal")
         att_caltables = glob.glob(caldir + "/*_attval_scan_*.npy")
         bandpass_table = glob.glob(caldir + "/*.bcal")
         delay_table = glob.glob(caldir + "/*.kcal")
         gain_table = glob.glob(caldir + "/*.gcal")
-        flux_table = glob.glob(caldir + "/*.fcal")
+        leakage_table=glob.glob(caldir+"/*.dcal")
+        if len(leakage_table)>0:
+            parang=True
+            kcross_table=glob.glob(caldir+"/*.kcrosscal")
+            crossphase_table=glob.glob(caldir+"/*.xfcal")
+            pangle_table=glob.glob(caldir+"/*.panglecal")
+        else:
+            print (f"No polarization leakage calibration table is present in : {caldir}")
+            kcross_table=[]
+            crossphase_table=[]
+            pangle_table=[]
+        
         gaintable = []
         if len(bandpass_table) == 0:
             print(f"No bandpass table is present in calibration directory : {caldir}.")
             return []
-        if len(gain_table) == 0 and len(flux_table) == 0:
+        if len(gain_table) == 0:
             print(
                 f"No time-dependent gaintable is present in calibration directory : {caldir}. Applying only bandpass solutions."
             )
             use_only_bandpass = True
-        if len(gain_table) != 0 and len(flux_table) == 0:
-            print(
-                f"No time-dependent fluxscaled gaintable is present in calibration directory : {caldir}. Applying solutions only from fluxcal."
-            )
-            use_only_fluxcal = True
-            flux_table = gain_table
         ################################
         # Scale bandpass for attenuators
         ################################
@@ -300,15 +330,32 @@ def run_all_applysol(
         ###############################
         # Arranging applycal parameters
         ###############################
-        if len(delay_table) != 0:
+        if len(delay_table)>0:
             gaintable = delay_table
-        if len(flux_table) != 0 and use_only_bandpass == False:
-            gaintable += flux_table
+        if len(gain_table)>0 and use_only_bandpass == False:
+            gaintable+= gain_table
         gainfield = []
         if use_only_fluxcal == True:
             print("Using only fluxcal solutions")
             fluxcal_fields = get_caltable_fields(bandpass_table[0])
             gainfield = ["", ",".join(fluxcal_fields)]
+            
+        if len(leakage_table)>0:
+            gaintable+=leakage_table
+            if len(kcross_table)>0:
+                gaintable+=kcross_table
+            if len(crossphase_table)>0:
+                gaintable+=crossphase_table
+            if len(pangle_table)>0:
+                gaintable+=pangle_table
+        
+        if include_selfcal==False:
+            gaintable_bkp=copy.deepcopy(gaintable)
+            for g in gaintable_bkp:
+                if 'selfcal' in g:
+                    gaintable.remove(g)
+            del gaintable_bkp    
+                
         ####################################
         # Applycal jobs
         ####################################
@@ -322,11 +369,8 @@ def run_all_applysol(
         scaled_bandpass_scans = [
             int(a.split("scan_")[-1].split(".bcal")[0]) for a in scaled_bandpass_list
         ]
-        workers = list(dask_client.scheduler_info()["workers"].items())
-        addr, stats = workers[0]
-        memory_limit = stats["memory_limit"] / 1024**3
         target_frac = config.get("distributed.worker.memory.target")
-        memory_limit *= target_frac
+        memory_limit= mem_limit / 0.8
         msmd = msmetadata()
         for ms in mslist:
             msmd.open(ms)
@@ -346,6 +390,7 @@ def run_all_applysol(
                         overwrite_datacolumn=overwrite_datacolumn,
                         interp=interp,
                         n_threads=n_threads,
+                        parang=parang,
                         memory_limit=memory_limit,
                     )
                 )
@@ -353,11 +398,20 @@ def run_all_applysol(
         dask_client.close()
         dask_cluster.close()
         os.system("rm -rf casa*log")
-        print("##################")
-        print("Applying calibration solutions for target scans are done successfully.")
-        print("Total time taken : ", time.time() - start_time)
-        print("##################\n")
-        return 0
+        if np.nansum(results)==0:
+            print("##################")
+            print("Applying calibration solutions for target scans are done successfully.")
+            print("Total time taken : ", time.time() - start_time)
+            print("##################\n")
+            return 0
+        else:
+            print("##################")
+            print(
+                "Applying calibration solutions for target scans are not done successfully."
+            )
+            print("Total time taken : ", time.time() - start_time)
+            print("##################\n")
+            return 1
     except Exception as e:
         traceback.print_exc()
         os.system("rm -rf casa*log")
@@ -416,6 +470,13 @@ def main():
         metavar="Boolean",
     )
     parser.add_option(
+        "--include_selfcal",
+        dest="include_selfcal",
+        default=False,
+        help="Apply self-calibration solutions or not",
+        metavar="Boolean",
+    )
+    parser.add_option(
         "--print_casalog",
         dest="print_casalog",
         default=False,
@@ -459,6 +520,7 @@ def main():
                 overwrite_datacolumn=eval(str(options.overwrite_datacolumn)),
                 cpu_frac=float(options.cpu_frac),
                 mem_frac=float(options.mem_frac),
+                include_selfcal=eval(str(options.include_selfcal)),
             )
             return msg
         except Exception as e:
