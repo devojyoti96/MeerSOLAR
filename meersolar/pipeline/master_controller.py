@@ -235,7 +235,7 @@ def run_noise_diode_cal(msname, workdir, cpu_frac=0.8, mem_frac=0.8):
         return 1
 
 
-def run_partion(msname, workdir, partition_cal=True, cpu_frac=0.8, mem_frac=0.8):
+def run_partion(msname, workdir, cpu_frac=0.8, mem_frac=0.8):
     """
     Perform basic calibration
     Parameters
@@ -244,8 +244,6 @@ def run_partion(msname, workdir, partition_cal=True, cpu_frac=0.8, mem_frac=0.8)
         Name of the measurement set
     workdir : str
         Working directory
-    partition_cal : bool, optional
-        Partition calibrators
     cpu_frac : float, optional
         CPU fraction to use
     mem_frac : float, optional
@@ -279,29 +277,22 @@ def run_partion(msname, workdir, partition_cal=True, cpu_frac=0.8, mem_frac=0.8)
     else:
         timebin = ""
     target_scans, cal_scans, f_scans, g_scans, p_scans = get_cal_target_scans(msname)
-    if partition_cal:
-        cal_scans_copy = copy.deepcopy(cal_scans)
-        for s in cal_scans:
-            noise_cal_scan = determine_noise_diode_cal_scan(msname, s)
-            if noise_cal_scan:
-                print(f"Removing noise-diode scan: {s}")
-                cal_scans_copy.remove(s)
-        cal_scans = copy.deepcopy(cal_scans_copy)
-        cal_scans = ",".join([str(s) for s in cal_scans])
-        calibrator_ms = workdir + "/calibrator.ms"
-        split_cmd = f"run_partition --msname {msname} --outputms {calibrator_ms} --scans {cal_scans} --timebin {timebin} --width {width} --cpu_frac {cpu_frac} --mem_frac {mem_frac}"
-        partition_field = "cal"
-    else:
-        target_scans = ",".join([str(s) for s in target_scans])
-        target_ms = workdir + "/target.ms"
-        split_cmd = f"run_partition --msname {msname} --outputms {target_ms} --scans {target_scans} --timebin {timebin} --width {width} --cpu_frac {cpu_frac} --mem_frac {mem_frac}"
-        partition_field = "target"
+    cal_scans_copy = copy.deepcopy(cal_scans)
+    for s in cal_scans:
+        noise_cal_scan = determine_noise_diode_cal_scan(msname, s)
+        if noise_cal_scan:
+            print(f"Removing noise-diode scan: {s}")
+            cal_scans_copy.remove(s)
+    cal_scans = copy.deepcopy(cal_scans_copy)
+    cal_scans = ",".join([str(s) for s in cal_scans])
+    calibrator_ms = workdir + "/calibrator.ms"
+    split_cmd = f"run_partition --msname {msname} --outputms {calibrator_ms} --scans {cal_scans} --timebin {timebin} --width {width} --cpu_frac {cpu_frac} --mem_frac {mem_frac}"
     ####################################
     # Partition fields
     ####################################
     print("\n########################################")
     basename = (
-        f"partition_{partition_field}_" + os.path.basename(msname).split(".ms")[0]
+        f"partition_cal_" + os.path.basename(msname).split(".ms")[0]
     )
     if os.path.isdir(workdir + "/logs") == False:
         os.makedirs(workdir + "/logs")
@@ -316,21 +307,12 @@ def run_partion(msname, workdir, partition_cal=True, cpu_frac=0.8, mem_frac=0.8)
         else:
             time.sleep(1)
     print("Partitioning is finished.\n")
-    if partition_cal:
-        if os.path.exists(calibrator_ms):
-            print(f"Calibrator ms: {calibrator_ms}")
-            return 0
-        else:
-            print(f"Calibrator fields could not be partitioned.")
-            return 1
+    if os.path.exists(calibrator_ms):
+        print(f"Calibrator ms: {calibrator_ms}")
+        return 0
     else:
-        if os.path.exists(target_ms):
-            print(f"Target ms: {target_ms}")
-            return 0
-        else:
-            print(f"Target fields could not be partitioned.")
-            return 1
-
+        print(f"Calibrator fields could not be partitioned.")
+        return 1
 
 def run_target_split(
     msname,
@@ -505,7 +487,7 @@ def run_applycal_sol(
         traceback.print_exc()
         return 1
 
-def run_selfcal(
+def run_selfcal_jobs(
     mslist,
     workdir,
     cpu_frac=0.8,
@@ -681,10 +663,13 @@ def master_control(
     do_applycal=True,
     do_selfcal=True,
     do_apply_selfcal=True,
-    solint=15,
-    time_window=5,
+    solint="inf",
+    do_ap_selfcal=True,
+    solar_selfcal=True,
     do_imaging=True,
     weight="briggs",
+    uvrange="",
+    minuv="",
     robust=0.0,
     freqavg=-1,
     timeavg=-1,
@@ -742,7 +727,6 @@ def master_control(
     # Run partitioning jobs
     ##############################
     calibrator_msname = workdir + "/calibrator.ms"
-    target_msname = workdir + "/target.ms"
     if do_partition or os.path.exists(workdir + "/calibrator.ms") == False:
         msg = run_partion(
             msname,
@@ -962,7 +946,9 @@ def master_control(
             if msg != 0:
                 print("!!!! WARNING: Error in applying solutions on target scans. Not continuing further. !!!!")
                 return 1
-            msg=run_selfcal(selfcal_mslist,workdir,cpu_frac=round(frac_compute_use*cpu_frac,2),mem_frac=round(frac_compute_use*mem_frac,2))
+            msg=run_selfcal_jobs(selfcal_mslist,workdir,cpu_frac=round(frac_compute_use*cpu_frac,2),mem_frac=round(frac_compute_use*mem_frac,2),
+                        solint=solint,do_apcal=do_ap_selfcal,solar_selfcal=solar_selfcal,keep_backup=verbose,uvrange=uvrange,minuv=minuv,weight=weight,
+                        robust=robust)
             if msg != 0:
                 print("!!!! WARNING: Error in self-calibration on target scans. Not applying self-calibration. !!!!")
                 do_apply_selfcal=False

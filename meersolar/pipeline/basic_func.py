@@ -1623,7 +1623,9 @@ def calc_multiscale_scales(msname, num_pixel_in_psf, max_scale=16, nmax=5):
     psf = calc_psf(msname)
     multiscale_scales = [0, num_pixel_in_psf]
     max_scale_pixel = int(max_scale * 60 / psf)
-    if nmax > 2:
+    if max_scale_pixel>50:
+        max_scale_pixel=50
+    if nmax > 2 and max_scale_pixel>3 * num_pixel_in_psf:
         other_scales = np.linspace(
             3 * num_pixel_in_psf, max_scale_pixel, nmax - 2, endpoint=True
         ).astype("int")
@@ -2178,6 +2180,7 @@ def create_circular_mask(msname, cellsize, imsize, mask_radius=20):
     str
         Fits mask file name
     """
+    msname=msname.rstrip("/")
     imagename_prefix = msname.split(".ms")[0] + "_solar"
     wsclean_args = [
         "-quiet",
@@ -2196,16 +2199,16 @@ def create_circular_mask(msname, cellsize, imsize, mask_radius=20):
         Y, X = np.ogrid[:imsize, :imsize]
         dist_from_center = np.sqrt((X - center[0]) ** 2 + (Y - center[1]) ** 2)
         mask = dist_from_center <= radius
-        os.system("cp -r " + imagename_prefix + "-image.fits mask.fits")
+        os.system("cp -r " + imagename_prefix + "-image.fits mask-"+os.path.basename(imagename_prefix)+".fits")
         os.system("rm -rf " + imagename_prefix + "*")
-        data = fits.getdata("mask.fits")
-        header = fits.getheader("mask.fits")
+        data = fits.getdata("mask-"+os.path.basename(imagename_prefix)+".fits")
+        header = fits.getheader("mask-"+os.path.basename(imagename_prefix)+".fits")
         data[0, 0, ...][mask] = 1.0
         data[0, 0, ...][~mask] = 0.0
         fits.writeto(
             imagename_prefix + "-mask.fits", data=data, header=header, overwrite=True
         )
-        os.system("rm -rf mask.fits")
+        os.system("rm -rf mask-"+os.path.basename(imagename_prefix)+".fits")
         if os.path.exists(imagename_prefix + "-mask.fits"):
             return imagename_prefix + "-mask.fits"
         else:
@@ -2412,7 +2415,7 @@ def run_wsclean(wsclean_cmd, container_name, verbose=False, dry_run=False):
         if verbose==False:
             full_command+=" >> tmp1 >> tmp2"
         else:
-            print(wsclean_cmd)
+            print(wsclean_cmd+"\n")
         exit_code = os.system(full_command)
         os.system(f"rm -rf {temp_docker_path}")
         return 0 if exit_code == 0 else 1

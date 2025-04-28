@@ -48,7 +48,7 @@ def split_scan(
         Splited measurement set
     """
     limit_threads(n_threads=n_threads)
-    from casatasks import split, clearcal
+    from casatasks import split, clearcal, initweights
     from casatools import msmetadata
 
     msmd = msmetadata()
@@ -85,6 +85,7 @@ def split_scan(
         datacolumn=datacolumn,
     )
     clearcal(vis=outputvis, addmodel=True)
+    initweights(vis=msname,wtmode='ones',dowtsp=True)
     return outputvis
 
 

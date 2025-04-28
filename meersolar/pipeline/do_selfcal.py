@@ -1,4 +1,4 @@
-import os, numpy as np, copy, psutil, gc, traceback
+import os, numpy as np, copy, psutil, gc, traceback, resource
 from casatools import msmetadata
 from astropy.io import fits
 from meersolar.pipeline.basic_func import *
@@ -86,8 +86,8 @@ def single_selfcal_iteration(
     -------
     int
         Success message
-    list
-        Caltable list
+    str
+        Caltable name
     float
         RMS based dynamic range
     float
@@ -109,7 +109,7 @@ def single_selfcal_iteration(
         # Setup wsclean params
         ##################################
         if ncpu < 1:
-            ncpu = psutil.cpu_cpunt()
+            ncpu = psutil.cpu_count()
         if mem < 0:
             mem = psutil.virtual_memory().total / (1024**3)
         ngrid = max(1, int(ncpu / 2))
@@ -122,6 +122,12 @@ def single_selfcal_iteration(
             + "_selfcal_"
             + str(round_number)
         )
+        msmd = msmetadata()
+        msmd.open(msname)
+        npol = msmd.ncorrforpol()[0]
+        msmd.close()
+        if npol<4 and pol=="IQUV":
+            pol="I"
         os.system("rm -rf " + prefix + "*")
         if weight == "briggs":
             weight += " " + str(robust)
@@ -138,7 +144,6 @@ def single_selfcal_iteration(
             "-nmiter 5",
             "-gain 0.1",
             "-minuv-l " + str(minuv),
-            "-use-weights-as-taper",
             "-j " + str(ncpu),
             "-abs-mem " + str(mem),
             "-parallel-reordering " + str(ncpu),
@@ -167,6 +172,8 @@ def single_selfcal_iteration(
                 )
                 wsclean_args.append(f"-channels-out {nchan}")
                 wsclean_args.append(f"-join-channels")
+        else:
+            nchan=1
 
         ######################################
         # Multiscale configuration
@@ -174,7 +181,7 @@ def single_selfcal_iteration(
         if len(multiscale_scales) > 0:
             wsclean_args.append("-multiscale")
             wsclean_args.append("-multiscale-gain 0.1")
-            wsclean_args.append("-multiscale-scales " + ",".join(multiscale_scales))
+            wsclean_args.append("-multiscale-scales " + ",".join([str(s) for s in multiscale_scales]))
 
         ################################################
         # Creating and using a 40arcmin diameter solar mask
@@ -193,6 +200,15 @@ def single_selfcal_iteration(
                 wsclean_args.append("-fits-mask " + fits_mask)
 
         ######################################
+        # Resetting maximum file limit
+        ######################################
+        soft_limit, hard_limit = resource.getrlimit(resource.RLIMIT_NOFILE)
+        npol=len(list(pol))
+        total_chunks = nchan * 1 *npol
+        if total_chunks > soft_limit:
+            resource.setrlimit(resource.RLIMIT_NOFILE, (total_chunks, hard_limit))
+            
+        ######################################
         # Running imaging
         ######################################
         wsclean_cmd = "wsclean " + " ".join(wsclean_args) + " " + msname
@@ -200,17 +216,24 @@ def single_selfcal_iteration(
         if msg != 0:
             gc.collect()
             print(f"{os.path.basename(msname)} -- Imaging is not successful.")
-            return 1, [], 0, 0, 0, "", "", ""
+            return 1, "", 0, 0, 0, "", "", ""
 
         #########################################
         # Restoring flags if applymode is calflag
         #########################################
         if applymode == "calflag":
-            try:
-                flagmanager(vis=msname, mode="restore", versionname="applycal_1")
-                flagmanager(vis=msname, mode="delete", versionname="applycal_1")
-            except:
-                pass
+            flags=flagmanager(vis=msname,mode='list')
+            keys=flags.keys()
+            for k in keys:
+                if k=='MS':
+                    pass
+                else:
+                    version=flags[0]['name']
+                    try:
+                        flagmanager(vis=msname,mode='restore',versionname=version)
+                        flagmanager(vis=msname,mode='delete',versionname=version)
+                    except:
+                        pass
 
         #####################################
         # Analyzing images
@@ -232,13 +255,13 @@ def single_selfcal_iteration(
         wsclean_residuals = wsclean_files["residual"]
 
         image_cube = make_stokes_wsclean_imagecube(
-            wsclean_images, prefix + "_IQUV_image.fits", keep_wsclean_images=False
+            wsclean_images, prefix + f"_{pol}_image.fits", keep_wsclean_images=False
         )
         model_cube = make_stokes_wsclean_imagecube(
-            wsclean_models, prefix + "_IQUV_model.fits", keep_wsclean_images=False
+            wsclean_models, prefix + f"_{pol}_model.fits", keep_wsclean_images=False
         )
         residual_cube = make_stokes_wsclean_imagecube(
-            wsclean_residuals, prefix + "_IQUV_residual.fits", keep_wsclean_images=False
+            wsclean_residuals, prefix + f"_{pol}_residual.fits", keep_wsclean_images=False
         )
 
         model_flux, rms_DR, rms, neg_DR = calc_dyn_range(
@@ -247,18 +270,11 @@ def single_selfcal_iteration(
         if model_flux == 0:
             gc.collect()
             print(f"{os.path.basename(msname)} -- No model flux.\n")
-            return 1, [], 0, 0, 0, "", "", ""
+            return 1, "", 0, 0, 0, "", "", ""
 
         #####################
         # Perform calibration
         #####################
-        delay_caltable = prefix + ".kcal"
-        gain_caltable = prefix + ".gcal"
-        delaycal(msname, delay_caltable, str(refant), solint="inf")  # Generalized delay
-        if os.path.exists(delay_caltable) == False:
-            print(f"{os.path.basename(msname)} -- Delay calibration is not successful.")
-            return 1, [], 0, 0, 0, "", "", ""
-        gaintable = [delay_caltable]
         if calmode == "p":
             minblperant = 3
         else:
@@ -276,30 +292,25 @@ def single_selfcal_iteration(
             rmsthresh=[10, 7, 5, 3.5],
             solint=solint,
             solnorm=True,
-            gaintable=gaintable,
         )
-        if (
-            os.path.exists(delay_caltable) == False
-            and os.path.exists(gain_caltable) == False
-        ):
+        if os.path.exists(gain_caltable) == False:
             print(f"{os.path.basename(msname)} -- No gain solutions are found.\n")
             gc.collect()
-            return 2, [], 0, 0, 0, "", "", ""
+            return 2, "", 0, 0, 0, "", "", ""
         flagdata(vis=gain_caltable, mode="rflag", datacolumn="CPARAM", flagbackup=False)
-        gaintable.append(gain_caltable)
         applycal(
             vis=msname,
-            gaintable=gaintable,
-            interp=["nearest"] * len(gaintable),
+            gaintable=[gain_caltable],
+            interp=["nearest"],
             applymode=applymode,
             calwt=[False],
         )
         gc.collect()
         os.system("cp -r " + msname + " " + prefix + ".ms")
-        return 0, gaintable, rms_DR, rms, neg_DR, image_cube, model_cube, residual_cube
+        return 0, gain_caltable, rms_DR, rms, neg_DR, image_cube, model_cube, residual_cube
     except Exception as e:
         traceback.print_exc()
-        return 1, [], 0, 0, 0, "", "", ""
+        return 1, "" , 0, 0, 0, "", "", ""
 
 
 def do_selfcal(
@@ -373,8 +384,8 @@ def do_selfcal(
     -------
     int
         Success message
-    list
-        Final caltables
+    str
+        Final caltable
     """
     limit_threads(n_threads=ncpu)
     from casatasks import split, statwt, initweights
@@ -980,7 +991,6 @@ def main():
     results = compute(*tasks)
     dask_client.close()
     dask_cluster.close()
-    kcal_list = []
     gcal_list = []
     for i in range(len(results)):
         r = results[i]
@@ -988,17 +998,9 @@ def main():
         if msg != 0:
             print(f"Self-calibration was not successful for ms: {mslist[i]}.")
         else:
-            kcal_list.append(r[1][0])
-            gcal_list.append(r[1][1])
-    final_delay_caltable = caldir + "/full_selfcal.kcal"
+            gcal_list.append(r[1])
     final_gain_caltable = caldir + "/full_selfcal.gcal"
-    if len(kcal_list) > 0 and len(gcal_list) > 0:
-        final_delay_caltable = merge_caltables(
-            kcal_list,
-            final_delay_caltable,
-            append=False,
-            keepcopy=eval(str(options.keep_backup)),
-        )
+    if len(gcal_list) > 0:
         final_gain_caltable = merge_caltables(
             gcal_list,
             final_gain_caltable,
@@ -1014,9 +1016,7 @@ def main():
                     + "_selfcal"
                 )
                 os.system("rm -rf " + selfcaldir)
-        print("Final caltables:")
-        if os.path.exists(final_delay_caltable):
-            print(f"{final_delay_caltable}")
+        print("Final caltable:")
         if os.path.exists(final_gain_caltable):
             print(f"{final_gain_caltable}")
         print(f"Total time taken: {round(time.time()-starttime,2)}s")
