@@ -1282,6 +1282,7 @@ def angular_separation_equatorial(ra1, dec1, ra2, dec2):
     theta_deg = np.degrees(theta_rad)
     return theta_deg
 
+
 def move_to_sun(msname):
     """
     Move the phasecenter of the measurement set at the center of the Sun (Assuming ms has one scan)
@@ -1300,7 +1301,8 @@ def move_to_sun(msname):
         print("Phasecenter could not be shifted.")
     return msg
 
-def correct_solar_sidereal_motion(msname="", verbose = False, dry_run = False):
+
+def correct_solar_sidereal_motion(msname="", verbose=False, dry_run=False):
     """
     Correct sodereal motion of the Sun
     Parameters
@@ -1313,13 +1315,16 @@ def correct_solar_sidereal_motion(msname="", verbose = False, dry_run = False):
         Success message
     """
     if dry_run:
-        mem=run_solar_sidereal_cor(dry_run=True)
+        mem = run_solar_sidereal_cor(dry_run=True)
         return mem
-    print (f"Correcting sidereal motion for ms: {msname}")
-    msg = run_solar_sidereal_cor(msname=msname, container_name="meerwsclean",verbose=verbose)
+    print(f"Correcting sidereal motion for ms: {msname}")
+    msg = run_solar_sidereal_cor(
+        msname=msname, container_name="meerwsclean", verbose=verbose
+    )
     if msg != 0:
         print("Sidereal motion correction is not successful.")
     return msg
+
 
 def check_scan_in_caltable(caltable, scan):
     """
@@ -1623,9 +1628,9 @@ def calc_multiscale_scales(msname, num_pixel_in_psf, max_scale=16, nmax=5):
     psf = calc_psf(msname)
     multiscale_scales = [0, num_pixel_in_psf]
     max_scale_pixel = int(max_scale * 60 / psf)
-    if max_scale_pixel>50:
-        max_scale_pixel=50
-    if nmax > 2 and max_scale_pixel>3 * num_pixel_in_psf:
+    if max_scale_pixel > 50:
+        max_scale_pixel = 50
+    if nmax > 2 and max_scale_pixel > 3 * num_pixel_in_psf:
         other_scales = np.linspace(
             3 * num_pixel_in_psf, max_scale_pixel, nmax - 2, endpoint=True
         ).astype("int")
@@ -1634,6 +1639,7 @@ def calc_multiscale_scales(msname, num_pixel_in_psf, max_scale=16, nmax=5):
     else:
         multiscale_scales.append(max_scale_pixel)
     return multiscale_scales
+
 
 def delaycal(msname="", caltable="", refant="", solint="inf", dry_run=False):
     """
@@ -2121,10 +2127,10 @@ def get_column_size(msname):
     msmd = msmetadata()
     msmd.open(msname)
     nrow = int(msmd.nrows())
-    nchan=msmd.nchan(0)
+    nchan = msmd.nchan(0)
     npol = msmd.ncorrforpol()[0]
     msmd.close()
-    datasize = nrow * nchan* npol * 16 / (1024.0**3)
+    datasize = nrow * nchan * npol * 16 / (1024.0**3)
     return datasize
 
 
@@ -2180,7 +2186,7 @@ def create_circular_mask(msname, cellsize, imsize, mask_radius=20):
     str
         Fits mask file name
     """
-    msname=msname.rstrip("/")
+    msname = msname.rstrip("/")
     imagename_prefix = msname.split(".ms")[0] + "_solar"
     wsclean_args = [
         "-quiet",
@@ -2199,16 +2205,22 @@ def create_circular_mask(msname, cellsize, imsize, mask_radius=20):
         Y, X = np.ogrid[:imsize, :imsize]
         dist_from_center = np.sqrt((X - center[0]) ** 2 + (Y - center[1]) ** 2)
         mask = dist_from_center <= radius
-        os.system("cp -r " + imagename_prefix + "-image.fits mask-"+os.path.basename(imagename_prefix)+".fits")
+        os.system(
+            "cp -r "
+            + imagename_prefix
+            + "-image.fits mask-"
+            + os.path.basename(imagename_prefix)
+            + ".fits"
+        )
         os.system("rm -rf " + imagename_prefix + "*")
-        data = fits.getdata("mask-"+os.path.basename(imagename_prefix)+".fits")
-        header = fits.getheader("mask-"+os.path.basename(imagename_prefix)+".fits")
+        data = fits.getdata("mask-" + os.path.basename(imagename_prefix) + ".fits")
+        header = fits.getheader("mask-" + os.path.basename(imagename_prefix) + ".fits")
         data[0, 0, ...][mask] = 1.0
         data[0, 0, ...][~mask] = 0.0
         fits.writeto(
             imagename_prefix + "-mask.fits", data=data, header=header, overwrite=True
         )
-        os.system("rm -rf mask-"+os.path.basename(imagename_prefix)+".fits")
+        os.system("rm -rf mask-" + os.path.basename(imagename_prefix) + ".fits")
         if os.path.exists(imagename_prefix + "-mask.fits"):
             return imagename_prefix + "-mask.fits"
         else:
@@ -2365,9 +2377,11 @@ def run_wsclean(wsclean_cmd, container_name, verbose=False, dry_run=False):
             )
             return 1
     if dry_run:
-        cmd="chgenter >>tmp1 >>tmp2"   
-        cwd=os.getcwd()
-        full_command = f"udocker --quiet run --nobanner --volume={cwd}:{cwd} meerwsclean {cmd}" 
+        cmd = "chgenter >> tmp1 >> tmp2"
+        cwd = os.getcwd()
+        full_command = (
+            f"udocker --quiet run --nobanner --volume={cwd}:{cwd} meerwsclean {cmd}"
+        )
         os.system(full_command)
         process = psutil.Process(os.getpid())
         mem = round(process.memory_info().rss / 1024**3, 2)  # in GB
@@ -2412,19 +2426,22 @@ def run_wsclean(wsclean_cmd, container_name, verbose=False, dry_run=False):
     )
     try:
         full_command = f"udocker run --nobanner --volume={mspath}:{temp_docker_path} --workdir {temp_docker_path} meerwsclean {wsclean_cmd}"
-        if verbose==False:
-            full_command+=" >> tmp1 >> tmp2"
+        if verbose == False:
+            full_command += " >> tmp1 >> tmp2"
         else:
-            print(wsclean_cmd+"\n")
+            print(wsclean_cmd + "\n")
         exit_code = os.system(full_command)
-        os.system(f"rm -rf {temp_docker_path}")
+        os.system(f"rm -rf {temp_docker_path} tmp1 tmp2")
         return 0 if exit_code == 0 else 1
     except Exception as e:
         os.system(f"rm -rf {temp_docker_path}")
         traceback.print_exc()
         return 1
 
-def run_solar_sidereal_cor(msname="", container_name="meerwsclean", verbose = False, dry_run=False):
+
+def run_solar_sidereal_cor(
+    msname="", container_name="meerwsclean", verbose=False, dry_run=False
+):
     """
     Run chgcenter inside a udocker container to correct solar sidereal motion (no root permission required).
     Parameters
@@ -2448,32 +2465,29 @@ def run_solar_sidereal_cor(msname="", container_name="meerwsclean", verbose = Fa
                 "Container {container_name} is not initiated. First initiate container and then run."
             )
             return 1
-            
+
     if dry_run:
-        cmd="chgcentre >> tmp1 >> tmp2"   
-        cwd=os.getcwd()
-        full_command = f"udocker --quiet run --nobanner --volume={cwd}:{cwd} meerwsclean {cmd}" 
+        cmd = "chgcentre >> tmp1 >> tmp2"
+        cwd = os.getcwd()
+        full_command = (
+            f"udocker --quiet run --nobanner --volume={cwd}:{cwd} meerwsclean {cmd}"
+        )
         os.system(full_command)
         process = psutil.Process(os.getpid())
         mem = round(process.memory_info().rss / 1024**3, 2)  # in GB
         os.system("rm -rf tmp1 tmp2")
         return mem
-        
+
     msname = os.path.abspath(msname)
     mspath = os.path.dirname(msname)
     temp_docker_path = tempfile.mkdtemp(prefix="chgcenter_udocker_", dir=mspath)
-    cmd = (
-        "chgcentre -solarcenter "
-        + temp_docker_path
-        + "/"
-        + os.path.basename(msname)
-    )
+    cmd = "chgcentre -solarcenter " + temp_docker_path + "/" + os.path.basename(msname)
     try:
         full_command = f"udocker --quiet run --nobanner --volume={mspath}:{temp_docker_path} --workdir {temp_docker_path} meerwsclean {cmd}"
-        if verbose==False:
-            full_command+=" >> tmp1 >> tmp2"
+        if verbose == False:
+            full_command += " >> tmp1 >> tmp2"
         else:
-            print (cmd)
+            print(cmd)
         exit_code = os.system(full_command)
         os.system(f"rm -rf {temp_docker_path} tmp1 tmp2")
         return 0 if exit_code == 0 else 1
@@ -2482,7 +2496,10 @@ def run_solar_sidereal_cor(msname="", container_name="meerwsclean", verbose = Fa
         traceback.print_exc()
         return 1
 
-def run_chgcenter(msname, ra, dec, container_name="meerwsclean", verbose=False, dry_run=False):
+
+def run_chgcenter(
+    msname, ra, dec, container_name="meerwsclean", verbose=False, dry_run=False
+):
     """
     Run chgcenter inside a udocker container (no root permission required).
     Parameters
@@ -2511,9 +2528,11 @@ def run_chgcenter(msname, ra, dec, container_name="meerwsclean", verbose=False, 
             )
             return 1
     if dry_run:
-        cmd="chgenter >> tmp1 >> tmp2"   
-        cwd=os.getcwd()
-        full_command = f"udocker --quiet run --nobanner --volume={cwd}:{cwd} meerwsclean {cmd}" 
+        cmd = "chgenter >> tmp1 >> tmp2"
+        cwd = os.getcwd()
+        full_command = (
+            f"udocker --quiet run --nobanner --volume={cwd}:{cwd} meerwsclean {cmd}"
+        )
         os.system(full_command)
         process = psutil.Process(os.getpid())
         mem = round(process.memory_info().rss / 1024**3, 2)  # in GB
@@ -2534,10 +2553,10 @@ def run_chgcenter(msname, ra, dec, container_name="meerwsclean", verbose=False, 
     )
     try:
         full_command = f"udocker --quiet run --nobanner --volume={mspath}:{temp_docker_path} --workdir {temp_docker_path} meerwsclean {cmd}"
-        if verbose==False:
-            full_command+=" >> tmp1 >> tmp2"
+        if verbose == False:
+            full_command += " >> tmp1 >> tmp2"
         else:
-            print (cmd)
+            print(cmd)
         exit_code = os.system(cmd)
         os.system(f"rm -rf {temp_docker_path} tmp1 tmp2")
         return 0 if exit_code == 0 else 1

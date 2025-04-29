@@ -189,24 +189,27 @@ def applysol(
         process = psutil.Process(os.getpid())
         mem = round(process.memory_info().rss / 1024**3, 2)  # in GB
         return mem
-    print(f"Applying solutions on ms: {os.path.basename(msname)} of scan : {scan} from caltables: {','.join([os.path.basename(i) for i in gaintable])}\n")
+    print(
+        f"Applying solutions on ms: {os.path.basename(msname)} of scan : {scan} from caltables: {','.join([os.path.basename(i) for i in gaintable])}\n"
+    )
     try:
-        flags=flagmanager(vis=msname,mode='list')
-        keys=flags.keys()
+        flags = flagmanager(vis=msname, mode="list")
+        keys = flags.keys()
         for k in keys:
-            if k=='MS':
+            if k == "MS":
                 pass
             else:
-                version=flags[0]['name']
+                version = flags[0]["name"]
                 try:
-                    flagmanager(vis=msname,mode='restore',versionname=version)
-                    flagmanager(vis=msname,mode='delete',versionname=version)
+                    flagmanager(vis=msname, mode="restore", versionname=version)
+                    flagmanager(vis=msname, mode="delete", versionname=version)
                 except:
                     pass
         applycal(
             vis=msname,
             scan=str(scan),
             gaintable=gaintable,
+            gainfield=gainfield,
             applymode="calflag",
             calwt=[False],
             parang=parang,
@@ -214,12 +217,12 @@ def applysol(
         )
         os.system("rm -rf casa*log")
         if overwrite_datacolumn:
-            print (f"Copying corrected data to datacolumn for ms: {msname}.")
+            print(f"Copying corrected data to datacolumn for ms: {msname}.")
             colsize = get_column_size(msname)
             tb = table()
             tb.open(msname, nomodify=False)
             nrow = tb.nrows()
-            chunk_size=int(memory_limit/colsize)
+            chunk_size = int(memory_limit / colsize)
             for i in range(0, nrow, chunk_size):
                 if i + chunk_size > nrow:
                     n = -1
@@ -246,7 +249,6 @@ def run_all_applysol(
     workdir,
     caldir,
     use_only_bandpass=False,
-    use_only_fluxcal=False,
     overwrite_datacolumn=False,
     include_selfcal=False,
     cpu_frac=0.8,
@@ -264,8 +266,6 @@ def run_all_applysol(
         Calibration directory
     use_only_bandpass : bool, optional
         Use only bandpass solutions
-    use_only_fluxcal : bool, optional
-        Use only fluxcal solutions
     overwrite_datacolumn : bool, optional
         Overwrite data column or not
     include_selfcal : bool, optional
@@ -283,24 +283,24 @@ def run_all_applysol(
     try:
         os.chdir(workdir)
         mslist = np.unique(mslist).tolist()
-        parang=False
+        parang = False
         os.system("rm -rf " + caldir + "/*scan*.bcal")
         att_caltables = glob.glob(caldir + "/*_attval_scan_*.npy")
         bandpass_table = glob.glob(caldir + "/*.bcal")
         delay_table = glob.glob(caldir + "/*.kcal")
         gain_table = glob.glob(caldir + "/*.gcal")
-        leakage_table=glob.glob(caldir+"/*.dcal")
-        if len(leakage_table)>0:
-            parang=True
-            kcross_table=glob.glob(caldir+"/*.kcrosscal")
-            crossphase_table=glob.glob(caldir+"/*.xfcal")
-            pangle_table=glob.glob(caldir+"/*.panglecal")
+        leakage_table = glob.glob(caldir + "/*.dcal")
+        if len(leakage_table) > 0:
+            parang = True
+            kcross_table = glob.glob(caldir + "/*.kcrosscal")
+            crossphase_table = glob.glob(caldir + "/*.xfcal")
+            pangle_table = glob.glob(caldir + "/*.panglecal")
         else:
-            print (f"No polarization leakage calibration table is present in : {caldir}")
-            kcross_table=[]
-            crossphase_table=[]
-            pangle_table=[]
-        
+            print(f"No polarization leakage calibration table is present in : {caldir}")
+            kcross_table = []
+            crossphase_table = []
+            pangle_table = []
+
         gaintable = []
         if len(bandpass_table) == 0:
             print(f"No bandpass table is present in calibration directory : {caldir}.")
@@ -310,6 +310,7 @@ def run_all_applysol(
                 f"No time-dependent gaintable is present in calibration directory : {caldir}. Applying only bandpass solutions."
             )
             use_only_bandpass = True
+
         ################################
         # Scale bandpass for attenuators
         ################################
@@ -327,35 +328,30 @@ def run_all_applysol(
             scaled_bandpass_list = compute(*tasks)
             dask_client.close()
             dask_cluster.close()
+
         ###############################
         # Arranging applycal parameters
         ###############################
-        if len(delay_table)>0:
+        if len(delay_table) > 0:
             gaintable = delay_table
-        if len(gain_table)>0 and use_only_bandpass == False:
-            gaintable+= gain_table
-        gainfield = []
-        if use_only_fluxcal == True:
-            print("Using only fluxcal solutions")
-            fluxcal_fields = get_caltable_fields(bandpass_table[0])
-            gainfield = ["", ",".join(fluxcal_fields)]
-            
-        if len(leakage_table)>0:
-            gaintable+=leakage_table
-            if len(kcross_table)>0:
-                gaintable+=kcross_table
-            if len(crossphase_table)>0:
-                gaintable+=crossphase_table
-            if len(pangle_table)>0:
-                gaintable+=pangle_table
-        
-        if include_selfcal==False:
-            gaintable_bkp=copy.deepcopy(gaintable)
+        if len(gain_table) > 0 and use_only_bandpass == False:
+            gaintable += gain_table
+        if len(leakage_table) > 0:
+            gaintable += leakage_table
+            if len(kcross_table) > 0:
+                gaintable += kcross_table
+            if len(crossphase_table) > 0:
+                gaintable += crossphase_table
+            if len(pangle_table) > 0:
+                gaintable += pangle_table
+
+        if include_selfcal == False:
+            gaintable_bkp = copy.deepcopy(gaintable)
             for g in gaintable_bkp:
-                if 'selfcal' in g:
+                if "selfcal" in g:
                     gaintable.remove(g)
-            del gaintable_bkp    
-                
+            del gaintable_bkp
+
         ####################################
         # Applycal jobs
         ####################################
@@ -370,7 +366,7 @@ def run_all_applysol(
             int(a.split("scan_")[-1].split(".bcal")[0]) for a in scaled_bandpass_list
         ]
         target_frac = config.get("distributed.worker.memory.target")
-        memory_limit= mem_limit / 0.8
+        memory_limit = mem_limit / 0.8
         msmd = msmetadata()
         for ms in mslist:
             msmd.open(ms)
@@ -379,14 +375,12 @@ def run_all_applysol(
             for scan in scans:
                 pos = scaled_bandpass_scans.index(scan)
                 bandpass_table = scaled_bandpass_list[pos]
-                gainfield.append("")
                 interp = ["nearest"] * len(gaintable)
                 tasks.append(
                     delayed(applysol)(
                         ms,
                         scan,
                         gaintable=gaintable + [bandpass_table],
-                        gainfield=gainfield,
                         overwrite_datacolumn=overwrite_datacolumn,
                         interp=interp,
                         n_threads=n_threads,
@@ -398,9 +392,11 @@ def run_all_applysol(
         dask_client.close()
         dask_cluster.close()
         os.system("rm -rf casa*log")
-        if np.nansum(results)==0:
+        if np.nansum(results) == 0:
             print("##################")
-            print("Applying calibration solutions for target scans are done successfully.")
+            print(
+                "Applying calibration solutions for target scans are done successfully."
+            )
             print("Total time taken : ", time.time() - start_time)
             print("##################\n")
             return 0
@@ -453,13 +449,6 @@ def main():
         dest="use_only_bandpass",
         default=False,
         help="Use only bandpass solutions",
-        metavar="Boolean",
-    )
-    parser.add_option(
-        "--use_only_fluxcal",
-        dest="use_only_fluxcal",
-        default=False,
-        help="Use only fluxcal solutions",
         metavar="Boolean",
     )
     parser.add_option(
@@ -516,7 +505,6 @@ def main():
                 options.workdir,
                 options.caldir,
                 use_only_bandpass=eval(str(options.use_only_bandpass)),
-                use_only_fluxcal=eval(str(options.use_only_fluxcal)),
                 overwrite_datacolumn=eval(str(options.overwrite_datacolumn)),
                 cpu_frac=float(options.cpu_frac),
                 mem_frac=float(options.mem_frac),

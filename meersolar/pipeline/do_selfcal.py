@@ -1,5 +1,5 @@
 import os, numpy as np, copy, psutil, gc, traceback, resource
-from casatools import msmetadata
+from casatools import msmetadata, table
 from astropy.io import fits
 from meersolar.pipeline.basic_func import *
 from dask import delayed, compute, config
@@ -13,6 +13,7 @@ os.system("rm -rf " + logfile)
 """
 This code is written by Devojyoti Kansabanik, Apr 18, 2025
 """
+
 
 def single_selfcal_iteration(
     msname,
@@ -126,11 +127,15 @@ def single_selfcal_iteration(
         msmd.open(msname)
         npol = msmd.ncorrforpol()[0]
         msmd.close()
-        if npol<4 and pol=="IQUV":
-            pol="I"
+        if npol < 4 and pol == "IQUV":
+            pol = "I"
         os.system("rm -rf " + prefix + "*")
         if weight == "briggs":
             weight += " " + str(robust)
+        if threshold < 1:
+            threshold += 1
+        elif threshold == 1:
+            threshold += 0.1
         wsclean_args = [
             "-quiet",
             "-scale " + str(cellsize) + "asec",
@@ -148,7 +153,7 @@ def single_selfcal_iteration(
             "-abs-mem " + str(mem),
             "-parallel-reordering " + str(ncpu),
             "-parallel-gridding " + str(ngrid),
-            "-auto-threshold " + str(threshold) + " -auto-mask " + str(threshold + 0.1),
+            "-auto-threshold 1 -auto-mask " + str(threshold),
         ]
         if imsize > (2 * 1024):
             wsclean_args.append("-parallel-deconvolution 1024")
@@ -173,7 +178,7 @@ def single_selfcal_iteration(
                 wsclean_args.append(f"-channels-out {nchan}")
                 wsclean_args.append(f"-join-channels")
         else:
-            nchan=1
+            nchan = 1
 
         ######################################
         # Multiscale configuration
@@ -181,7 +186,9 @@ def single_selfcal_iteration(
         if len(multiscale_scales) > 0:
             wsclean_args.append("-multiscale")
             wsclean_args.append("-multiscale-gain 0.1")
-            wsclean_args.append("-multiscale-scales " + ",".join([str(s) for s in multiscale_scales]))
+            wsclean_args.append(
+                "-multiscale-scales " + ",".join([str(s) for s in multiscale_scales])
+            )
 
         ################################################
         # Creating and using a 40arcmin diameter solar mask
@@ -203,11 +210,11 @@ def single_selfcal_iteration(
         # Resetting maximum file limit
         ######################################
         soft_limit, hard_limit = resource.getrlimit(resource.RLIMIT_NOFILE)
-        npol=len(list(pol))
-        total_chunks = nchan * 1 *npol
+        npol = len(list(pol))
+        total_chunks = nchan * 1 * npol
         if total_chunks > soft_limit:
             resource.setrlimit(resource.RLIMIT_NOFILE, (total_chunks, hard_limit))
-            
+
         ######################################
         # Running imaging
         ######################################
@@ -222,16 +229,16 @@ def single_selfcal_iteration(
         # Restoring flags if applymode is calflag
         #########################################
         if applymode == "calflag":
-            flags=flagmanager(vis=msname,mode='list')
-            keys=flags.keys()
+            flags = flagmanager(vis=msname, mode="list")
+            keys = flags.keys()
             for k in keys:
-                if k=='MS':
+                if k == "MS":
                     pass
                 else:
-                    version=flags[0]['name']
+                    version = flags[0]["name"]
                     try:
-                        flagmanager(vis=msname,mode='restore',versionname=version)
-                        flagmanager(vis=msname,mode='delete',versionname=version)
+                        flagmanager(vis=msname, mode="restore", versionname=version)
+                        flagmanager(vis=msname, mode="delete", versionname=version)
                     except:
                         pass
 
@@ -261,7 +268,9 @@ def single_selfcal_iteration(
             wsclean_models, prefix + f"_{pol}_model.fits", keep_wsclean_images=False
         )
         residual_cube = make_stokes_wsclean_imagecube(
-            wsclean_residuals, prefix + f"_{pol}_residual.fits", keep_wsclean_images=False
+            wsclean_residuals,
+            prefix + f"_{pol}_residual.fits",
+            keep_wsclean_images=False,
         )
 
         model_flux, rms_DR, rms, neg_DR = calc_dyn_range(
@@ -279,6 +288,9 @@ def single_selfcal_iteration(
             minblperant = 3
         else:
             minblperant = 4
+        gain_caltable = prefix + ".gcal"
+        if os.path.exists(gain_caltable):
+            os.system("rm -rf " + gain_caltable)
         gaincal(
             vis=msname,
             caltable=gain_caltable,
@@ -306,11 +318,30 @@ def single_selfcal_iteration(
             calwt=[False],
         )
         gc.collect()
+        tb = table()
+        tb.open(gain_caltable, nomodify=False)
+        gain = tb.getcol("CPARAM")
+        flag = tb.getcol("FLAG")
+        gain[flag] = 1.0
+        flag *= False
+        tb.putcol("CPARAM", gain)
+        tb.putcol("FLAG", flag)
+        tb.flush()
+        tb.close()
         os.system("cp -r " + msname + " " + prefix + ".ms")
-        return 0, gain_caltable, rms_DR, rms, neg_DR, image_cube, model_cube, residual_cube
+        return (
+            0,
+            gain_caltable,
+            rms_DR,
+            rms,
+            neg_DR,
+            image_cube,
+            model_cube,
+            residual_cube,
+        )
     except Exception as e:
         traceback.print_exc()
-        return 1, "" , 0, 0, 0, "", "", ""
+        return 1, "", 0, 0, 0, "", "", ""
 
 
 def do_selfcal(
@@ -388,7 +419,7 @@ def do_selfcal(
         Final caltable
     """
     limit_threads(n_threads=ncpu)
-    from casatasks import split, statwt, initweights
+    from casatasks import split, statwt, initweights, flagmanager
 
     if dry_run:
         process = psutil.Process(os.getpid())
@@ -407,6 +438,28 @@ def do_selfcal(
             os.system("rm -rf " + selfcalms)
         if os.path.exists(selfcalms + ".flagversions"):
             os.system("rm -rf " + selfcalms + ".flagversions")
+
+        ##############################
+        # Restoring any previous flags
+        ##############################
+        flags = flagmanager(vis=msname, mode="list")
+        keys = flags.keys()
+        for k in keys:
+            if k == "MS":
+                pass
+            else:
+                version = flags[0]["name"]
+                try:
+                    flagmanager(vis=msname, mode="restore", versionname=version)
+                    flagmanager(vis=msname, mode="delete", versionname=version)
+                except:
+                    pass
+        if os.path.exists(msname + ".flagversions"):
+            os.system("rm -rf " + msname + ".flagversions")
+
+        ##############################
+        # Spliting corrected data
+        ##############################
         hascor = check_datacolumn_valid(msname, datacolumn="CORRECTED_DATA")
         msmd = msmetadata()
         msmd.open(msname)
@@ -479,10 +532,7 @@ def do_selfcal(
         last_sigma_DR2 = 0
         sigma_reduced_count = 0
         calmode = "p"
-        if npol == 4:
-            pol = "IQUV"
-        else:
-            pol = "I"
+        pol = "I"
         threshold = start_threshold
         multiscale_scales = calc_multiscale_scales(msname, 5)
         multiscale_scales = [str(i) for i in multiscale_scales]

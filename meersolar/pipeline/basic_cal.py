@@ -683,7 +683,9 @@ def single_round_cal_and_flag(
             ##############################
             # Gain calibration
             ##############################
-            if len(phasecal_mslist) == 0 and (gain_caltable != None and os.path.exists(gain_caltable)):
+            if len(phasecal_mslist) == 0 and (
+                gain_caltable != None and os.path.exists(gain_caltable)
+            ):
                 applycal_gaintable.append(gain_caltable)
                 applycal_gainfield.append("")
                 applycal_interp.append("nearest")
@@ -738,9 +740,11 @@ def single_round_cal_and_flag(
                         transfer=phasecal_fields,
                         listfile=caltable_prefix + ".listfcal",
                     )
-                    if fluxscale_caltable != None and os.path.exists(fluxscale_caltable):
+                    if fluxscale_caltable != None and os.path.exists(
+                        fluxscale_caltable
+                    ):
                         if os.path.exists(gain_caltable):
-                            os.system("rm -rf "+gain_caltable)
+                            os.system("rm -rf " + gain_caltable)
                         os.system(f"mv {fluxscale_caltable} {gain_caltable}")
                         applycal_gaintable.append(gain_caltable)
                         applycal_gainfield.append("")
@@ -761,7 +765,8 @@ def single_round_cal_and_flag(
                             print("\n###################################")
                             if percent_err > 10:
                                 print(
-                                    "There is flux scaling issue for field: " + field_name
+                                    "There is flux scaling issue for field: "
+                                    + field_name
                                 )
                             else:
                                 print(
@@ -772,7 +777,6 @@ def single_round_cal_and_flag(
                                     + "%"
                                 )
                             print("###################################\n")
-                    
 
         ##############################
         # Leakage calibration

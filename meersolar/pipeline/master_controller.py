@@ -291,9 +291,7 @@ def run_partion(msname, workdir, cpu_frac=0.8, mem_frac=0.8):
     # Partition fields
     ####################################
     print("\n########################################")
-    basename = (
-        f"partition_cal_" + os.path.basename(msname).split(".ms")[0]
-    )
+    basename = f"partition_cal_" + os.path.basename(msname).split(".ms")[0]
     if os.path.isdir(workdir + "/logs") == False:
         os.makedirs(workdir + "/logs")
     batch_file = create_batch_script_nonhpc(split_cmd, workdir, basename)
@@ -313,6 +311,7 @@ def run_partion(msname, workdir, cpu_frac=0.8, mem_frac=0.8):
     else:
         print(f"Calibrator fields could not be partitioned.")
         return 1
+
 
 def run_target_split(
     msname,
@@ -392,12 +391,12 @@ def run_target_split(
         traceback.print_exc()
         return 1
 
+
 def run_applycal_sol(
     target_mslist,
     workdir,
     caldir,
     use_only_bandpass=False,
-    use_only_fluxcal=False,
     overwrite_datacolumn=False,
     apply_selfcal=False,
     cpu_frac=0.8,
@@ -415,8 +414,6 @@ def run_applycal_sol(
         Caltable directory
     use_only_bandpass : bool
         Use only bandpass solutions
-    use_only_fluxcal : bool
-        Use only fluxcal solutions
     apply_selfcal : bool, optional
         Applying self-calibration solutions or not
     cpu_frac : float, optional
@@ -436,8 +433,7 @@ def run_applycal_sol(
             print("Applying basic and self-calibration solutions on target scans .....")
             print("###########################\n")
             applycal_basename = "apply_selfcal"
-            use_only_bandpass=False
-            use_only_fluxcal=False
+            use_only_bandpass = False
         else:
             print("###########################")
             print("Applying basic calibration solutions on target scans .....")
@@ -452,8 +448,6 @@ def run_applycal_sol(
             + caldir
             + " --use_only_bandpass "
             + str(use_only_bandpass)
-            + " --use_only_fluxcal "
-            + str(use_only_fluxcal)
             + " --cpu_frac "
             + str(cpu_frac)
             + " --mem_frac "
@@ -487,27 +481,28 @@ def run_applycal_sol(
         traceback.print_exc()
         return 1
 
+
 def run_selfcal_jobs(
     mslist,
     workdir,
     cpu_frac=0.8,
     mem_frac=0.8,
-    start_thresh=-1,
-    stop_thresh=-1,
-    max_iter=-1,
-    max_DR=-1,
-    min_iter=-1,
-    conv_frac=-1,
-    solint="",
-    do_apcal="",
-    solar_selfcal="",
-    keep_backup="",
+    start_thresh=5.0,
+    stop_thresh=3.0,
+    max_iter=100,
+    max_DR=1000,
+    min_iter=2,
+    conv_frac=0.3,
+    solint="int",
+    do_apcal=True,
+    solar_selfcal=True,
+    keep_backup=False,
     uvrange="",
-    minuv=-1,
-    weight="",
-    robust="",
-    applymode="",
-    gaintype="",
+    minuv=0,
+    weight="briggs",
+    robust=0.0,
+    applymode="calonly",
+    gaintype="T",
     min_fractional_bw=-1,
 ):
     """
@@ -557,53 +552,60 @@ def run_selfcal_jobs(
     Returns
     -------
     int
-        Success message for self-calibration 
+        Success message for self-calibration
     """
     try:
         print("###########################")
         print("Performing self-calibration of target scans .....")
         print("###########################\n")
         selfcal_basename = "selfcal_targets"
-        selfcal_cmd = "run_selfcal --mslist "+",".join(mslist)+" --workdir "+workdir+" --cpu_frac "+str(cpu_frac)+" --mem_frac "+str(mem_frac)
-        if start_thresh>0:
-            selfcal_cmd+=" --start_thresh "+str(start_thresh)
-            if stop_thresh>0 and stop_thresh<start_thresh:
-                selfcal_cmd+=" --stop_threshold "+str(stop_thresh)
-        if max_iter>0:
-            selfcal_cmd+=" --max_iter "+str(max_iter)
-        if max_DR>0:
-            selfcal_cmd+=" --max_DR "+str(max_DR)
-        if min_iter>0:
-            selfcal_cmd+=" --min_iter "+str(min_iter)
-        if conv_frac>0:
-            selfcal_cmd+=" --conv_frac "+str(conv_frac)
-        if solint!="":
-            selfcal_cmd+=" --solint "+solint
-        if do_apcal!="":
-            selfcal_cmd+=" --do_apcal "+str(do_apcal)
-        if solar_selfcal!="":
-            selfcal_cmd+=" --solar_selfcal "+str(solar_selfcal)
-        if keep_backup!="":
-            selfcal_cmd+=" --keep_backup "+str(keep_backup)
-        if uvrange!="":
-            selfcal_cmd+=" --uvrange "+str(uvrange)
-        if minuv>0:
-            selfcal_cmd+=" --minuv "+str(minuv)
-        if weight!="":
-            selfcal_cmd+=" --weight "+str(weight)
-        if robust!="":
-             selfcal_cmd+=" --robust "+str(robust)
-        if applymode!="":
-            selfcal_cmd+=" --applymode "+str(applymode)
-        if gaintype!="":
-            selfcal_cmd+=" --gaintype "+str(gaintype)
-        if min_fractional_bw>0:
-            selfcal_cmd+=" --min_fractional_bw "+str(min_fractional_bw)
+        selfcal_cmd = (
+            "run_selfcal --mslist "
+            + ",".join(mslist)
+            + " --workdir "
+            + workdir
+            + " --cpu_frac "
+            + str(cpu_frac)
+            + " --mem_frac "
+            + str(mem_frac)
+        )
+        if start_thresh > 0:
+            selfcal_cmd += " --start_thresh " + str(start_thresh)
+            if stop_thresh > 0 and stop_thresh < start_thresh:
+                selfcal_cmd += " --stop_threshold " + str(stop_thresh)
+        if max_iter > 0:
+            selfcal_cmd += " --max_iter " + str(max_iter)
+        if max_DR > 0:
+            selfcal_cmd += " --max_DR " + str(max_DR)
+        if min_iter > 0:
+            selfcal_cmd += " --min_iter " + str(min_iter)
+        if conv_frac > 0:
+            selfcal_cmd += " --conv_frac " + str(conv_frac)
+        if solint != "":
+            selfcal_cmd += " --solint " + solint
+        if do_apcal != "":
+            selfcal_cmd += " --do_apcal " + str(do_apcal)
+        if solar_selfcal != "":
+            selfcal_cmd += " --solar_selfcal " + str(solar_selfcal)
+        if keep_backup != "":
+            selfcal_cmd += " --keep_backup " + str(keep_backup)
+        if uvrange != "":
+            selfcal_cmd += " --uvrange " + str(uvrange)
+        if minuv > 0:
+            selfcal_cmd += " --minuv " + str(minuv)
+        if weight != "":
+            selfcal_cmd += " --weight " + str(weight)
+        if robust != "":
+            selfcal_cmd += " --robust " + str(robust)
+        if applymode != "":
+            selfcal_cmd += " --applymode " + str(applymode)
+        if gaintype != "":
+            selfcal_cmd += " --gaintype " + str(gaintype)
+        if min_fractional_bw > 0:
+            selfcal_cmd += " --min_fractional_bw " + str(min_fractional_bw)
         if os.path.isdir(workdir + "/logs") == False:
             os.makedirs(workdir + "/logs")
-        batch_file = create_batch_script_nonhpc(
-            selfcal_cmd, workdir, selfcal_basename
-        )
+        batch_file = create_batch_script_nonhpc(selfcal_cmd, workdir, selfcal_basename)
         print(selfcal_cmd + "\n")
         os.system("bash " + batch_file)
         print("Waiting to finish self-calibration...\n")
@@ -622,7 +624,125 @@ def run_selfcal_jobs(
     except Exception as e:
         traceback.print_exc()
         return 1
-        
+
+
+def run_imaging_jobs(
+    mslist,
+    workdir,
+    cpu_frac=0.8,
+    mem_frac=0.8,
+    minuv=-1,
+    weight="briggs",
+    robust=0.0,
+    pol="IQUV",
+    freqres=-1,
+    timeres=-1,
+    threshold=1.0,
+    multiscale_scales=[],
+    use_solar_mask=True,
+    savemodel=False,
+    saveres=False,
+):
+    """
+    Self-calibration on target scans
+    Parameters
+    ----------
+    mslist: list
+        Target measurement set list
+    workdir : str
+        Working directory
+    cpu_frac : float, optional
+        CPU fraction to use
+    mem_frac : float, optional
+        Memory fraction to use
+    minuv : float, optionial
+        Minimum UV-lambda to use in imaging
+    weight : str, optional
+        Imaging weighting
+    robust : float, optional
+        Briggs weighting robust parameter (-1 to 1)
+    pol : str, optional
+        Stokes parameters to image
+    freqres : float, optional
+        Frequency resolution of spectral chunk in MHz (default : -1, no spectral chunking)
+    timeres : float, optional
+        Time resolution of temporal chunks in MHz (default : -1, no temporal chunking)
+    threshold : float, optional
+        CLEAN threshold
+    multiscale_scales : list, optional
+        Multiscale scales in pixel unit
+    use_solar_mask : bool, optional
+        Use solar mask or not
+    savemodel : bool, optional
+        Save model images or not
+    saveres : bool, optional
+        Save residual images or not
+    Returns
+    -------
+    int
+        Success message for imaging
+    """
+    try:
+        print("###########################")
+        print("Performing imaging of target scans .....")
+        print("###########################\n")
+        imaging_basename = "imaging_targets"
+        imaging_cmd = (
+            "run_imaging --mslist "
+            + ",".join(mslist)
+            + " --workdir "
+            + workdir
+            + " --cpu_frac "
+            + str(cpu_frac)
+            + " --mem_frac "
+            + str(mem_frac)
+            + " --pol "
+            + str(pol)
+            + " --freqres "
+            + str(freqres)
+            + " --timeres "
+            + str(timeres)
+            + " --weight "
+            + weight
+            + " --robust "
+            + str(robust)
+            + " --minuv_l "
+            + str(minuv)
+            + " --use_solar_mask "
+            + str(use_solar_mask)
+            + " --threshold "
+            + str(threshold)
+            + " --savemodel "
+            + str(savemodel)
+            + " --saveres "
+            + str(saveres)
+        )
+        if len(multiscale_scales) > 0:
+            multiscales = ",".join([str(i) for i in multiscale_scales])
+            imaging_cmd += " --multiscale_scales " + multiscales
+        if os.path.isdir(workdir + "/logs") == False:
+            os.makedirs(workdir + "/logs")
+        batch_file = create_batch_script_nonhpc(imaging_cmd, workdir, imaging_basename)
+        print(imaging_cmd + "\n")
+        os.system("bash " + batch_file)
+        print("Waiting to finish self-calibration...\n")
+        while True:
+            finished_file = glob.glob(workdir + "/.Finished_" + imaging_basename + "*")
+            if len(finished_file) > 0:
+                break
+            else:
+                time.sleep(1)
+        success_index_cal = int(finished_file[0].split("_")[-1])
+        if success_index_cal == 0:
+            print("Imaging is done successfully.\n")
+        else:
+            print("Imaging is unsuccessful.\n")
+        return success_index_cal
+    except Exception as e:
+        traceback.print_exc()
+        return 1
+
+
 def check_status(workdir, basename):
     """
     Check job status
@@ -651,36 +771,118 @@ def check_status(workdir, basename):
 def master_control(
     msname,
     workdir,
-    per_job_cpu=3,
-    per_job_mem=2,
+    solar_data=True,
     do_reset_weight_flag=True,
-    do_partition=True,
-    do_flag=True,
-    do_target_split=True,
+    do_cal_partition=True,
+    do_calibrator_flag=True,
     do_import_model=True,
     do_basic_cal=True,
     do_noise_cal=True,
     do_applycal=True,
+    do_target_split=True,
+    target_freq_chunk=-1,
     do_selfcal=True,
     do_apply_selfcal=True,
-    solint="inf",
     do_ap_selfcal=True,
     solar_selfcal=True,
+    uvrange="",
+    solint="inf",
     do_imaging=True,
     weight="briggs",
-    uvrange="",
-    minuv="",
     robust=0.0,
+    minuv=0,
     freqavg=-1,
     timeavg=-1,
     image_freqres=-1,
     image_timeres=-1,
-    target_freq_chunk=-1,
+    pol="IQUV",
+    clean_threshold=1.0,
+    multiscale_scales=[],
+    use_solar_mask=True,
     cpu_frac=0.8,
     mem_frac=0.8,
     n_nodes=1,
-    verbose=False,
+    keep_backup=False,
 ):
+    """
+    Master controller of the entire pipeline
+    Parameters
+    ----------
+    msname : str
+        Measurement set name
+    workdir : str
+        Work directory path
+    solar_data : bool, optional
+        Whether it is solar data or not
+    do_reset_weight_flag : bool, optional
+        Reset weights and flags of the input ms
+    do_cal_partition : bool, optional
+        Make calibrator multi-MS
+    do_calibrator_flag : bool, optional
+        Perform flagging on calibrator
+    do_import_model : bool, optional
+        Import model visibilities of flux and polarization calibrators
+    do_basic_cal : bool, optional
+        Perform basic calibration
+    do_noise_cal : bool, optional
+        Peform calibration of solar attenuators using noise diode (only used if solar_data=True)
+    do_applycal : bool, optional
+        Apply basic calibration on target scans
+    do_target_split : bool, optional
+        Split target scans into chunks
+    target_freq_chunk : float, optional
+        Spectral width of each target chunk in MHz.
+        Note image frequency resolution can not be set more than this. If full-band imaging is required, do not use this parameter.
+    do_selfcal : bool, optional
+        Perform self-calibration
+    do_apply_selfcal : bool, optonal
+        Apply self-calibration solutions
+    do_ap_selfcal : bool, optional
+        Perform amplitude-phase self-cal or not
+    solar_selfcal : bool, optional
+        Whether self-calibration is performing on solar observation or not
+    uvrange : str, optional
+        UV-range for calibration
+    solint : str, optional
+        Solution intervals in self-cal
+    do_imaging : bool, optional
+        Perform final imaging
+    weight : str, optional
+        Image weighting
+    robust : float, optional
+        Robust parameter for briggs weighting (-1 to 1)
+    minuv : float, optional
+        Minimum UV-lambda for final imaging
+    freqavg : float, optional
+        Frequency averaging in MHz
+    timeavg : float, optional
+        Time averaging in seconds
+    image_freqres : float, optional
+        Image frequency resolution in MHz
+    image_timeres : float, optional
+        Image temporal resolution
+    pol : str, optional
+        Stokes parameters of final imaging
+    clean_threshold : float, optional
+        CLEAN threshold of final imaging
+    multiscale_scales : list, optional
+        Multiscale scales in pixel unit
+    use_solar_mask : bool, optional
+        Use solar mask
+    cpu_frac : float, optional
+        CPU fraction to use
+    mem_frac : float, optional
+        Memory fraction to use
+    n_nodes: int, optional
+        Number of nodes to use (Only for cluster architechture)
+    keep_backup : bool, optional
+        Keep backup of self-cal rounds and final models and residual images
+    Returns
+    -------
+    int
+        Success message
+    """
+    start_time = time.time()
     print("###########################")
     print("Starting the pipeline .....")
     print("###########################\n")
@@ -696,8 +898,31 @@ def master_control(
         os.makedirs(workdir)
     os.chdir(workdir)
     caldir = workdir + "/caltables"
-    selfcaldir = workdir + "/selfcaltables"
     frac_compute_use = 1.0  # Fraction of total allocated compute resource to use
+
+    #####################################
+    # Settings for solar data
+    #####################################
+    if solar_data:
+        if do_noise_cal == False:
+            print("Turning on noise diode based calibration for solar observation.")
+            do_noise_cal = True
+        if use_solar_mask == False:
+            print("Use solar mask during CLEANing.")
+            use_solar_mask = True
+        if solar_selfcal == False:
+            solar_selfcal = True
+    else:
+        if do_noise_cal:
+            print(
+                "Turning off noise diode based calibration for non-solar observation."
+            )
+            do_noise_cal = False
+        if use_solar_mask:
+            print("Stop using solar mask during CLEANing.")
+            use_solar_mask = False
+        if solar_selfcal:
+            solar_selfcal = False
 
     ##########################################################
     # Determining maximum allowed time and frequency averaging
@@ -706,12 +931,16 @@ def master_control(
         max_freqres = calc_bw_smearing_freqwidth(msname)
         if freqavg > max_freqres:
             freqavg = round(max_freqres, 2)
+        if image_freqres > 0:
+            freqavg = max(freqavg, image_freqres)
     if timeavg > 0:
         max_timeres = min(
             calc_time_smearing_timewidth(msname), max_time_solar_smearing(msname)
         )
         if timeavg > max_timeres:
             timeavg = round(max_timeres, 2)
+        if image_timeres > 0:
+            timeavg = max(timeavg, image_timeres)
 
     #############################
     # Reset any previous weights
@@ -727,7 +956,7 @@ def master_control(
     # Run partitioning jobs
     ##############################
     calibrator_msname = workdir + "/calibrator.ms"
-    if do_partition or os.path.exists(workdir + "/calibrator.ms") == False:
+    if do_cal_partition or os.path.exists(workdir + "/calibrator.ms") == False:
         msg = run_partion(
             msname,
             workdir,
@@ -736,17 +965,22 @@ def master_control(
         )
         if msg != 0:
             print("!!!! WARNING: Error in partitioning calibrator fields. !!!!")
+            print("Total time taken: {round(time.time()-start_time,2)}s.\n")
             return 1
 
     #########################################
     # Spliting target scans
     #########################################
-    split_use_frac=1.0
+    split_use_frac = 1.0
     if do_target_split:
-        if (do_flag==False and do_import_model==False and do_basic_cal==False) or do_noise_cal==False:
+        if (
+            do_calibrator_flag == False
+            and do_import_model == False
+            and do_basic_cal == False
+        ) or do_noise_cal == False:
             pass
         else:
-            split_use_frac=0.2
+            split_use_frac = 0.2
         msg = run_target_split(
             msname,
             workdir,
@@ -757,7 +991,7 @@ def master_control(
             cpu_frac=round(split_use_frac * cpu_frac, 2),
             mem_frac=round(split_use_frac * mem_frac, 2),
         )
-        if split_use_frac==0.2:
+        if split_use_frac == 0.2:
             frac_compute_use = frac_compute_use - 0.2
         if msg != 0:
             print("!!!! WARNING: Error in running spliting target scans. !!!!")
@@ -765,7 +999,7 @@ def master_control(
     ##################################
     # Run flagging jobs on calibrators
     ##################################
-    if do_flag:
+    if do_calibrator_flag:
         msg = run_flag(
             calibrator_msname,
             workdir,
@@ -775,8 +1009,13 @@ def master_control(
         )
         if msg != 0:
             print("!!!! WARNING: Flagging error. !!!!")
+            print("Total time taken: {round(time.time()-start_time,2)}s.\n")
             return 1
-    if split_use_frac==0.2 and do_target_split and check_status(workdir, "split_targets") == 0:
+    if (
+        split_use_frac == 0.2
+        and do_target_split
+        and check_status(workdir, "split_targets") == 0
+    ):
         frac_compute_use += 0.2
 
     #################################
@@ -798,8 +1037,13 @@ def master_control(
             print(
                 "!!!! WARNING: Error in importing calibrator models. Not continuing calibration. !!!!"
             )
+            print("Total time taken: {round(time.time()-start_time,2)}s.\n")
             return 1
-    if split_use_frac==0.2 and do_target_split and check_status(workdir, "split_targets") == 0:
+    if (
+        split_use_frac == 0.2
+        and do_target_split
+        and check_status(workdir, "split_targets") == 0
+    ):
         frac_compute_use += 0.2
 
     ########################################
@@ -817,8 +1061,13 @@ def master_control(
             print(
                 "!!!! WARNING: Error in running noise-diode based flux calibration. Not continuing further. !!!!"
             )
+            print("Total time taken: {round(time.time()-start_time,2)}s.\n")
             return 1
-    if split_use_frac==0.2 and do_target_split and check_status(workdir, "split_targets") == 0:
+    if (
+        split_use_frac == 0.2
+        and do_target_split
+        and check_status(workdir, "split_targets") == 0
+    ):
         frac_compute_use += 0.2
     if do_noise_cal and check_status(workdir, "noise_cal") == 0:
         frac_compute_use += 0.2
@@ -827,7 +1076,6 @@ def master_control(
     # Run basic calibration
     ###############################
     use_only_bandpass = False
-    use_only_fluxcal = False
     if do_basic_cal:
         msg = run_basic_cal(
             calibrator_msname,
@@ -839,27 +1087,18 @@ def master_control(
             print(
                 "!!!! WARNING: Error in basic calibration. Not continuing further. !!!!"
             )
+            print("Total time taken: {round(time.time()-start_time,2)}s.\n")
             return 1
     else:
         if len(glob.glob(caldir + "/*.bcal")) == 0:
             print(f"No bandpass table is present in calibration directory : {caldir}.")
+            print("Total time taken: {round(time.time()-start_time,2)}s.\n")
             return 1
-        if (
-            len(glob.glob(caldir + "/*.gcal")) == 0
-            and len(glob.glob(caldir + "/*.fcal")) == 0
-        ):
+        if len(glob.glob(caldir + "/*.gcal")) == 0:
             print(
                 f"No time-dependent gaintable is present in calibration directory : {caldir}. Applying only bandpass solutions."
             )
             use_only_bandpass = True
-        if (
-            len(glob.glob(caldir + "/*.gcal")) != 0
-            and len(glob.glob(caldir + "/*.fcal")) == 0
-        ):
-            print(
-                f"No time-dependent fluxscaled gaintable is present in calibration directory : {caldir}. Applying solutions only from fluxcal."
-            )
-            use_only_fluxcal = True
 
     #######################################
     # Check noise diode cal finished or not
@@ -881,6 +1120,7 @@ def master_control(
             print(
                 "!!!! WARNING: Error in noise-diode based flux calibration. Not continuing further. !!!!"
             )
+            print("Total time taken: {round(time.time()-start_time,2)}s.\n")
             return 1
 
     #############################################
@@ -898,69 +1138,103 @@ def master_control(
         success_index_split_target = int(finished_file[0].split("_")[-1])
         if success_index_split_target == 0:
             print("Spliting target scans are done successfully.\n")
-            if split_use_frac==0.2:
+            if split_use_frac == 0.2:
                 frac_compute_use += 0.2
         else:
             print(
                 "!!!! WARNING: Error in spliting target scans. Not continuing further. !!!!"
             )
+            print("Total time taken: {round(time.time()-start_time,2)}s.\n")
             return 1
 
     target_mslist = glob.glob(workdir + "/target_scan*.ms")
     if len(target_mslist) == 0:
         print("No splited target scan ms are available in work directory.")
+        print("Total time taken: {round(time.time()-start_time,2)}s.\n")
         return 1
     print(f"Target scan mslist : {[os.path.basename(i) for i in target_mslist]}")
 
-    ########################################
-    # Performing self-calibration
-    ########################################
+    #################################################################################
+    # Sorting only single frequency chunk ms for applycal if perform self-calibration
+    #################################################################################
+    target_mslist = sorted(target_mslist)
     if do_selfcal:
-        target_mslist=sorted(target_mslist)
         selfcal_mslist = []
-        spw_list=[]
+        spw_list = []
         for ms in target_mslist:
-            ms_spw=os.path.basename(ms).rstrip(".ms").split('_')[-1]
+            ms_spw = os.path.basename(ms).rstrip(".ms").split("_")[-1]
             if ms_spw not in spw_list:
                 spw_list.append(ms_spw)
-        chosen_spw=spw_list[int(len(spw_list)/2)]
+        chosen_spw = spw_list[int(len(spw_list) / 2)]
         for ms in target_mslist:
             if chosen_spw in os.path.basename(ms):
                 selfcal_mslist.append(ms)
-        #########################################################
-        # Applying solutions on target scans for self-calibration
-        #########################################################
-        if len(selfcal_mslist) > 0:
+
+    #########################################################
+    # Applying solutions on target scans for self-calibration
+    #########################################################
+
+    if (
+        do_selfcal or do_applycal
+    ):  # Applying solutions if do_selfcal is True even if do_applycal is False. This is for safety.
+        if do_selfcal:
+            applycal_list = selfcal_mslist
+        else:
+            applycal_list = target_mslist
+        if len(applycal_list) > 0:
             caldir = workdir + "/caltables"
             msg = run_applycal_sol(
-                selfcal_mslist,
+                applycal_list,
                 workdir,
                 caldir,
                 use_only_bandpass=use_only_bandpass,
-                use_only_fluxcal=use_only_fluxcal,
                 overwrite_datacolumn=False,
                 apply_selfcal=False,
                 cpu_frac=round(frac_compute_use * cpu_frac, 2),
                 mem_frac=round(frac_compute_use * mem_frac, 2),
             )
             if msg != 0:
-                print("!!!! WARNING: Error in applying solutions on target scans. Not continuing further. !!!!")
+                print(
+                    "!!!! WARNING: Error in applying solutions on target scans. Not continuing further. !!!!"
+                )
+                print("Total time taken: {round(time.time()-start_time,2)}s.\n")
                 return 1
-            msg=run_selfcal_jobs(selfcal_mslist,workdir,cpu_frac=round(frac_compute_use*cpu_frac,2),mem_frac=round(frac_compute_use*mem_frac,2),
-                        solint=solint,do_apcal=do_ap_selfcal,solar_selfcal=solar_selfcal,keep_backup=verbose,uvrange=uvrange,minuv=minuv,weight=weight,
-                        robust=robust)
-            if msg != 0:
-                print("!!!! WARNING: Error in self-calibration on target scans. Not applying self-calibration. !!!!")
-                do_apply_selfcal=False
         else:
-            print ("!!!! WARNING: No measurement set is present for self-calibration. !!!!")
-            do_apply_selfcal=False
-            
+            print(
+                "!!!! WARNING: No measurement set is present for applying solutions. !!!!"
+            )
+            print("Total time taken: {round(time.time()-start_time,2)}s.\n")
+            return 1
+
+    ########################################
+    # Performing self-calibration
+    ########################################
+    if do_selfcal:
+        msg = run_selfcal_jobs(
+            selfcal_mslist,
+            workdir,
+            cpu_frac=round(frac_compute_use * cpu_frac, 2),
+            mem_frac=round(frac_compute_use * mem_frac, 2),
+            solint=solint,
+            do_apcal=do_ap_selfcal,
+            solar_selfcal=solar_selfcal,
+            keep_backup=keep_backup,
+            uvrange=uvrange,
+            minuv=minuv,
+            weight=weight,
+            robust=robust,
+        )
+        if msg != 0:
+            print(
+                "!!!! WARNING: Error in self-calibration on target scans. Not applying self-calibration. !!!!"
+            )
+            do_apply_selfcal = False
+
     ########################################
     # Apply self-calibration
     ########################################
     if do_apply_selfcal:
-        target_mslist=sorted(target_mslist)
+        target_mslist = sorted(target_mslist)
         caldir = workdir + "/caltables"
         msg = run_applycal_sol(
             target_mslist,
@@ -972,242 +1246,40 @@ def master_control(
             mem_frac=round(frac_compute_use * mem_frac, 2),
         )
         if msg != 0:
-            print("!!!! WARNING: Error in applying self-calibration solutions on target scans. !!!!")
-            
+            print(
+                "!!!! WARNING: Error in applying self-calibration solutions on target scans. !!!!"
+            )
+
     #####################################
     # Imaging
     ######################################
     if do_imaging:
-        print("Start imaging .....\n")
-        ####################
-        # Imaging parameters
-        ####################
-        imagedir = workdir + "/images"
-        if os.path.exists(imagedir) == False:
-            os.makedirs(imagedir)
-        cellsize = calc_cellsize(msname, 3)
-        imsize = int(7200 / cellsize)
-        pow2 = round(np.log2(imsize / 10.0), 0)
-        imsize = int((2**pow2) * 10)
-        multiscale_scales = [
-            str(s) for s in calc_multiscale_scales(msname, 3, max_scale=5)
-        ]
-        caldir = workdir + "/caltables"
-        final_caltables = glob.glob(caldir + "/*")
-        calibrator_caltables = []
-        selfcaltables = []
-        for gtable in final_caltables:
-            if "selfcal" not in gtable:
-                calibrator_caltables.append(gtable)
-            else:
-                selfcaltables.append(gtable)
-        print("Basic calibration tables: " + ",".join(calibrator_caltables) + "\n")
-        selfcaltables_mean_chan = []
-        for selfcal_table in selfcaltables:
-            start_chan = int(
-                os.path.basename(selfcal_table).split("_selfcal")[0].split("_")[-2]
-            )
-            end_chan = int(
-                os.path.basename(selfcal_table).split("_selfcal")[0].split("_")[-1]
-            )
-            selfcaltables_mean_chan.append(int((start_chan + end_chan) / 2))
-        selfcaltables = np.array(selfcaltables)
-        selfcaltables_mean_chan = np.array(selfcaltables_mean_chan)
-        # Spectral channels
-        msmd = msmetadata()
-        msmd.open(msname)
-        total_chan = msmd.nchan(0)
-        total_bw = msmd.bandwidths(0) / 10**6  # In MHz
-        ms_freqres = msmd.chanres(0)[0] / 10**6  # In MHz
-        ms_timeres = msmd.exposuretime(scan=1)["value"]  # In second
-        msmd.close()
-        if image_freqres < ms_freqres:
-            print(
-                "Intended image spectral resolution is smaller than spectral resolution of the data. Hence, setting it to spectral resolution of the data.\n"
-            )
-            image_freqres = ms_freqres
-        if image_timeres < ms_timeres:
-            print(
-                "Intended image temporal resolution is smaller than temporal resolution of the data. Hence, setting it to temporal resolution of the data.\n"
-            )
-            image_timeres = ms_timeres
-        bad_chans = get_bad_chans(msname).split("0:")[-1]
-        bad_chans = bad_chans.split(";")
-        bad_chan_list = []
-        for i in bad_chans:
-            start_chan = int(i.split("~")[0])
-            end_chan = int(i.split("~")[-1])
-            for chan in range(start_chan, end_chan):
-                bad_chan_list.append(chan)
-        # Target scans and timeranges
-        target_scans, cal_scans, f_scans, g_scans, p_scans = get_cal_target_scans(
-            msname
+        msg = run_imaging_jobs(
+            target_mslist,
+            workdir,
+            cpu_frac=round(frac_compute_use * cpu_frac, 2),
+            mem_frac=round(frac_compute_use * mem_frac, 2),
+            minuv=minuv,
+            weight=weight,
+            robust=float(robust),
+            pol=pol,
+            freqres=image_freqres,
+            timeres=image_timeres,
+            threshold=float(clean_threshold),
+            multiscale_scales=multiscale_scales,
+            use_solar_mask=use_solar_mask,
+            savemodel=keep_backup,
+            saveres=keep_backup,
         )
-        max_chunk = 4096
-        total_cpu = psutil.cpu_count()
-        total_mem = psutil.virtual_memory().total / 1024**3
-        max_jobs = min(int(total_cpu / 4), int(total_mem / 2))
-        print("Maximum number of imaging jobs at a time: ", max_jobs)
-        os.system("rm -rf " + workdir + "/.Finished_imaging*")
-        job_count = 0
-        finished_file_count = len(glob.glob(workdir + "/.Finished_imaging*"))
-        # target_scans=[13]
-        for scan in target_scans:
-            final_imagedir = imagedir + "/scan_" + str(scan)
-            if os.path.isdir(final_imagedir) == False:
-                os.makedirs(final_imagedir)
-            msmd.open(msname)
-            times = msmd.timesforscan(int(scan))
-            msmd.close()
-            if image_timeres > 0:
-                ntime = int((times[-1] - times[0]) / image_timeres)
-            else:
-                ntime = 1
-            if image_freqres > 0:
-                nchan = int(total_bw / image_freqres)
-            else:
-                nchan = 1
-            ##################################
-            # Determining chan and time chunks
-            ##################################
-            if ntime > max_chunk:
-                ntime = max_chunk
-                nchan = 1
-            elif ntime * nchan > max_chunk:
-                nchan = int(max_chunk / ntime)
-                if nchan > max_chunk:
-                    nchan = max_chunk
-            ####################################
-            # Loop over time and frequency
-            ####################################
-            for t in range(0, len(times), ntime):
-                start_index = t
-                end_index = t + ntime
-                if end_index > len(times) - 1:
-                    end_index = len(times) - 1
-                timerange = (
-                    mjdsec_to_timestamp(times[start_index], str_format=1)
-                    + "~"
-                    + mjdsec_to_timestamp(times[end_index], str_format=1)
-                )
-                for chan in range(0, total_chan, nchan):
-                    start_chan = chan
-                    end_chan = chan + nchan
-                    if end_chan > total_chan:
-                        end_chan = total_chan
-                    good_chans = []
-                    for c in range(start_chan, end_chan):
-                        if c not in bad_chan_list:
-                            good_chans.append(c)
-                    if len(good_chans) == 0:
-                        pass
-                    else:
-                        spw = str(min(good_chans)) + "~" + str(max(good_chans))
-                        mean_chan = int((min(good_chans) + max(good_chans)) / 2)
-                        pos = np.argmin(np.abs(selfcaltables_mean_chan - mean_chan))
-                        selfcal_table = selfcaltables[pos]
-                        print(
-                            "Imaging for channel range: "
-                            + str(start_chan)
-                            + "~"
-                            + str(end_chan)
-                            + " and time range: "
-                            + timerange
-                            + ", scan: "
-                            + str(scan)
-                        )
-                        imaging_args = [
-                            "--msname " + msname,
-                            "--imsize " + str(imsize),
-                            "--cellsize " + str(cellsize),
-                            "--spw " + spw,
-                            "--timerange " + timerange,
-                            "--weight " + str(weight),
-                            "--imagedir " + final_imagedir,
-                            "--calibrator_gaintables " + ",".join(calibrator_caltables),
-                            "--selfcaltables " + selfcal_table,
-                            "--freqres " + str(image_freqres),
-                            "--timeres " + str(image_timeres),
-                            "--minuv_l 200",
-                            "--multiscale_scales " + ",".join(multiscale_scales),
-                        ]
-                        if weight == "briggs":
-                            imaging_args.append("--robust " + str(robust))
-                        ncpu = int((1 - psutil.cpu_percent()) * psutil.cpu_count())
-                        mem = psutil.virtual_memory().available / 1024**3
-                        imaging_args.append("--ncpu " + str(ncpu))
-                        imaging_args.append("--mem " + str(mem))
-                        imaging_cmd = "python3 do_imaging.py " + " ".join(imaging_args)
-                        spw_str = str(start_chan) + "_" + str(end_chan)
-                        time_str = "".join(
-                            timerange.split("~")[0]
-                            .split("/")[-1]
-                            .split(".")[0]
-                            .split(":")
-                        ) + "".join(
-                            timerange.split("~")[-1]
-                            .split("/")[-1]
-                            .split(".")[0]
-                            .split(":")
-                        )
-                        basename = (
-                            "imaging_"
-                            + os.path.basename(msname).split(".ms")[0]
-                            + "_spw_"
-                            + spw_str
-                            + "_time_"
-                            + time_str
-                            + "_scan_"
-                            + str(scan)
-                        )
-                        batch_file = create_batch_script_nonhpc(
-                            imaging_cmd, workdir, basename
-                        )
-                        print(imaging_cmd + "\n")
-                        os.system("bash " + batch_file)
-                        job_count += 1
-                        count = 0
-                        print("Number of jobs spawned: ", job_count)
-                        while True:
-                            if job_count >= max_jobs:
-                                count += 1
-                                cur_finished_file_count = len(
-                                    glob.glob(workdir + "/.Finished_imaging*")
-                                )
-                                available_jobs = (
-                                    cur_finished_file_count - finished_file_count
-                                )
-                                # print (available_jobs)
-                                if available_jobs > 0:
-                                    job_count = 0
-                                    finished_file_count = cur_finished_file_count
-                                    while True:
-                                        free_cpu = (
-                                            (100 - psutil.cpu_percent(interval=30))
-                                            * psutil.cpu_count()
-                                            / 100.0
-                                        )
-                                        free_mem = (
-                                            psutil.virtual_memory().available / 1024**3
-                                        )
-                                        max_jobs = min(
-                                            int(free_cpu / 4), int(free_mem / 2)
-                                        )
-                                        if max_jobs > 0:  # used_cpu<80 and used_mem<80:
-                                            """total_cpu=psutil.cpu_count()*used_cpu/100.0)
-                                            total_mem=psutil.virtual_memory().total/1024**3
-                                            max_jobs=min(int(total_cpu/4),int(total_mem/5))
-                                            """
-                                            break
-                                        elif count == 0:
-                                            print(
-                                                "Waiting for free CPUs and memory...\n"
-                                            )
-                                else:
-                                    if count == 0:
-                                        print(
-                                            "Waiting for at-least one job to finish...\n"
-                                        )
-                                    time.sleep(30)
-                            else:
-                                break
+        if msg != 0:
+            print(
+                "!!!! WARNING: Final imaging on all measurement sets is not successful. Check the image directory. !!!!"
+            )
+            print("Total time taken: {round(time.time()-start_time,2)}s.\n")
+            return 1
+
+    print(
+        "Calibration and imaging pipeline is successfully run on measurement set : {msname}\n"
+    )
+    print("Total time taken: {round(time.time()-start_time,2)}s.\n")
+    return 0

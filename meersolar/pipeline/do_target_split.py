@@ -85,7 +85,7 @@ def split_scan(
         datacolumn=datacolumn,
     )
     clearcal(vis=outputvis, addmodel=True)
-    initweights(vis=msname,wtmode='ones',dowtsp=True)
+    initweights(vis=msname, wtmode="ones", dowtsp=True)
     return outputvis
 
 
@@ -282,7 +282,7 @@ def split_target_scans(
         task = delayed(correct_solar_sidereal_motion)(dry_run=True)
         mem_limit = run_limited_memory_task(task)
         #######################
-        splited_ms_list_phaserotated=[]
+        splited_ms_list_phaserotated = []
         dask_client, dask_cluster, n_jobs, n_threads = get_dask_client(
             len(splited_ms_list),
             cpu_frac,
@@ -292,15 +292,17 @@ def split_target_scans(
         tasks = []
         for ms in splited_ms_list:
             tasks.append(delayed(correct_solar_sidereal_motion)(ms))
-        results=compute(*tasks)
+        results = compute(*tasks)
         dask_client.close()
         dask_cluster.close()
         for i in range(len(results)):
-            msg=results[i]
-            if msg==0:
+            msg = results[i]
+            if msg == 0:
                 splited_ms_list_phaserotated.append(splited_ms_list[i])
-        if len(splited_ms_list_phaserotated)==0:
-            print ("Sidereal motion correction is not successful for any measurement set.")
+        if len(splited_ms_list_phaserotated) == 0:
+            print(
+                "Sidereal motion correction is not successful for any measurement set."
+            )
             print("##################")
             print("Spliting of target scans are done successfully.")
             print("Total time taken : ", time.time() - start_time)

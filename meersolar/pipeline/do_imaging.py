@@ -1,4 +1,4 @@
-import os, glob, resource, traceback, psutil
+import os, glob, resource, traceback, psutil, time
 from astropy.io import fits
 from casatools import msmetadata
 from meersolar.pipeline.basic_func import *
@@ -141,10 +141,10 @@ def perform_imaging(
         os.system("rm -rf " + prefix + "*")
         if weight == "briggs":
             weight += " " + str(robust)
-        if threshold<1:
-            threshold+=1
-        elif threshold==1:
-            threshold+=0.1
+        if threshold < 1:
+            threshold += 1
+        elif threshold == 1:
+            threshold += 0.1
         wsclean_args = [
             "-quiet",
             "-scale " + str(cellsize) + "asec",
@@ -159,7 +159,7 @@ def perform_imaging(
             "-gain 0.1",
             "-minuv-l " + str(minuv),
             "-j " + str(ncpu),
-            "-abs-mem " + str(round(mem,2)),
+            "-abs-mem " + str(round(mem, 2)),
             "-parallel-reordering " + str(ncpu),
             "-parallel-gridding " + str(ngrid),
             "-auto-threshold 1 -auto-mask " + str(threshold),
@@ -197,7 +197,7 @@ def perform_imaging(
         # Creating and using a 40arcmin diameter solar mask
         ################################################
         if use_solar_mask:
-            fits_mask = prefix+ "_solar-mask.fits"
+            fits_mask = prefix + "_solar-mask.fits"
             if os.path.exists(fits_mask) == False:
                 mask_radius = 25
                 print(
@@ -208,7 +208,7 @@ def perform_imaging(
                 )
             if fits_mask != None and os.path.exists(fits_mask):
                 wsclean_args.append("-fits-mask " + fits_mask)
-                
+
         ######################################
         # Resetting maximum file limit
         ######################################
@@ -221,7 +221,7 @@ def perform_imaging(
         # Running imaging
         ######################################
         wsclean_cmd = "wsclean " + " ".join(wsclean_args) + " " + msname
-        print (f"{os.path.basename(msname)} -- WSClean command: {wsclean_cmd}\n")
+        print(f"{os.path.basename(msname)} -- WSClean command: {wsclean_cmd}\n")
         msg = run_wsclean(wsclean_cmd, "meerwsclean", verbose=False)
         if msg != 0:
             gc.collect()
@@ -335,12 +335,12 @@ def perform_imaging(
                     final_res_list.append(renamed_res)
                 final_list.append(final_res_list)
             if use_solar_mask and os.path.exists(fits_mask):
-                os.system("rm -rf "+fits_mask)
+                os.system("rm -rf " + fits_mask)
             print(f"{os.path.basename(msname)} -- Imaging is successfully done.\n")
             return 0, final_list
         else:
             if use_solar_mask and os.path.exists(fits_mask):
-                os.system("rm -rf "+fits_mask)
+                os.system("rm -rf " + fits_mask)
             print(f"{os.path.basename(msname)} -- No image is made.\n")
             return 1, []
     except Exception as e:
@@ -404,15 +404,16 @@ def run_all_imaging(
     int
         Success message
     """
+    start_time = time.time()
     try:
         if len(mslist) == 0:
             print("Provide valid measurement set list.")
             return 1
-        if freqres==-1 and timeres==-1:
+        if freqres == -1 and timeres == -1:
             imagedir = workdir + "/imagedir_f_all_t_all"
-        elif freqres!=-1 and timeres==-1:  
+        elif freqres != -1 and timeres == -1:
             imagedir = workdir + f"/imagedir_f_{freqres}_t_all"
-        elif freqres==-1 and timeres!=-1:
+        elif freqres == -1 and timeres != -1:
             imagedir = workdir + f"/imagedir_f_all_t_{timeres}"
         else:
             imagedir = workdir + f"/imagedir_f_{freqres}_t_{timeres}"
@@ -469,7 +470,7 @@ def run_all_imaging(
             imsize = int(fov / cellsize)
             pow2 = round(np.log2(imsize / 10.0), 0)
             imsize = int((2**pow2) * 10)
-            if len(multiscale_scales)==0:
+            if len(multiscale_scales) == 0:
                 multiscale_scales = calc_multiscale_scales(ms, 5)
             multiscale_scales = [str(i) for i in multiscale_scales]
             tasks.append(
@@ -491,7 +492,7 @@ def run_all_imaging(
                     savemodel=savemodel,
                     saveres=saveres,
                     ncpu=n_threads,
-                    mem=round(memory_limit,2),
+                    mem=round(memory_limit, 2),
                 )
             )
         results = compute(*tasks)
@@ -512,9 +513,11 @@ def run_all_imaging(
             f"Imaging successfully done for: {len(all_imaged_ms_list)} measurement sets."
         )
         print(f"Total images made: {len(all_image_list)}.")
+        print(f"Total time taken: {round(time.time()-start_time,2)}s")
         return 0
     except Exception as e:
         traceback.print_exc()
+        print(f"Total time taken: {round(time.time()-start_time,2)}s")
         return 1
 
 
@@ -638,10 +641,10 @@ def main():
         if len(mslist) == 0:
             print("Please provide correct measurement set list.")
             return 1
-        if options.multiscale_scales!="":
-            multiscale_scales=options.multiscale_scales.split(",")
+        if options.multiscale_scales != "":
+            multiscale_scales = options.multiscale_scales.split(",")
         else:
-            multiscale_scales=[]
+            multiscale_scales = []
         msg = run_all_imaging(
             mslist=mslist,
             workdir=options.workdir,
