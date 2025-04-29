@@ -774,7 +774,7 @@ def master_control(
     solar_data=True,
     do_reset_weight_flag=True,
     do_cal_partition=True,
-    do_calibrator_flag=True,
+    do_cal_flag=True,
     do_import_model=True,
     do_basic_cal=True,
     do_noise_cal=True,
@@ -818,7 +818,7 @@ def master_control(
         Reset weights and flags of the input ms
     do_cal_partition : bool, optional
         Make calibrator multi-MS
-    do_calibrator_flag : bool, optional
+    do_cal_flag : bool, optional
         Perform flagging on calibrator
     do_import_model : bool, optional
         Import model visibilities of flux and polarization calibrators
@@ -974,7 +974,7 @@ def master_control(
     split_use_frac = 1.0
     if do_target_split:
         if (
-            do_calibrator_flag == False
+            do_cal_flag == False
             and do_import_model == False
             and do_basic_cal == False
         ) or do_noise_cal == False:
@@ -999,7 +999,7 @@ def master_control(
     ##################################
     # Run flagging jobs on calibrators
     ##################################
-    if do_calibrator_flag:
+    if do_cal_flag:
         msg = run_flag(
             calibrator_msname,
             workdir,
