@@ -1,79 +1,14 @@
-import os, glob, gc, time
+import os, glob, gc, time, psutil
 from optparse import OptionParser
 from meersolar.solstar.aia_download_n_calib import download_aia_data
+from meersolar.solstar.make_ms import *
+from meersolar.pipeline.basic_func import get_datadir
+from casatasks import casalog
 
+logfile = casalog.logfile()
+os.system("rm -rf " + logfile)
 
-def get_observatory_info(observatory_name):
-    """
-    Parameters
-    ----------
-    observatory_name : str
-        Name of the observatory
-    Returns
-    -------
-    float
-        Observatory latitude
-    float
-        Observatory longitude
-    float
-        Observatory altitude
-    """
-    observatories = {
-        "MeerKAT": {
-            "latitude": -30.713,
-            "longitude": 21.443,
-            "altitude": 1038,
-        },  # In meters
-        "uGMRT": {
-            "latitude": 19.096,
-            "longitude": 74.050,
-            "altitude": 650,
-        },  # In meters
-        "eOVSA": {
-            "latitude": 37.233,
-            "longitude": -118.283,
-            "altitude": 1222,
-        },  # In meters
-        "ASKAP": {
-            "latitude": -26.696,
-            "longitude": 116.630,
-            "altitude": 377,
-        },  # In meters
-        "FASR": {
-            "latitude": 38.430,
-            "longitude": -79.839,
-            "altitude": 820,
-        },  # Approximate value
-        "SKAO-MID": {
-            "latitude": -30.721,
-            "longitude": 21.411,
-            "altitude": 1060,
-        },  # Approximate location
-        "SKAO-LOW": {
-            "latitude": -26.7033,
-            "longitude": 116.6319,
-            "altitude": 377,
-        },  # Approximate location
-        "JVLA": {
-            "latitude": 34.0784,
-            "longitude": -107.6184,
-            "altitude": 2124,
-        },  # In meters
-    }
-    keys = list(observatories.keys())
-    if observatory_name not in keys:
-        print("Observatory: " + observatory_name + " is not in the list.\n")
-        print(
-            "Available observatories: MeerKAT, uGMRT, eOVSA, ASKAP, FASR, SKAO-MID, JVLA.\n"
-        )
-        return
-    else:
-        pos = observatories[observatory_name]
-        lat = pos["latitude"]
-        lon = pos["longitude"]
-        alt = pos["altitude"]
-        return lat, lon, alt
-
+datadir=get_datadir()
 
 def main():
     start_time = time.time()
@@ -124,7 +59,7 @@ def main():
     parser.add_option(
         "--spatial_res",
         dest="resolution",
-        default=5.0,
+        default=2.0,
         help="Spatial resolution in arcseconds",
         metavar="Float",
     )
@@ -157,25 +92,67 @@ def main():
         metavar="Float",
     )
     parser.add_option(
-        "--ncpu",
-        dest="ncpu",
-        default=-1,
-        help="Number of CPU threads to use",
-        metavar="Integer",
+        "--cpu_frac",
+        dest="cpu_frac",
+        default=0.8,
+        help="CPU fraction to use",
+        metavar="Float",
+    )
+    parser.add_option(
+        "--mem_frac",
+        dest="mem_frac",
+        default=0.8,
+        help="Memory fraction to use",
+        metavar="Float",
     )
     parser.add_option(
         "--output_product",
         dest="output_unit",
-        default="TB",
+        default="flux",
         help="Output product, TB: for brightness temperature map, flux: for flux density map",
         metavar="String",
     )
     parser.add_option(
         "--make_cube",
         dest="make_cube",
-        default=True,
+        default=False,
         help="Make spectral cube or keep spectral slices seperate",
         metavar="Boolean",
+    )
+    parser.add_option(
+        "--make_ms",
+        dest="make_ms",
+        default=True,
+        help="Make simulated measurement set",
+        metavar="Boolean",
+    )
+    parser.add_option(
+        "--simulated_ms",
+        dest="simulated_ms",
+        default="",
+        help="Simulated measurement set name",
+        metavar="String",
+    )
+    parser.add_option(
+        "--integration_time",
+        dest="integration_time",
+        default=2.0,
+        help="Integration time in seconds",
+        metavar="Float",
+    )
+    parser.add_option(
+        "--duration",
+        dest="duration",
+        default=60.0,
+        help="Duration in seconds",
+        metavar="Float",
+    )
+    parser.add_option(
+        "--pols",
+        dest="pols",
+        default="XX YY",
+        help="Stokes in measurement set",
+        metavar="Float",
     )
     (options, args) = parser.parse_args()
 
@@ -195,6 +172,22 @@ def main():
         print("Please provide a valid frequency range and resolution in MHz.")
         return 1
     pwd = os.getcwd()
+    total_cpus = psutil.cpu_count(logical=True)
+    count = 0
+    while True:
+        available_cpu_pct = 100 - psutil.cpu_percent(interval=1)  # Percent CPUs currently free
+        available_cpus = int(total_cpus * available_cpu_pct / 100.0)  # Number of free CPU cores
+        usable_cpus = max(1, int(total_cpus * float(options.cpu_frac)))  # Target number of CPU cores we want available based on cpu_frac
+
+        if available_cpus >= usable_cpus:
+            # Enough free CPUs, exit loop
+            break
+        else:
+            if count == 0:
+                print("Waiting for available free CPUs...")
+            time.sleep(5)  # Wait a bit and retry
+        count += 1
+        
     ##########################################
     # Making workding directory if not present
     ##########################################
@@ -226,7 +219,7 @@ def main():
         print("############################")
         return 1
     aia_304 = glob.glob(level15_dir + "/*304*")
-
+    dt_string="".join(options.obs_date.split("-"))+"_"+"".join(options.obs_time.split(":"))
     ############################################
     # Producing DEM Map
     ############################################
@@ -237,11 +230,14 @@ def main():
         + str(options.resolution)
         + " --outfile "
         + str(options.workdir)
-        + "/DEM.h5 --ncpu "
-        + str(options.ncpu)
+        + f"/DEM_{dt_string}.h5 --ncpu "
+        + str(usable_cpus)
     )
     print(dem_cmd + "\n")
-    os.system(dem_cmd)
+    msg=os.system(dem_cmd)
+    if msg!=0:
+        print ("Error in calculating DEM.")
+        return 1
     print("#################\n")
 
     ############################################
@@ -250,13 +246,13 @@ def main():
     coronal_tb_cmd = (
         "simulate_coronal_tb --DEM_file "
         + str(options.workdir)
-        + "/DEM.h5 --start_freq "
+        + f"/DEM_{dt_string}.h5 --start_freq "
         + str(options.start_freq)
         + " --end_freq "
         + str(options.end_freq)
         + " --outfile "
         + str(options.workdir)
-        + "/Coronal.h5"
+        + f"/Coronal_{dt_string}.h5"
     )
     print(coronal_tb_cmd + "\n")
     os.system(coronal_tb_cmd)
@@ -272,9 +268,9 @@ def main():
             + aia_304
             + " --DEM_file "
             + str(options.workdir)
-            + "/DEM.h5 --outfile "
+            + f"/DEM_{dt_string}.h5 --outfile "
             + str(options.workdir)
-            + "/Chromo.h5"
+            + f"/Chromo_{dt_string}.h5"
         )
         print(chromo_tb_cmd + "\n")
         os.system(chromo_tb_cmd)
@@ -289,11 +285,11 @@ def main():
     total_tb_cmd = (
         "get_total_tb --coronal_tbfile "
         + str(options.workdir)
-        + "/Coronal.h5 --chromo_tbfile "
+        + f"/Coronal_{dt_string}.h5 --chromo_tbfile "
         + str(options.workdir)
-        + "/Chromo.h5 --outfile "
+        + f"/Chromo_{dt_string}.h5 --outfile "
         + str(options.workdir)
-        + "/TotalTB.h5"
+        + f"/TotalTB_{dt_string}.h5"
     )
     print(total_tb_cmd + "\n")
     os.system(total_tb_cmd)
@@ -309,11 +305,23 @@ def main():
         pos = get_observatory_info(options.observatory_name)
         if pos != None:
             obslat, obslon, obsalt = pos
-
+    make_cube=eval(str(options.make_cube))
+    output_unit=options.output_unit
+    if eval(str(options.make_ms)):
+        imagetype="casa"
+        if make_cube:
+            print ("Changing to not making spectral cube because simulated measurement set is requested.")
+            make_cube=False
+        if output_unit=="TB":
+            print ("Changing to flux instead of brightness temperature because simulated measurement set is requested.")
+            output_unit="flux"
+    else:
+        imagetype="fits"
+            
     spectral_cube_cmd = (
         "simulate_solar_spectral_cube --total_tb_file "
         + str(options.workdir)
-        + "/TotalTB.h5 --obs_time "
+        + f"/TotalTB_{dt_string}.h5 --obs_time "
         + str(options.obs_date)
         + "T"
         + str(options.obs_time)
@@ -330,24 +338,68 @@ def main():
         + " --obs_alt "
         + str(obsalt)
         + " --output_product "
-        + str(options.output_unit)
+        + str(output_unit)
         + " --make_cube "
-        + str(options.make_cube)
+        + str(make_cube)
+        + " --cpu_frac "
+        + str(options.cpu_frac)
+        + " --mem_frac "
+        + str(options.mem_frac)
         + " --output_prefix "
         + str(options.workdir)
-        + "/spectral"
+        + "/spectral --imagetype "
+        + str(imagetype)
     )
     print(spectral_cube_cmd + "\n")
     os.system(spectral_cube_cmd)
     print("#################\n")
     gc.collect()
+    
+    ####################################
+    # Making simulated ms
+    ####################################
+    config_files=glob.glob(datadir+"/*.config")
+    telescope_name=options.observatory_name.lower()
+    config_file=""
+    for c in config_files:
+        if telescope_name in c:
+            config_file=c
+            break
+    if config_file=="":
+        print (f"No array configuration file is present for : {telescope_name}.") 
+        print ("Could not make the measurement set.")
+    else:
+        image_cubes=glob.glob(str(options.workdir)+ "/spectral*.image")
+        if options.simulated_ms=="":
+            simulated_ms=options.workdir+f"/simulated_{dt_string}.ms"
+        else:
+            simulated_ms=os.path.abspath(options.simulated_ms)
+        msg, simulated_ms = generate_ms(
+            image_cubes,
+            config_file=config_file,
+            msname=simulated_ms,
+            telescope_name=telescope_name,
+            reftime=options.obs_date+"T"+options.obs_time,
+            integration_time=float(options.integration_time),
+            duration=float(options.duration),
+            start_freq=float(options.start_freq),
+            end_freq=float(options.end_freq),
+            freqres=float(options.freqres),
+            pols=options.pols,
+        )
+        if msg==0:
+            print (f"Simulated measurement set: {simulated_ms}")
+        else:
+            print ("Measurement set simulation is not successful.")
+            end_time = time.time()
+            print("Total run time: " + str(round(end_time - start_time, 1)) + "s\n")
+            return 1
     end_time = time.time()
     print("Total run time: " + str(round(end_time - start_time, 1)) + "s\n")
     return 0
     
 if __name__ == "__main__":
     result = main()
-    os.system("rm -rf casa*log")
     if result > 0:
         result = 1
     print("\n###################\nSolar image simulation is done.\n###################\n")

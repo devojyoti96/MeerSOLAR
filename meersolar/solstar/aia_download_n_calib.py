@@ -1,5 +1,6 @@
 import astropy.units as u, os, glob, time, traceback
 from sunpy.net import Fido, attrs as a
+from sunpy.net.jsoc import JSOCClient
 from sunpy.map import Map
 from aiapy.calibrate import *
 from aiapy.calibrate.util import *
@@ -36,7 +37,8 @@ def download_aia_data(
     str
         Output directory name for AIA level 1.5 images
     """
-    # Step 1: Define the time range and wavelength for 2023-12-04
+    # Step 1: Define the time range and wavelength
+    client = JSOCClient()
     time_range = a.Time(
         obs_date + "T" + obs_time,
         obs_date + "T" + ":".join(obs_time.split(":")[:-1]) + ":15",
@@ -65,17 +67,20 @@ def download_aia_data(
         wavelength_attrs |= a.Wavelength(w * u.angstrom)
     # for w in wavelengths:
     if use_alt_timerange == False:
-        search_result = Fido.search(time_range, a.Instrument.aia, wavelength_attrs)
+        search_result = client.search(
+                time_range,
+                a.jsoc.Series("aia.lev1_euv_12s"),
+                a.jsoc.Segment("image"),
+                wavelength_attrs,
+                a.jsoc.Notify("devojyoti96@gmail.com")  # Replace with your registered email
+            )
         # Check if results are found
         if len(search_result) == 0:
             print("No data found for the specified time range and wavelength.")
         else:
             # Step 3: Download the data
-            config.set("downloads", "max_conn", len(search_result))
             try:
-                downloaded_files = Fido.fetch(
-                    search_result, path=str(level1_dir / "{file}"), progress=True
-                )
+                downloaded_files = client.fetch(search_result, path=str(level1_dir / "{file}"), progress=True, max_conn=len(search_result))
             except Exception as e:
                 traceback.print_exc()
                 return 1, None
@@ -95,7 +100,13 @@ def download_aia_data(
         time.sleep(1)
     if use_alt_timerange == True:
         time_range = alt_time_range
-        search_result = Fido.search(time_range, a.Instrument.aia, wavelength_attrs)
+        search_result = client.search(
+                time_range,
+                a.jsoc.Series("aia.lev1_euv_12s"),
+                a.jsoc.Segment("image"),
+                wavelength_attrs,
+                a.jsoc.Notify("devojyoti96@gmail.com")  # Replace with your registered email
+            )
         # Check if results are found
         if len(search_result) == 0:
             print("############################")
@@ -106,10 +117,9 @@ def download_aia_data(
             return 1, None
         else:
             # Step 3: Download the data
-            config.set("downloads", "max_conn", len(search_result))
             try:
                 downloaded_files = Fido.fetch(
-                    search_result, path=str(level1_dir / "{file}"), progress=True
+                    search_result, path=str(level1_dir / "{file}"), progress=True, max_conn=len(search_result)
                 )
             except Exception as e:
                 traceback.print_exc()
@@ -242,3 +252,9 @@ def main():
         print("Error in downloading all channels.")
         gc.collect()
         return 1
+          
+if __name__ == "__main__":
+    result = main()
+    if result > 0:
+        result = 1
+    os._exit(result)

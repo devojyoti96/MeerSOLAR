@@ -1,4 +1,4 @@
-import os, time, psutil, numpy as np, glob, traceback, gc, copy
+import os, time, psutil, numpy as np, glob, traceback, gc, copy, tempfile
 from meersolar.pipeline.basic_func import *
 from meersolar.pipeline.flagging import single_ms_flag
 from meersolar.pipeline.import_model import import_fluxcal_models
@@ -6,7 +6,6 @@ from casatools import table, ms as casamstool, msmetadata
 from optparse import OptionParser
 from dask import delayed, compute, config
 from casatasks import casalog
-
 
 logfile = casalog.logfile()
 os.system("rm -rf " + logfile)
@@ -77,9 +76,10 @@ def split_autocorr(
     mem_limit = run_limited_memory_task(task)
     dask_client, dask_cluster, n_jobs, n_threads = get_dask_client(
         len(scan_list),
-        cpu_frac,
-        mem_frac,
-        min_mem_per_job=mem_limit / 0.8,
+        dask_dir=workdir,
+        cpu_frac=cpu_frac,
+        mem_frac=mem_frac,
+        min_mem_per_job=mem_limit / 0.6,
     )
     tasks = []
     for scan in scan_list:
@@ -117,8 +117,6 @@ def split_autocorr(
         autocorr_mslist = []
     dask_client.close()
     dask_cluster.close()
-    os.system("rm -rf casa*log")
-
     return autocorr_mslist
 
 
@@ -146,17 +144,6 @@ def get_on_off_power(msname="", ant_list=[], on_cal="", off_cal="", dry_run=Fals
         process = psutil.Process(os.getpid())
         mem = round(process.memory_info().rss / 1024**3, 2)  # in GB
         return mem
-    # Load caltables
-    tb = table()
-    tb.open(on_cal)
-    gain_on = np.abs(tb.getcol("CPARAM"))
-    gain_on[tb.getcol("FLAG")] = np.nan
-    tb.close()
-    tb.open(off_cal)
-    gain_off = np.abs(tb.getcol("CPARAM"))
-    gain_off[tb.getcol("FLAG")] = np.nan
-    tb.close()
-    del tb
     ######################
     mstool = casamstool()
     mstool.open(msname)
@@ -165,36 +152,44 @@ def get_on_off_power(msname="", ant_list=[], on_cal="", off_cal="", dry_run=Fals
     data_dict = mstool.getdata(["DATA", "FLAG"], ifraxis=True)
     mstool.close()
     del mstool
-
     data = np.abs(data_dict["data"])
     data[data_dict["flag"]] = np.nan
     del data_dict
     n_tstamps = min(data[..., ::2].shape[-1], data[..., 1::2].shape[-1])
     antslice = slice(min(ant_list), max(ant_list) + 1)
     if data[..., ::2][0, 0, 0, 0] > data[..., 1::2][0, 0, 0, 0]:
-        data_on = data[..., ::2][..., :n_tstamps]
-        data_off = data[..., 1::2][..., :n_tstamps]
+        data_on = copy.deepcopy(data[..., ::2][..., :n_tstamps])
+        data_off = copy.deepcopy(data[..., 1::2][..., :n_tstamps])
     else:
-        data_on = data[..., 1::2][..., :n_tstamps]
-        data_off = data[..., ::2][..., :n_tstamps]
+        data_on = copy.deepcopy(data[..., 1::2][..., :n_tstamps])
+        data_off = copy.deepcopy(data[..., ::2][..., :n_tstamps])
+    del data
+    # Load caltables
+    tb = table()
+    tb.open(on_cal)
+    gain_on_slice = np.abs(tb.getcol("CPARAM"))[..., antslice]
+    gain_on_slice[tb.getcol("FLAG")[..., antslice]] = np.nan
+    tb.close()
+    tb.open(off_cal)
+    gain_off_slice = np.abs(tb.getcol("CPARAM"))[..., antslice]
+    gain_off_slice[tb.getcol("FLAG")[..., antslice]] = np.nan
+    tb.close()
+    del tb
     # Gain correction
-    gain_on_slice = gain_on[..., antslice]
-    gain_off_slice = gain_off[..., antslice]
-    del gain_on, gain_off
-
+    #gain_on_slice = gain_on[..., antslice]
+    #gain_off_slice = gain_off[..., antslice]
+    #del gain_on, gain_off
     gain_on_exp = np.repeat(gain_on_slice[..., np.newaxis], data_on.shape[-1], axis=-1)
     gain_off_exp = np.repeat(
         gain_off_slice[..., np.newaxis], data_off.shape[-1], axis=-1
     )
     del gain_on_slice, gain_off_slice
-
     data_on /= gain_on_exp**2
     data_off /= gain_off_exp**2
     avg_on = np.nanmean(data_on, axis=2)
     avg_off = np.nanmean(data_off, axis=2)
     # Cleanup per chunk
-    del data, data_on, data_off, gain_on_exp, gain_off_exp
-
+    del data_on, data_off, gain_on_exp, gain_off_exp
     return avg_on, avg_off
 
 
@@ -247,14 +242,19 @@ def get_power_diff(
         nbaselines += nant
     ntime = int(nrow / nbaselines)
     msmd.close()
+    #########################################
     # Estimate per-antenna memory requirement
-    per_ant_memory = (
-        npol * nchan * ntime * 16 * 5
-    ) / 1024.0**3  # 5 objects: data, data_on, data_off, gain_on_exp, gain_off_exp
+    #########################################
+    # 2 times is added because, data, data_on (half of data), data_off (half of data) in get_on_off_power()
+    per_ant_data_memory = (npol * nchan * ntime * 16 * 2) / 1024.0**3  
     per_ant_flag_memory = (npol * nchan * ntime) / 1024.0**3  # One flag object
-    memory_limit -= 2 * per_ant_memory / 5.0  # 2 objects are in memory always
-    nant_per_chunk = max(2, int(memory_limit / (per_ant_memory + per_ant_flag_memory)))
-    nant_per_chunk = min(int(nant_per_chunk), nant)
+    per_ant_gain_memory = (npol * nchan * ntime * 16) / 1024.0**3  # gain_on_exp and gain_off_exp in get_on_off_power()
+    per_ant_data_memory_alltime=(npol * nchan * 16) / 1024.0**3  # avg_on, avg_off
+    per_ant_memory=per_ant_data_memory+per_ant_flag_memory+per_ant_gain_memory+per_ant_data_memory_alltime # Per antenna total memory
+    ########################################
+    # Determining chunk size
+    ########################################
+    nant_per_chunk = min(nant, max(2, int(memory_limit / per_ant_memory)))
     ant_blocks = [
         list(range(i, min(i + nant_per_chunk, nant)))
         for i in range(0, nant, nant_per_chunk)
@@ -262,8 +262,8 @@ def get_power_diff(
     on_data_avg = None
     off_data_avg = None
     for i, ant_block in enumerate(ant_blocks):
+        print (f"{os.path.basename(msname)} -- Antenna block: {ant_block}")
         avg_on, avg_off = get_on_off_power(msname, ant_block, on_cal, off_cal)
-
         if i == 0:
             on_data_avg = avg_on
             off_data_avg = avg_off
@@ -272,7 +272,6 @@ def get_power_diff(
             off_data_avg = (off_data_avg + avg_off) / 2.0
     diff = np.nanmean((on_data_avg - off_data_avg), axis=-1)
     del on_data_avg, off_data_avg
-
     return diff
 
 
@@ -360,9 +359,10 @@ def estimate_att(
         mem_limit = run_limited_memory_task(task)
         dask_client, dask_cluster, n_jobs, n_threads = get_dask_client(
             len(autocorr_mslist),
-            cpu_frac,
-            mem_frac,
-            min_mem_per_job=mem_limit / 0.8,
+            dask_dir=workdir,
+            cpu_frac=cpu_frac,
+            mem_frac=mem_frac,
+            min_mem_per_job=mem_limit / 0.6,
         )
         tasks = []
         for autocorr_msname in autocorr_mslist:
@@ -381,23 +381,19 @@ def estimate_att(
         ##########################################
         # Flagging on corrected data
         ##########################################
-        print("Flagging auto-correlation measurement sets ...")
         fluxcal_fields, fluxcal_scans = get_fluxcals(msname)
         badspw = get_bad_chans(msname)
         bad_ants, bad_ants_str = get_bad_ants(msname, fieldnames=fluxcal_fields)
+        print("Flagging auto-correlation measurement sets ...")
         task = delayed(single_ms_flag)(dry_run=True)
         mem_limit = run_limited_memory_task(task)
         dask_client, dask_cluster, n_jobs, n_threads = get_dask_client(
             len(autocorr_mslist),
-            cpu_frac,
-            mem_frac,
-            min_mem_per_job=mem_limit / 0.8,
+            dask_dir=workdir,
+            cpu_frac=cpu_frac,
+            mem_frac=mem_frac,
+            min_mem_per_job=mem_limit / 0.6,
         )
-        workers = list(dask_client.scheduler_info()["workers"].items())
-        addr, stats = workers[0]
-        memory_limit = stats["memory_limit"] / 1024**3
-        target_frac = config.get("distributed.worker.memory.target")
-        memory_limit *= target_frac
         tasks = []
         for autocorr_msname in autocorr_mslist:
             tasks.append(
@@ -411,12 +407,13 @@ def estimate_att(
                     flagdimension="freqtime",
                     flag_autocorr=False,
                     n_threads=n_threads,
-                    memory_limit=memory_limit,
+                    memory_limit=mem_limit,
                 )
             )
         results = compute(*tasks)
         dask_client.close()
         dask_cluster.close()
+
         ###########################################
         # Calculating fluxcal power levels
         ###########################################
@@ -435,6 +432,7 @@ def estimate_att(
             memory_limit=memory_limit,
         )
         att_level = {}
+
         ########################################
         # Calculating per scan level
         ########################################
@@ -442,13 +440,12 @@ def estimate_att(
         task = delayed(get_power_diff)(dry_run=True)
         mem_limit = run_limited_memory_task(task)
         dask_client, dask_cluster, n_jobs, n_threads = get_dask_client(
-            len(valid_target_scans), cpu_frac, mem_frac, min_mem_per_job=mem_limit / 0.8
+            len(valid_target_scans),
+            dask_dir=workdir,
+            cpu_frac=cpu_frac,
+            mem_frac=mem_frac,
+            min_mem_per_job=mem_limit / 0.6,
         )
-        workers = list(dask_client.scheduler_info()["workers"].items())
-        addr, stats = workers[0]
-        memory_limit = stats["memory_limit"] / 1024**3
-        target_frac = config.get("distributed.worker.memory.target")
-        memory_limit *= target_frac
         all_scaling_files = []
         filtered_scans = []
         tasks = []
@@ -462,7 +459,7 @@ def estimate_att(
                     noise_off_caltable,
                     noise_off_caltable,
                     n_threads=n_threads,
-                    memory_limit=memory_limit,
+                    memory_limit=mem_limit,
                 )
             )
             filtered_scans.append(scan)
@@ -485,13 +482,9 @@ def estimate_att(
             )
             np.save(filename, np.array([scan, freqs, att_value], dtype="object"))
             all_scaling_files.append(filename + ".npy")
-        os.system("rm -rf casa*log")
-
         return 0, att_level, all_scaling_files
     except Exception as e:
         traceback.print_exc()
-        os.system("rm -rf casa*log")
-
         return 1, None, None
 
 
@@ -699,8 +692,6 @@ def run_noise_cal(
         print("##################")
         print("Total time taken : ", time.time() - start_time)
         print("##################\n")
-        os.system("rm -rf casa*log")
-
         return msg, att_level, all_scaling_files
     except Exception as e:
         traceback.print_exc()
@@ -718,8 +709,6 @@ def run_noise_cal(
         print("##################")
         print("Total time taken : ", time.time() - start_time)
         print("##################\n")
-        os.system("rm -rf casa*log")
-
         return 1, None, None
 
 

@@ -9,10 +9,6 @@ from casatasks import casalog
 logfile = casalog.logfile()
 os.system("rm -rf " + logfile)
 
-"""
-This code is written by Devojyoti Kansabanik, Apr 27, 2025
-"""
-
 
 def rename_image(imagename, imagedir="", pol=""):
     """
@@ -166,9 +162,25 @@ def perform_imaging(
             "-no-update-model-required",
             "-no-negative",
         ]
-        if imsize > (2 * 1024):
-            wsclean_args.append("-parallel-deconvolution 1024")
-            wsclean_args.append("-deconvolution-threads " + str(ncpu))
+        
+        ############################################
+        # Parallel deconvolution within memory limit
+        ############################################
+        subimsize=1024
+        if imsize > (2 * subimsize):
+            subimage_memory=8*(subimsize**2)/(1024**3)
+            n_subimage=int(imsize/subimsize)
+            if ncpu*subimage_memory>mem:
+                if n_subimage*subimage_memory>mem:
+                    threads_to_use=int(mem/subimage_memory)
+                    subimsize=int(imsize/threads_to_use)
+                else:
+                    threads_to_use=n_subimage
+            else:
+                threads_to_use=ncpu
+            if threads_to_use>1 and subimsize>1024: 
+                wsclean_args.append("-parallel-deconvolution 1024")
+                wsclean_args.append("-deconvolution-threads " + str(threads_to_use))
 
         ######################################
         # Multiscale configuration
@@ -199,7 +211,7 @@ def perform_imaging(
         if use_solar_mask:
             fits_mask = prefix + "_solar-mask.fits"
             if os.path.exists(fits_mask) == False:
-                mask_radius = 25
+                mask_radius = 20
                 print(
                     f"{os.path.basename(msname)} -- Creating solar mask of size: {mask_radius} arcmin.\n"
                 )
@@ -405,6 +417,7 @@ def run_all_imaging(
         Success message
     """
     start_time = time.time()
+    mslist=sorted(mslist)
     try:
         if len(mslist) == 0:
             print("Provide valid measurement set list.")
@@ -419,6 +432,20 @@ def run_all_imaging(
             imagedir = workdir + f"/imagedir_f_{freqres}_t_{timeres}"
         if os.path.exists(imagedir) == False:
             os.makedirs(imagedir)
+            
+        ####################################
+        # Filtering any corrupted ms
+        #####################################    
+        filtered_mslist=[] # Filtering in case any ms is corrupted
+        for ms in mslist:
+            checkcol=check_datacolumn_valid(ms)
+            if checkcol:
+                filtered_mslist.append(ms)
+            else:
+                print (f"Issue in : {ms}")
+                os.system("rm -rf {ms}")
+        mslist=filtered_mslist    
+
         #####################################
         # Determining spectro-temporal chunks
         #####################################
@@ -445,19 +472,19 @@ def run_all_imaging(
                 bw = max(freqs) - min(freqs)
                 nchan = max(1, int(bw / freqres))
                 nchan_list.append(nchan)
+                
         #################################
         # Dask client setup
         #################################
         task = delayed(perform_imaging)(dry_run=True)
         mem_limit = run_limited_memory_task(task)
         dask_client, dask_cluster, n_jobs, n_threads = get_dask_client(
-            len(mslist), cpu_frac, mem_frac, min_mem_per_job=mem_limit / 0.8
+            len(mslist),
+            dask_dir=workdir,
+            cpu_frac=cpu_frac,
+            mem_frac=mem_frac,
+            min_mem_per_job=mem_limit / 0.6,
         )
-        workers = list(dask_client.scheduler_info()["workers"].items())
-        addr, stats = workers[0]
-        memory_limit = stats["memory_limit"] / 1024**3
-        target_frac = config.get("distributed.worker.memory.target")
-        memory_limit *= target_frac
         tasks = []
         for i in range(len(mslist)):
             ms = mslist[i]
@@ -492,7 +519,7 @@ def run_all_imaging(
                     savemodel=savemodel,
                     saveres=saveres,
                     ncpu=n_threads,
-                    mem=round(memory_limit, 2),
+                    mem=mem_limit,
                 )
             )
         results = compute(*tasks)

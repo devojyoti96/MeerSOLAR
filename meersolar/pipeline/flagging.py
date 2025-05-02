@@ -10,10 +10,6 @@ from casatasks import casalog
 logfile = casalog.logfile()
 os.system("rm -rf " + logfile)
 
-"""
-This code is written by Devojyoti Kansabanik, Jul 30, 2024
-"""
-
 
 def single_ms_flag(
     msname="",
@@ -389,17 +385,13 @@ def do_flagging(
         mem_limit = run_limited_memory_task(task)
         dask_client, dask_cluster, n_jobs, n_threads = get_dask_client(
             len(subms_list),
-            cpu_frac,
-            mem_frac,
-            min_mem_per_job=mem_limit / 0.8,
+            dask_dir=mspath,
+            cpu_frac=cpu_frac,
+            mem_frac=mem_frac,
+            min_mem_per_job=mem_limit / 0.6,
         )
         if flag_backup:
             do_flag_backup(msname, flagtype="flagdata")
-        workers = list(dask_client.scheduler_info()["workers"].items())
-        addr, stats = workers[0]
-        memory_limit = stats["memory_limit"] / 1024**3
-        target_frac = config.get("distributed.worker.memory.target")
-        memory_limit *= target_frac
         tasks = [
             delayed(single_ms_flag)(
                 ms,
@@ -411,7 +403,7 @@ def do_flagging(
                 flagdimension=flagdimension,
                 flag_autocorr=flag_autocorr,
                 n_threads=n_threads,
-                memory_limit=memory_limit,
+                memory_limit=mem_limit,
             )
             for ms in subms_list
         ]

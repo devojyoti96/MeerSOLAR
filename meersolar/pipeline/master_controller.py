@@ -229,7 +229,19 @@ def run_noise_diode_cal(msname, workdir, cpu_frac=0.8, mem_frac=0.8):
         )
         print(noise_cal_cmd + "\n")
         os.system("bash " + batch_file)
-        return 0
+        print("Waiting to finish noise-diode based flux calibration...\n")
+        while True:
+            finished_file = glob.glob(workdir + "/.Finished_" + noisecal_basename + "*")
+            if len(finished_file) > 0:
+                break
+            else:
+                time.sleep(1)
+        success_index_noisecal = int(finished_file[0].split("_")[-1])
+        if success_index_noisecal == 0:
+            print("Noise-diode based flux-calibration is done successfully.\n")
+            return 0
+        else:
+            return 1
     except Exception as e:
         traceback.print_exc()
         return 1
@@ -291,7 +303,7 @@ def run_partion(msname, workdir, cpu_frac=0.8, mem_frac=0.8):
     # Partition fields
     ####################################
     print("\n########################################")
-    basename = f"partition_cal_" + os.path.basename(msname).split(".ms")[0]
+    basename = f"partition_cal"
     if os.path.isdir(workdir + "/logs") == False:
         os.makedirs(workdir + "/logs")
     batch_file = create_batch_script_nonhpc(split_cmd, workdir, basename)
@@ -313,7 +325,7 @@ def run_partion(msname, workdir, cpu_frac=0.8, mem_frac=0.8):
         return 1
 
 
-def run_target_split(
+def run_target_split_jobs(
     msname,
     workdir,
     datacolumn="data",
@@ -399,6 +411,7 @@ def run_applycal_sol(
     use_only_bandpass=False,
     overwrite_datacolumn=False,
     apply_selfcal=False,
+    applymode="calflag",
     cpu_frac=0.8,
     mem_frac=0.8,
 ):
@@ -416,6 +429,8 @@ def run_applycal_sol(
         Use only bandpass solutions
     apply_selfcal : bool, optional
         Applying self-calibration solutions or not
+    applymode : str, optional
+        Applycal mode
     cpu_frac : float, optional
         CPU fraction to use
     mem_frac : float, optional
@@ -456,6 +471,8 @@ def run_applycal_sol(
             + str(overwrite_datacolumn)
             + " --include_selfcal "
             + str(apply_selfcal)
+            +" --applymode "
+            + str(applymode)
         )
         if os.path.isdir(workdir + "/logs") == False:
             os.makedirs(workdir + "/logs")
@@ -502,7 +519,7 @@ def run_selfcal_jobs(
     weight="briggs",
     robust=0.0,
     applymode="calonly",
-    gaintype="T",
+    gaintype="G",
     min_fractional_bw=-1,
 ):
     """
@@ -572,7 +589,7 @@ def run_selfcal_jobs(
         if start_thresh > 0:
             selfcal_cmd += " --start_thresh " + str(start_thresh)
             if stop_thresh > 0 and stop_thresh < start_thresh:
-                selfcal_cmd += " --stop_threshold " + str(stop_thresh)
+                selfcal_cmd += " --stop_thresh " + str(stop_thresh)
         if max_iter > 0:
             selfcal_cmd += " --max_iter " + str(max_iter)
         if max_DR > 0:
@@ -725,7 +742,7 @@ def run_imaging_jobs(
         batch_file = create_batch_script_nonhpc(imaging_cmd, workdir, imaging_basename)
         print(imaging_cmd + "\n")
         os.system("bash " + batch_file)
-        print("Waiting to finish self-calibration...\n")
+        print("Waiting to finish imaging...\n")
         while True:
             finished_file = glob.glob(workdir + "/.Finished_" + imaging_basename + "*")
             if len(finished_file) > 0:
@@ -767,6 +784,12 @@ def check_status(workdir, basename):
     else:
         return 1
 
+def exit_job(start_time,mspath="",workdir=""):
+    print(f"Total time taken: {round(time.time()-start_time,2)}s.")
+    if mspath!="" and os.path.exists(mspath + "/dask-scratch-space"):
+        os.system("rm -rf " + mspath + "/dask-scratch-space")
+    if workdir!="" and os.path.exists(workdir + "/dask-scratch-space"):
+        os.system("rm -rf " + workdir + "/dask-scratch-space")
 
 def master_control(
     msname,
@@ -786,7 +809,7 @@ def master_control(
     do_ap_selfcal=True,
     solar_selfcal=True,
     uvrange="",
-    solint="inf",
+    solint="int",
     do_imaging=True,
     weight="briggs",
     robust=0.0,
@@ -886,7 +909,12 @@ def master_control(
     print("###########################")
     print("Starting the pipeline .....")
     print("###########################\n")
-    msname = msname.rstrip("/")
+    msname = os.path.abspath(msname.rstrip("/"))
+    if os.path.exists(msname) == False:
+        print("Please provide a valid measurement set location.\n")
+        exit_job(start_time)
+        return 1
+    mspath = os.path.dirname(msname)
     ###################################
     # Preparing working directories
     ###################################
@@ -898,15 +926,11 @@ def master_control(
         os.makedirs(workdir)
     os.chdir(workdir)
     caldir = workdir + "/caltables"
-    frac_compute_use = 1.0  # Fraction of total allocated compute resource to use
 
     #####################################
     # Settings for solar data
     #####################################
     if solar_data:
-        if do_noise_cal == False:
-            print("Turning on noise diode based calibration for solar observation.")
-            do_noise_cal = True
         if use_solar_mask == False:
             print("Use solar mask during CLEANing.")
             use_solar_mask = True
@@ -931,16 +955,16 @@ def master_control(
         max_freqres = calc_bw_smearing_freqwidth(msname)
         if freqavg > max_freqres:
             freqavg = round(max_freqres, 2)
-        if image_freqres > 0:
-            freqavg = max(freqavg, image_freqres)
+        if image_freqres > 0 and freqavg>image_freqres:
+            freqavg = image_freqres
     if timeavg > 0:
         max_timeres = min(
             calc_time_smearing_timewidth(msname), max_time_solar_smearing(msname)
         )
         if timeavg > max_timeres:
             timeavg = round(max_timeres, 2)
-        if image_timeres > 0:
-            timeavg = max(timeavg, image_timeres)
+        if image_timeres > 0 and timeavg>image_timeres:
+            timeavg = image_timeres
 
     #############################
     # Reset any previous weights
@@ -952,76 +976,84 @@ def master_control(
         available_cpus = max(1, available_cpus)  # Avoid zero workers
         reset_weights_and_flags(msname, n_threads=available_cpus)
 
-    ##############################
-    # Run partitioning jobs
-    ##############################
-    calibrator_msname = workdir + "/calibrator.ms"
-    if do_cal_partition or os.path.exists(workdir + "/calibrator.ms") == False:
-        msg = run_partion(
+    ########################################
+    # Run noise-diode based flux calibration
+    ########################################
+    if do_noise_cal:
+        msg = run_noise_diode_cal(
             msname,
             workdir,
-            cpu_frac=round(frac_compute_use * cpu_frac, 2),
-            mem_frac=round(frac_compute_use * mem_frac, 2),
-        )
+            cpu_frac=round(cpu_frac, 2),
+            mem_frac=round(mem_frac, 2),
+        )  # Run noise diode based flux calibration
         if msg != 0:
-            print("!!!! WARNING: Error in partitioning calibrator fields. !!!!")
-            print("Total time taken: {round(time.time()-start_time,2)}s.\n")
+            print(
+                "!!!! WARNING: Error in running noise-diode based flux calibration. Not continuing further. !!!!"
+            )
+            exit_job(start_time,mspath,workdir)
             return 1
 
     #########################################
     # Spliting target scans
     #########################################
-    split_use_frac = 1.0
     if do_target_split:
-        if (
-            do_cal_flag == False
-            and do_import_model == False
-            and do_basic_cal == False
-        ) or do_noise_cal == False:
-            pass
-        else:
-            split_use_frac = 0.2
-        msg = run_target_split(
+        msg = run_target_split_jobs(
             msname,
             workdir,
             datacolumn="data",
             timeres=timeavg,
             freqres=freqavg,
             target_freq_chunk=target_freq_chunk,
-            cpu_frac=round(split_use_frac * cpu_frac, 2),
-            mem_frac=round(split_use_frac * mem_frac, 2),
+            cpu_frac=round(cpu_frac, 2),
+            mem_frac=round(mem_frac, 2),
         )
-        if split_use_frac == 0.2:
-            frac_compute_use = frac_compute_use - 0.2
         if msg != 0:
             print("!!!! WARNING: Error in running spliting target scans. !!!!")
-
+            
+    ##############################
+    # Run partitioning jobs
+    ##############################
+    calibrator_msname = workdir + "/calibrator.ms"
+    if do_cal_partition or os.path.exists(calibrator_msname) == False:
+        msg = run_partion(
+            msname,
+            workdir,
+            cpu_frac=round(cpu_frac, 2),
+            mem_frac=round(mem_frac, 2),
+        )
+        if msg != 0:
+            print("!!!! WARNING: Error in partitioning calibrator fields. !!!!")
+            exit_job(start_time,mspath,workdir)
+            return 1
+            
     ##################################
     # Run flagging jobs on calibrators
     ##################################
     if do_cal_flag:
+        if os.path.exists(calibrator_msname)==False:
+            print (f"Calibrator ms: {calibrator_ms} is not present.")
+            exit_job(start_time,mspath,workdir)
+            return 1
         msg = run_flag(
             calibrator_msname,
             workdir,
             flag_calibrators=True,
-            cpu_frac=round(frac_compute_use * cpu_frac, 2),
-            mem_frac=round(frac_compute_use * mem_frac, 2),
+            cpu_frac=round(cpu_frac, 2),
+            mem_frac=round(mem_frac, 2),
         )
         if msg != 0:
             print("!!!! WARNING: Flagging error. !!!!")
-            print("Total time taken: {round(time.time()-start_time,2)}s.\n")
+            exit_job(start_time,mspath,workdir)
             return 1
-    if (
-        split_use_frac == 0.2
-        and do_target_split
-        and check_status(workdir, "split_targets") == 0
-    ):
-        frac_compute_use += 0.2
-
+        
     #################################
     # Import model
     #################################
     if do_import_model:
+        if os.path.exists(calibrator_msname)==False:
+            print (f"Calibrator ms: {calibrator_ms} is not present.")
+            exit_job(start_time,mspath,workdir)
+            return 1
         fluxcal_fields, fluxcal_scans = get_fluxcals(calibrator_msname)
         phasecal_fields, phasecal_scans, phasecal_fluxes = get_phasecals(
             calibrator_msname
@@ -1030,99 +1062,51 @@ def master_control(
         msg = run_import_model(
             calibrator_msname,
             workdir,
-            cpu_frac=round(frac_compute_use * cpu_frac, 2),
-            mem_frac=round(frac_compute_use * mem_frac, 2),
+            cpu_frac=round(cpu_frac, 2),
+            mem_frac=round(mem_frac, 2),
         )  # Run model import
         if msg != 0:
             print(
                 "!!!! WARNING: Error in importing calibrator models. Not continuing calibration. !!!!"
             )
-            print("Total time taken: {round(time.time()-start_time,2)}s.\n")
+            exit_job(start_time,mspath,workdir)
             return 1
-    if (
-        split_use_frac == 0.2
-        and do_target_split
-        and check_status(workdir, "split_targets") == 0
-    ):
-        frac_compute_use += 0.2
-
-    ########################################
-    # Run noise-diode based flux calibration
-    ########################################
-    if do_noise_cal:
-        frac_compute_use -= 0.2
-        msg = run_noise_diode_cal(
-            msname,
-            workdir,
-            cpu_frac=round(0.2 * cpu_frac, 2),
-            mem_frac=round(0.2 * mem_frac, 2),
-        )  # Run noise diode based flux calibration
-        if msg != 0:
-            print(
-                "!!!! WARNING: Error in running noise-diode based flux calibration. Not continuing further. !!!!"
-            )
-            print("Total time taken: {round(time.time()-start_time,2)}s.\n")
-            return 1
-    if (
-        split_use_frac == 0.2
-        and do_target_split
-        and check_status(workdir, "split_targets") == 0
-    ):
-        frac_compute_use += 0.2
-    if do_noise_cal and check_status(workdir, "noise_cal") == 0:
-        frac_compute_use += 0.2
-
+      
     ###############################
     # Run basic calibration
     ###############################
     use_only_bandpass = False
     if do_basic_cal:
+        if os.path.exists(calibrator_msname)==False:
+            print (f"Calibrator ms: {calibrator_ms} is not present.")
+            exit_job(start_time,mspath,workdir)
+            return 1
         msg = run_basic_cal(
             calibrator_msname,
             workdir,
-            cpu_frac=round(frac_compute_use * cpu_frac, 2),
-            mem_frac=round(frac_compute_use * mem_frac, 2),
+            cpu_frac=round(cpu_frac, 2),
+            mem_frac=round(mem_frac, 2),
         )  # Run basic calibration
         if msg != 0:
             print(
                 "!!!! WARNING: Error in basic calibration. Not continuing further. !!!!"
             )
-            print("Total time taken: {round(time.time()-start_time,2)}s.\n")
+            exit_job(start_time,mspath,workdir)
             return 1
-    else:
-        if len(glob.glob(caldir + "/*.bcal")) == 0:
-            print(f"No bandpass table is present in calibration directory : {caldir}.")
-            print("Total time taken: {round(time.time()-start_time,2)}s.\n")
-            return 1
-        if len(glob.glob(caldir + "/*.gcal")) == 0:
-            print(
-                f"No time-dependent gaintable is present in calibration directory : {caldir}. Applying only bandpass solutions."
-            )
-            use_only_bandpass = True
-
-    #######################################
-    # Check noise diode cal finished or not
-    #######################################
-    if do_noise_cal:
-        print("Waiting to finish noise-diode based flux calibration...\n")
-        noisecal_basename = "noise_cal"
-        while True:
-            finished_file = glob.glob(workdir + "/.Finished_" + noisecal_basename + "*")
-            if len(finished_file) > 0:
-                break
-            else:
-                time.sleep(1)
-        success_index_noisecal = int(finished_file[0].split("_")[-1])
-        if success_index_noisecal == 0:
-            print("Noise-diode based flux-calibration is done successfully.\n")
-            frac_compute_use += 0.2
-        else:
-            print(
-                "!!!! WARNING: Error in noise-diode based flux calibration. Not continuing further. !!!!"
-            )
-            print("Total time taken: {round(time.time()-start_time,2)}s.\n")
-            return 1
-
+            
+    ##########################################
+    # Checking presence of necessary caltables
+    ##########################################
+    if len(glob.glob(caldir + "/*.bcal")) == 0:
+        print(f"No bandpass table is present in calibration directory : {caldir}.")
+        exit_job(start_time,mspath,workdir)
+        return 1
+    if len(glob.glob(caldir + "/*.gcal")) == 0:
+        print(
+            f"No time-dependent gaintable is present in calibration directory : {caldir}. Applying only bandpass solutions."
+        )
+        use_only_bandpass = True    
+        
     #############################################
     # Check spliting target scans finished or not
     #############################################
@@ -1138,19 +1122,17 @@ def master_control(
         success_index_split_target = int(finished_file[0].split("_")[-1])
         if success_index_split_target == 0:
             print("Spliting target scans are done successfully.\n")
-            if split_use_frac == 0.2:
-                frac_compute_use += 0.2
         else:
             print(
                 "!!!! WARNING: Error in spliting target scans. Not continuing further. !!!!"
             )
-            print("Total time taken: {round(time.time()-start_time,2)}s.\n")
+            exit_job(start_time,mspath,workdir)
             return 1
 
     target_mslist = glob.glob(workdir + "/target_scan*.ms")
     if len(target_mslist) == 0:
         print("No splited target scan ms are available in work directory.")
-        print("Total time taken: {round(time.time()-start_time,2)}s.\n")
+        exit_job(start_time,mspath,workdir)
         return 1
     print(f"Target scan mslist : {[os.path.basename(i) for i in target_mslist]}")
 
@@ -1169,15 +1151,17 @@ def master_control(
         for ms in target_mslist:
             if chosen_spw in os.path.basename(ms):
                 selfcal_mslist.append(ms)
-
+        if len(selfcal_mslist)==0:
+            print ("No measurement set for self-calibration.")
+            do_selfcal=False
+            
     #########################################################
     # Applying solutions on target scans for self-calibration
     #########################################################
-
     if (
         do_selfcal or do_applycal
     ):  # Applying solutions if do_selfcal is True even if do_applycal is False. This is for safety.
-        if do_selfcal:
+        if do_selfcal and do_applycal==False:
             applycal_list = selfcal_mslist
         else:
             applycal_list = target_mslist
@@ -1190,37 +1174,39 @@ def master_control(
                 use_only_bandpass=use_only_bandpass,
                 overwrite_datacolumn=False,
                 apply_selfcal=False,
-                cpu_frac=round(frac_compute_use * cpu_frac, 2),
-                mem_frac=round(frac_compute_use * mem_frac, 2),
+                applymode="calflag",
+                cpu_frac=round(cpu_frac, 2),
+                mem_frac=round(mem_frac, 2),
             )
             if msg != 0:
                 print(
                     "!!!! WARNING: Error in applying solutions on target scans. Not continuing further. !!!!"
                 )
-                print("Total time taken: {round(time.time()-start_time,2)}s.\n")
+                exit_job(start_time,mspath,workdir)
                 return 1
         else:
             print(
                 "!!!! WARNING: No measurement set is present for applying solutions. !!!!"
             )
-            print("Total time taken: {round(time.time()-start_time,2)}s.\n")
+            exit_job(start_time,mspath,workdir)
             return 1
 
     ########################################
     # Performing self-calibration
     ########################################
     if do_selfcal:
+        os.system("rm -rf "+workdir+"/*selfcal "+workdir+"/caltables/*selfcal*")
         msg = run_selfcal_jobs(
             selfcal_mslist,
             workdir,
-            cpu_frac=round(frac_compute_use * cpu_frac, 2),
-            mem_frac=round(frac_compute_use * mem_frac, 2),
+            cpu_frac=round(cpu_frac, 2),
+            mem_frac=round(mem_frac, 2),
             solint=solint,
             do_apcal=do_ap_selfcal,
             solar_selfcal=solar_selfcal,
             keep_backup=keep_backup,
             uvrange=uvrange,
-            minuv=minuv,
+            minuv=50,
             weight=weight,
             robust=robust,
         )
@@ -1230,6 +1216,14 @@ def master_control(
             )
             do_apply_selfcal = False
 
+    ########################################
+    # Checking self-cal caltables
+    ########################################
+    selfcaldir= workdir + "/caltables/*selfcal*"
+    if len(selfcaldir)==0:
+        print ("Self-calibration is not performed and no self-calibration caltable is available.")
+        do_apply_selfcal=False
+        
     ########################################
     # Apply self-calibration
     ########################################
@@ -1242,8 +1236,9 @@ def master_control(
             caldir,
             overwrite_datacolumn=False,
             apply_selfcal=True,
-            cpu_frac=round(frac_compute_use * cpu_frac, 2),
-            mem_frac=round(frac_compute_use * mem_frac, 2),
+            applymode="calflag",
+            cpu_frac=round(cpu_frac, 2),
+            mem_frac=round(mem_frac, 2),
         )
         if msg != 0:
             print(
@@ -1257,8 +1252,8 @@ def master_control(
         msg = run_imaging_jobs(
             target_mslist,
             workdir,
-            cpu_frac=round(frac_compute_use * cpu_frac, 2),
-            mem_frac=round(frac_compute_use * mem_frac, 2),
+            cpu_frac=round(cpu_frac, 2),
+            mem_frac=round(mem_frac, 2),
             minuv=minuv,
             weight=weight,
             robust=float(robust),
@@ -1275,11 +1270,11 @@ def master_control(
             print(
                 "!!!! WARNING: Final imaging on all measurement sets is not successful. Check the image directory. !!!!"
             )
-            print("Total time taken: {round(time.time()-start_time,2)}s.\n")
+            exit_job(start_time,mspath,workdir)
             return 1
 
     print(
-        "Calibration and imaging pipeline is successfully run on measurement set : {msname}\n"
+        f"Calibration and imaging pipeline is successfully run on measurement set : {msname}\n"
     )
-    print("Total time taken: {round(time.time()-start_time,2)}s.\n")
+    exit_job(start_time,mspath,workdir)
     return 0

@@ -190,7 +190,11 @@ def partion_ms(
     task = delayed(single_mstransform)(dry_run=True)
     mem_limit = run_limited_memory_task(task)
     dask_client, dask_cluster, n_jobs, n_threads = get_dask_client(
-        len(scan_list), cpu_frac, mem_frac, min_mem_per_job=mem_limit / 0.8
+        len(scan_list),
+        dask_dir = mspath,
+        cpu_frac=cpu_frac,
+        mem_frac=mem_frac,
+        min_mem_per_job=mem_limit / 0.6,
     )
     tasks = []
     for i in range(len(scan_list)):
@@ -209,7 +213,6 @@ def partion_ms(
     splited_ms_list = compute(*tasks)
     dask_client.close()
     dask_cluster.close()
-
     splited_ms_list_copy = copy.deepcopy(splited_ms_list)
     for ms in splited_ms_list:
         if ms == None:

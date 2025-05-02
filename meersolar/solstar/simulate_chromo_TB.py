@@ -115,3 +115,9 @@ def main():
     else:
         gc.collect()
         return 1
+        
+if __name__ == "__main__":
+    result = main()
+    if result > 0:
+        result = 1
+    os._exit(result)

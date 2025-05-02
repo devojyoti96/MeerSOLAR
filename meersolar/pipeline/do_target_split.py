@@ -85,7 +85,7 @@ def split_scan(
         datacolumn=datacolumn,
     )
     clearcal(vis=outputvis, addmodel=True)
-    initweights(vis=msname, wtmode="ones", dowtsp=True)
+    initweights(vis=outputvis, wtmode="ones", dowtsp=True)
     return outputvis
 
 
@@ -225,9 +225,10 @@ def split_target_scans(
             #######################
             dask_client, dask_cluster, n_jobs, n_threads = get_dask_client(
                 total_chunks,
-                cpu_frac,
-                mem_frac,
-                min_mem_per_job=mem_limit / 0.8,
+                dask_dir=workdir,
+                cpu_frac=cpu_frac,
+                mem_frac=mem_frac,
+                min_mem_per_job=mem_limit / 0.6,
             )
             tasks = []
             for scan in filtered_scan_list:
@@ -285,9 +286,10 @@ def split_target_scans(
         splited_ms_list_phaserotated = []
         dask_client, dask_cluster, n_jobs, n_threads = get_dask_client(
             len(splited_ms_list),
-            cpu_frac,
-            mem_frac,
-            min_mem_per_job=mem_limit / 0.8,
+            dask_dir=workdir,
+            cpu_frac=cpu_frac,
+            mem_frac=mem_frac,
+            min_mem_per_job=mem_limit / 0.6,
         )
         tasks = []
         for ms in splited_ms_list:

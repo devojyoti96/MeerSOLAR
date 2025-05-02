@@ -7,10 +7,6 @@ from casatasks import casalog
 logfile = casalog.logfile()
 os.system("rm -rf " + logfile)
 
-"""
-This code is written by Devojyoti Kansabanik, March 14, 2025
-"""
-
 
 def run_delaycal(
     msname="",
@@ -373,6 +369,7 @@ def run_postcal_flag(
                 datacolumn = "corrected"
             else:
                 datacolumn = "data"
+            ncol = 3
     #################################################
     # Whether corrected data column is present or not
     #################################################
@@ -383,7 +380,6 @@ def run_postcal_flag(
                 "Corrected data column is chosen for flagging, but it is not present."
             )
             return
-
     try:
         time_chunk, baseline_chunk = get_chunk_size(
             msname, memory_limit=memory_limit, ncol=ncol
@@ -415,6 +411,7 @@ def run_postcal_flag(
 
 def single_round_cal_and_flag(
     msname,
+    workdir,
     cal_round,
     refant,
     uvrange,
@@ -438,6 +435,8 @@ def single_round_cal_and_flag(
     ----------
     msname : str
         Name of the measurement set
+    workdir : str
+        Work directory
     cal_round : int
         Calibration round number
     refant : str
@@ -571,9 +570,10 @@ def single_round_cal_and_flag(
             mem_limit = run_limited_memory_task(task)
             dask_client, dask_cluster, n_jobs, n_threads = get_dask_client(
                 len(delaycal_mslist),
-                cpu_frac,
-                mem_frac,
-                min_mem_per_job=mem_limit / 0.8,
+                dask_dir=workdir,
+                cpu_frac=cpu_frac,
+                mem_frac=mem_frac,
+                min_mem_per_job=mem_limit / 0.6,
             )
             tasks = [
                 delayed(run_delaycal)(
@@ -603,9 +603,10 @@ def single_round_cal_and_flag(
             mem_limit = run_limited_memory_task(task)
             dask_client, dask_cluster, n_jobs, n_threads = get_dask_client(
                 len(fluxcal_mslist),
-                cpu_frac,
-                mem_frac,
-                min_mem_per_job=mem_limit / 0.8,
+                dask_dir=workdir,
+                cpu_frac=cpu_frac,
+                mem_frac=mem_frac,
+                min_mem_per_job=mem_limit / 0.6,
             )
             tasks = [
                 delayed(run_bandpass)(
@@ -646,7 +647,11 @@ def single_round_cal_and_flag(
             task = delayed(run_gaincal)(dry_run=True)
             mem_limit = run_limited_memory_task(task)
             dask_client, dask_cluster, n_jobs, n_threads = get_dask_client(
-                len(gaincal_mslist), cpu_frac, mem_frac, min_mem_per_job=mem_limit / 0.8
+                len(gaincal_mslist),
+                dask_dir=workdir,
+                cpu_frac=cpu_frac,
+                mem_frac=mem_frac,
+                min_mem_per_job=mem_limit / 0.6,
             )
             tasks = [
                 delayed(run_gaincal)(
@@ -694,9 +699,10 @@ def single_round_cal_and_flag(
                 mem_limit = run_limited_memory_task(task)
                 dask_client, dask_cluster, n_jobs, n_threads = get_dask_client(
                     len(phasecal_mslist),
-                    cpu_frac,
-                    mem_frac,
-                    min_mem_per_job=mem_limit / 0.8,
+                    dask_dir=workdir,
+                    cpu_frac=cpu_frac,
+                    mem_frac=mem_frac,
+                    min_mem_per_job=mem_limit / 0.6,
                 )
                 tasks = [
                     delayed(run_gaincal)(
@@ -789,9 +795,10 @@ def single_round_cal_and_flag(
                 mem_limit = run_limited_memory_task(task)
                 dask_client, dask_cluster, n_jobs, n_threads = get_dask_client(
                     len(fluxcal_mslist),
-                    cpu_frac,
-                    mem_frac,
-                    min_mem_per_job=mem_limit / 0.8,
+                    dask_dir=workdir,
+                    cpu_frac=cpu_frac,
+                    mem_frac=mem_frac,
+                    min_mem_per_job=mem_limit / 0.6,
                 )
                 tasks = [
                     delayed(run_leakagecal)(
@@ -833,9 +840,10 @@ def single_round_cal_and_flag(
                 mem_limit = run_limited_memory_task(task)
                 dask_client, dask_cluster, n_jobs, n_threads = get_dask_client(
                     len(polcal_mslist),
-                    cpu_frac,
-                    mem_frac,
-                    min_mem_per_job=mem_limit / 0.8,
+                    dask_dir=workdir,
+                    cpu_frac=cpu_frac,
+                    mem_frac=mem_frac,
+                    min_mem_per_job=mem_limit / 0.6,
                 )
                 tasks = [
                     delayed(run_polcal)(
@@ -917,9 +925,10 @@ def single_round_cal_and_flag(
             mem_limit = run_limited_memory_task(task)
             dask_client, dask_cluster, n_jobs, n_threads = get_dask_client(
                 len(all_mslist),
-                cpu_frac,
-                mem_frac,
-                min_mem_per_job=mem_limit / 0.8,
+                dask_dir=workdir,
+                cpu_frac=cpu_frac,
+                mem_frac=mem_frac,
+                min_mem_per_job=mem_limit / 0.6,
             )
             tasks = [
                 delayed(run_applycal)(
@@ -947,15 +956,11 @@ def single_round_cal_and_flag(
             mem_limit = run_limited_memory_task(task)
             dask_client, dask_cluster, n_jobs, n_threads = get_dask_client(
                 len(all_mslist),
-                cpu_frac,
-                mem_frac,
-                min_mem_per_job=mem_limit / 0.8,
+                dask_dir=workdir,
+                cpu_frac=cpu_frac,
+                mem_frac=mem_frac,
+                min_mem_per_job=mem_limit / 0.6,
             )
-            workers = list(dask_client.scheduler_info()["workers"].items())
-            addr, stats = workers[0]
-            memory_limit = stats["memory_limit"] / 1024**3
-            target_frac = config.get("distributed.worker.memory.target")
-            memory_limit *= target_frac
             tasks = []
             if len(all_mslist) > 0:
                 tasks = []
@@ -970,7 +975,7 @@ def single_round_cal_and_flag(
                             datacolumn=datacolumn,
                             mode="rflag",
                             n_threads=n_threads,
-                            memory_limit=memory_limit,
+                            memory_limit=mem_limit,
                         )
                     )
             results = compute(*tasks)
@@ -1126,6 +1131,7 @@ def run_basic_cal_rounds(
                     do_leakagecal = True
             msg, caltables = single_round_cal_and_flag(
                 msname,
+                workdir,
                 cal_round,
                 refant,
                 uvrange,
@@ -1262,9 +1268,10 @@ def main():
                 cpu_frac=float(options.cpu_frac),
                 mem_frac=float(options.mem_frac),
             )
-            os.system("rm -rf " + caldir + "/*")
             for caltable in caltables:
                 if caltable != None and os.path.exists(caltable):
+                    if os.path.exists(caldir+"/"+os.path.basename(caltable)):
+                        os.system("rm -rf "+caldir+"/"+os.path.basename(caltable))
                     os.system("mv " + caltable + " " + caldir)
             return msg
         except Exception as e:

@@ -150,6 +150,7 @@ def applysol(
     gainfield=[],
     interp=[],
     parang=False,
+    applymode="calflag",
     overwrite_datacolumn=False,
     n_threads=-1,
     memory_limit=-1,
@@ -171,6 +172,8 @@ def applysol(
         Gain interpolation
     parang : bool, optional
         Parallectiv angle apply or not
+    applymode : str, optional
+        Apply mode
     overwrite_datacolumn : bool, optional
         Overwrite data column with corrected solutions
     n_threads : int, optional
@@ -183,7 +186,7 @@ def applysol(
         Success message
     """
     limit_threads(n_threads=n_threads)
-    from casatasks import applycal, flagmanager
+    from casatasks import applycal, flagdata, split, clearcal
 
     if dry_run:
         process = psutil.Process(os.getpid())
@@ -193,54 +196,52 @@ def applysol(
         f"Applying solutions on ms: {os.path.basename(msname)} of scan : {scan} from caltables: {','.join([os.path.basename(i) for i in gaintable])}\n"
     )
     try:
-        flags = flagmanager(vis=msname, mode="list")
-        keys = flags.keys()
-        for k in keys:
-            if k == "MS":
-                pass
-            else:
-                version = flags[0]["name"]
-                try:
-                    flagmanager(vis=msname, mode="restore", versionname=version)
-                    flagmanager(vis=msname, mode="delete", versionname=version)
-                except:
-                    pass
+        clearcal(vis=msname)
+        flagdata(vis=msname,mode="unflag",spw="0",flagbackup=False)
+        if os.path.exists(msname+".flagversions"):
+            os.system("rm -rf "+msname+".flagversions")
+        if applymode=="calflag":
+            self_gaintable=[]
+            basic_gaintable=[]
+            for g in gaintable:
+                if 'selfcal' not in g:
+                    basic_gaintable.append(g)  
+                else:
+                    self_gaintable.append(g)
+        if len(self_gaintable)!=0 and applymode=="calflag":
+            applycal(
+                vis=msname,
+                scan=str(scan),
+                gaintable=basic_gaintable,
+                applymode="flagonly",
+                calwt=[False],
+                parang=parang,
+                flagbackup=False,
+            )
+            applymode="calonly"
         applycal(
             vis=msname,
             scan=str(scan),
             gaintable=gaintable,
             gainfield=gainfield,
-            applymode="calflag",
+            applymode=applymode,
             calwt=[False],
             parang=parang,
-            flagbackup=True,
-        )
-        os.system("rm -rf casa*log")
+            flagbackup=False,
+        )            
         if overwrite_datacolumn:
-            print(f"Copying corrected data to datacolumn for ms: {msname}.")
-            colsize = get_column_size(msname)
-            tb = table()
-            tb.open(msname, nomodify=False)
-            nrow = tb.nrows()
-            chunk_size = int(memory_limit / colsize)
-            for i in range(0, nrow, chunk_size):
-                if i + chunk_size > nrow:
-                    n = -1
-                else:
-                    n = chunk_size
-                tb = table()
-                tb.open(msname, nomodify=False)
-                cor_data = tb.getcol("CORRECTED_DATA", startrow=i, nrow=n)
-                tb.putcol("DATA", cor_data, startrow=i, nrow=n)
-                tb.flush()
-                del cor_data
-            tb.close()
-            del tb
+            print(f"Spliting corrected data for ms: {msname}.")
+            outputvis=msname.split(".ms")[0]+"_cor.ms"
+            if os.path.exists(outputvis):
+                os.system(f"rm -rf {outputvis}")
+            split(vis=msname,outputvis=outputvis,datacolumn="corrected")
+            if os.path.exists(outputvis):
+                os.system(f"rm -rf {msname}")
+                os.system(f"mv {outputvis} {msname}")
             gc.collect()
         return 0
     except Exception as e:
         traceback.print_exc()
-        os.system("rm -rf casa*log")
         return 1
 
 
@@ -250,6 +251,7 @@ def run_all_applysol(
     caldir,
     use_only_bandpass=False,
     overwrite_datacolumn=False,
+    applymode="calflag",
     include_selfcal=False,
     cpu_frac=0.8,
     mem_frac=0.8,
@@ -268,6 +270,8 @@ def run_all_applysol(
         Use only bandpass solutions
     overwrite_datacolumn : bool, optional
         Overwrite data column or not
+    applymode : str, optional
+        Apply mode
     include_selfcal : bool, optional
         Apply self-calibratioin solutions or not
     cpu_frac : float, optional
@@ -320,7 +324,7 @@ def run_all_applysol(
             )
         else:
             dask_client, dask_cluster, n_jobs, n_threads = get_dask_client(
-                len(att_caltables), cpu_frac, mem_frac
+                len(att_caltables), dask_dir=workdir, cpu_frac=cpu_frac, mem_frac=mem_frac
             )
             tasks = []
             for att in att_caltables:
@@ -351,7 +355,20 @@ def run_all_applysol(
                 if "selfcal" in g:
                     gaintable.remove(g)
             del gaintable_bkp
-
+        
+        ####################################
+        # Filtering any corrupted ms
+        #####################################    
+        filtered_mslist=[] # Filtering in case any ms is corrupted
+        for ms in mslist:
+            checkcol=check_datacolumn_valid(ms)
+            if checkcol:
+                filtered_mslist.append(ms)
+            else:
+                print (f"Issue in : {ms}")
+                os.system("rm -rf {ms}")
+        mslist=filtered_mslist  
+        
         ####################################
         # Applycal jobs
         ####################################
@@ -359,14 +376,16 @@ def run_all_applysol(
         task = delayed(applysol)(dry_run=True)
         mem_limit = run_limited_memory_task(task)
         dask_client, dask_cluster, n_jobs, n_threads = get_dask_client(
-            len(mslist), cpu_frac, mem_frac, min_mem_per_job=mem_limit / 0.8
+            len(mslist),
+            dask_dir=workdir,
+            cpu_frac=cpu_frac,
+            mem_frac=mem_frac,
+            min_mem_per_job=mem_limit / 0.6,
         )
         tasks = []
         scaled_bandpass_scans = [
             int(a.split("scan_")[-1].split(".bcal")[0]) for a in scaled_bandpass_list
         ]
-        target_frac = config.get("distributed.worker.memory.target")
-        memory_limit = mem_limit / 0.8
         msmd = msmetadata()
         for ms in mslist:
             msmd.open(ms)
@@ -382,16 +401,16 @@ def run_all_applysol(
                         scan,
                         gaintable=gaintable + [bandpass_table],
                         overwrite_datacolumn=overwrite_datacolumn,
+                        applymode=applymode,
                         interp=interp,
                         n_threads=n_threads,
                         parang=parang,
-                        memory_limit=memory_limit,
+                        memory_limit=mem_limit,
                     )
                 )
         results = compute(*tasks)
         dask_client.close()
         dask_cluster.close()
-        os.system("rm -rf casa*log")
         if np.nansum(results) == 0:
             print("##################")
             print(
@@ -452,6 +471,13 @@ def main():
         metavar="Boolean",
     )
     parser.add_option(
+        "--applymode",
+        dest="applymode",
+        default="calflag",
+        help="Applycal mode",
+        metavar="String",
+    )
+    parser.add_option(
         "--overwrite_datacolumn",
         dest="overwrite_datacolumn",
         default=False,
@@ -506,6 +532,7 @@ def main():
                 options.caldir,
                 use_only_bandpass=eval(str(options.use_only_bandpass)),
                 overwrite_datacolumn=eval(str(options.overwrite_datacolumn)),
+                applymode=options.applymode,
                 cpu_frac=float(options.cpu_frac),
                 mem_frac=float(options.mem_frac),
                 include_selfcal=eval(str(options.include_selfcal)),

@@ -2,18 +2,90 @@ import os, traceback, time, numpy as np
 from astropy.coordinates import get_sun
 from astropy.time import Time
 from casatools import simulator, measures, quanta, table
-from meersolar.solstar.run_GHz_sun_simulator import get_observatory_info
+from meersolar.solstar.make_spectral_cube import *
 from optparse import OptionParser
-from casatasks import casalog
+from casatasks import casalog, ft
 
 logfile = casalog.logfile()
 os.system("rm -rf " + logfile)
+casalog.showconsole(True)
 
 """
 This code is written by Devojyoti Kansabanik, Apr 25, 2025
 """
-
+def get_observatory_info(observatory_name):
+    """
+    Parameters
+    ----------
+    observatory_name : str
+        Name of the observatory
+    Returns
+    -------
+    float
+        Observatory latitude
+    float
+        Observatory longitude
+    float
+        Observatory altitude
+    """
+    observatories = {
+        "meerkat": {
+            "latitude": -30.713,
+            "longitude": 21.443,
+            "altitude": 1038,
+        },  # In meters
+        "ugmrt": {
+            "latitude": 19.096,
+            "longitude": 74.050,
+            "altitude": 650,
+        },  # In meters
+        "eovsa": {
+            "latitude": 37.233,
+            "longitude": -118.283,
+            "altitude": 1222,
+        },  # In meters
+        "askap": {
+            "latitude": -26.696,
+            "longitude": 116.630,
+            "altitude": 377,
+        },  # In meters
+        "fasr": {
+            "latitude": 38.430,
+            "longitude": -79.839,
+            "altitude": 820,
+        },  # Approximate value
+        "skao-mid": {
+            "latitude": -30.721,
+            "longitude": 21.411,
+            "altitude": 1060,
+        },  # Approximate location
+        "skao-low": {
+            "latitude": -26.7033,
+            "longitude": 116.6319,
+            "altitude": 377,
+        },  # Approximate location
+        "jvla": {
+            "latitude": 34.0784,
+            "longitude": -107.6184,
+            "altitude": 2124,
+        },  # In meters
+    }
+    keys = list(observatories.keys())
+    if observatory_name.lower() not in keys:
+        print("Observatory: " + observatory_name + " is not in the list.\n")
+        print(
+            "Available observatories: MeerKAT, uGMRT, eOVSA, ASKAP, FASR, SKAO-MID, JVLA.\n"
+        )
+        return
+    else:
+        pos = observatories[observatory_name.lower()]
+        lat = pos["latitude"]
+        lon = pos["longitude"]
+        alt = pos["altitude"]
+        return lat, lon, alt
+        
 def generate_ms(
+    imagelist=[],
     config_file="meerkat.config",
     msname="simulated.ms",
     telescope_name="MeerKAT",
@@ -24,11 +96,13 @@ def generate_ms(
     start_freq=-1,
     end_freq=-1,
     freqres=-1,
-    stokes="XX XY YX YY",
+    pols="XX YY",
 ):
     """
     Parameters
     ----------
+    imagelist : list
+        Spectral image list
     config_file : str
         Array configuration file
     msname : str
@@ -49,14 +123,19 @@ def generate_ms(
         End frequency in MHz
     freqres : float
         Frequency resolution in MHz
-    stokes : str
-        Stokes parameters to simulate
+    pols : str
+        pols parameters to simulate
     Returns
     -------
+    int
+        Successs message
     str
         Simulated measurement set name
     """
     try:
+        if len(imagelist)==0:
+            print ("Please provide image list.")
+            return 1, ""
         msname=msname.rstrip("/")
         if os.path.exists(msname):
             os.system("rm -rf "+msname)
@@ -71,7 +150,7 @@ def generate_ms(
         if telescope_name == "":
             if len(obs_coord) == 0:
                 print("Please provide either telescope name or array coordinate.")
-                return
+                return 1, ""
             else:
                 obslat = obs_coord["lat"]
                 obslon = obs_coord["lon"]
@@ -79,7 +158,7 @@ def generate_ms(
         obs_info = get_observatory_info(telescope_name)
         if obs_info == None:
             print("Please provide valid telescope name.")
-            return
+            return 1, ""
         else:
             obslat, obslon, obsalt = obs_info
         ref_location = [
@@ -133,17 +212,18 @@ def generate_ms(
             referencelocation=ref_location,
         )
         nchan = int((end_freq - start_freq) / freqres)
-        sm.setspwindow(spwname='none',
+        if "RR" in pols:
+            sm.setfeed("perfect R L")
+        elif "XX" in pols:
+            sm.setfeed("perfect X Y")
+        sm.setspwindow(spwname=f"SPW0",
             freq=str(start_freq) + "MHz",
             deltafreq=str(freqres) + "MHz",
             freqresolution=str(freqres) + "MHz",
             nchannels=nchan,
-            stokes=stokes,
+            stokes=pols,
         )
-        if "RR" in stokes:
-            sm.setfeed("perfect R L")
-        elif "XX" in stokes:
-            sm.setfeed("perfect X Y")
+        
         sm.setfield(sourcename="Sun", sourcedirection=sun_dir)
         sm.setauto(autocorrwt=0.0)
         sm.settimes(
@@ -153,12 +233,12 @@ def generate_ms(
         )
         starttime = "0s"
         endtime = str(duration) + "s"
-        sm.observe(sourcename="Sun", spwname='none', starttime=starttime, stoptime=endtime)
-        sm.predict(imagename="/media/devojyoti/Data1/spectral_cube.image")
+        sm.observe(sourcename="Sun", spwname=f"SPW0", starttime=starttime, stoptime=endtime)
+        sm.setdata(spwid=0)
         sm.close()
         if os.path.exists(msname) == False:
             print(f"Simulated measurement set: {msname} could not be made.")
-            return
+            return 1, ""
         else:
             tb = table()
             tb.open(msname + "/ANTENNA", nomodify=False)
@@ -175,15 +255,30 @@ def generate_ms(
             tb.putcol("FLAG",flag)
             tb.flush()
             tb.close()
-            return msname
+            imagelist=sorted(imagelist)
+            for i in range(nchan):
+                imagename=imagelist[i]
+                print (imagename)
+                if i==0:
+                    ft(vis=msname,model=imagename,spw=f"0:{i}",incremental=False,usescratch=True)
+                else:
+                    ft(vis=msname,model=imagename,spw=f"0:{i}",incremental=True,usescratch=False)
+            return 0, msname
     except Exception as e:
         traceback.print_exc()
-        return
+        return 1, ""
         
 def main():
     start_time = time.time()
     usage = "Simulate measurement set"
     parser = OptionParser(usage=usage)
+    parser.add_option(
+        "--imagelist",
+        dest="imagelist",
+        default="",
+        help="Spectral image list",
+        metavar="String",
+    )
     parser.add_option(
         "--config_file",
         dest="config_file",
@@ -269,15 +364,17 @@ def main():
         metavar="Float",
     )
     parser.add_option(
-        "--stokes",
-        dest="stokes",
+        "--pols",
+        dest="pols",
         default="XX YY",
-        help="Stokes parameters",
+        help="pols parameters",
         metavar="String",
-    )
-    
+    )    
     (options, args) = parser.parse_args()
     try:
+        if options.imagelist=="":
+            print ("Please provide image list.")
+            return 1
         if options.obslat!=None and options.obslon!=None and options.obsalt!=None:
             obs_coord={'lat':float(options.obslat),'lon':float(options.obslon),'alt':float(options.obsalt)}
         else:
@@ -288,8 +385,9 @@ def main():
         if os.path.exists(os.path.abspath(options.config_file))==False:
             print (f"{os.path.abspath(options.config_file)} does not exist. Please provide correct telescope configuration file.")
             return 1
-            
-        simulated_ms = generate_ms(
+        imagelist=options.imagelist.split(",")   
+        msg, simulated_ms = generate_ms(
+            imagelist,
             config_file=options.config_file,
             msname=options.msname,
             telescope_name=options.telescope_name,
@@ -300,20 +398,16 @@ def main():
             start_freq=float(options.start_freq),
             end_freq=float(options.end_freq),
             freqres=float(options.freqres),
-            stokes=options.stokes,
+            pols=options.pols,
         )
         print (f"Total time: {round(time.time()-start_time,2)}s")
-        if simulated_ms==None:
-            return 1
-        else:
-            return 0
+        return msg
     except Exception as e:
         traceback.print_exc()
         return 1
         
 if __name__ == "__main__":
     result = main()
-    os.system("rm -rf casa*log")
     if result > 0:
         result = 1
     print("\n###################\nMeasurement set simulation is done.\n###################\n")

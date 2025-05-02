@@ -2,35 +2,184 @@ from scipy.interpolate import interp1d
 from sunpy.coordinates import frames, sun
 from astropy.coordinates import SkyCoord, EarthLocation
 from astropy.wcs import WCS
-import astropy.units as u, numpy as np, h5py, os, gc
+import astropy.units as u, numpy as np, h5py, os, gc, traceback, time, dask, warnings, psutil, copy
 from astropy.time import Time
 from astropy.io import fits
 from sunpy.map import Map
-from joblib import Parallel, delayed
+from dask.distributed import Client, LocalCluster
+from dask import delayed, compute, config
 from optparse import OptionParser
-import warnings, signal, psutil
 from astropy.utils.exceptions import AstropyWarning
 from casatools import image,simulator,measures,quanta, table
-from casatasks import exportfits, importfits, casalog
+from casatasks import exportfits, importfits
+from casatasks import casalog
+
+logfile = casalog.logfile()
+os.system("rm -rf " + logfile)
 
 # Suppress all Astropy warnings
 warnings.simplefilter("ignore", category=AstropyWarning)
 
+def get_dask_client(n_jobs, dask_dir="/tmp", cpu_frac=0.8, mem_frac=0.8, spill_frac = 0.6, min_mem_per_job=-1):
+    """
+    Create a Dask client optimized for one-task-per-worker execution,
+    where each worker is a separate process that can use multiple threads internally.
 
-def signal_handler(sig, frame):
-    print("Interrupt received. Cleaning up...")
-    raise SystemExit(0)
+    Parameters
+    ----------
+    n_jobs : int
+        Number of MS tasks (ideally = number of MS files)
+    dask_dir : str
+        Dask temporary directory
+    cpu_frac : float
+        Fraction of total CPUs to use
+    mem_frac : float
+        Fraction of total memory to use
+    spill_frac : float, optional
+        Spill to disk at this fraction
+    min_mem_per_job : float, optional
+        Minimum memory per job
+    Returns
+    -------
+    client : dask.distributed.Client
+        Dask clinet
+    cluster : dask.distributed.LocalCluster
+        Dask cluster
+    n_workers : int
+        Number of workers
+    threads_per_worker : int
+        Threads per worker to use
+    """
+    # Create the Dask temporary working directory if it does not already exist
+    if os.path.exists(dask_dir) == False:
+        os.makedirs(dask_dir)
+        
+    # Detect total system resources
+    total_cpus = psutil.cpu_count(logical=True)  # Total logical CPU cores
+    total_mem = psutil.virtual_memory().total    # Total system memory (bytes)
 
-def makeimage(ra, dec, freq, freqres, cell, flux, imagename):
+    ############################################
+    # Wait until enough free CPU is available
+    ############################################
+    count = 0
+    while True:
+        available_cpu_pct = 100 - psutil.cpu_percent(interval=1)  # Percent CPUs currently free
+        available_cpus = int(total_cpus * available_cpu_pct / 100.0)  # Number of free CPU cores
+        usable_cpus = max(1, int(total_cpus * cpu_frac))  # Target number of CPU cores we want available based on cpu_frac
+
+        if available_cpus >= usable_cpus:
+            # Enough free CPUs, exit loop
+            break
+        else:
+            if count == 0:
+                print("Waiting for available free CPUs...")
+            time.sleep(5)  # Wait a bit and retry
+        count += 1
+    ############################################
+    # Wait until enough free memory is available
+    ############################################
+    count = 0
+    while True:
+        available_mem = psutil.virtual_memory().available  # Current available system memory (bytes)
+        usable_mem = total_mem * mem_frac  # Target usable memory based on mem_frac
+
+        if available_mem >= usable_mem:
+            # Enough free memory, exit loop
+            break
+        else:
+            if count == 0:
+                print("Waiting for available free memory...")
+            time.sleep(5)  # Wait and retry
+        count += 1
+        
+    ############################################
+    # Calculate memory per worker
+    ############################################
+    mem_per_worker = usable_mem / n_jobs  # Assume initially one job per worker
+    # Apply minimum memory per worker constraint
+    min_mem_per_job = round(min_mem_per_job, 2)  # Ensure min_mem_per_job is a clean float
+    if min_mem_per_job > 0 and mem_per_worker < (min_mem_per_job * 1024**3):
+        # If calculated memory per worker is smaller than user-requested minimum, adjust number of workers
+        print(
+            f"Total memory per job is smaller than {min_mem_per_job} GB. Adjusting total number of workers to meet this."
+        )
+        mem_per_worker = min_mem_per_job * 1024**3  # Reset memory per worker to minimum allowed
+        n_workers = min(n_jobs, int(usable_mem / mem_per_worker))  # Reduce number of workers accordingly
+    else:
+        # Otherwise, just keep n_jobs workers
+        n_workers = n_jobs
+    #########################################
+    # Cap number of workers to available CPUs
+    n_workers = min(n_workers, usable_cpus)  # Prevent CPU oversubscription
+    # Recalculate final memory per worker based on capped n_workers
+    mem_per_worker = usable_mem / n_workers
+    # Calculate threads per worker
+    threads_per_worker = max(1, usable_cpus // max(1, n_workers))  # Each worker gets 1 or more threads
+    ##########################################
+    print("\n#################################")
+    print(
+        f"Dask workers: {n_workers}, Threads per worker: {threads_per_worker}, Mem/worker: {mem_per_worker/1e9:.2f} GB"
+    )
+
+    cluster = LocalCluster(
+        n_workers=n_workers,
+        threads_per_worker=1,
+        memory_limit=f"{mem_per_worker/1e9:.2f}GB",
+        local_directory=dask_dir,
+        processes=True,  # one process per worker
+        dashboard_address=":0",
+    )
+    client = Client(cluster)
+    # Memory control settings
+    swap = psutil.swap_memory()
+    swap_gb = swap.total / 1024**3  
+    if swap_gb>16:
+        pass
+    elif swap_gb>4:
+        spill_frac=0.6
+    else:
+        spill_frac=0.5  
+        
+    if spill_frac>0.7:
+        spill_frac=0.7    
+    dask.config.set(
+        {
+            "distributed.worker.memory.target": spill_frac,
+            "distributed.worker.memory.spill": 0.7,
+            "distributed.worker.memory.pause": 0.8,
+            "distributed.worker.memory.terminate": 0.95,
+        }
+    )
+
+    client.run_on_scheduler(gc.collect)
+
+    print(f"Dask Dashboard: {client.dashboard_link}")
+    print("#################################\n")
+    return client, cluster, n_workers, threads_per_worker   
+
+def makeimage(ra, dec, freq, freqres, cell, flux, imagename, unit="Jy/pixel"):
     '''
-    ra dec: center of image in radians
-    freq: in GHz
-    freqres: frequency resolution in MHz
-    cell: cell size, e.g., '2' (for 2 arcsec)
-    flux: 2D array
-    imagename: output image name
+    ra: float
+        RA of center of the image in radian
+    dec : float
+        DEC of center of the image in radian 
+    freq: float
+        Frequency in Hz
+    freqres: float
+        Frequency resolution in Hz
+    cell: float
+        Cell size in arcseconds
+    data: numpy.array
+        Image data 
+    imagename: str
+        Output image name
+    unit : str, optional
+        Image pixel unit
+    Returns
+    -------
+    str
+        Output imagename
     '''
-    print (f"Image : {imagename}")
     shape = np.shape(flux)
     qa = quanta()
     ia = image()
@@ -39,20 +188,20 @@ def makeimage(ra, dec, freq, freqres, cell, flux, imagename):
     if os.path.exists(imagename):
         os.system("rm -rf " + imagename)
     # Create a new empty image
-    ia.fromshape(imagename,[shape[2],shape[3],1,1],overwrite=True)
+    ia.fromshape(imagename,[shape[0],shape[1],1,1],overwrite=True)
     # Create coordinate system
     cs = ia.coordsys()
     cs.setunits(['rad', 'rad', '', 'Hz'])  # direction1, direction2, stokes, frequency
     cell_rad = qa.convert(qa.quantity(str(cell) + "arcsec"), "rad")['value']
     cs.setincrement([-cell_rad, cell_rad], 'direction')
     cs.setreferencevalue([ra, dec], type="direction")
-    cs.setreferencevalue(freq, 'spectral')
+    cs.setreferencevalue(str(freq)+"Hz", 'spectral')
     cs.setreferencepixel([0], 'spectral')
-    cs.setincrement(freqres, 'spectral')
+    cs.setincrement(str(freqres)+"Hz", 'spectral')
     # Apply coordinate system
     ia.setcoordsys(cs.torecord())
     # Set image units and initialize
-    ia.setbrightnessunit("Jy/pixel")
+    ia.setbrightnessunit(unit)
     ia.set(0.0)
     ia.close()
     # Now reopen, put data
@@ -69,11 +218,12 @@ def convert_hpc_to_radec(
     obs_time,
     freq,
     freqres,
-    output_fitsfile,
+    output_image,
     obs_lat,
     obs_lon,
     obs_alt,
     datatype,
+    imagetype="fits",
 ):
     """
     Function to convert a Helioprojective coordinate image into RA/Dec coordinates.
@@ -85,8 +235,8 @@ def convert_hpc_to_radec(
         Image header
     obs_time : str
         Observation time (yyyy-mm-ddThh:mm:ss)
-    output_fitsfile : str
-        Output FITS file name
+    output_image : str
+        Output CASA image file name
     freq : float
         Frequency in Hz
     freqres : float
@@ -99,10 +249,12 @@ def convert_hpc_to_radec(
         Observatory altitude in meter
     datatype : str
         Data type (TB or flux)
+    imagetype : str
+        Final image type (fits or casa)
     Returns
     -------
     str
-        File name of the FITS file with RA/Dec coordinates.
+        Output image file name 
     """
     hpc_map = Map(data, header)
     # Extract data and header from the input map
@@ -127,14 +279,22 @@ def convert_hpc_to_radec(
         frame=frames.Helioprojective(observer=gcrs, obstime=obstime),
     )
     hpc_data[np.isnan(hpc_data) == True] = 0.0
-    data = hpc_data[np.newaxis, np.newaxis, ...]
     # Convert reference coordinate to GCRS
     ref_coord_gcrs = ref_coord_arcsec.transform_to("gcrs")
     cell=hpc_header["cdelt2"] 
-    output_image=makeimage(ref_coord_gcrs.ra.rad,ref_coord_gcrs.ra.rad,freq,freqres,cell,data,output_fitsfile.split('.fits')[0]+'.image')
-    print (f"Saved: {output_image}")
-    return output_image
-
+    if datatype=="TB":
+        unit="K"
+    else:
+        unit="Jy/pixel"
+    imagefile=makeimage(ref_coord_gcrs.ra.rad,ref_coord_gcrs.ra.rad,freq,freqres,cell,hpc_data,output_image+".image",unit=unit)
+    if imagetype=='casa':
+        return imagefile
+    else:   
+        if os.path.exists(output_image+".fits"):
+            os.system("rm -rf "+output_image+".fits")
+        exportfits(imagename=imagefile,fitsimage=output_image+".fits",overwrite=True)
+        os.system("rm -rf "+imagefile)
+        return output_image+".fits"
 
 def make_spectral_map(total_tb_file, start_freq, end_freq, freqres, output_unit="TB"):
     """
@@ -213,6 +373,9 @@ def make_spectral_slices(
     obs_alt,
     output_unit="TB",
     make_cube=True,
+    cpu_frac=0.8,
+    mem_frac=0.8,
+    imagetype="casa",
 ):
     """
     Parameters
@@ -239,6 +402,10 @@ def make_spectral_slices(
        Output spectral cube data unit (TB or flux)
     make_cube : str
         Make spectral cube or keep the frequency slices seperately
+    cpu_frac : float, optional
+        CPU fraction to use
+    mem_frac : float, optional
+        Memory fraction to ise 
     Returns
     -------
     str
@@ -248,11 +415,12 @@ def make_spectral_slices(
         total_tb_file, start_freq, end_freq, freqres, output_unit=output_unit
     )
     freqres_Hz = freqres * 10**6  # In Hz
-    signal.signal(signal.SIGINT, signal_handler)
+    imagetype_bkp=copy.deepcopy(imagetype)
+    if make_cube and imagetype=="casa":
+        imagetype="fits"
     try:
-        n_jobs = psutil.cpu_count()
-        results = Parallel(n_jobs=n_jobs, backend="threading")(
-            delayed(convert_hpc_to_radec)(
+        dask_client, dask_cluster, n_workers, threads_per_worker = get_dask_client(len(freqs), cpu_frac=cpu_frac, mem_frac=mem_frac)
+        tasks=[delayed(convert_hpc_to_radec)(
                 data_cube[:, :, i],
                 metadata,
                 obs_time,
@@ -261,16 +429,20 @@ def make_spectral_slices(
                 os.path.dirname(os.path.abspath(total_tb_file))
                 + "/spectral_slice_freq_"
                 + str(round(freqs[i] / 10**6, 1))
-                + "MHz.fits",
+                + "MHz",
                 obs_lat,
                 obs_lon,
                 obs_alt,
                 output_unit,
+                imagetype=imagetype,
             )
-            for i in range(data_cube.shape[-1])
-        )
-    except SystemExit:
-        print("Exiting cleanly.")
+            for i in range(data_cube.shape[-1])]
+        results=compute(*tasks)
+        dask_client.close()
+        dask_cluster.close()
+    except Exception as e:
+        traceback.print_exc()
+        return 
     if make_cube:
         header = fits.getheader(results[0])
         for i in range(len(results)):
@@ -306,7 +478,14 @@ def make_spectral_slices(
             os.system("rm -rf " + r)
         os.system("rm -rf " + filename)
         gc.collect()
-        return output_fitsfile_prefix + "_cube.fits"
+        if imagetype_bkp=="casa":
+            if os.path.exists(output_fitsfile_prefix + "_cube.image"):
+                os.system("rm -rf "+output_fitsfile_prefix + "_cube.image")
+            importfits(fitsimage=output_fitsfile_prefix + "_cube.fits",imagename=output_fitsfile_prefix + "_cube.image")
+            os.system("rm -rf "+output_fitsfile_prefix + "_cube.fits")
+            return output_fitsfile_prefix + "_cube.image"
+        else:
+            return output_fitsfile_prefix + "_cube.fits"
     else:
         gc.collect()
         return ",".join(results)
@@ -392,6 +571,27 @@ def main():
         help="Make spectral cube or keep spectral slices seperate",
         metavar="Boolean",
     )
+    parser.add_option(
+        "--imagetype",
+        dest="imagetype",
+        default="casa",
+        help="Image type",
+        metavar="String",
+    )
+    parser.add_option(
+        "--cpu_frac",
+        dest="cpu_frac",
+        default=0.8,
+        help="CPU fraction to ise",
+        metavar="Float",
+    )
+    parser.add_option(
+        "--mem_frac",
+        dest="mem_frac",
+        default=0.8,
+        help="CPU fraction to ise",
+        metavar="Float",
+    )
     (options, args) = parser.parse_args()
     if options.total_tb_file == None or os.path.exists(options.total_tb_file) == False:
         print("Please provide correct coronal TB file.\n")
@@ -403,19 +603,35 @@ def main():
     ):
         print("Please provide valid frequency informations in MHz.\n")
         return 1
-    spectral_cube = make_spectral_slices(
-        options.total_tb_file,
-        str(options.obs_time),
-        float(options.start_freq),
-        float(options.end_freq),
-        float(options.freqres),
-        options.output_fitsfile_prefix,
-        float(options.obs_lat),
-        float(options.obs_lon),
-        float(options.obs_alt),
-        output_unit=str(options.output_unit),
-        make_cube=eval(str(options.make_cube)),
-    )
-    print("Spectral image(s) is(are) made: ", spectral_cube)
-    gc.collect()
-    return 0
+    try:
+        spectral_cube = make_spectral_slices(
+            options.total_tb_file,
+            str(options.obs_time),
+            float(options.start_freq),
+            float(options.end_freq),
+            float(options.freqres),
+            options.output_fitsfile_prefix,
+            float(options.obs_lat),
+            float(options.obs_lon),
+            float(options.obs_alt),
+            output_unit=str(options.output_unit),
+            make_cube=eval(str(options.make_cube)),
+            cpu_frac=float(options.cpu_frac),
+            mem_frac=float(options.mem_frac),
+            imagetype=options.imagetype,
+        )
+    except Exception as e:
+        traceback.print_exc()
+        return 1
+    if spectral_cube!=None:
+        print("Spectral image(s) is(are) made: ", spectral_cube)
+        gc.collect()
+        return 0
+    else:
+        return 1
+    
+if __name__ == "__main__":
+    result = main()
+    if result > 0:
+        result = 1
+    os._exit(result)

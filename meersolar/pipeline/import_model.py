@@ -9,14 +9,6 @@ from dask import delayed, compute
 logfile = casalog.logfile()
 os.system("rm -rf " + logfile)
 
-"""
-This code is written by Devojyoti Kansabanik, Jul 30, 2023
-"""
-
-#####################################################
-# Polarization models needs to modified for final use
-#####################################################
-
 datadir = get_datadir()
 
 
@@ -194,13 +186,15 @@ def import_fluxcal_models(msname, ncpus=1, mem_frac=0.8):
         return 1
 
 
-def import_phasecal_models(msname, cpu_frac=0.8, mem_frac=0.8):
+def import_phasecal_models(msname, workdir, cpu_frac=0.8, mem_frac=0.8):
     """
     Import model visibilities for phasecal
     Parameters
     ----------
     msname : str
-        Name of the ms
+        Name of the measurement set
+    workdir : str
+        Work directory
     cpu_frac : float, optional
         CPU fraction to use
     mem_frac : float, optional
@@ -224,9 +218,10 @@ def import_phasecal_models(msname, cpu_frac=0.8, mem_frac=0.8):
             mem_limit = run_limited_memory_task(task)
             dask_client, dask_cluster, n_jobs, n_threads = get_dask_client(
                 len(mslist),
-                cpu_frac,
-                mem_frac,
-                min_mem_per_job=mem_limit / 0.8,
+                dask_dir = workdir, 
+                cpu_frac=cpu_frac,
+                mem_frac=mem_frac,
+                min_mem_per_job=mem_limit / 0.6,
             )
             tasks = []
             for i in range(len(mslist)):
@@ -262,13 +257,15 @@ def import_phasecal_models(msname, cpu_frac=0.8, mem_frac=0.8):
         return 1
 
 
-def import_polcal_model(msname, cpu_frac=0.8, mem_frac=0.8):
+def import_polcal_model(msname, workdir, cpu_frac=0.8, mem_frac=0.8):
     """
     Import model for polarization calibrators (3C286 or 3C138)
     Parameters
     ----------
     msname : str
         Name of measurment set
+    workdir : str
+        Work directory
     n_threads : int, optional
         Number of OpenMP threads
     Returns
@@ -288,7 +285,11 @@ def import_polcal_model(msname, cpu_frac=0.8, mem_frac=0.8):
             task = delayed(polcal_setjy)(dry_run=True)
             mem_limit = run_limited_memory_task(task)
             dask_client, dask_cluster, n_jobs, n_threads = get_dask_client(
-                len(p_scans), cpu_frac, mem_frac, min_mem_per_job=mem_limit / 0.8
+                len(p_scans),
+                dask_dir = workdir,
+                cpu_frac=cpu_frac,
+                mem_frac=mem_frac,
+                min_mem_per_job=mem_limit / 0.6,
             )
             tasks = []
             for i in range(len(mslist)):
@@ -316,13 +317,15 @@ def import_polcal_model(msname, cpu_frac=0.8, mem_frac=0.8):
         return 1
 
 
-def import_all_models(msname, cpu_frac=0.8, mem_frac=0.8):
+def import_all_models(msname, workdir, cpu_frac=0.8, mem_frac=0.8):
     """
     Import all calibrator models
     Parameters
     ----------
     msname : str
         Measurement set name
+    workdir : str
+        Work directory
     cpu_frac : float, optional
         CPU fraction to use
     mem_frac : float, optional
@@ -347,10 +350,10 @@ def import_all_models(msname, cpu_frac=0.8, mem_frac=0.8):
             print("##################\n")
             return fluxcal_result, 1, 1
         phasecal_result = import_phasecal_models(
-            msname, cpu_frac=cpu_frac, mem_frac=mem_frac
+            msname, workdir, cpu_frac=cpu_frac, mem_frac=mem_frac
         )
         polcal_result = import_polcal_model(
-            msname, cpu_frac=cpu_frac, mem_frac=mem_frac
+            msname, workdir, cpu_frac=cpu_frac, mem_frac=mem_frac
         )
         if phasecal_result != 0:
             print(
@@ -423,13 +426,17 @@ def main():
         try:
             fluxcal_result, phasecal_result, polcal_result = import_all_models(
                 options.msname,
+                options.workdir,
                 cpu_frac=float(options.cpu_frac),
                 mem_frac=float(options.mem_frac),
             )
             os.system("touch " + workdir + "/.fluxcal_" + str(fluxcal_result))
             os.system("touch " + workdir + "/.phasecal_" + str(phasecal_result))
             os.system("touch " + workdir + "/.polcal_" + str(polcal_result))
-            return 0
+            if fluxcal_result==1 or (fluxcal_result==1 and phasecal_result==1 and polcal_result==1):
+                return 1
+            else:
+                return 0
         except Exception as e:
             traceback.print_exc()
             os.system("touch " + workdir + "/.fluxcal_1")

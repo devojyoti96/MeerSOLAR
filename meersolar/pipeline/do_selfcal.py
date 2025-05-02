@@ -10,10 +10,6 @@ from casatasks import casalog
 logfile = casalog.logfile()
 os.system("rm -rf " + logfile)
 
-"""
-This code is written by Devojyoti Kansabanik, Apr 18, 2025
-"""
-
 
 def single_selfcal_iteration(
     msname,
@@ -151,6 +147,7 @@ def single_selfcal_iteration(
             "-minuv-l " + str(minuv),
             "-j " + str(ncpu),
             "-abs-mem " + str(mem),
+            "-no-nagative",
             "-parallel-reordering " + str(ncpu),
             "-parallel-gridding " + str(ngrid),
             "-auto-threshold 1 -auto-mask " + str(threshold),
@@ -196,7 +193,7 @@ def single_selfcal_iteration(
         if use_solar_mask:
             fits_mask = msname.split(".ms")[0] + "_solar-mask.fits"
             if os.path.exists(fits_mask) == False:
-                mask_radius = 25
+                mask_radius = 20
                 print(
                     f"{os.path.basename(msname)} -- Creating solar mask of size: {mask_radius} arcmin.\n"
                 )
@@ -284,10 +281,6 @@ def single_selfcal_iteration(
         #####################
         # Perform calibration
         #####################
-        if calmode == "p":
-            minblperant = 3
-        else:
-            minblperant = 4
         gain_caltable = prefix + ".gcal"
         if os.path.exists(gain_caltable):
             os.system("rm -rf " + gain_caltable)
@@ -299,8 +292,6 @@ def single_selfcal_iteration(
             calmode=calmode,
             solmode=solmode,
             gaintype=gaintype,
-            minblperant=minblperant,
-            minsnr=1,
             rmsthresh=[10, 7, 5, 3.5],
             solint=solint,
             solnorm=True,
@@ -318,16 +309,6 @@ def single_selfcal_iteration(
             calwt=[False],
         )
         gc.collect()
-        tb = table()
-        tb.open(gain_caltable, nomodify=False)
-        gain = tb.getcol("CPARAM")
-        flag = tb.getcol("FLAG")
-        gain[flag] = 1.0
-        flag *= False
-        tb.putcol("CPARAM", gain)
-        tb.putcol("FLAG", flag)
-        tb.flush()
-        tb.close()
         os.system("cp -r " + msname + " " + prefix + ".ms")
         return (
             0,
@@ -726,11 +707,8 @@ def do_selfcal(
             if (
                 ((do_apcal and calmode == "ap") or do_apcal == False)
                 and num_iter_fixed_sigma > min_iter
-                and abs(round(np.nanmedian([DR1, DR3, DR5]), 0) - last_sigma_DR1)
-                / last_sigma_DR1
-                < DR_convegerence_frac
-                and abs(last_sigma_DR2 - last_sigma_DR1) / last_sigma_DR2
-                < DR_convegerence_frac
+                and (last_sigma_DR1>0 and abs(round(np.nanmedian([DR1, DR3, DR5]), 0) - last_sigma_DR1)/ last_sigma_DR1< DR_convegerence_frac)
+                and (last_sigma_DR2>0 and abs(last_sigma_DR2 - last_sigma_DR1) / last_sigma_DR2 < DR_convegerence_frac)
                 and sigma_reduced_count > 1
             ):
                 if threshold > end_threshold:
@@ -1014,17 +992,26 @@ def main():
         solar_selfcal=eval(str(options.solar_selfcal)),
     )
 
+    ####################################
+    # Filtering any corrupted ms
+    #####################################    
+    filtered_mslist=[] # Filtering in case any ms is corrupted
+    for ms in mslist:
+        checkcol=check_datacolumn_valid(ms)
+        if checkcol:
+            filtered_mslist.append(ms)
+        else:
+            print (f"Issue in : {ms}")
+            os.system("rm -rf {ms}")
+    mslist=filtered_mslist  
+        
     dask_client, dask_cluster, n_jobs, n_threads = get_dask_client(
         len(mslist),
-        float(options.cpu_frac),
-        float(options.mem_frac),
-        min_mem_per_job=mem_limit / 0.8,
+        dask_dir = options.workdir, 
+        cpu_frac=float(options.cpu_frac),
+        mem_frac=float(options.mem_frac),
+        min_mem_per_job=mem_limit / 0.6,
     )
-    workers = list(dask_client.scheduler_info()["workers"].items())
-    addr, stats = workers[0]
-    memory_limit = stats["memory_limit"] / 1024**3
-    target_frac = config.get("distributed.worker.memory.target")
-    memory_limit *= target_frac
     tasks = []
     for ms in mslist:
         tasks.append(
@@ -1035,7 +1022,7 @@ def main():
                 + os.path.basename(ms).split(".ms")[0]
                 + "_selfcal",
                 ncpu=n_threads,
-                mem=memory_limit,
+                mem=mem_limit,
             )
         )
     results = compute(*tasks)
@@ -1079,7 +1066,6 @@ def main():
 
 if __name__ == "__main__":
     result = main()
-    os.system("rm -rf casa*log")
     if result > 0:
         result = 1
     print("\n###################\nSelf-calibration is done.\n###################\n")

@@ -220,3 +220,9 @@ def main():
         print("Free free coronal emission spectral image cube: ", ff_file)
         gc.collect()
         return 0
+        
+if __name__ == "__main__":
+    result = main()
+    if result > 0:
+        result = 1
+    os._exit(result)

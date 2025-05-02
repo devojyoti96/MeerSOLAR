@@ -18,10 +18,6 @@ from casatasks import casalog
 logfile = casalog.logfile()
 os.system("rm -rf " + logfile)
 
-"""
-This code is written by Devojyoti Kansabanik, Jul 30, 2024
-"""
-
 
 def get_datadir():
     """
@@ -299,7 +295,6 @@ def get_bad_ants(msname="", fieldnames=[], n_threads=-1, dry_run=False):
     """
     limit_threads(n_threads=n_threads)
     from casatasks import visstat
-
     if dry_run:
         process = psutil.Process(os.getpid())
         mem = round(process.memory_info().rss / 1024**3, 2)  # in GB
@@ -1317,12 +1312,14 @@ def correct_solar_sidereal_motion(msname="", verbose=False, dry_run=False):
     if dry_run:
         mem = run_solar_sidereal_cor(dry_run=True)
         return mem
-    print(f"Correcting sidereal motion for ms: {msname}")
+    print(f"Correcting sidereal motion for ms: {msname}\n")
     msg = run_solar_sidereal_cor(
         msname=msname, container_name="meerwsclean", verbose=verbose
     )
     if msg != 0:
         print("Sidereal motion correction is not successful.")
+    else:
+        os.system("touch "+msname+"/.sidereal_cor")
     return msg
 
 
@@ -1628,8 +1625,6 @@ def calc_multiscale_scales(msname, num_pixel_in_psf, max_scale=16, nmax=5):
     psf = calc_psf(msname)
     multiscale_scales = [0, num_pixel_in_psf]
     max_scale_pixel = int(max_scale * 60 / psf)
-    if max_scale_pixel > 50:
-        max_scale_pixel = 50
     if nmax > 2 and max_scale_pixel > 3 * num_pixel_in_psf:
         other_scales = np.linspace(
             3 * num_pixel_in_psf, max_scale_pixel, nmax - 2, endpoint=True
@@ -1891,7 +1886,7 @@ def create_batch_script_nonhpc(cmd, workdir, basename):
     return workdir + "/" + basename + ".batch"
 
 
-def get_dask_client(n_jobs, cpu_frac=0.8, mem_frac=0.8, min_mem_per_job=-1):
+def get_dask_client(n_jobs, dask_dir="/tmp", cpu_frac=0.8, mem_frac=0.8, spill_frac = 0.6, min_mem_per_job=-1):
     """
     Create a Dask client optimized for one-task-per-worker execution,
     where each worker is a separate process that can use multiple threads internally.
@@ -1900,10 +1895,14 @@ def get_dask_client(n_jobs, cpu_frac=0.8, mem_frac=0.8, min_mem_per_job=-1):
     ----------
     n_jobs : int
         Number of MS tasks (ideally = number of MS files)
+    dask_dir : str
+        Dask temporary directory
     cpu_frac : float
         Fraction of total CPUs to use
     mem_frac : float
         Fraction of total memory to use
+    spill_frac : float, optional
+        Spill to disk at this fraction
     min_mem_per_job : float, optional
         Minimum memory per job
     Returns
@@ -1917,54 +1916,77 @@ def get_dask_client(n_jobs, cpu_frac=0.8, mem_frac=0.8, min_mem_per_job=-1):
     threads_per_worker : int
         Threads per worker to use
     """
-    import os
-
-    # Detect system resources
-    total_cpus = psutil.cpu_count(logical=True)
-    total_mem = psutil.virtual_memory().total
-
-    # Wait for enough CPU
+    # Create the Dask temporary working directory if it does not already exist
+    if os.path.exists(dask_dir) == False:
+        os.makedirs(dask_dir)
+    
+    # Detect total system resources
+    total_cpus = psutil.cpu_count(logical=True)  # Total logical CPU cores
+    total_mem = psutil.virtual_memory().total    # Total system memory (bytes)
+    if cpu_frac>0.8:
+        print ("Given CPU fraction is more than 80%. Resetting to 80% to avoid system crash.")
+        cpu_frac=0.8
+    if mem_frac>0.8:
+        print ("Given memory fraction is more than 80%. Resetting to 80% to avoid system crash.")
+        mem_frac=0.8
+        
+    ############################################
+    # Wait until enough free CPU is available
+    ############################################
     count = 0
     while True:
-        available_cpu_pct = 100 - psutil.cpu_percent(interval=1)
-        available_cpus = int(total_cpus * available_cpu_pct / 100.0)
-        usable_cpus = max(1, int(total_cpus * cpu_frac))
-        if available_cpus >= usable_cpus:
+        available_cpu_pct = 100 - psutil.cpu_percent(interval=1)  # Percent CPUs currently free
+        available_cpus = int(total_cpus * available_cpu_pct / 100.0)  # Number of free CPU cores
+        usable_cpus = max(1, int(total_cpus * cpu_frac))  # Target number of CPU cores we want available based on cpu_frac
+
+        if available_cpus >= int(0.5*usable_cpus): # Enough free CPUs (at-least more than 50%), exit loop
+            usable_cpus=available_cpus
             break
         else:
             if count == 0:
                 print("Waiting for available free CPUs...")
-            time.sleep(5)
+            time.sleep(5)  # Wait a bit and retry
         count += 1
-
-    # Wait for enough memory
+    ############################################
+    # Wait until enough free memory is available
+    ############################################
     count = 0
     while True:
-        available_mem = psutil.virtual_memory().available
-        usable_mem = total_mem * mem_frac
-        if available_mem >= usable_mem:
+        available_mem = psutil.virtual_memory().available  # Current available system memory (bytes)
+        usable_mem = total_mem * mem_frac  # Target usable memory based on mem_frac
+
+        if available_mem >= 0.5*usable_mem: # Enough free memory (at-least more than 50%), exit loop
+            usable_mem=available_mem
             break
         else:
             if count == 0:
                 print("Waiting for available free memory...")
-            time.sleep(5)
+            time.sleep(5)  # Wait and retry
         count += 1
-
-    # Determine resources per worker
-    mem_per_worker = usable_mem / n_jobs
-    # Safety checks
-    min_mem_per_job = round(min_mem_per_job, 2)
+    ############################################
+    # Calculate memory per worker
+    ############################################
+    mem_per_worker = usable_mem / n_jobs  # Assume initially one job per worker
+    # Apply minimum memory per worker constraint
+    min_mem_per_job = round(min_mem_per_job, 2)  # Ensure min_mem_per_job is a clean float
     if min_mem_per_job > 0 and mem_per_worker < (min_mem_per_job * 1024**3):
+        # If calculated memory per worker is smaller than user-requested minimum, adjust number of workers
         print(
             f"Total memory per job is smaller than {min_mem_per_job} GB. Adjusting total number of workers to meet this."
         )
-        mem_per_worker = min_mem_per_job * 1024**3
-        n_workers = min(n_jobs, int(usable_mem / mem_per_worker))
+        mem_per_worker = min_mem_per_job * 1024**3  # Reset memory per worker to minimum allowed
+        n_workers = min(n_jobs, int(usable_mem / mem_per_worker))  # Reduce number of workers accordingly
     else:
+        # Otherwise, just keep n_jobs workers
         n_workers = n_jobs
-        mem_per_worker = usable_mem / n_workers
-    threads_per_worker = max(1, usable_cpus // max(1, n_workers))
-
+    #########################################
+    # Cap number of workers to available CPUs
+    n_workers = min(n_workers, usable_cpus)  # Prevent CPU oversubscription
+    # Recalculate final memory per worker based on capped n_workers
+    mem_per_worker = usable_mem / n_workers
+    # Calculate threads per worker
+    threads_per_worker = max(1, usable_cpus // max(1, n_workers))  # Each worker gets 1 or more threads
+    ##########################################
     print("\n#################################")
     print(
         f"Dask workers: {n_workers}, Threads per worker: {threads_per_worker}, Mem/worker: {mem_per_worker/1e9:.2f} GB"
@@ -1972,16 +1994,28 @@ def get_dask_client(n_jobs, cpu_frac=0.8, mem_frac=0.8, min_mem_per_job=-1):
 
     cluster = LocalCluster(
         n_workers=n_workers,
-        threads_per_worker=1,
-        memory_limit=mem_per_worker,
+        threads_per_worker=1, # one python-thread per worker, in workers OpenMP threads can be used
+        memory_limit=f"{mem_per_worker/1e9:.2f}GB",
+        local_directory=dask_dir,
         processes=True,  # one process per worker
         dashboard_address=":0",
     )
     client = Client(cluster)
     # Memory control settings
+    swap = psutil.swap_memory()
+    swap_gb = swap.total / 1024**3  
+    if swap_gb>16:
+        pass
+    elif swap_gb>4:
+        spill_frac=0.6
+    else:
+        spill_frac=0.5  
+        
+    if spill_frac>0.7:
+        spill_frac=0.7    
     dask.config.set(
         {
-            "distributed.worker.memory.target": 0.6,
+            "distributed.worker.memory.target": spill_frac,
             "distributed.worker.memory.spill": 0.7,
             "distributed.worker.memory.pause": 0.8,
             "distributed.worker.memory.terminate": 0.95,
@@ -2149,22 +2183,27 @@ def check_datacolumn_valid(msname, datacolumn="DATA"):
         Whether valid data column is present or not
     """
     tb = table()
-    tb.open(msname)
-    colnames = tb.colnames()
-    if datacolumn not in colnames:
-        tb.close()
-        return False
+    msname=msname.rstrip("/")
+    msname=os.path.abspath(msname)
     try:
-        model_data = tb.getcol(datacolumn, startrow=0, nrow=1)
-        tb.close()
-        if model_data is None or model_data.size == 0:
+        tb.open(msname)
+        colnames = tb.colnames()
+        if datacolumn not in colnames:
+            tb.close()
             return False
-        elif (model_data == 0).all():
+        try:
+            model_data = tb.getcol(datacolumn, startrow=0, nrow=1)
+            tb.close()
+            if model_data is None or model_data.size == 0:
+                return False
+            elif (model_data == 0).all():
+                return False
+            else:
+                return True
+        except:
+            tb.close()
             return False
-        else:
-            return True
     except:
-        tb.close()
         return False
 
 
