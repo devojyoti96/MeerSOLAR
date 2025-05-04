@@ -96,7 +96,7 @@ def split_target_scans(
     freqres,
     datacolumn,
     spw="",
-    chanchunk=-1,
+    spectral_chunk=-1,
     timerange="",
     scans=[],
     do_only_sidereal_cor=False,
@@ -119,8 +119,8 @@ def split_target_scans(
         Data column to split
     spw : str, optional
         Spectral window
-    chanchunk : int, optional
-        Number of spectral chunks
+    spectral_chunk : float, optional
+        Spectral chunk in MHz
     timerange : str, optional
         Time range
     scans : list
@@ -183,18 +183,20 @@ def split_target_scans(
             common_spws = get_common_spw(good_spws, spws)
             good_spws = common_spws.split("0:")[-1].split(";")
         chanlist = []
-        if chanchunk > 0:
-            nchan_per_chunk = int(nchan / chanchunk)
+        if spectral_chunk > 0:
+            nchan_per_chunk = int(spectral_chunk / chanres)
             for good_spw in good_spws:
                 start_chan = int(good_spw.split("~")[0])
                 end_chan = int(good_spw.split("~")[-1])
-                for s in range(start_chan, end_chan, nchan_per_chunk):
+                for s in range(start_chan, end_chan+nchan_per_chunk, nchan_per_chunk):
                     e = s + nchan_per_chunk - 1
                     if e > end_chan:
                         e = end_chan
-                chanlist.append(f"{s}~{e}")
+                    chanlist.append(f"{s}~{e}")
         else:
             chanlist = good_spws
+            
+        print (f"Spliting channel blocks : {chanlist}")
         ##################################
         # Time range
         ##################################
@@ -208,7 +210,8 @@ def split_target_scans(
             del filtered_scan_list_bkp
         else:
             scan_timerange_dic = {}
-
+        print (f"Spliting scans : {filtered_scan_list}.")
+        
         ##################################
         # Parallel spliting
         ##################################
@@ -238,6 +241,7 @@ def split_target_scans(
                     time_range = ""
                 for chanrange in chanlist:
                     outputvis = f"{workdir}/target_scan_{scan}_spw_{chanrange}.ms"
+                    print (outputvis)
                     task = delayed(split_scan)(
                         msname,
                         outputvis,
@@ -282,7 +286,7 @@ def split_target_scans(
         #############################################
         task = delayed(correct_solar_sidereal_motion)(dry_run=True)
         mem_limit = run_limited_memory_task(task)
-        #######################
+        #############################################
         splited_ms_list_phaserotated = []
         dask_client, dask_cluster, n_jobs, n_threads = get_dask_client(
             len(splited_ms_list),
@@ -371,11 +375,11 @@ def main():
         metavar="String",
     )
     parser.add_option(
-        "--nchan_chunck",
-        dest="nchan_chunck",
+        "--spectral_chunk",
+        dest="spectral_chunk",
         default=-1,
-        help="Number of spectral chunk (default : unflag chan blocks)",
-        metavar="Integer",
+        help="Spectral chunk in MHz",
+        metavar="Float",
     )
     parser.add_option(
         "--print_casalog",
@@ -444,7 +448,7 @@ def main():
                 timerange=options.timerange,
                 scans=scans,
                 do_only_sidereal_cor=eval(str(options.only_sidereal_cor)),
-                chanchunk=int(options.nchan_chunck),
+                spectral_chunk=float(options.spectral_chunk),
                 cpu_frac=float(options.cpu_frac),
                 mem_frac=float(options.mem_frac),
             )
