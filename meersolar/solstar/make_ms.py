@@ -5,7 +5,7 @@ from casatools import simulator, measures, quanta, table
 from meersolar.solstar.basic_func import *
 from meersolar.solstar.make_spectral_cube import *
 from optparse import OptionParser
-from casatasks import casalog, ft, split
+from casatasks import casalog, ft, split, delmod
 
 logfile = casalog.logfile()
 os.system("rm -rf " + logfile)
@@ -66,6 +66,11 @@ def generate_ms(
         if len(imagelist)==0:
             print ("Please provide image list.")
             return 1, ""
+        imagelist=np.array(imagelist)
+        image_freqlist=np.array([float(os.path.basename(i).split("MHz")[0].split("spectral_slice_freq_")[-1]) for i in imagelist])
+        pos=np.argsort(image_freqlist)
+        imagelist=imagelist[pos]
+        imagelist=imagelist.tolist()
         msname=msname.rstrip("/")
         if os.path.exists(msname):
             os.system("rm -rf "+msname)
@@ -128,6 +133,7 @@ def generate_ms(
         ###############################
         # Simulating measurement set
         ################################
+        print (f"Start simulating measurement set: {msname}.")
         sm.open(msname)
         sm.setconfig(
             telescopename=telescope_name,
@@ -169,10 +175,11 @@ def generate_ms(
             print(f"Simulated measurement set: {msname} could not be made.")
             return 1, ""
         else:
-            imagelist=sorted(imagelist)
+            print ("Importing models...")
+            delmod(vis=msname,scr=True)
             for i in range(nchan):
                 imagename=imagelist[i]
-                ft(vis=msname,model=imagename,spw=f"0:{i}",incremental=True,usescratch=False)
+                ft(vis=msname,model=imagename,spw=f"0:{i}",incremental=True,usescratch=True)
             del imagelist
             gc.collect()
             tb = table()

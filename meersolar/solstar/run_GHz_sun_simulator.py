@@ -150,13 +150,6 @@ def main():
         metavar="Boolean",
     )
     parser.add_option(
-        "--simulated_ms",
-        dest="simulated_ms",
-        default="",
-        help="Simulated measurement set name",
-        metavar="String",
-    )
-    parser.add_option(
         "--integration_time",
         dest="integration_time",
         default=2.0,
@@ -395,45 +388,51 @@ def main():
             output_unit="flux"
     else:
         imagetype="fits"
-            
-    spectral_cube_cmd = (
-        "simulate_solar_spectral_cube --workdir "
-        + str(options.workdir)
-        +" --total_tb_file "
-        + str(options.workdir)
-        + f"/TotalTB_{dt_string}.h5 --obs_time "
-        + str(options.obs_date)
-        + "T"
-        + str(options.obs_time)
-        + " --start_freq "
-        + str(options.start_freq)
-        + " --end_freq "
-        + str(options.end_freq)
-        + " --freqres "
-        + str(options.freqres)
-        + " --obs_lat "
-        + str(obslat)
-        + " --obs_lon "
-        + str(obslon)
-        + " --obs_alt "
-        + str(obsalt)
-        + " --output_product "
-        + str(output_unit)
-        + " --make_cube "
-        + str(make_cube)
-        + " --cpu_frac "
-        + str(cpu_frac)
-        + " --mem_frac "
-        + str(mem_frac)
-        + " --output_prefix "
-        + str(options.workdir)
-        + "/spectral --imagetype "
-        + str(imagetype)
-    )
-    print(spectral_cube_cmd + "\n")
-    os.system(spectral_cube_cmd)
-    print("#################\n")
-    gc.collect()
+    imagedir=options.workdir+f"/images_simulated_{dt_string}_freq_"+str(int(options.start_freq))+"_"+str(int(options.end_freq))
+    if os.path.exists(imagedir)==False:
+        os.makedirs(imagedir)   
+    print (f"Image directory: {imagedir}") 
+    image_cubes=glob.glob(str(imagedir)+ "/spectral*.image")
+    n_image=int((float(options.end_freq)-float(options.start_freq))/float(options.freqres))
+    if n_image!=len(image_cubes):          
+        spectral_cube_cmd = (
+            "simulate_solar_spectral_cube --workdir "
+            + str(options.workdir)
+            +" --total_tb_file "
+            + str(options.workdir)
+            + f"/TotalTB_{dt_string}.h5 --obs_time "
+            + str(options.obs_date)
+            + "T"
+            + str(options.obs_time)
+            + " --start_freq "
+            + str(options.start_freq)
+            + " --end_freq "
+            + str(options.end_freq)
+            + " --freqres "
+            + str(options.freqres)
+            + " --obs_lat "
+            + str(obslat)
+            + " --obs_lon "
+            + str(obslon)
+            + " --obs_alt "
+            + str(obsalt)
+            + " --output_product "
+            + str(output_unit)
+            + " --make_cube "
+            + str(make_cube)
+            + " --cpu_frac "
+            + str(cpu_frac)
+            + " --mem_frac "
+            + str(mem_frac)
+            + " --output_prefix "
+            + str(imagedir)
+            + "/spectral --imagetype "
+            + str(imagetype)
+        )
+        print(spectral_cube_cmd + "\n")
+        os.system(spectral_cube_cmd)
+        print("#################\n")
+        gc.collect()
     
     ####################################
     # Making simulated ms
@@ -442,14 +441,8 @@ def main():
         print (f"No array configuration file is present for : {telescope_name}.") 
         print ("Could not make the measurement set.")
     else:
-        image_cubes=glob.glob(str(options.workdir)+ "/spectral*.image")
-        if options.simulated_ms=="":
-            simulated_ms=options.workdir+f"/simulated_{dt_string}.ms"
-        else:
-            simulated_ms=os.path.abspath(options.simulated_ms)
-        imagedir=os.path.dirname(simulated_ms)+"/images_"+os.path.basename(simulated_ms).split(".ms")[0]
-        if os.path.exists(imagedir)==False:
-            os.makedirs(imagedir)
+        image_cubes=glob.glob(str(imagedir)+ "/spectral*.image")
+        simulated_ms=options.workdir+f"/simulated_{dt_string}.ms"
         msg, simulated_ms = generate_ms(
             image_cubes,
             config_file=config_file,
@@ -463,8 +456,6 @@ def main():
             freqres=float(options.freqres),
             pols=options.pols,
         )
-        for i in image_cubes:
-            os.system(f"mv {i} {imagedir}")
         if msg==0:
             print (f"Simulated measurement set: {simulated_ms}")
         else:
