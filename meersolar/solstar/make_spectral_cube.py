@@ -196,9 +196,17 @@ def make_spectral_map(total_tb_file, start_freq, end_freq, freqres, output_unit=
         metadata[key] = hf.attrs[key]
     new_freqs = np.arange(start_freq, end_freq, freqres) * 10**6  # In Hz
     # Initialize the output array with the new shape
-    interpolated_array = np.empty(
-        (tb.shape[0], tb.shape[1], len(new_freqs)), dtype="float32"
-    )
+    shape = (tb.shape[0], tb.shape[1], len(new_freqs))
+    dtype = "float32"
+    # Create a memmap file on disk (choose a suitable path)
+    memmap_file = f"{total_tb_file}.dat"  # or use tempfile for auto-cleanup
+    # Create the memmap array
+    if os.path.exists(memmap_file):
+        os.system(f"rm -rf {memmap_file}")
+    interpolated_array = np.memmap(memmap_file, dtype=dtype, mode='w+', shape=shape)
+    #interpolated_array = np.empty(
+    #    (tb.shape[0], tb.shape[1], len(new_freqs)), dtype="float32"
+    #)
     # Perform spline interpolation for each pixel across the third axis
     if start_freq * 10**6 < min(freqs) or end_freq * 10**6 > max(freqs):
         print(
@@ -219,9 +227,10 @@ def make_spectral_map(total_tb_file, start_freq, end_freq, freqres, output_unit=
                     freqs, flux[i, j, :], kind=interp_mode, fill_value="extrapolate"
                 )  # Spline interpolation
             interpolated_array[i, j, :] = f(new_freqs)
+        interpolated_array.flush()
     print("Spectral image cube at user given frequency is ready.\n")
     gc.collect()
-    return interpolated_array, new_freqs, metadata
+    return memmap_file, shape, new_freqs, metadata
 
 
 def make_spectral_slices(
@@ -277,36 +286,48 @@ def make_spectral_slices(
     str
         Either spectral image cube name or list of spectral slices
     """
-    data_cube, freqs, metadata = make_spectral_map(
+    data_cube_file, data_shape, freqs, metadata = make_spectral_map(
         total_tb_file, start_freq, end_freq, freqres, output_unit=output_unit
     )
+    data_cube = np.memmap(data_cube_file, dtype="float32", mode="r", shape=data_shape)
     freqres_Hz = freqres * 10**6  # In Hz
     imagetype_bkp=copy.deepcopy(imagetype)
     if make_cube and imagetype=="casa":
         imagetype="fits"
     try:
         dask_client, dask_cluster, n_workers, threads_per_worker = get_dask_client(len(freqs), dask_dir=workdir, cpu_frac=cpu_frac, mem_frac=mem_frac)
-        tasks=[delayed(convert_hpc_to_radec)(
-                data_cube[:, :, i],
-                metadata,
-                obs_time,
-                freqs[i],
-                freqres_Hz,
-                os.path.dirname(os.path.abspath(total_tb_file))
-                + "/spectral_slice_freq_"
-                + str(round(freqs[i] / 10**6, 1))
-                + "MHz",
-                obs_lat,
-                obs_lon,
-                obs_alt,
-                output_unit,
-                imagetype=imagetype,
+        results = []
+        for n in range(0, data_shape[-1], n_workers):
+            scattered_slices = dask_client.scatter(
+                [data_cube[:, :, i] for i in range(n, n + n_workers)],
+                broadcast=False
             )
-            for i in range(data_cube.shape[-1])]
-        results=compute(*tasks)
+
+            tasks = [
+                delayed(convert_hpc_to_radec)(
+                    scattered_slices[i - n],  # i-n to index locally
+                    metadata,
+                    obs_time,
+                    freqs[i],
+                    freqres_Hz,
+                    os.path.join(os.path.dirname(os.path.abspath(total_tb_file)),
+                                 f"spectral_slice_freq_{round(freqs[i]/1e6, 1)}MHz"),
+                    obs_lat,
+                    obs_lon,
+                    obs_alt,
+                    output_unit,
+                    imagetype=imagetype,
+                )
+                for i in range(n, min(n + n_workers, data_shape[-1]))
+            ]
+
+            chunk_results = compute(*tasks)
+            results.extend(chunk_results)
+
         dask_client.close()
         dask_cluster.close()
         os.system("rm -rf "+workdir+"/dask-scratch-space")
+        os.system("rm -rf "+data_cube_file)
     except Exception as e:
         traceback.print_exc()
         return 
