@@ -34,6 +34,7 @@ def single_selfcal_iteration(
     min_fractional_bw=10,
     ncpu=-1,
     mem=-1,
+    logfile="selfcal.log",
 ):
     """
     A single self-calibration round
@@ -79,6 +80,8 @@ def single_selfcal_iteration(
         Number of CPUs to use in WSClean
     mem : float, optional
         Memory usage limit in WSClean
+    logfile : str, optional
+        Log file name
     Returns
     -------
     int
@@ -100,7 +103,7 @@ def single_selfcal_iteration(
     """
     limit_threads(n_threads=ncpu)
     from casatasks import gaincal, applycal, flagdata, delmod, flagmanager
-
+    logf=open(logfile,"a")
     try:
         ##################################
         # Setup wsclean params
@@ -108,7 +111,7 @@ def single_selfcal_iteration(
         if ncpu < 1:
             ncpu = psutil.cpu_count()
         if mem < 0:
-            mem = psutil.virtual_memory().total / (1024**3)
+            mem = round(psutil.virtual_memory().total / (1024**3),2)
         ngrid = max(1, int(ncpu / 2))
         msname = msname.rstrip("/")
         delmod(vis=msname, otf=True, scr=True)
@@ -128,10 +131,6 @@ def single_selfcal_iteration(
         os.system("rm -rf " + prefix + "*")
         if weight == "briggs":
             weight += " " + str(robust)
-        if threshold < 1:
-            threshold += 1
-        elif threshold == 1:
-            threshold += 0.1
         wsclean_args = [
             "-quiet",
             "-scale " + str(cellsize) + "asec",
@@ -147,14 +146,30 @@ def single_selfcal_iteration(
             "-minuv-l " + str(minuv),
             "-j " + str(ncpu),
             "-abs-mem " + str(mem),
-            "-no-nagative",
+            "-no-negative",
             "-parallel-reordering " + str(ncpu),
             "-parallel-gridding " + str(ngrid),
-            "-auto-threshold 1 -auto-mask " + str(threshold),
+            "-auto-threshold "+str(threshold)+" -auto-mask " + str(threshold+0.1),
         ]
-        if imsize > (2 * 1024):
-            wsclean_args.append("-parallel-deconvolution 1024")
-            wsclean_args.append("-deconvolution-threads " + str(ncpu))
+        
+        ############################################
+        # Parallel deconvolution within memory limit
+        ############################################
+        subimsize=1024
+        if imsize > (2 * subimsize):
+            subimage_memory=8*(subimsize**2)/(1024**3)
+            n_subimage=int(imsize/subimsize)
+            if ncpu*subimage_memory>mem:
+                if n_subimage*subimage_memory>mem:
+                    threads_to_use=int(mem/subimage_memory)
+                    subimsize=int(imsize/threads_to_use)
+                else:
+                    threads_to_use=n_subimage
+            else:
+                threads_to_use=ncpu
+            if threads_to_use>1 and subimsize>1024: 
+                wsclean_args.append("-parallel-deconvolution 1024")
+                wsclean_args.append("-deconvolution-threads " + str(threads_to_use))
 
         #####################################
         # Spectral imaging configuration
@@ -170,8 +185,7 @@ def single_selfcal_iteration(
             nchan = int(total_bw / bw)
             if nchan > 1:
                 print(
-                    f"{os.path.basename(msname)} -- Spectral chunk: {nchan} for maintaining minimum fractional bandwidth: {min_fractional_bw}%"
-                )
+                    f"{os.path.basename(msname)} -- Spectral chunk: {nchan} for maintaining minimum fractional bandwidth: {min_fractional_bw}%\n",file=logf,flush=True)
                 wsclean_args.append(f"-channels-out {nchan}")
                 wsclean_args.append(f"-join-channels")
         else:
@@ -195,7 +209,7 @@ def single_selfcal_iteration(
             if os.path.exists(fits_mask) == False:
                 mask_radius = 20
                 print(
-                    f"{os.path.basename(msname)} -- Creating solar mask of size: {mask_radius} arcmin.\n"
+                    f"{os.path.basename(msname)} -- Creating solar mask of size: {mask_radius} arcmin.\n",file=logf,flush=True
                 )
                 fits_mask = create_circular_mask(
                     msname, cellsize, imsize, mask_radius=mask_radius
@@ -216,10 +230,11 @@ def single_selfcal_iteration(
         # Running imaging
         ######################################
         wsclean_cmd = "wsclean " + " ".join(wsclean_args) + " " + msname
+        print (f"{os.path.basename(msname)} -- WSClean command: {wsclean_cmd}\n",file=logf,flush=True)
         msg = run_wsclean(wsclean_cmd, "meerwsclean", verbose=False)
         if msg != 0:
             gc.collect()
-            print(f"{os.path.basename(msname)} -- Imaging is not successful.")
+            print(f"{os.path.basename(msname)} -- Imaging is not successful.\n",file=logf,flush=True)
             return 1, "", 0, 0, 0, "", "", ""
 
         #########################################
@@ -275,7 +290,7 @@ def single_selfcal_iteration(
         )
         if model_flux == 0:
             gc.collect()
-            print(f"{os.path.basename(msname)} -- No model flux.\n")
+            print(f"{os.path.basename(msname)} -- No model flux.\n",file=logf,flush=True)
             return 1, "", 0, 0, 0, "", "", ""
 
         #####################
@@ -297,7 +312,7 @@ def single_selfcal_iteration(
             solnorm=True,
         )
         if os.path.exists(gain_caltable) == False:
-            print(f"{os.path.basename(msname)} -- No gain solutions are found.\n")
+            print(f"{os.path.basename(msname)} -- No gain solutions are found.\n",file=logf,flush=True)
             gc.collect()
             return 2, "", 0, 0, 0, "", "", ""
         flagdata(vis=gain_caltable, mode="rflag", datacolumn="CPARAM", flagbackup=False)
@@ -347,6 +362,7 @@ def do_selfcal(
     ncpu=-1,
     mem=-1,
     dry_run=False,
+    logfile="selfcal.log"
 ):
     """
     Do selfcal iterations and use convergence rules to stop
@@ -392,6 +408,8 @@ def do_selfcal(
         Number of CPU threads to use
     mem : float, optional
         Memory in GB to use
+    logfile : str, optional
+        Log file name
     Returns
     -------
     int
@@ -401,7 +419,7 @@ def do_selfcal(
     """
     limit_threads(n_threads=ncpu)
     from casatasks import split, statwt, initweights, flagmanager
-
+    logf=open(logfile,"a")
     if dry_run:
         process = psutil.Process(os.getpid())
         mem = round(process.memory_info().rss / 1024**3, 2)  # in GB
@@ -448,7 +466,7 @@ def do_selfcal(
         field = int(msmd.fieldsforscan(scan)[0])
         msmd.close()
         if hascor:
-            print(f"Spliting corrected data to ms : {selfcalms}")
+            print(f"Spliting corrected data to ms : {selfcalms}",file=logf,flush=True)
             split(
                 vis=msname,
                 field=str(field),
@@ -457,7 +475,7 @@ def do_selfcal(
                 datacolumn="corrected",
             )
         else:
-            print(f"Spliting data to ms : {selfcalms}")
+            print(f"Spliting data to ms : {selfcalms}",file=logf,flush=True)
             split(
                 vis=msname,
                 field=str(field),
@@ -476,7 +494,7 @@ def do_selfcal(
         ############################################
         # Imaging and calibration parameters
         ############################################
-        print(f"{os.path.basename(msname)} -- Estimating imaging parameters ...")
+        print(f"{os.path.basename(msname)} -- Estimating imaging parameters ...",file=logf,flush=True)
         cellsize = calc_cellsize(msname, 5)
         fov = calc_field_of_view(msname)
         if fov < 60 * 60.0:  # Minimum 60 arcmin field of view
@@ -495,7 +513,7 @@ def do_selfcal(
         # Initiating selfcal parameters
         ############################################
         print(
-            f"{os.path.basename(msname)} -- Estimating self-calibration parameters..."
+            f"{os.path.basename(msname)} -- Estimating self-calibration parameters...",file=logf,flush=True
         )
         DR1 = 0.0
         DR2 = 0.0
@@ -532,7 +550,7 @@ def do_selfcal(
                 + ", Threshold: "
                 + str(threshold)
                 + ", Calibration mode: "
-                + str(calmode)
+                + str(calmode),file=logf,flush=True
             )
             msg, gaintable, dyn1, rms, dyn2, image_cube, model_cube, residual_cube = (
                 single_selfcal_iteration(
@@ -556,13 +574,13 @@ def do_selfcal(
                     robust=robust,
                     use_solar_mask=solar_selfcal,
                     ncpu=ncpu,
-                    mem=mem,
+                    mem=round(mem,2),
                 )
             )
             if msg == 1:
                 if num_iter == 0:
                     print(
-                        f"{os.path.basename(msname)} -- No model flux is picked up in first round. Trying with lowest threshold.\n"
+                        f"{os.path.basename(msname)} -- No model flux is picked up in first round. Trying with lowest threshold.\n",file=logf,flush=True
                     )
                     (
                         msg,
@@ -594,7 +612,7 @@ def do_selfcal(
                         robust=robust,
                         use_solar_mask=solar_selfcal,
                         ncpu=ncpu,
-                        mem=mem,
+                        mem=round(mem,2),
                     )
                     if msg == 1:
                         return msg, []
@@ -629,7 +647,7 @@ def do_selfcal(
                 + ","
                 + str(DR3)
                 + ","
-                + str(DR5)
+                + str(DR5),file=logf,flush=True
             )
             print(
                 f"{os.path.basename(msname)} -- RMS of the images: "
@@ -637,7 +655,7 @@ def do_selfcal(
                 + ","
                 + str(RMS2)
                 + ","
-                + str(RMS3)
+                + str(RMS3),file=logf,flush=True
             )
             print(
                 f"{os.path.basename(msname)} -- Negative based dynamic range: "
@@ -645,9 +663,9 @@ def do_selfcal(
                 + ","
                 + str(DR4)
                 + ","
-                + str(DR6)
+                + str(DR6),file=logf,flush=True
             )
-            print("######################################\n")
+            print("######################################\n",file=logf,flush=True)
             #####################
             # If DR is decreasing
             #####################
@@ -655,16 +673,15 @@ def do_selfcal(
                 (
                     (DR5 < 0.85 * DR3 and DR5 < 0.9 * DR1 and DR3 > DR1)
                     or (DR6 < 0.75 * DR4 and DR6 < 0.8 * DR2 and DR4 > DR2)
-                    or (RMS3 > 0.85 * RMS2 and RMS2 > 0.9 * RMS1 and RMS2 < RMS1)
                 )
                 and calmode == "p"
                 and num_iter > min_iter
             ):
                 print(
-                    f"{os.path.basename(msname)} -- Dynamic range decreasing in phase-only self-cal."
+                    f"{os.path.basename(msname)} -- Dynamic range decreasing in phase-only self-cal.",file=logf,flush=True
                 )
                 if do_apcal:
-                    print(f"{os.path.basename(msname)} -- Changed calmode to 'ap'.")
+                    print(f"{os.path.basename(msname)} -- Changed calmode to 'ap'.",file=logf,flush=True)
                     os.system("rm -rf " + msname)
                     os.system(
                         "cp -r "
@@ -682,13 +699,12 @@ def do_selfcal(
                 (
                     (DR5 < 0.9 * DR3 and DR3 > 1.5 * DR1)
                     or (DR6 < 0.85 * DR4 and DR4 > 2 * DR2)
-                    or (RMS3 > 0.85 * RMS2 and RMS2 < 2 * RMS1)
                 )
                 and calmode == "ap"
                 and num_iter_after_ap > min_iter
             ):
                 print(
-                    f"{os.path.basename(msname)} -- Dynamic range is decreasing after minimum numbers of 'ap' rounds.\n"
+                    f"{os.path.basename(msname)} -- Dynamic range is decreasing after minimum numbers of 'ap' rounds.\n",file=logf,flush=True
                 )
                 return 0, gaintable
             ###########################
@@ -696,7 +712,7 @@ def do_selfcal(
             ###########################
             if DR5 >= max_DR and num_iter_after_ap > min_iter:
                 print(
-                    f"{os.path.basename(msname)} -- Maximum dynamic range is reached.\n"
+                    f"{os.path.basename(msname)} -- Maximum dynamic range is reached.\n",file=logf,flush=True
                 )
                 return 0, gaintable
             ###########################
@@ -713,12 +729,12 @@ def do_selfcal(
             ):
                 if threshold > end_threshold:
                     print(
-                        f"{os.path.basename(msname)} -- DR does not increase over last two changes in threshold, but minimum threshold has not reached yet.\n"
+                        f"{os.path.basename(msname)} -- DR does not increase over last two changes in threshold, but minimum threshold has not reached yet.\n",file=logf,flush=True
                     )
                     print(
                         f"{os.path.basename(msname)} -- Starting final self-calibration rounds with threshold = "
                         + str(end_threshold)
-                        + "sigma...\n"
+                        + "sigma...\n",file=logf,flush=True
                     )
                     threshold = end_threshold
                     sigma_reduced_count += 1
@@ -726,7 +742,7 @@ def do_selfcal(
                     continue
                 else:
                     print(
-                        f"{os.path.basename(msname)} -- Selfcal converged. DR does not increase over last two changes in threshold.\n"
+                        f"{os.path.basename(msname)} -- Selfcal converged. DR does not increase over last two changes in threshold.\n",file=logf,flush=True
                     )
                     return 0, gaintable
             ###############
@@ -741,7 +757,7 @@ def do_selfcal(
                 ):
                     if do_apcal and calmode == "p":
                         print(
-                            f"{os.path.basename(msname)} -- Dynamic range converged. Changing calmode to 'ap'.\n"
+                            f"{os.path.basename(msname)} -- Dynamic range converged. Changing calmode to 'ap'.\n",file=logf,flush=True
                         )
                         calmode = "ap"
                         solmode = "R"
@@ -749,7 +765,7 @@ def do_selfcal(
                         do_apcal and num_iter_after_ap > min_iter + 3
                     ) or do_apcal == False:
                         print(
-                            f"{os.path.basename(msname)} -- Self-calibration has converged.\n"
+                            f"{os.path.basename(msname)} -- Self-calibration has converged.\n",file=logf,flush=True
                         )
                         return 0, gaintable
                 elif (
@@ -761,7 +777,7 @@ def do_selfcal(
                     threshold -= 1
                     print(
                         f"{os.path.basename(msname)} -- Reducing threshold to : "
-                        + str(threshold)
+                        + str(threshold),file=logf,flush=True
                     )
                     do_uvsub_flag = True
                     num_iter_fixed_sigma = 0
@@ -784,7 +800,7 @@ def do_selfcal(
                     and num_iter == max_iter
                 ):
                     print(
-                        f"{os.path.basename(msname)} -- Self-calibration has converged.\n"
+                        f"{os.path.basename(msname)} -- Self-calibration has converged.\n",file=logf,flush=True
                     )
                     return 0, gaintable
             os.system(
@@ -957,16 +973,20 @@ def main():
         metavar="Float",
     )
     (options, args) = parser.parse_args()
-    if options.mslist == None:
-        print("Please provide a mslist.")
-        return 1
-    mslist = str(options.mslist).split(",")
-    if len(mslist) == 0:
-        print("Please provide at-least one measurement set.")
-        return 1
     if options.workdir == "" or os.path.exists(options.workdir) == False:
         print("Please provide a valid working directory.")
         return 1
+    if os.path.exists(options.workdir+"/logs/")==False:
+        os.makedirs(options.workdir+"/logs/")
+    mainlog_file=open(options.workdir+"/logs/selfcal_targets.log","a")
+    if options.mslist == None:
+        print("Please provide a mslist.",file=mainlog_file,flush=True)
+        return 1
+    mslist = str(options.mslist).split(",")
+    if len(mslist) == 0:
+        print("Please provide at-least one measurement set.",file=mainlog_file,flush=True)
+        return 1
+    
     caldir = options.workdir + "/caltables"
     if os.path.exists(caldir) == False:
         os.makedirs(caldir)
@@ -1001,7 +1021,7 @@ def main():
         if checkcol:
             filtered_mslist.append(ms)
         else:
-            print (f"Issue in : {ms}")
+            print (f"Issue in : {ms}",file=mainlog_file,flush=True)
             os.system("rm -rf {ms}")
     mslist=filtered_mslist  
         
@@ -1012,8 +1032,13 @@ def main():
         mem_frac=float(options.mem_frac),
         min_mem_per_job=mem_limit / 0.6,
     )
+    print("\n#################################",file=mainlog_file,flush=True)
+    print(f"Dask Dashboard: {dask_client.dashboard_link}",file=mainlog_file,flush=True)
+    print("\n#################################",file=mainlog_file,flush=True)
     tasks = []
     for ms in mslist:
+        logfile=options.workdir+"/logs/"+os.path.basename(ms).split(".ms")[0]+ "_selfcal.log"
+        print (f"MS name: {ms}, Log file: {logfile}\n",file=mainlog_file,flush=True)
         tasks.append(
             delayed(partial_do_selfcal)(
                 ms,
@@ -1023,6 +1048,7 @@ def main():
                 + "_selfcal",
                 ncpu=n_threads,
                 mem=mem_limit,
+                logfile=logfile,
             )
         )
     results = compute(*tasks)
@@ -1033,7 +1059,7 @@ def main():
         r = results[i]
         msg = r[0]
         if msg != 0:
-            print(f"Self-calibration was not successful for ms: {mslist[i]}.")
+            print(f"Self-calibration was not successful for ms: {mslist[i]}.",file=mainlog_file,flush=True)
         else:
             gcal_list.append(r[1])
     final_gain_caltable = caldir + "/full_selfcal.gcal"
@@ -1053,14 +1079,14 @@ def main():
                     + "_selfcal"
                 )
                 os.system("rm -rf " + selfcaldir)
-        print("Final caltable:")
+        print("Final caltable:",file=mainlog_file,flush=True)
         if os.path.exists(final_gain_caltable):
-            print(f"{final_gain_caltable}")
-        print(f"Total time taken: {round(time.time()-starttime,2)}s")
+            print(f"{final_gain_caltable}",file=mainlog_file,flush=True)
+        print(f"Total time taken: {round(time.time()-starttime,2)}s",file=mainlog_file,flush=True)
         return 0
     else:
-        print("No self-calibration is successful.")
-        print(f"Total time taken: {round(time.time()-starttime,2)}s")
+        print("No self-calibration is successful.",file=mainlog_file,flush=True)
+        print(f"Total time taken: {round(time.time()-starttime,2)}s",file=mainlog_file,flush=True)
         return 1
 
 

@@ -184,7 +184,7 @@ def split_target_scans(
             good_spws = common_spws.split("0:")[-1].split(";")
         chanlist = []
         if spectral_chunk > 0:
-            nchan_per_chunk = int(spectral_chunk / chanres)
+            nchan_per_chunk = max(1,int(spectral_chunk / chanres))
             for good_spw in good_spws:
                 start_chan = int(good_spw.split("~")[0])
                 end_chan = int(good_spw.split("~")[-1])
@@ -241,7 +241,6 @@ def split_target_scans(
                     time_range = ""
                 for chanrange in chanlist:
                     outputvis = f"{workdir}/target_scan_{scan}_spw_{chanrange}.ms"
-                    print (outputvis)
                     task = delayed(split_scan)(
                         msname,
                         outputvis,

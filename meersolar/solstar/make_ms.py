@@ -2,88 +2,18 @@ import os, traceback, time, numpy as np
 from astropy.coordinates import get_sun
 from astropy.time import Time
 from casatools import simulator, measures, quanta, table
+from meersolar.solstar.basic_func import *
 from meersolar.solstar.make_spectral_cube import *
 from optparse import OptionParser
-from casatasks import casalog, ft
+from casatasks import casalog, ft, split
 
 logfile = casalog.logfile()
 os.system("rm -rf " + logfile)
-casalog.showconsole(True)
 
 """
 This code is written by Devojyoti Kansabanik, Apr 25, 2025
 """
-def get_observatory_info(observatory_name):
-    """
-    Parameters
-    ----------
-    observatory_name : str
-        Name of the observatory
-    Returns
-    -------
-    float
-        Observatory latitude
-    float
-        Observatory longitude
-    float
-        Observatory altitude
-    """
-    observatories = {
-        "meerkat": {
-            "latitude": -30.713,
-            "longitude": 21.443,
-            "altitude": 1038,
-        },  # In meters
-        "ugmrt": {
-            "latitude": 19.096,
-            "longitude": 74.050,
-            "altitude": 650,
-        },  # In meters
-        "eovsa": {
-            "latitude": 37.233,
-            "longitude": -118.283,
-            "altitude": 1222,
-        },  # In meters
-        "askap": {
-            "latitude": -26.696,
-            "longitude": 116.630,
-            "altitude": 377,
-        },  # In meters
-        "fasr": {
-            "latitude": 38.430,
-            "longitude": -79.839,
-            "altitude": 820,
-        },  # Approximate value
-        "skao-mid": {
-            "latitude": -30.721,
-            "longitude": 21.411,
-            "altitude": 1060,
-        },  # Approximate location
-        "skao-low": {
-            "latitude": -26.7033,
-            "longitude": 116.6319,
-            "altitude": 377,
-        },  # Approximate location
-        "jvla": {
-            "latitude": 34.0784,
-            "longitude": -107.6184,
-            "altitude": 2124,
-        },  # In meters
-    }
-    keys = list(observatories.keys())
-    if observatory_name.lower() not in keys:
-        print("Observatory: " + observatory_name + " is not in the list.\n")
-        print(
-            "Available observatories: MeerKAT, uGMRT, eOVSA, ASKAP, FASR, SKAO-MID, JVLA.\n"
-        )
-        return
-    else:
-        pos = observatories[observatory_name.lower()]
-        lat = pos["latitude"]
-        lon = pos["longitude"]
-        alt = pos["altitude"]
-        return lat, lon, alt
-        
+
 def generate_ms(
     imagelist=[],
     config_file="meerkat.config",
@@ -170,7 +100,6 @@ def generate_ms(
         ###############################
         # Antenna parameters
         ###############################
-        antenna_params = np.genfromtxt(config_file, usecols=(0, 1, 2))
         antenna_params = np.loadtxt(config_file, dtype="str", unpack=True)
         x = antenna_params[0, :].astype("float")
         y = antenna_params[1, :].astype("float")
@@ -240,6 +169,12 @@ def generate_ms(
             print(f"Simulated measurement set: {msname} could not be made.")
             return 1, ""
         else:
+            imagelist=sorted(imagelist)
+            for i in range(nchan):
+                imagename=imagelist[i]
+                ft(vis=msname,model=imagename,spw=f"0:{i}",incremental=True,usescratch=False)
+            del imagelist
+            gc.collect()
             tb = table()
             tb.open(msname + "/ANTENNA", nomodify=False)
             ants = tb.getcol("NAME")
@@ -249,21 +184,14 @@ def generate_ms(
             tb.putcol("NAME", ants)
             tb.flush()
             tb.close()
-            tb.open(msname,nomodify=False)
-            flag=tb.getcol("FLAG")
-            flag*=False
-            tb.putcol("FLAG",flag)
-            tb.flush()
-            tb.close()
-            imagelist=sorted(imagelist)
-            for i in range(nchan):
-                imagename=imagelist[i]
-                print (imagename)
-                if i==0:
-                    ft(vis=msname,model=imagename,spw=f"0:{i}",incremental=False,usescratch=True)
-                else:
-                    ft(vis=msname,model=imagename,spw=f"0:{i}",incremental=True,usescratch=False)
-            return 0, msname
+            outputvis=msname.split(".ms")[0]+"_model.ms"
+            if os.path.exists(outputvis):
+                os.system(f"rm -rf {outputvis}")
+            split(vis=msname,outputvis=outputvis,datacolumn="model")
+            if os.path.exists(outputvis):
+                os.system(f"rm -rf {msname}")
+                os.system(f"mv {outputvis} {msname}")
+            return 0, os.path.abspath(msname)
     except Exception as e:
         traceback.print_exc()
         return 1, ""

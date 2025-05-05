@@ -1,4 +1,5 @@
 import os, glob, gc, time, psutil
+from itertools import combinations
 from optparse import OptionParser
 from meersolar.solstar.aia_download_n_calib import download_aia_data
 from meersolar.solstar.make_ms import *
@@ -9,6 +10,28 @@ logfile = casalog.logfile()
 os.system("rm -rf " + logfile)
 
 datadir=get_datadir()
+
+def max_baseline_from_xy(x, y):
+    """
+    Compute the maximum baseline from separate x and y coordinate arrays.
+    Parameters
+    ----------
+    x : np.ndarray
+        1D array of X coordinates.
+    y : np.ndarray
+        1D array of Y coordinates.
+    Returns
+    -------
+    float
+        Maximum baseline (Euclidean distance) in same units as x and y.
+    """
+    coords = np.stack((x, y), axis=1)  # shape: (N, 2)
+    max_dist = 0.0
+    for i, j in combinations(range(len(coords)), 2):
+        dist = np.linalg.norm(coords[i] - coords[j])
+        if dist > max_dist:
+            max_dist = dist
+    return max_dist
 
 def main():
     start_time = time.time()
@@ -172,20 +195,51 @@ def main():
         print("Please provide a valid frequency range and resolution in MHz.")
         return 1
     pwd = os.getcwd()
-    total_cpus = psutil.cpu_count(logical=True)
+    
+    # Detect total system resources
+    total_cpus = psutil.cpu_count(logical=True)  # Total logical CPU cores
+    total_mem = psutil.virtual_memory().total    # Total system memory (bytes)
+    cpu_frac=float(options.cpu_frac)
+    mem_frac=float(options.mem_frac)
+    if cpu_frac>0.8:
+        print ("Given CPU fraction is more than 80%. Resetting to 80% to avoid system crash.")
+        cpu_frac=0.8
+    if mem_frac>0.8:
+        print ("Given memory fraction is more than 80%. Resetting to 80% to avoid system crash.")
+        mem_frac=0.8
+        
+    ############################################
+    # Wait until enough free CPU is available
+    ############################################
     count = 0
     while True:
         available_cpu_pct = 100 - psutil.cpu_percent(interval=1)  # Percent CPUs currently free
         available_cpus = int(total_cpus * available_cpu_pct / 100.0)  # Number of free CPU cores
-        usable_cpus = max(1, int(total_cpus * float(options.cpu_frac)))  # Target number of CPU cores we want available based on cpu_frac
+        usable_cpus = max(1, int(total_cpus * cpu_frac))  # Target number of CPU cores we want available based on cpu_frac
 
-        if available_cpus >= usable_cpus:
-            # Enough free CPUs, exit loop
+        if available_cpus >= int(0.5*usable_cpus): # Enough free CPUs (at-least more than 50%), exit loop
+            usable_cpus=min(usable_cpus,available_cpus)
             break
         else:
             if count == 0:
                 print("Waiting for available free CPUs...")
             time.sleep(5)  # Wait a bit and retry
+        count += 1
+    ############################################
+    # Wait until enough free memory is available
+    ############################################
+    count = 0
+    while True:
+        available_mem = psutil.virtual_memory().available  # Current available system memory (bytes)
+        usable_mem = total_mem * mem_frac  # Target usable memory based on mem_frac
+
+        if available_mem >= 0.5*usable_mem: # Enough free memory (at-least more than 50%), exit loop
+            usable_mem=min(usable_mem,available_mem)
+            break
+        else:
+            if count == 0:
+                print("Waiting for available free memory...")
+            time.sleep(5)  # Wait and retry
         count += 1
         
     ##########################################
@@ -196,104 +250,128 @@ def main():
     if os.path.exists(options.workdir) == False:
         os.makedirs(options.workdir)
     os.chdir(options.workdir)
-
-    ###########################################
-    # Download AIA images
-    ###########################################
-    msg, level15_dir = download_aia_data(
-        obs_date=str(options.obs_date),
-        obs_time=str(options.obs_time),
-        outdir_prefix=options.workdir + "/aia_data",
-    )
-    if msg != 0:
-        print("############################")
-        print("Exiting solstar ...\n")
-        print("Error in downloading AIA data : All channels did not download.")
-        print("############################")
-        return msg
-    output_files = glob.glob(level15_dir + "/*")
-    if len(output_files) < 7:
-        print("############################")
-        print("Exiting solstar ...\n")
-        print("Error in downloading AIA data : All channels did not download.")
-        print("############################")
-        return 1
-    aia_304 = glob.glob(level15_dir + "/*304*")
     dt_string="".join(options.obs_date.split("-"))+"_"+"".join(options.obs_time.split(":"))
-    ############################################
-    # Producing DEM Map
-    ############################################
-    dem_cmd = (
-        "gen_dem --fits_dir "
-        + level15_dir
-        + " --fov -2000,2000,-2000,2000 --resolution "
-        + str(options.resolution)
-        + " --outfile "
-        + str(options.workdir)
-        + f"/DEM_{dt_string}.h5 --ncpu "
-        + str(usable_cpus)
-    )
-    print(dem_cmd + "\n")
-    msg=os.system(dem_cmd)
-    if msg!=0:
-        print ("Error in calculating DEM.")
-        return 1
-    print("#################\n")
-
-    ############################################
-    # Calculation of coronal TB
-    ############################################
-    coronal_tb_cmd = (
-        "simulate_coronal_tb --DEM_file "
-        + str(options.workdir)
-        + f"/DEM_{dt_string}.h5 --start_freq "
-        + str(options.start_freq)
-        + " --end_freq "
-        + str(options.end_freq)
-        + " --outfile "
-        + str(options.workdir)
-        + f"/Coronal_{dt_string}.h5"
-    )
-    print(coronal_tb_cmd + "\n")
-    os.system(coronal_tb_cmd)
-    print("#################\n")
-
-    ############################################
-    # Calculation of chromospheric TB
-    ############################################
-    if len(aia_304) > 0:
-        aia_304 = aia_304[0]
-        chromo_tb_cmd = (
-            "simulate_chromo_tb --aia_304 "
-            + aia_304
-            + " --DEM_file "
-            + str(options.workdir)
-            + f"/DEM_{dt_string}.h5 --outfile "
-            + str(options.workdir)
-            + f"/Chromo_{dt_string}.h5"
-        )
-        print(chromo_tb_cmd + "\n")
-        os.system(chromo_tb_cmd)
-        print("#################\n")
+    
+    ################################
+    # Determining spatial resolution
+    ################################
+    config_files=glob.glob(datadir+"/*.config")
+    telescope_name=options.observatory_name.lower()
+    config_file=""
+    for c in config_files:
+        if telescope_name in c:
+            config_file=c
+            break
+    if config_file!="" and os.path.exists(config_file): 
+        antenna_params = np.loadtxt(config_file, dtype="str", unpack=True)
+        x = antenna_params[0, :].astype("float")
+        y = antenna_params[1, :].astype("float")
+        max_baseline=max_baseline_from_xy(x,y)
+        min_wavelength=299792458.0/(max(float(options.start_freq),float(options.end_freq))*10**6) # In meter
+        psf=round(np.rad2deg(1.22*(min_wavelength/max_baseline))*3600.0,2) # In arcsec
+        print (f"Radio instrument resolution: {psf} arcseconds.")
+        resolution=round(psf/3.0,1)
     else:
-        print("AIA 304 angstorm image is not present.\n")
-        return 1
+        resolution=options.resolution
+            
+    if os.path.exists(str(options.workdir)+ f"/TotalTB_{dt_string}.h5")==False:
+        ###########################################
+        # Download AIA images
+        ###########################################
+        msg, level15_dir = download_aia_data(
+            obs_date=str(options.obs_date),
+            obs_time=str(options.obs_time),
+            outdir_prefix=options.workdir + "/aia_data",
+        )
+        if msg != 0:
+            print("############################")
+            print("Exiting solstar ...\n")
+            print("Error in downloading AIA data : All channels did not download.")
+            print("############################")
+            return msg
+        output_files = glob.glob(level15_dir + "/*")
+        if len(output_files) < 7:
+            print("############################")
+            print("Exiting solstar ...\n")
+            print("Error in downloading AIA data : All channels did not download.")
+            print("############################")
+            return 1
+        aia_304 = glob.glob(level15_dir + "/*304*")
+    
+        ############################################
+        # Producing DEM Map
+        ############################################
+        dem_cmd = (
+            "gen_dem --fits_dir "
+            + level15_dir
+            + " --fov -2000,2000,-2000,2000 --resolution "
+            + str(options.resolution)
+            + " --outfile "
+            + str(options.workdir)
+            + f"/DEM_{dt_string}.h5 --ncpu "
+            + str(usable_cpus)
+        )
+        print(dem_cmd + "\n")
+        msg=os.system(dem_cmd)
+        if msg!=0:
+            print ("Error in calculating DEM.")
+            return 1
+        print("#################\n")
 
-    #############################################
-    # Calculate spectral image cubes
-    #############################################
-    total_tb_cmd = (
-        "get_total_tb --coronal_tbfile "
-        + str(options.workdir)
-        + f"/Coronal_{dt_string}.h5 --chromo_tbfile "
-        + str(options.workdir)
-        + f"/Chromo_{dt_string}.h5 --outfile "
-        + str(options.workdir)
-        + f"/TotalTB_{dt_string}.h5"
-    )
-    print(total_tb_cmd + "\n")
-    os.system(total_tb_cmd)
-    print("#################\n")
+        ############################################
+        # Calculation of coronal TB
+        ############################################
+        coronal_tb_cmd = (
+            "simulate_coronal_tb --DEM_file "
+            + str(options.workdir)
+            + f"/DEM_{dt_string}.h5 --start_freq "
+            + str(options.start_freq)
+            + " --end_freq "
+            + str(options.end_freq)
+            + " --outfile "
+            + str(options.workdir)
+            + f"/Coronal_{dt_string}.h5"
+        )
+        print(coronal_tb_cmd + "\n")
+        os.system(coronal_tb_cmd)
+        print("#################\n")
+
+        ############################################
+        # Calculation of chromospheric TB
+        ############################################
+        if len(aia_304) > 0:
+            aia_304 = aia_304[0]
+            chromo_tb_cmd = (
+                "simulate_chromo_tb --aia_304 "
+                + aia_304
+                + " --DEM_file "
+                + str(options.workdir)
+                + f"/DEM_{dt_string}.h5 --outfile "
+                + str(options.workdir)
+                + f"/Chromo_{dt_string}.h5"
+            )
+            print(chromo_tb_cmd + "\n")
+            os.system(chromo_tb_cmd)
+            print("#################\n")
+        else:
+            print("AIA 304 angstorm image is not present.\n")
+            return 1
+
+        #############################################
+        # Calculate spectral image cubes
+        #############################################
+        total_tb_cmd = (
+            "get_total_tb --coronal_tbfile "
+            + str(options.workdir)
+            + f"/Coronal_{dt_string}.h5 --chromo_tbfile "
+            + str(options.workdir)
+            + f"/Chromo_{dt_string}.h5 --outfile "
+            + str(options.workdir)
+            + f"/TotalTB_{dt_string}.h5"
+        )
+        print(total_tb_cmd + "\n")
+        os.system(total_tb_cmd)
+        print("#################\n")
 
     ############################################
     # Making radio spectral cubes
@@ -319,7 +397,9 @@ def main():
         imagetype="fits"
             
     spectral_cube_cmd = (
-        "simulate_solar_spectral_cube --total_tb_file "
+        "simulate_solar_spectral_cube --workdir "
+        + str(options.workdir)
+        +" --total_tb_file "
         + str(options.workdir)
         + f"/TotalTB_{dt_string}.h5 --obs_time "
         + str(options.obs_date)
@@ -342,9 +422,9 @@ def main():
         + " --make_cube "
         + str(make_cube)
         + " --cpu_frac "
-        + str(options.cpu_frac)
+        + str(cpu_frac)
         + " --mem_frac "
-        + str(options.mem_frac)
+        + str(mem_frac)
         + " --output_prefix "
         + str(options.workdir)
         + "/spectral --imagetype "
@@ -358,13 +438,6 @@ def main():
     ####################################
     # Making simulated ms
     ####################################
-    config_files=glob.glob(datadir+"/*.config")
-    telescope_name=options.observatory_name.lower()
-    config_file=""
-    for c in config_files:
-        if telescope_name in c:
-            config_file=c
-            break
     if config_file=="":
         print (f"No array configuration file is present for : {telescope_name}.") 
         print ("Could not make the measurement set.")
@@ -374,6 +447,9 @@ def main():
             simulated_ms=options.workdir+f"/simulated_{dt_string}.ms"
         else:
             simulated_ms=os.path.abspath(options.simulated_ms)
+        imagedir=os.path.dirname(simulated_ms)+"/images_"+os.path.basename(simulated_ms).split(".ms")[0]
+        if os.path.exists(imagedir)==False:
+            os.makedirs(imagedir)
         msg, simulated_ms = generate_ms(
             image_cubes,
             config_file=config_file,
@@ -387,6 +463,8 @@ def main():
             freqres=float(options.freqres),
             pols=options.pols,
         )
+        for i in image_cubes:
+            os.system(f"mv {i} {imagedir}")
         if msg==0:
             print (f"Simulated measurement set: {simulated_ms}")
         else:

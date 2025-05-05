@@ -154,6 +154,7 @@ def applysol(
     overwrite_datacolumn=False,
     n_threads=-1,
     memory_limit=-1,
+    force_apply=False,
     dry_run=False,
 ):
     """
@@ -171,7 +172,7 @@ def applysol(
     interp : list, optional
         Gain interpolation
     parang : bool, optional
-        Parallectiv angle apply or not
+        Parallactic angle apply or not
     applymode : str, optional
         Apply mode
     overwrite_datacolumn : bool, optional
@@ -180,6 +181,8 @@ def applysol(
         Number of OpenMP threads
     memory_limit : float, optional
         Memory limit in GB
+    force_apply : bool, optional
+        Force to apply solutions if it is already applied
     Returns
     -------
     int
@@ -196,39 +199,23 @@ def applysol(
         f"Applying solutions on ms: {os.path.basename(msname)} of scan : {scan} from caltables: {','.join([os.path.basename(i) for i in gaintable])}\n"
     )
     try:
-        clearcal(vis=msname)
-        flagdata(vis=msname,mode="unflag",spw="0",flagbackup=False)
-        if os.path.exists(msname+".flagversions"):
-            os.system("rm -rf "+msname+".flagversions")
-        if applymode=="calflag":
-            self_gaintable=[]
-            basic_gaintable=[]
-            for g in gaintable:
-                if 'selfcal' not in g:
-                    basic_gaintable.append(g)  
-                else:
-                    self_gaintable.append(g)
-        if len(self_gaintable)!=0 and applymode=="calflag":
+        if os.path.exists(msname+"/.applied_sol") and force_apply==False:
+            print ("Solutions are already applied.")
+        else:
+            clearcal(vis=msname)
+            flagdata(vis=msname,mode="unflag",spw="0",flagbackup=False)
+            if os.path.exists(msname+".flagversions"):
+                os.system("rm -rf "+msname+".flagversions")
             applycal(
                 vis=msname,
                 scan=str(scan),
-                gaintable=basic_gaintable,
-                applymode="flagonly",
+                gaintable=gaintable,
+                gainfield=gainfield,
+                applymode=applymode,
                 calwt=[False],
                 parang=parang,
                 flagbackup=False,
-            )
-            applymode="calonly"
-        applycal(
-            vis=msname,
-            scan=str(scan),
-            gaintable=gaintable,
-            gainfield=gainfield,
-            applymode=applymode,
-            calwt=[False],
-            parang=parang,
-            flagbackup=False,
-        )            
+            )            
         if overwrite_datacolumn:
             print(f"Spliting corrected data for ms: {msname}.")
             outputvis=msname.split(".ms")[0]+"_cor.ms"
@@ -239,6 +226,7 @@ def applysol(
                 os.system(f"rm -rf {msname}")
                 os.system(f"mv {outputvis} {msname}")
             gc.collect()
+        os.system("touch "+msname+"/.applied_sol")
         return 0
     except Exception as e:
         traceback.print_exc()
@@ -252,12 +240,12 @@ def run_all_applysol(
     use_only_bandpass=False,
     overwrite_datacolumn=False,
     applymode="calflag",
-    include_selfcal=False,
+    force_apply=False,
     cpu_frac=0.8,
     mem_frac=0.8,
 ):
     """
-    Apply calibrator solutions on all target scans
+    Apply self-calibrator solutions on all target scans
     Parameters
     ----------
     mslist : str
@@ -272,8 +260,8 @@ def run_all_applysol(
         Overwrite data column or not
     applymode : str, optional
         Apply mode
-    include_selfcal : bool, optional
-        Apply self-calibratioin solutions or not
+    force_apply : bool, optional
+        Force to apply solutions even already applied 
     cpu_frac : float, optional
         CPU fraction to use
     mem_frac : float, optional
@@ -348,13 +336,11 @@ def run_all_applysol(
                 gaintable += crossphase_table
             if len(pangle_table) > 0:
                 gaintable += pangle_table
-
-        if include_selfcal == False:
-            gaintable_bkp = copy.deepcopy(gaintable)
-            for g in gaintable_bkp:
-                if "selfcal" in g:
-                    gaintable.remove(g)
-            del gaintable_bkp
+        gaintable_bkp = copy.deepcopy(gaintable)
+        for g in gaintable_bkp:
+            if "selfcal" in g:
+                gaintable.remove(g)
+        del gaintable_bkp
         
         ####################################
         # Filtering any corrupted ms
@@ -394,7 +380,14 @@ def run_all_applysol(
             for scan in scans:
                 pos = scaled_bandpass_scans.index(scan)
                 bandpass_table = scaled_bandpass_list[pos]
-                interp = ["nearest"] * len(gaintable)
+                interp = []
+                for g in gaincal:
+                    if ".bcal" in g:
+                        interp.append("nearest,nearestflag")
+                    elif ".gcal" in g:
+                        interp.append("linear")
+                    else:
+                        interp.append("nearest") 
                 tasks.append(
                     delayed(applysol)(
                         ms,
@@ -406,6 +399,7 @@ def run_all_applysol(
                         n_threads=n_threads,
                         parang=parang,
                         memory_limit=mem_limit,
+                        force_apply=force_apply,
                     )
                 )
         results = compute(*tasks)
@@ -414,7 +408,7 @@ def run_all_applysol(
         if np.nansum(results) == 0:
             print("##################")
             print(
-                "Applying calibration solutions for target scans are done successfully."
+                "Applying basic calibration solutions for target scans are done successfully."
             )
             print("Total time taken : ", time.time() - start_time)
             print("##################\n")
@@ -422,7 +416,7 @@ def run_all_applysol(
         else:
             print("##################")
             print(
-                "Applying calibration solutions for target scans are not done successfully."
+                "Applying basic calibration solutions for target scans are not done successfully."
             )
             print("Total time taken : ", time.time() - start_time)
             print("##################\n")
@@ -432,7 +426,7 @@ def run_all_applysol(
         os.system("rm -rf casa*log")
         print("##################")
         print(
-            "Applying calibration solutions for target scans are not done successfully."
+            "Applying basic calibration solutions for target scans are not done successfully."
         )
         print("Total time taken : ", time.time() - start_time)
         print("##################\n")
@@ -440,7 +434,7 @@ def run_all_applysol(
 
 
 def main():
-    usage = "Apply solutions of target scans"
+    usage = "Apply basic calibration solutions of target scans"
     parser = OptionParser(usage=usage)
     parser.add_option(
         "--mslist",
@@ -485,10 +479,10 @@ def main():
         metavar="Boolean",
     )
     parser.add_option(
-        "--include_selfcal",
-        dest="include_selfcal",
+        "--force_apply",
+        dest="force_apply",
         default=False,
-        help="Apply self-calibration solutions or not",
+        help="Force to apply solutions even it is already applied",
         metavar="Boolean",
     )
     parser.add_option(
@@ -533,9 +527,9 @@ def main():
                 use_only_bandpass=eval(str(options.use_only_bandpass)),
                 overwrite_datacolumn=eval(str(options.overwrite_datacolumn)),
                 applymode=options.applymode,
+                force_apply=eval(str(options.force_apply)),
                 cpu_frac=float(options.cpu_frac),
                 mem_frac=float(options.mem_frac),
-                include_selfcal=eval(str(options.include_selfcal)),
             )
             return msg
         except Exception as e:

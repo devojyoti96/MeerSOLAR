@@ -1,6 +1,6 @@
 import numpy as np, os, sys, glob
 from matplotlib import pyplot as plt
-from meersolar.pipeline.basic_func import get_datadir
+from meersolar.solstar.basic_func import get_datadir
 from meersolar.solstar.dem_python.dn2dem_pos import dn2dem_pos
 import astropy.units as u
 from sunpy.map import Map

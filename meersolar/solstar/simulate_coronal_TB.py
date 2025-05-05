@@ -1,6 +1,6 @@
 import ctypes, sys, os
 from numpy.ctypeslib import ndpointer
-from meersolar.pipeline.basic_func import get_datadir
+from meersolar.solstar.basic_func import get_datadir
 import numpy as np, gc
 import matplotlib.pyplot as plt
 import h5py

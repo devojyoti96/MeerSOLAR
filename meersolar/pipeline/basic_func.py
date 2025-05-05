@@ -1313,15 +1313,18 @@ def correct_solar_sidereal_motion(msname="", verbose=False, dry_run=False):
         mem = run_solar_sidereal_cor(dry_run=True)
         return mem
     print(f"Correcting sidereal motion for ms: {msname}\n")
-    msg = run_solar_sidereal_cor(
-        msname=msname, container_name="meerwsclean", verbose=verbose
-    )
-    if msg != 0:
-        print("Sidereal motion correction is not successful.")
+    if os.path.exists(msname+"/.sidereal_cor")==False:
+        msg = run_solar_sidereal_cor(
+            msname=msname, container_name="meerwsclean", verbose=verbose
+        )
+        if msg != 0:
+            print("Sidereal motion correction is not successful.")
+        else:
+            os.system("touch "+msname+"/.sidereal_cor")
+        return msg
     else:
-        os.system("touch "+msname+"/.sidereal_cor")
-    return msg
-
+        print (f"Sidereal motion correction is already done for ms: {msname}")
+        return 0
 
 def check_scan_in_caltable(caltable, scan):
     """
@@ -1848,7 +1851,7 @@ def merge_caltables(caltables, merged_caltable, append=False, keepcopy=False):
     return merged_caltable
 
 
-def create_batch_script_nonhpc(cmd, workdir, basename):
+def create_batch_script_nonhpc(cmd, workdir, basename, write_logfile=True):
     """
     Function to make a batch script not non-HPC environment
     Parameters
@@ -1859,18 +1862,27 @@ def create_batch_script_nonhpc(cmd, workdir, basename):
             Work directory of the measurement set
     basename : str
             Base name of the batch files
+    write_logfile : bool, optional
+        Write log file or not
+    Returns
+    -------
+    str
+        Batch file name
     """
     batch_file = workdir + "/" + basename + ".batch"
     cmd_batch = workdir + "/" + basename + "_cmd.batch"
-    if os.path.isdir(workdir + "/logs") == False:
-        os.makedirs(workdir + "/logs")
-    outputfile = workdir + "/logs/" + basename + ".log"
     pid_file = workdir + "/pids.txt"
     finished_touch_file = workdir + "/.Finished_" + basename
     os.system("rm -rf " + finished_touch_file + "*")
     finished_touch_file_error = finished_touch_file + "_1"
     finished_touch_file_success = finished_touch_file + "_0"
     cmd_file_content = f"{cmd}; exit_code=$?; echo $exit_code; if [ $exit_code -ne 0 ]; then touch {finished_touch_file_error}; else touch {finished_touch_file_success}; fi"
+    if write_logfile:
+        if os.path.isdir(workdir + "/logs") == False:
+            os.makedirs(workdir + "/logs")
+        outputfile = workdir + "/logs/" + basename + ".log"
+    else:
+        outputfile="/dev/null"
     batch_file_content = f"""export PYTHONUNBUFFERED=1\nnohup sh {cmd_batch}> {outputfile} 2>&1 &\necho $! >> {pid_file}\nsleep 2\n rm -rf {batch_file}\n rm -rf {cmd_batch}"""
     if os.path.exists(cmd_batch):
         os.system("rm -rf " + cmd_batch)
@@ -1938,9 +1950,8 @@ def get_dask_client(n_jobs, dask_dir="/tmp", cpu_frac=0.8, mem_frac=0.8, spill_f
         available_cpu_pct = 100 - psutil.cpu_percent(interval=1)  # Percent CPUs currently free
         available_cpus = int(total_cpus * available_cpu_pct / 100.0)  # Number of free CPU cores
         usable_cpus = max(1, int(total_cpus * cpu_frac))  # Target number of CPU cores we want available based on cpu_frac
-
         if available_cpus >= int(0.5*usable_cpus): # Enough free CPUs (at-least more than 50%), exit loop
-            usable_cpus=available_cpus
+            usable_cpus=min(usable_cpus,available_cpus)
             break
         else:
             if count == 0:
@@ -1954,15 +1965,15 @@ def get_dask_client(n_jobs, dask_dir="/tmp", cpu_frac=0.8, mem_frac=0.8, spill_f
     while True:
         available_mem = psutil.virtual_memory().available  # Current available system memory (bytes)
         usable_mem = total_mem * mem_frac  # Target usable memory based on mem_frac
-
-        if available_mem >= 0.5*usable_mem: # Enough free memory (at-least more than 50%), exit loop
-            usable_mem=available_mem
+        if available_mem >= usable_mem: # Enough free memory, exit loop
+            usable_mem=min(usable_mem,available_mem)
             break
         else:
             if count == 0:
                 print("Waiting for available free memory...")
             time.sleep(5)  # Wait and retry
         count += 1
+        
     ############################################
     # Calculate memory per worker
     ############################################
@@ -1991,7 +2002,7 @@ def get_dask_client(n_jobs, dask_dir="/tmp", cpu_frac=0.8, mem_frac=0.8, spill_f
     print(
         f"Dask workers: {n_workers}, Threads per worker: {threads_per_worker}, Mem/worker: {mem_per_worker/1e9:.2f} GB"
     )
-
+    dask.config.set({"temporary-directory": dask_dir})
     cluster = LocalCluster(
         n_workers=n_workers,
         threads_per_worker=1, # one python-thread per worker, in workers OpenMP threads can be used
@@ -2074,7 +2085,7 @@ def run_limited_memory_task(task, timeout=30):
     total_rss = sum(v["rss_GB"] for v in mem_info.values())
     per_worker_mem = total_rss
     client.close()
-    return per_worker_mem
+    return round(per_worker_mem,2)
 
 
 def baseline_names(msname):
@@ -2383,9 +2394,9 @@ def initialize_wsclean_container(name):
     bool
         Whether initialized successfully or not
     """
-    a = os.system("udocker pull devojyoti96/wscleansolar:latest")
+    a = os.system("udocker pull devojyoti96/wsclean-solar:latest")
     if a == 0:
-        a = os.system(f"udocker create --name={name} devojyoti96/wscleansolar:latest")
+        a = os.system(f"udocker create --name={name} devojyoti96/wsclean-solar:latest")
         print(f"Container started with name : {name}")
         return name
     else:
@@ -2407,6 +2418,11 @@ def run_wsclean(wsclean_cmd, container_name, verbose=False, dry_run=False):
     int
         Success message
     """
+    def show_file(path):
+        try:
+            print(open(path).read())
+        except Exception as e:
+            print(f"Error: {e}")
     container_present = check_udocker_container(container_name)
     if container_present == False:
         container_name = initialize_wsclean_container(container_name)
@@ -2466,11 +2482,16 @@ def run_wsclean(wsclean_cmd, container_name, verbose=False, dry_run=False):
     try:
         full_command = f"udocker run --nobanner --volume={mspath}:{temp_docker_path} --workdir {temp_docker_path} meerwsclean {wsclean_cmd}"
         if verbose == False:
-            full_command += " >> tmp1 >> tmp2"
+            full_command += f" >> {mspath}/tmp1 "
         else:
             print(wsclean_cmd + "\n")
         exit_code = os.system(full_command)
-        os.system(f"rm -rf {temp_docker_path} tmp1 tmp2")
+        if exit_code!=0:
+            print ("##########################")
+            print (os.path.basename(msname))
+            print ("##########################")
+            show_file(f"{mspath}/tmp1")
+        os.system(f"rm -rf {temp_docker_path} {mspath}/tmp1")
         return 0 if exit_code == 0 else 1
     except Exception as e:
         os.system(f"rm -rf {temp_docker_path}")

@@ -2,14 +2,14 @@ from scipy.interpolate import interp1d
 from sunpy.coordinates import frames, sun
 from astropy.coordinates import SkyCoord, EarthLocation
 from astropy.wcs import WCS
-import astropy.units as u, numpy as np, h5py, os, gc, traceback, time, dask, warnings, psutil, copy
+import astropy.units as u, numpy as np, h5py, os, gc, traceback, time, warnings, copy
 from astropy.time import Time
 from astropy.io import fits
 from sunpy.map import Map
-from dask.distributed import Client, LocalCluster
-from dask import delayed, compute, config
+from dask import delayed, compute
 from optparse import OptionParser
 from astropy.utils.exceptions import AstropyWarning
+from meersolar.solstar.basic_func import *
 from casatools import image,simulator,measures,quanta, table
 from casatasks import exportfits, importfits
 from casatasks import casalog
@@ -19,143 +19,6 @@ os.system("rm -rf " + logfile)
 
 # Suppress all Astropy warnings
 warnings.simplefilter("ignore", category=AstropyWarning)
-
-def get_dask_client(n_jobs, dask_dir="/tmp", cpu_frac=0.8, mem_frac=0.8, spill_frac = 0.6, min_mem_per_job=-1):
-    """
-    Create a Dask client optimized for one-task-per-worker execution,
-    where each worker is a separate process that can use multiple threads internally.
-
-    Parameters
-    ----------
-    n_jobs : int
-        Number of MS tasks (ideally = number of MS files)
-    dask_dir : str
-        Dask temporary directory
-    cpu_frac : float
-        Fraction of total CPUs to use
-    mem_frac : float
-        Fraction of total memory to use
-    spill_frac : float, optional
-        Spill to disk at this fraction
-    min_mem_per_job : float, optional
-        Minimum memory per job
-    Returns
-    -------
-    client : dask.distributed.Client
-        Dask clinet
-    cluster : dask.distributed.LocalCluster
-        Dask cluster
-    n_workers : int
-        Number of workers
-    threads_per_worker : int
-        Threads per worker to use
-    """
-    # Create the Dask temporary working directory if it does not already exist
-    if os.path.exists(dask_dir) == False:
-        os.makedirs(dask_dir)
-        
-    # Detect total system resources
-    total_cpus = psutil.cpu_count(logical=True)  # Total logical CPU cores
-    total_mem = psutil.virtual_memory().total    # Total system memory (bytes)
-
-    ############################################
-    # Wait until enough free CPU is available
-    ############################################
-    count = 0
-    while True:
-        available_cpu_pct = 100 - psutil.cpu_percent(interval=1)  # Percent CPUs currently free
-        available_cpus = int(total_cpus * available_cpu_pct / 100.0)  # Number of free CPU cores
-        usable_cpus = max(1, int(total_cpus * cpu_frac))  # Target number of CPU cores we want available based on cpu_frac
-
-        if available_cpus >= usable_cpus:
-            # Enough free CPUs, exit loop
-            break
-        else:
-            if count == 0:
-                print("Waiting for available free CPUs...")
-            time.sleep(5)  # Wait a bit and retry
-        count += 1
-    ############################################
-    # Wait until enough free memory is available
-    ############################################
-    count = 0
-    while True:
-        available_mem = psutil.virtual_memory().available  # Current available system memory (bytes)
-        usable_mem = total_mem * mem_frac  # Target usable memory based on mem_frac
-
-        if available_mem >= usable_mem:
-            # Enough free memory, exit loop
-            break
-        else:
-            if count == 0:
-                print("Waiting for available free memory...")
-            time.sleep(5)  # Wait and retry
-        count += 1
-        
-    ############################################
-    # Calculate memory per worker
-    ############################################
-    mem_per_worker = usable_mem / n_jobs  # Assume initially one job per worker
-    # Apply minimum memory per worker constraint
-    min_mem_per_job = round(min_mem_per_job, 2)  # Ensure min_mem_per_job is a clean float
-    if min_mem_per_job > 0 and mem_per_worker < (min_mem_per_job * 1024**3):
-        # If calculated memory per worker is smaller than user-requested minimum, adjust number of workers
-        print(
-            f"Total memory per job is smaller than {min_mem_per_job} GB. Adjusting total number of workers to meet this."
-        )
-        mem_per_worker = min_mem_per_job * 1024**3  # Reset memory per worker to minimum allowed
-        n_workers = min(n_jobs, int(usable_mem / mem_per_worker))  # Reduce number of workers accordingly
-    else:
-        # Otherwise, just keep n_jobs workers
-        n_workers = n_jobs
-    #########################################
-    # Cap number of workers to available CPUs
-    n_workers = min(n_workers, usable_cpus)  # Prevent CPU oversubscription
-    # Recalculate final memory per worker based on capped n_workers
-    mem_per_worker = usable_mem / n_workers
-    # Calculate threads per worker
-    threads_per_worker = max(1, usable_cpus // max(1, n_workers))  # Each worker gets 1 or more threads
-    ##########################################
-    print("\n#################################")
-    print(
-        f"Dask workers: {n_workers}, Threads per worker: {threads_per_worker}, Mem/worker: {mem_per_worker/1e9:.2f} GB"
-    )
-
-    cluster = LocalCluster(
-        n_workers=n_workers,
-        threads_per_worker=1,
-        memory_limit=f"{mem_per_worker/1e9:.2f}GB",
-        local_directory=dask_dir,
-        processes=True,  # one process per worker
-        dashboard_address=":0",
-    )
-    client = Client(cluster)
-    # Memory control settings
-    swap = psutil.swap_memory()
-    swap_gb = swap.total / 1024**3  
-    if swap_gb>16:
-        pass
-    elif swap_gb>4:
-        spill_frac=0.6
-    else:
-        spill_frac=0.5  
-        
-    if spill_frac>0.7:
-        spill_frac=0.7    
-    dask.config.set(
-        {
-            "distributed.worker.memory.target": spill_frac,
-            "distributed.worker.memory.spill": 0.7,
-            "distributed.worker.memory.pause": 0.8,
-            "distributed.worker.memory.terminate": 0.95,
-        }
-    )
-
-    client.run_on_scheduler(gc.collect)
-
-    print(f"Dask Dashboard: {client.dashboard_link}")
-    print("#################################\n")
-    return client, cluster, n_workers, threads_per_worker   
 
 def makeimage(ra, dec, freq, freqres, cell, flux, imagename, unit="Jy/pixel"):
     '''
@@ -286,7 +149,7 @@ def convert_hpc_to_radec(
         unit="K"
     else:
         unit="Jy/pixel"
-    imagefile=makeimage(ref_coord_gcrs.ra.rad,ref_coord_gcrs.ra.rad,freq,freqres,cell,hpc_data,output_image+".image",unit=unit)
+    imagefile=makeimage(ref_coord_gcrs.ra.rad,ref_coord_gcrs.dec.rad,freq,freqres,cell,hpc_data,output_image+".image",unit=unit)
     if imagetype=='casa':
         return imagefile
     else:   
@@ -363,6 +226,7 @@ def make_spectral_map(total_tb_file, start_freq, end_freq, freqres, output_unit=
 
 def make_spectral_slices(
     total_tb_file,
+    workdir,
     obs_time,
     start_freq,
     end_freq,
@@ -382,6 +246,8 @@ def make_spectral_slices(
     ----------
     total_tb_file : str
         Total TB file anme (.h5)
+    workdir : str
+        Work directory
     obs_time : str
         Observation time (yyyy-mm-ddThh:mm:ss)
     start_freq : float
@@ -419,7 +285,7 @@ def make_spectral_slices(
     if make_cube and imagetype=="casa":
         imagetype="fits"
     try:
-        dask_client, dask_cluster, n_workers, threads_per_worker = get_dask_client(len(freqs), cpu_frac=cpu_frac, mem_frac=mem_frac)
+        dask_client, dask_cluster, n_workers, threads_per_worker = get_dask_client(len(freqs), dask_dir=workdir, cpu_frac=cpu_frac, mem_frac=mem_frac)
         tasks=[delayed(convert_hpc_to_radec)(
                 data_cube[:, :, i],
                 metadata,
@@ -440,6 +306,7 @@ def make_spectral_slices(
         results=compute(*tasks)
         dask_client.close()
         dask_cluster.close()
+        os.system("rm -rf "+workdir+"/dask-scratch-space")
     except Exception as e:
         traceback.print_exc()
         return 
@@ -499,6 +366,13 @@ def main():
         dest="total_tb_file",
         default=None,
         help="Total TB file name (.h5)",
+        metavar="String",
+    )
+    parser.add_option(
+        "--workdir",
+        dest="workdir",
+        default=None,
+        help="Work directory",
         metavar="String",
     )
     parser.add_option(
@@ -596,6 +470,9 @@ def main():
     if options.total_tb_file == None or os.path.exists(options.total_tb_file) == False:
         print("Please provide correct coronal TB file.\n")
         return 1
+    if options.workdir == None or os.path.exists(options.workdir) == False:
+        print("Please provide correct work directory.\n")
+        return 1
     if (
         float(options.start_freq) < 0
         or float(options.end_freq) < 0
@@ -606,6 +483,7 @@ def main():
     try:
         spectral_cube = make_spectral_slices(
             options.total_tb_file,
+            options.workdir,
             str(options.obs_time),
             float(options.start_freq),
             float(options.end_freq),
@@ -624,7 +502,6 @@ def main():
         traceback.print_exc()
         return 1
     if spectral_cube!=None:
-        print("Spectral image(s) is(are) made: ", spectral_cube)
         gc.collect()
         return 0
     else:

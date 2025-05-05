@@ -62,6 +62,7 @@ def perform_imaging(
     saveres=True,
     ncpu=-1,
     mem=-1,
+    logfile="imaging.log",
     dry_run=False,
 ):
     """
@@ -100,6 +101,12 @@ def perform_imaging(
         Save model images or not
     saveres : bool, optional
         Save residual images or not
+    logfile : str, optional
+        Log file name
+    ncpu : int, optional
+        Number of CPU threads to use
+    mem : float, optional
+        Memory in GB to use
     Returns
     -------
     int
@@ -107,6 +114,7 @@ def perform_imaging(
     list
         List of images [[images],[models],[residuals]]
     """
+    logf=open(logfile,"a")
     if dry_run:
         process = psutil.Process(os.getpid())
         usemem = round(process.memory_info().rss / 1024**3, 2)  # in GB
@@ -114,7 +122,7 @@ def perform_imaging(
     try:
         msname = msname.rstrip("/")
         msname = os.path.abspath(msname)
-        print(f"{os.path.basename(msname)} --Perform imaging...\n")
+        print(f"{os.path.basename(msname)} --Perform imaging...\n",file=logf,flush=True)
         #########
         # Imaging
         #########
@@ -213,7 +221,7 @@ def perform_imaging(
             if os.path.exists(fits_mask) == False:
                 mask_radius = 20
                 print(
-                    f"{os.path.basename(msname)} -- Creating solar mask of size: {mask_radius} arcmin.\n"
+                    f"{os.path.basename(msname)} -- Creating solar mask of size: {mask_radius} arcmin.\n",file=logf,flush=True
                 )
                 fits_mask = create_circular_mask(
                     msname, cellsize, imsize, mask_radius=mask_radius
@@ -233,11 +241,11 @@ def perform_imaging(
         # Running imaging
         ######################################
         wsclean_cmd = "wsclean " + " ".join(wsclean_args) + " " + msname
-        print(f"{os.path.basename(msname)} -- WSClean command: {wsclean_cmd}\n")
+        print(f"{os.path.basename(msname)} -- WSClean command: {wsclean_cmd}\n",file=logf,flush=True)
         msg = run_wsclean(wsclean_cmd, "meerwsclean", verbose=False)
         if msg != 0:
             gc.collect()
-            print(f"{os.path.basename(msname)} -- Imaging is not successful.\n")
+            print(f"{os.path.basename(msname)} -- Imaging is not successful.\n",file=logf,flush=True)
             return 1, []
 
         os.system("rm -rf " + prefix + "*psf.fits")
@@ -348,12 +356,12 @@ def perform_imaging(
                 final_list.append(final_res_list)
             if use_solar_mask and os.path.exists(fits_mask):
                 os.system("rm -rf " + fits_mask)
-            print(f"{os.path.basename(msname)} -- Imaging is successfully done.\n")
+            print(f"{os.path.basename(msname)} -- Imaging is successfully done.\n",file=logf,flush=True)
             return 0, final_list
         else:
             if use_solar_mask and os.path.exists(fits_mask):
                 os.system("rm -rf " + fits_mask)
-            print(f"{os.path.basename(msname)} -- No image is made.\n")
+            print(f"{os.path.basename(msname)} -- No image is made.\n",file=logf,flush=True)
             return 1, []
     except Exception as e:
         traceback.print_exc()
@@ -376,6 +384,7 @@ def run_all_imaging(
     saveres=False,
     cpu_frac=0.8,
     mem_frac=0.8,
+    logfile="imaging.log",
 ):
     """
     Run spectropolarimetric snapshot imaging on a list of measurement sets
@@ -416,11 +425,14 @@ def run_all_imaging(
     int
         Success message
     """
+    if os.path.exists(workdir+"/logs/")==False:
+        os.makedirs(workdir+"/logs/")
+    mainlog_file=open(workdir+"/logs/imaging_targets.log","a")
     start_time = time.time()
     mslist=sorted(mslist)
     try:
         if len(mslist) == 0:
-            print("Provide valid measurement set list.")
+            print("Provide valid measurement set list.",file=mainlog_file,flush=True)
             return 1
         if freqres == -1 and timeres == -1:
             imagedir = workdir + "/imagedir_f_all_t_all"
@@ -442,7 +454,7 @@ def run_all_imaging(
             if checkcol:
                 filtered_mslist.append(ms)
             else:
-                print (f"Issue in : {ms}")
+                print (f"Issue in : {ms}",file=mainlog_file,flush=True)
                 os.system("rm -rf {ms}")
         mslist=filtered_mslist    
 
@@ -485,6 +497,9 @@ def run_all_imaging(
             mem_frac=mem_frac,
             min_mem_per_job=mem_limit / 0.6,
         )
+        print("\n#################################",file=mainlog_file,flush=True)
+        print(f"Dask Dashboard: {dask_client.dashboard_link}",file=mainlog_file,flush=True)
+        print("\n#################################",file=mainlog_file,flush=True)
         tasks = []
         for i in range(len(mslist)):
             ms = mslist[i]
@@ -500,6 +515,10 @@ def run_all_imaging(
             if len(multiscale_scales) == 0:
                 multiscale_scales = calc_multiscale_scales(ms, 5)
             multiscale_scales = [str(i) for i in multiscale_scales]
+            if os.path.exists(workdir+"/logs")==False:
+                os.makedirs(workdir+"/logs")
+            logfile=workdir+"/logs/imaging_"+os.path.basename(ms).split(".ms")[0]+".log"
+            print (f"Starting imaging for ms : {ms}, Log file : {logfile}\n",file=mainlog_file,flush=True)
             tasks.append(
                 delayed(perform_imaging)(
                     msname=ms,
@@ -520,6 +539,7 @@ def run_all_imaging(
                     saveres=saveres,
                     ncpu=n_threads,
                     mem=mem_limit,
+                    logfile=logfile,
                 )
             )
         results = compute(*tasks)
@@ -530,21 +550,21 @@ def run_all_imaging(
         for i in range(len(results)):
             r = results[i]
             if r[0] != 0:
-                print(f"Imaging failed for ms : {mslist[i]}")
+                print(f"Imaging failed for ms : {mslist[i]}",file=mainlog_file,flush=True)
             else:
                 all_imaged_ms_list.append(mslist[i])
                 for image in r[1][0]:
                     all_image_list.append(image)
-        print(f"Numbers of input measurement sets : {len(mslist)}.")
+        print(f"Numbers of input measurement sets : {len(mslist)}.",file=mainlog_file,flush=True)
         print(
-            f"Imaging successfully done for: {len(all_imaged_ms_list)} measurement sets."
+            f"Imaging successfully done for: {len(all_imaged_ms_list)} measurement sets.",file=mainlog_file,flush=True
         )
-        print(f"Total images made: {len(all_image_list)}.")
-        print(f"Total time taken: {round(time.time()-start_time,2)}s")
+        print(f"Total images made: {len(all_image_list)}.",file=mainlog_file,flush=True)
+        print(f"Total time taken: {round(time.time()-start_time,2)}s",file=mainlog_file,flush=True)
         return 0
     except Exception as e:
         traceback.print_exc()
-        print(f"Total time taken: {round(time.time()-start_time,2)}s")
+        print(f"Total time taken: {round(time.time()-start_time,2)}s",file=mainlog_file,flush=True)
         return 1
 
 

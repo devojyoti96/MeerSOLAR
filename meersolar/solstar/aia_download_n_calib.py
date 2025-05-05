@@ -1,4 +1,4 @@
-import astropy.units as u, os, glob, time, traceback
+import astropy.units as u, os, glob, time, traceback, drms
 from sunpy.net import Fido, attrs as a
 from sunpy.net.jsoc import JSOCClient
 from sunpy.map import Map
@@ -17,6 +17,28 @@ warnings.filterwarnings("ignore")
 # Set maximum timeout globally
 config.set("downloads", "timeout", "30")
 
+def jsoc_download(jsoc_search_result, dirname):
+    client = JSOCClient()
+    drms_client=drms.Client(email="devojyoti96@gmail.com")
+    requests = client.request_data(jsoc_search_result)
+    if isinstance(requests, list):
+        requests_ids=[r.id for r in requests]
+    else:
+        requests_ids=[requests.id]
+    count=0
+    while True:
+        status=[drms_client.export_from_id(r_id).status for r_id in requests_ids]
+        if all(s == 0 for s in status):
+            break
+        time.sleep(1)
+        if count==0:
+            print ("Waiting for JSOC export to complete...") 
+        count+=1
+        if count>60:
+            print ("Could not export data from JSOC. Try after sometime...")
+            return []
+    downloaded_files = client.get_request(requests, path=str(dirname / "{file}"), progress=True, max_conn=len(jsoc_search_result))
+    return downloaded_files
 
 def download_aia_data(
     obs_date="2021-01-01", obs_time="09:00:00", outdir_prefix="aia_data"
@@ -78,9 +100,10 @@ def download_aia_data(
         if len(search_result) == 0:
             print("No data found for the specified time range and wavelength.")
         else:
+            print (f"Search result found : {len(search_result)} number of files.")
             # Step 3: Download the data
             try:
-                downloaded_files = client.fetch(search_result, path=str(level1_dir / "{file}"), progress=True, max_conn=len(search_result))
+                downloaded_files=jsoc_download(search_result, level1_dir)
             except Exception as e:
                 traceback.print_exc()
                 return 1, None
@@ -118,9 +141,7 @@ def download_aia_data(
         else:
             # Step 3: Download the data
             try:
-                downloaded_files = Fido.fetch(
-                    search_result, path=str(level1_dir / "{file}"), progress=True, max_conn=len(search_result)
-                )
+               downloaded_files=jsoc_download(search_result, level1_dir)
             except Exception as e:
                 traceback.print_exc()
                 return 1, None
