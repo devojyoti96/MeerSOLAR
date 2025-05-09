@@ -117,9 +117,7 @@ def get_on_off_power(msname="", scale_factor="", ant_list=[], dry_run=False):
     Returns
     -------
     numpy.array
-        On average sum over antennas spectrum of power
-    numpy.array
-        Off average sum over antennas spectrum of power
+        Spectra of power difference
     """
     if dry_run:
         process = psutil.Process(os.getpid())
@@ -196,8 +194,10 @@ def get_power_diff(
 
     Parameters
     ----------
-    msname : str
-        Measurement set
+    cal_msname : str
+        Fluxcal measurement set
+    source_msname : str
+        Source measurement set
     on_cal : str
         Noise diode on caltable
     off_cal : str
@@ -206,11 +206,12 @@ def get_power_diff(
         Number of OpenMP threads
     memory_limit : float, optional
         Memory limit in GB
-
     Returns
     -------
     numpy.array
-        Power level difference spectra for both polarizations
+        Attenuation spectra for both polarizations avergaed over all antennas
+    numpy.array
+        Attenuation spectra for both polarizations for all antennas
     """
     if dry_run:
         process = psutil.Process(os.getpid())
@@ -446,7 +447,16 @@ def estimate_att(
                 + "_attval_scan_"
                 + str(scan)
             )
-            np.save(filename, np.array([scan, freqs, att_value, att_ant_array], dtype="object"))
+            att_ant_array_percentage_change=(att_value[...,None]-att_ant_array)/att_value[...,None]
+            flag_ants=[]
+            for pol in range(2):
+                mean_percentage_change=np.nanmean(att_ant_array_percentage_change[pol,...],axis=0)
+                pos=np.where(np.abs(mean_percentage_change)>0.1)
+                if len(pos)>0:
+                    for i in range(len(pos)):
+                        if pos[i] not in flag_ants:
+                            flag_ants.append(pos[i])
+            np.save(filename, np.array([scan, freqs, att_value, flag_ants], dtype="object"))
             all_scaling_files.append(filename + ".npy")
         return 0, att_level, all_scaling_files
     except Exception as e:

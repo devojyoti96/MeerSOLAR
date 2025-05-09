@@ -90,7 +90,7 @@ def scale_bandpass(bandpass_table, att_table, n=15):
         return
     print(f"Bandpass table: {bandpass_table}, Attenuation table: {att_table}")
     results = np.load(att_table, allow_pickle=True)
-    scan, freqs, att_values = results[0], results[1], results[2]
+    scan, freqs, att_values flag_ants = results[0], results[1], results[2]
     output_table = bandpass_table.split(".bcal")[0] + "_scan_" + str(scan) + ".bcal"
     tb = table()
     tb.open(f"{bandpass_table}/SPECTRAL_WINDOW")
@@ -103,7 +103,9 @@ def scale_bandpass(bandpass_table, att_table, n=15):
     tb.open(output_table, nomodify=False)
     gain = tb.getcol("CPARAM")
     flag = tb.getcol("FLAG")
-    print (att_values.shape)
+    if len(flag_ants)>0:
+        for flag_ant in flag_ants:
+            flag[...,flag_ant]+=True
     for i in range(att_values.shape[0]):
         att = filter_outliers(att_values[i])
         num_blocks = att.shape[0] // n
@@ -127,11 +129,8 @@ def scale_bandpass(bandpass_table, att_table, n=15):
         best_fit[:minpos] = best_fit[maxpos:] = np.nan
         # Broadcast to CPARAM shape
         interp_scaled = np.sqrt(best_fit)
-        interp_scaled = np.repeat(
-            interp_scaled[ :, np.newaxis], gain.shape[-1], axis=-1
-        )
         # Apply scaling
-        gain[i,...] *= interp_scaled
+        gain[i,...] *= interp_scaled[...,None]
     mask = np.isnan(gain)
     gain[mask] = 1.0
     flag[mask] = True
@@ -140,7 +139,6 @@ def scale_bandpass(bandpass_table, att_table, n=15):
     tb.flush()
     tb.close()
     os.system("rm -rf casa*log")
-
     return output_table
 
 
