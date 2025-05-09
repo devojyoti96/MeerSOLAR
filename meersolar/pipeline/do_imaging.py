@@ -489,8 +489,8 @@ def run_all_imaging(
         # Dask client setup
         #################################
         task = delayed(perform_imaging)(dry_run=True)
-        mem_limit = run_limited_memory_task(task)
-        dask_client, dask_cluster, n_jobs, n_threads = get_dask_client(
+        mem_limit = run_limited_memory_task(task, dask_dir= workdir)
+        dask_client, dask_cluster, n_jobs, n_threads, mem_limit = get_dask_client(
             len(mslist),
             dask_dir=workdir,
             cpu_frac=cpu_frac,

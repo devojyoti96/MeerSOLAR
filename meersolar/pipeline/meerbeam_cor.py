@@ -12,10 +12,8 @@ import astropy.units as u
 import matplotlib.pyplot as plt
 from scipy.interpolate import RegularGridInterpolator
 
-
 # Define MeerKAT location
 meerkat = EarthLocation(lat=-30.7133 * u.deg, lon=21.4429 * u.deg, height=1086.6 * u.m)
-
 
 def create_stokes_from_image(files):
     """

@@ -991,7 +991,7 @@ def main():
     if os.path.exists(caldir) == False:
         os.makedirs(caldir)
     task = delayed(do_selfcal)(dry_run=True)
-    mem_limit = run_limited_memory_task(task)
+    mem_limit = run_limited_memory_task(task, dask_dir= options.workdir)
     partial_do_selfcal = partial(
         do_selfcal,
         start_threshold=float(options.start_thresh),
@@ -1024,8 +1024,12 @@ def main():
             print (f"Issue in : {ms}",file=mainlog_file,flush=True)
             os.system("rm -rf {ms}")
     mslist=filtered_mslist  
-        
-    dask_client, dask_cluster, n_jobs, n_threads = get_dask_client(
+    if len(mslist)==0:
+        print ("No valid measurement set for self-calibration.",file=mainlog_file,flush=True)
+        print(f"Total time taken: {round(time.time()-starttime,2)}s",file=mainlog_file,flush=True)
+        return 1 
+            
+    dask_client, dask_cluster, n_jobs, n_threads, mem_limit = get_dask_client(
         len(mslist),
         dask_dir = options.workdir, 
         cpu_frac=float(options.cpu_frac),

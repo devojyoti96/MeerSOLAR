@@ -52,7 +52,7 @@ def single_mstransform(
         mem = round(process.memory_info().rss / 1024**3, 2)  # in GB
         return mem
     print(
-        f"Transforming scan : {scan}, channel averaging: {width}, time averaging: {timebin}\n"
+        f"Transforming scan : {scan}, channel averaging: {width}, time averaging: {timebin}"
     )
     if timebin == "":
         timeaverage = False
@@ -188,8 +188,8 @@ def partion_ms(
     # Dask local cluster setup
     ###########################
     task = delayed(single_mstransform)(dry_run=True)
-    mem_limit = run_limited_memory_task(task)
-    dask_client, dask_cluster, n_jobs, n_threads = get_dask_client(
+    mem_limit = run_limited_memory_task(task, dask_dir=mspath)
+    dask_client, dask_cluster, n_jobs, n_threads, mem_limit = get_dask_client(
         len(scan_list),
         dask_dir = mspath,
         cpu_frac=cpu_frac,

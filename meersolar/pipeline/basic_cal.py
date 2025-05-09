@@ -567,8 +567,8 @@ def single_round_cal_and_flag(
             # Memory limit
             #############################################
             task = delayed(run_delaycal)(dry_run=True)
-            mem_limit = run_limited_memory_task(task)
-            dask_client, dask_cluster, n_jobs, n_threads = get_dask_client(
+            mem_limit = run_limited_memory_task(task, dask_dir=workdir)
+            dask_client, dask_cluster, n_jobs, n_threads, mem_limit = get_dask_client(
                 len(delaycal_mslist),
                 dask_dir=workdir,
                 cpu_frac=cpu_frac,
@@ -600,8 +600,8 @@ def single_round_cal_and_flag(
         ##############################
         if len(fluxcal_mslist) > 0:
             task = delayed(run_bandpass)(dry_run=True)
-            mem_limit = run_limited_memory_task(task)
-            dask_client, dask_cluster, n_jobs, n_threads = get_dask_client(
+            mem_limit = run_limited_memory_task(task, dask_dir =workdir)
+            dask_client, dask_cluster, n_jobs, n_threads, mem_limit = get_dask_client(
                 len(fluxcal_mslist),
                 dask_dir=workdir,
                 cpu_frac=cpu_frac,
@@ -645,8 +645,8 @@ def single_round_cal_and_flag(
             gaincal_mslist = fluxcal_mslist + polcal_mslist
         if len(gaincal_mslist) > 0:
             task = delayed(run_gaincal)(dry_run=True)
-            mem_limit = run_limited_memory_task(task)
-            dask_client, dask_cluster, n_jobs, n_threads = get_dask_client(
+            mem_limit = run_limited_memory_task(task, dask_dir=workdir)
+            dask_client, dask_cluster, n_jobs, n_threads, mem_limit = get_dask_client(
                 len(gaincal_mslist),
                 dask_dir=workdir,
                 cpu_frac=cpu_frac,
@@ -696,8 +696,8 @@ def single_round_cal_and_flag(
                 applycal_interp.append("nearest")
             else:
                 task = delayed(run_gaincal)(dry_run=True)
-                mem_limit = run_limited_memory_task(task)
-                dask_client, dask_cluster, n_jobs, n_threads = get_dask_client(
+                mem_limit = run_limited_memory_task(task,dask_dir=workdir)
+                dask_client, dask_cluster, n_jobs, n_threads, mem_limit = get_dask_client(
                     len(phasecal_mslist),
                     dask_dir=workdir,
                     cpu_frac=cpu_frac,
@@ -792,8 +792,8 @@ def single_round_cal_and_flag(
                 print("Measurement set is not full-polar.")
             elif len(fluxcal_mslist) > 0:
                 task = delayed(run_leakagecal)(dry_run=True)
-                mem_limit = run_limited_memory_task(task)
-                dask_client, dask_cluster, n_jobs, n_threads = get_dask_client(
+                mem_limit = run_limited_memory_task(task, dask_dir=workdir)
+                dask_client, dask_cluster, n_jobs, n_threads, mem_limit = get_dask_client(
                     len(fluxcal_mslist),
                     dask_dir=workdir,
                     cpu_frac=cpu_frac,
@@ -837,8 +837,8 @@ def single_round_cal_and_flag(
                 print("Leakage solutions are present.")
             else:
                 task = delayed(run_polcal)(dry_run=True)
-                mem_limit = run_limited_memory_task(task)
-                dask_client, dask_cluster, n_jobs, n_threads = get_dask_client(
+                mem_limit = run_limited_memory_task(task, dask_dir=workdir)
+                dask_client, dask_cluster, n_jobs, n_threads, mem_limit = get_dask_client(
                     len(polcal_mslist),
                     dask_dir=workdir,
                     cpu_frac=cpu_frac,
@@ -922,8 +922,8 @@ def single_round_cal_and_flag(
         if len(all_mslist) > 0:
             do_flag_backup(msname, flagtype="applycal")
             task = delayed(run_applycal)(dry_run=True)
-            mem_limit = run_limited_memory_task(task)
-            dask_client, dask_cluster, n_jobs, n_threads = get_dask_client(
+            mem_limit = run_limited_memory_task(task, dask_dir=workdir)
+            dask_client, dask_cluster, n_jobs, n_threads, mem_limit = get_dask_client(
                 len(all_mslist),
                 dask_dir=workdir,
                 cpu_frac=cpu_frac,
@@ -953,8 +953,8 @@ def single_round_cal_and_flag(
         if do_postcal_flag and len(all_mslist) > 0:
             do_flag_backup(msname, flagtype="flagdata")
             task = delayed(run_postcal_flag)(dry_run=True)
-            mem_limit = run_limited_memory_task(task)
-            dask_client, dask_cluster, n_jobs, n_threads = get_dask_client(
+            mem_limit = run_limited_memory_task(task, dask_dir=workdir)
+            dask_client, dask_cluster, n_jobs, n_threads, mem_limit = get_dask_client(
                 len(all_mslist),
                 dask_dir=workdir,
                 cpu_frac=cpu_frac,

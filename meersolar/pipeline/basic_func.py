@@ -210,14 +210,14 @@ def get_bad_chans(msname):
         bad_freqs = [
             (-1, 879),
             (925, 960),
-            (1565, 1585),
-            (1217, 1237),
-            (1375, 1387),
             (1166, 1186),
-            (1592, 1610),
+            (1217, 1237),
             (1242, 1249),
-            (1616, 1626),
+            (1375, 1387),
             (1526, 1554),
+            (1565, 1585),
+            (1592, 1610),            
+            (1616, 1626),
             (1681, -1),
         ]
     else:
@@ -626,18 +626,18 @@ def reset_weights_and_flags(msname="", restore_flag=True, n_threads=-1, dry_run=
     colnames = tb.colnames()
     nrows = tb.nrows()
     if "WEIGHT" in colnames:
-        print("Resetting weight column to ones.")
+        print(f"Resetting weight column to ones of measurement set : {msname}.")
         weight = np.ones((npol, nrows))
         tb.putcol("WEIGHT", weight)
     if "SIGMA" in colnames:
-        print("Resetting sigma column to ones.")
+        print(f"Resetting sigma column to ones of measurement set: {msname}.")
         sigma = np.ones((npol, nrows))
         tb.putcol("SIGMA", sigma)
     if "WEIGHT_SPECTRUM" in colnames:
-        print("Removing weight spectrum.")
+        print(f"Removing weight spectrum of measurement set: {msname}.")
         tb.removecols("WEIGHT_SPECTRUM")
     if "SIGMA_SPECTRUM" in colnames:
-        print("Removing sigma spectrum.")
+        print(f"Removing sigma spectrum of measurement set: {msname}.")
         tb.removecols("SIGMA_SPECTRUM")
     tb.flush()
     tb.close()
@@ -1898,7 +1898,7 @@ def create_batch_script_nonhpc(cmd, workdir, basename, write_logfile=True):
     return workdir + "/" + basename + ".batch"
 
 
-def get_dask_client(n_jobs, dask_dir="/tmp", cpu_frac=0.8, mem_frac=0.8, spill_frac = 0.6, min_mem_per_job=-1):
+def get_dask_client(n_jobs, dask_dir="/tmp", cpu_frac=0.8, mem_frac=0.8, spill_frac = 0.6, min_mem_per_job=-1,only_cal=False):
     """
     Create a Dask client optimized for one-task-per-worker execution,
     where each worker is a separate process that can use multiple threads internally.
@@ -1917,6 +1917,8 @@ def get_dask_client(n_jobs, dask_dir="/tmp", cpu_frac=0.8, mem_frac=0.8, spill_f
         Spill to disk at this fraction
     min_mem_per_job : float, optional
         Minimum memory per job
+    only_cal : bool, optional
+        Only calculate number of workers 
     Returns
     -------
     client : dask.distributed.Client
@@ -1992,7 +1994,7 @@ def get_dask_client(n_jobs, dask_dir="/tmp", cpu_frac=0.8, mem_frac=0.8, spill_f
         n_workers = n_jobs
     #########################################
     # Cap number of workers to available CPUs
-    n_workers = min(n_workers, usable_cpus)  # Prevent CPU oversubscription
+    n_workers = max(1,min(n_workers, usable_cpus))  # Prevent CPU oversubscription
     # Recalculate final memory per worker based on capped n_workers
     mem_per_worker = usable_mem / n_workers
     # Calculate threads per worker
@@ -2000,21 +2002,11 @@ def get_dask_client(n_jobs, dask_dir="/tmp", cpu_frac=0.8, mem_frac=0.8, spill_f
     ##########################################
     print("\n#################################")
     print(
-        f"Dask workers: {n_workers}, Threads per worker: {threads_per_worker}, Mem/worker: {mem_per_worker/1e9:.2f} GB"
+        f"Dask workers: {n_workers}, Threads per worker: {threads_per_worker}, Mem/worker: {round(mem_per_worker/(1024.0**3),2)} GB"
     )
-    dask.config.set({"temporary-directory": dask_dir})
-    cluster = LocalCluster(
-        n_workers=n_workers,
-        threads_per_worker=1, # one python-thread per worker, in workers OpenMP threads can be used
-        memory_limit=f"{mem_per_worker/1e9:.2f}GB",
-        local_directory=dask_dir,
-        processes=True,  # one process per worker
-        dashboard_address=":0",
-    )
-    client = Client(cluster)
     # Memory control settings
     swap = psutil.swap_memory()
-    swap_gb = swap.total / 1024**3  
+    swap_gb = swap.total / 1024.0**3  
     if swap_gb>16:
         pass
     elif swap_gb>4:
@@ -2023,13 +2015,27 @@ def get_dask_client(n_jobs, dask_dir="/tmp", cpu_frac=0.8, mem_frac=0.8, spill_f
         spill_frac=0.5  
         
     if spill_frac>0.7:
-        spill_frac=0.7    
+        spill_frac=0.7  
+    if only_cal:
+        final_mem_per_worker=round((mem_per_worker*spill_frac)/(1024.0**3),2)
+        return None, None, n_workers, threads_per_worker, final_mem_per_worker
+    dask.config.set({"temporary-directory": dask_dir})
+    cluster = LocalCluster(
+        n_workers=n_workers,
+        threads_per_worker=1, # one python-thread per worker, in workers OpenMP threads can be used
+        memory_limit=f"{round(mem_per_worker/(1024.0**3),2)}GB",
+        local_directory=dask_dir,
+        processes=True,  # one process per worker
+        dashboard_address=":0",
+        env={"MALLOC_TRIM_THRESHOLD_": "0"},  # Explicitly set for workers
+    )
+    client = Client(cluster)
     dask.config.set(
         {
             "distributed.worker.memory.target": spill_frac,
-            "distributed.worker.memory.spill": 0.7,
-            "distributed.worker.memory.pause": 0.8,
-            "distributed.worker.memory.terminate": 0.95,
+            "distributed.worker.memory.spill": spill_frac+0.1,
+            "distributed.worker.memory.pause": spill_frac+0.2,
+            "distributed.worker.memory.terminate": spill_frac+0.25,
         }
     )
 
@@ -2037,11 +2043,11 @@ def get_dask_client(n_jobs, dask_dir="/tmp", cpu_frac=0.8, mem_frac=0.8, spill_f
 
     print(f"Dask Dashboard: {client.dashboard_link}")
     print("#################################\n")
+    final_mem_per_worker=round((mem_per_worker*spill_frac)/(1024.0**3),2)
+    return client, cluster, n_workers, threads_per_worker, final_mem_per_worker
 
-    return client, cluster, n_workers, threads_per_worker
 
-
-def run_limited_memory_task(task, timeout=30):
+def run_limited_memory_task(task, dask_dir ="/tmp", timeout=30):
     """
     Run a task for a limited time, then kill and return memory usage.
     Parameters
@@ -2056,9 +2062,16 @@ def run_limited_memory_task(task, timeout=30):
         Memory used by task (in GB)
     """
     import warnings
-
+    dask.config.set({"temporary-directory": dask_dir})
     warnings.filterwarnings("ignore")
-    client = Client()
+    cluster = LocalCluster(
+        n_workers=1,
+        threads_per_worker=1, # one python-thread per worker, in workers OpenMP threads can be used
+        local_directory=dask_dir,
+        processes=True,  # one process per worker
+        dashboard_address=":0",
+    )
+    client = Client(cluster)
     future = client.compute(task)
     start = time.time()
 
@@ -2079,12 +2092,14 @@ def run_limited_memory_task(task, timeout=30):
                 per_worker_mem = None
             future.cancel()
             client.close()
+            cluster.close()
             return per_worker_mem
         time.sleep(1)
     mem_info = client.run(get_worker_memory_info)
     total_rss = sum(v["rss_GB"] for v in mem_info.values())
     per_worker_mem = total_rss
     client.close()
+    cluster.close()
     return round(per_worker_mem,2)
 
 
@@ -2110,6 +2125,23 @@ def baseline_names(msname):
         baseline_names.append(str(ant1) + "&&" + str(ant2))
     return baseline_names
 
+def get_ms_size(msname):
+    """
+    Get measurement set total size
+    Parameters
+    ----------
+    msname : str
+    Returns
+    -------
+    float
+        Size in GB
+    """
+    total_size = 0
+    for dirpath, dirnames, filenames in os.walk(msname):
+        for f in filenames:
+            fp = os.path.join(dirpath, f)
+            total_size += os.path.getsize(fp)
+    return total_size / (1024 ** 3)  # in GB
 
 def get_chunk_size(msname, memory_limit=-1, ncol=3):
     """

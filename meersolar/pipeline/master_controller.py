@@ -332,8 +332,11 @@ def run_target_split_jobs(
     timeres=-1,
     freqres=-1,
     target_freq_chunk=-1,
+    target_scans=[],
     cpu_frac=0.8,
     mem_frac=0.8,
+    max_cpu_frac=0.8,
+    max_mem_frac=0.8,
 ):
     """
     Apply calibration solutions and split corrected target scans
@@ -351,10 +354,16 @@ def run_target_split_jobs(
         Frequency averaging in MHz
     target_freq_chunk : float, optional
         Target frequency chunk in MHz
+    target_scans : list, optional
+        Target scans
     cpu_frac : float, optional
         CPU fraction to use
     mem_frac : float, optional
         Memory fraction to use
+    max_cpu_frac : float, optional
+        Maximum CPU fraction to use
+    max_mem_frac : float, optional
+        Maximum memory fraction to use
     Returns
     -------
     int
@@ -383,7 +392,13 @@ def run_target_split_jobs(
             + str(mem_frac)
             + " --spectral_chunk "
             + str(target_freq_chunk)
+            + " --max_cpu_frac "
+            + str(max_cpu_frac)
+            + " --max_mem_frac "
+            + str(max_mem_frac)
         )
+        if len(target_scans)>0:
+            split_cmd = split_cmd + " --scans "+",".join([str(s) for s in target_scans])
         if os.path.isdir(workdir + "/logs") == False:
             os.makedirs(workdir + "/logs")
         batch_file = create_batch_script_nonhpc(split_cmd, workdir, split_basename)
@@ -865,6 +880,7 @@ def master_control(
     do_apply_selfcal=True,
     do_ap_selfcal=True,
     solar_selfcal=True,
+    target_scans=[],
     uvrange="",
     solint="int",
     do_imaging=True,
@@ -922,6 +938,8 @@ def master_control(
         Perform amplitude-phase self-cal or not
     solar_selfcal : bool, optional
         Whether self-calibration is performing on solar observation or not
+    target_scans : list, optional
+        Target scans to self-cal and image
     uvrange : str, optional
         UV-range for calibration
     solint : str, optional
@@ -1075,8 +1093,15 @@ def master_control(
     # Spliting target scans
     #########################################
     split_start=False
-    if do_target_split and (cpu_frac>0.5 or mem_frac>0.5):
-        if round((1-split_target_frac)*cpu_frac, 2)>=0.5 and round((1-split_target_frac)*mem_frac, 2)>=0.5:
+    total_cpus = psutil.cpu_count(logical=True)  # Total logical CPU cores
+    total_mem = psutil.virtual_memory().total/1024**3    # Total system memory (GB)
+    min_cpu_frac=round(4.0/total_cpus,2) # Minimum 4 CPU threads
+    min_mem_frac=round(4.0/total_mem,2) # Minimum 4 GB (1GB/threads)
+    if do_cal_partition==False and do_cal_flag==False and do_import_model==False and do_basic_cal==False:
+        print ("No other jobs to run in parallel with spliting targets. Making spliting target resource usuage fraction to unity.")
+        split_target_frac=1.0 
+    if do_target_split and (cpu_frac>min_cpu_frac or mem_frac>min_mem_frac):
+        if round((1-split_target_frac)*cpu_frac, 2)>=min_cpu_frac and round((1-split_target_frac)*mem_frac, 2)>=min_mem_frac:
             msg = run_target_split_jobs(
                 msname,
                 workdir,
@@ -1084,8 +1109,11 @@ def master_control(
                 timeres=timeavg,
                 freqres=freqavg,
                 target_freq_chunk=target_freq_chunk,
+                target_scans=target_scans,
                 cpu_frac=round(split_target_frac*cpu_frac, 2),
                 mem_frac=round(split_target_frac*mem_frac, 2),
+                max_cpu_frac=round(cpu_frac, 2),
+                max_mem_frac=round(mem_frac, 2),
             )
             cpu_frac=cpu_frac*(1-split_target_frac)
             mem_frac=mem_frac*(1-split_target_frac)
@@ -1214,8 +1242,11 @@ def master_control(
                 timeres=timeavg,
                 freqres=freqavg,
                 target_freq_chunk=target_freq_chunk,
+                target_scans=target_scans,
                 cpu_frac=round(cpu_frac, 2),
                 mem_frac=round(mem_frac, 2),
+                max_cpu_frac=round(cpu_frac, 2),
+                max_mem_frac=round(mem_frac, 2),
             )
             if msg != 0:
                 print("!!!! WARNING: Error in running spliting target scans. !!!!")
@@ -1240,6 +1271,19 @@ def master_control(
     cpu_frac=copy.deepcopy(cpu_frac_bkp)
     mem_frac=copy.deepcopy(mem_frac_bkp)
     target_mslist = glob.glob(workdir + "/target_scan*.ms")
+    
+    ####################################
+    # Filtering any corrupted ms
+    #####################################    
+    filtered_mslist=[] # Filtering in case any ms is corrupted
+    for ms in target_mslist:
+        checkcol=check_datacolumn_valid(ms)
+        if checkcol:
+            filtered_mslist.append(ms)
+        else:
+            print (f"Issue in : {ms}")
+            os.system("rm -rf {ms}")
+    target_mslist=filtered_mslist  
     if len(target_mslist) == 0:
         print("No splited target scan ms are available in work directory.")
         exit_job(start_time,mspath,workdir)
@@ -1271,7 +1315,7 @@ def master_control(
     if (
         do_selfcal or do_applycal
     ):  # Applying solutions if do_selfcal is True even if do_applycal is False. This is for safety.
-        if len(applycal_list) > 0:
+        if len(target_mslist) > 0:
             caldir = workdir + "/caltables"
             msg = run_apply_basiccal_sol(
                 target_mslist,

@@ -382,7 +382,7 @@ def do_flagging(
         else:
             subms_list = [msname]
         task = delayed(single_ms_flag)(dry_run=True)
-        mem_limit = run_limited_memory_task(task)
+        mem_limit = run_limited_memory_task(task, dask_dir=mspath)
         dask_client, dask_cluster, n_jobs, n_threads = get_dask_client(
             len(subms_list),
             dask_dir=mspath,

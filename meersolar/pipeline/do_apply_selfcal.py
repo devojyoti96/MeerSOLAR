@@ -4,102 +4,13 @@ from scipy.interpolate import CubicSpline
 from scipy.ndimage import gaussian_filter1d
 from scipy.interpolate import interp1d
 from meersolar.pipeline.basic_func import *
+from meersolar.do_apply_basiccal import applysol
 from dask import delayed, compute
 from optparse import OptionParser
 from casatasks import casalog
 
 logfile = casalog.logfile()
 os.system("rm -rf " + logfile)
-
-def applysol(
-    msname="",
-    scan="",
-    gaintable=[],
-    gainfield=[],
-    interp=[],
-    parang=False,
-    applymode="calonly",
-    overwrite_datacolumn=False,
-    n_threads=-1,
-    memory_limit=-1,
-    force_apply=False,
-    dry_run=False,
-):
-    """
-    Apply self-calibration solutions
-    Parameters
-    ----------
-    msname : str
-        Measurement set
-    scan : int
-        Scan number
-    gaintable : list, optional
-        Caltable list
-    gainfield : list, optional
-        Gain field list
-    interp : list, optional
-        Gain interpolation
-    parang : bool, optional
-        Parallactic angle apply or not
-    applymode : str, optional
-        Apply mode
-    overwrite_datacolumn : bool, optional
-        Overwrite data column with corrected solutions
-    n_threads : int, optional
-        Number of OpenMP threads
-    memory_limit : float, optional
-        Memory limit in GB
-    force_apply : bool, optional
-        Force to apply solutions if it is already applied
-    Returns
-    -------
-    int
-        Success message
-    """
-    limit_threads(n_threads=n_threads)
-    from casatasks import applycal, flagdata, split, clearcal
-
-    if dry_run:
-        process = psutil.Process(os.getpid())
-        mem = round(process.memory_info().rss / 1024**3, 2)  # in GB
-        return mem
-    print(
-        f"Applying solutions on ms: {os.path.basename(msname)} of scan : {scan} from caltables: {','.join([os.path.basename(i) for i in gaintable])}\n"
-    )
-    try:
-        if os.path.exists(msname+"/.applied_sol_selfcal") and force_apply==False:
-            print ("Self-cal solutions are already applied.")
-        else:
-            clearcal(vis=msname)
-            flagdata(vis=msname,mode="unflag",spw="0",flagbackup=False)
-            if os.path.exists(msname+".flagversions"):
-                os.system("rm -rf "+msname+".flagversions")
-            applycal(
-                vis=msname,
-                scan=str(scan),
-                gaintable=gaintable,
-                gainfield=gainfield,
-                applymode=applymode,
-                calwt=[False],
-                parang=parang,
-                flagbackup=False,
-            )            
-        if overwrite_datacolumn:
-            print(f"Spliting corrected data for ms: {msname}.")
-            outputvis=msname.split(".ms")[0]+"_cor.ms"
-            if os.path.exists(outputvis):
-                os.system(f"rm -rf {outputvis}")
-            split(vis=msname,outputvis=outputvis,datacolumn="corrected")
-            if os.path.exists(outputvis):
-                os.system(f"rm -rf {msname}")
-                os.system(f"mv {outputvis} {msname}")
-            gc.collect()
-        os.system("touch "+msname+"/.applied_sol_selfcal")
-        return 0
-    except Exception as e:
-        traceback.print_exc()
-        return 1
-
 
 def run_all_applysol(
     mslist,
@@ -160,14 +71,18 @@ def run_all_applysol(
                 print (f"Issue in : {ms}")
                 os.system("rm -rf {ms}")
         mslist=filtered_mslist  
-        
+        if len(mslist)==0:
+            print ("No valid measurement set.")
+            print(f"Total time taken: {round(time.time()-start_time,2)}s")
+            return 1  
+               
         ####################################
         # Applycal jobs
         ####################################
         print(f"Total ms list: {len(mslist)}")
         task = delayed(applysol)(dry_run=True)
-        mem_limit = run_limited_memory_task(task)
-        dask_client, dask_cluster, n_jobs, n_threads = get_dask_client(
+        mem_limit = run_limited_memory_task(task, dask_dir = workdir)
+        dask_client, dask_cluster, n_jobs, n_threads, mem_limit = get_dask_client(
             len(mslist),
             dask_dir=workdir,
             cpu_frac=cpu_frac,
