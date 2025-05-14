@@ -4,7 +4,7 @@ from scipy.interpolate import CubicSpline
 from scipy.ndimage import gaussian_filter1d
 from scipy.interpolate import interp1d
 from meersolar.pipeline.basic_func import *
-from meersolar.do_apply_basiccal import applysol
+from meersolar.pipeline.do_apply_basiccal import applysol
 from dask import delayed, compute
 from optparse import OptionParser
 from casatasks import casalog
@@ -82,6 +82,8 @@ def run_all_applysol(
         print(f"Total ms list: {len(mslist)}")
         task = delayed(applysol)(dry_run=True)
         mem_limit = run_limited_memory_task(task, dask_dir = workdir)
+        ms_size_list=[get_ms_size(ms)+mem_limit for ms in mslist]
+        mem_limit=max(ms_size_list)
         dask_client, dask_cluster, n_jobs, n_threads, mem_limit = get_dask_client(
             len(mslist),
             dask_dir=workdir,
@@ -94,8 +96,7 @@ def run_all_applysol(
         for ms in mslist:
             tasks.append(
                 delayed(applysol)(
-                    ms,
-                    scan,
+                    msname=ms,
                     gaintable=gaintable,
                     overwrite_datacolumn=overwrite_datacolumn,
                     applymode=applymode,
@@ -104,6 +105,7 @@ def run_all_applysol(
                     parang=parang,
                     memory_limit=mem_limit,
                     force_apply=force_apply,
+                    soltype="selfcal",
                 )
             )
         results = compute(*tasks)

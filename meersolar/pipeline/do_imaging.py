@@ -114,6 +114,8 @@ def perform_imaging(
     list
         List of images [[images],[models],[residuals]]
     """
+    if os.path.exists(logfile):
+        os.system(f"rm -rf {logfile}")
     logf=open(logfile,"a")
     if dry_run:
         process = psutil.Process(os.getpid())
@@ -427,7 +429,10 @@ def run_all_imaging(
     """
     if os.path.exists(workdir+"/logs/")==False:
         os.makedirs(workdir+"/logs/")
-    mainlog_file=open(workdir+"/logs/imaging_targets.log","a")
+    mainlog_file_name=workdir+"/logs/imaging_targets_mainlog.log"
+    if os.path.exists(mainlog_file_name):
+        os.system(f"rm -rf {mainlog_file_name}")
+    mainlog_file=open(mainlog_file_name,"a")
     start_time = time.time()
     mslist=sorted(mslist)
     try:
@@ -477,6 +482,7 @@ def run_all_imaging(
             nchan_list = [-1] * len(mslist)
         else:
             nchan_list = []
+            msmd = msmetadata()
             for ms in mslist:
                 msmd.open(ms)
                 freqs = msmd.chanfreqs(0, unit="MHz")

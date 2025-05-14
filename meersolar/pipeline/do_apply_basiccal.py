@@ -90,7 +90,7 @@ def scale_bandpass(bandpass_table, att_table, n=15):
         return
     print(f"Bandpass table: {bandpass_table}, Attenuation table: {att_table}")
     results = np.load(att_table, allow_pickle=True)
-    scan, freqs, att_values flag_ants = results[0], results[1], results[2]
+    scan, freqs, att_values, flag_ants = results
     output_table = bandpass_table.split(".bcal")[0] + "_scan_" + str(scan) + ".bcal"
     tb = table()
     tb.open(f"{bandpass_table}/SPECTRAL_WINDOW")
@@ -154,6 +154,7 @@ def applysol(
     n_threads=-1,
     memory_limit=-1,
     force_apply=False,
+    soltype="basic",
     dry_run=False,
 ):
     """
@@ -182,6 +183,8 @@ def applysol(
         Memory limit in GB
     force_apply : bool, optional
         Force to apply solutions if it is already applied
+    soltype : str, optional
+        Solution type
     Returns
     -------
     int
@@ -197,11 +200,16 @@ def applysol(
     print(
         f"Applying solutions on ms: {os.path.basename(msname)} of scan : {scan} from caltables: {','.join([os.path.basename(i) for i in gaintable])}\n"
     )
+    if soltype=="basic":
+        check_file="/.applied_sol"
+    else:
+        check_file="/.applied_selfcalsol"
     try:
-        if os.path.exists(msname+"/.applied_sol") and force_apply==False:
+        if os.path.exists(msname+check_file) and force_apply==False:
             print ("Solutions are already applied.")
+            return 0
         else:
-            if os.path.exists(msname+"/.applied_sol") and force_apply==True:
+            if os.path.exists(msname+check_file) and force_apply==True:
                 clearcal(vis=msname)
                 flagdata(vis=msname,mode="unflag",spw="0",flagbackup=False)
                 if os.path.exists(msname+".flagversions"):
@@ -226,7 +234,7 @@ def applysol(
                 os.system(f"rm -rf {msname}")
                 os.system(f"mv {outputvis} {msname}")
             gc.collect()
-        os.system("touch "+msname+"/.applied_sol")
+        os.system("touch "+msname+check_file)
         return 0
     except Exception as e:
         traceback.print_exc()
@@ -365,6 +373,8 @@ def run_all_applysol(
         print(f"Total ms list: {len(mslist)}")
         task = delayed(applysol)(dry_run=True)
         mem_limit = run_limited_memory_task(task, dask_dir= workdir)
+        ms_size_list=[get_ms_size(ms)+mem_limit for ms in mslist]
+        mem_limit=max(ms_size_list)
         dask_client, dask_cluster, n_jobs, n_threads, mem_limit = get_dask_client(
             len(mslist),
             dask_dir=workdir,

@@ -216,7 +216,7 @@ def import_phasecal_models(msname, workdir, cpu_frac=0.8, mem_frac=0.8):
             mslist, scans = get_submsname_scans(msname)
             task = delayed(phasecal_setjy)(dry_run=True)
             mem_limit = run_limited_memory_task(task)
-            dask_client, dask_cluster, n_jobs, n_threads = get_dask_client(
+            dask_client, dask_cluster, n_jobs, n_threads, mem_limit = get_dask_client(
                 len(mslist),
                 dask_dir = workdir, 
                 cpu_frac=cpu_frac,
@@ -284,7 +284,7 @@ def import_polcal_model(msname, workdir, cpu_frac=0.8, mem_frac=0.8):
             mslist, scans = get_submsname_scans(msname)
             task = delayed(polcal_setjy)(dry_run=True)
             mem_limit = run_limited_memory_task(task)
-            dask_client, dask_cluster, n_jobs, n_threads = get_dask_client(
+            dask_client, dask_cluster, n_jobs, n_threads, mem_limit = get_dask_client(
                 len(p_scans),
                 dask_dir = workdir,
                 cpu_frac=cpu_frac,

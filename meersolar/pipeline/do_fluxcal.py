@@ -438,6 +438,7 @@ def estimate_att(
             att_ant_array=results[i][1]
             if np.nanmean(att_value) < 0:
                 att_value *= -1
+                att_ant_array*=-1
             scan = filtered_scans[i]
             att_level[scan] = att_value
             filename = (
@@ -451,7 +452,8 @@ def estimate_att(
             flag_ants=[]
             for pol in range(2):
                 mean_percentage_change=np.nanmean(att_ant_array_percentage_change[pol,...],axis=0)
-                pos=np.where(np.abs(mean_percentage_change)>0.1)
+                std_percentage_change=np.nanstd(att_ant_array_percentage_change[pol,...],axis=0)
+                pos=np.where(np.abs(mean_percentage_change)>3*std_percentage_change)[0]
                 if len(pos)>0:
                     for i in range(len(pos)):
                         if pos[i] not in flag_ants:

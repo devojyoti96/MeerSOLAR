@@ -96,9 +96,10 @@ def split_target_scans(
     datacolumn,
     spw="",
     spectral_chunk=-1,
+    n_spectral_chunk=-1,
     timerange="",
     scans=[],
-    do_only_sidereal_cor=False,
+    prefix="targets",
     cpu_frac=0.8,
     mem_frac=0.8,
     max_cpu_frac=0.8,
@@ -122,16 +123,22 @@ def split_target_scans(
         Spectral window
     spectral_chunk : float, optional
         Spectral chunk in MHz
+    n_spectral_chunk : int, optional
+        Number of spectral chunks to split from the beginning
     timerange : str, optional
         Time range
     scans : list
         Scan list to split
+    prefix : str, optional
+        Splited ms prefix
     cpu_frac : float, optional
         CPU fraction to use
     mem_frac : float, optional
         Memory fraction to use
     max_cpu_frac : float, optional
         Maximum CPU fraction to use
+    max_mem_frac : float, optional
+        Maximum memory fraction to use
     Returns
     -------
     list
@@ -200,7 +207,9 @@ def split_target_scans(
                     else:
                         chanlist.append(f"{s}~{e}")
         else:
-            chanlist = good_spws            
+            chanlist = good_spws    
+        if n_spectral_chunk>0:
+            chanlist=chanlist[0:n_spectral_chunk]        
         print (f"Spliting channel blocks : {chanlist}")
 
         ##################################
@@ -225,103 +234,44 @@ def split_target_scans(
             total_chunks = len(chanlist) * len(filtered_scan_list)
         else:
             total_chunks = len(filtered_scan_list)
-        if do_only_sidereal_cor == False:
-            #############################################
-            # Memory limit
-            #############################################
-            task = delayed(split_scan)(dry_run=True)
-            mem_limit = run_limited_memory_task(task, dask_dir = workdir)
-            #######################
-            dask_client, dask_cluster, max_n_jobs, n_threads, mem_limit = get_dask_client(
-                total_chunks,
-                dask_dir=workdir,
-                cpu_frac=max_cpu_frac,
-                mem_frac=max_mem_frac,
-                min_mem_per_job=mem_limit / 0.6,
-                only_cal = True,
-            )
-            tasks = []
-            for scan in filtered_scan_list:
-                if timerange != "":
-                    time_range = scan_timerange_dic[scan]
-                else:
-                    time_range = ""
-                for chanrange in chanlist:
-                    outputvis = f"{workdir}/target_scan_{scan}_spw_{chanrange}.ms"
-                    task = delayed(split_scan)(
-                        msname,
-                        outputvis,
-                        scan,
-                        chanwidth,
-                        timebin,
-                        datacolumn,
-                        timerange=timerange,
-                        spw='0:'+chanrange,
-                        n_threads=n_threads,
-                    )
-                    tasks.append(task)
-            #####################################
-            # Adaptive dask client
-            #####################################
-            splited_ms_list=[]
-            while True:
-                total_chunks=len(tasks)
-                dask_client, dask_cluster, n_jobs, n_threads, mem_limit = get_dask_client(
-                    total_chunks,
-                    dask_dir=workdir,
-                    cpu_frac=cpu_frac,
-                    mem_frac=mem_frac,
-                    min_mem_per_job=mem_limit / 0.6,
-                )
-                chunk_tasks=tasks[0:min(n_jobs,max_n_jobs)]
-                for ctask in chunk_tasks:
-                    tasks.remove(ctask)
-                results = compute(*chunk_tasks)
-                dask_client.close()
-                dask_cluster.close()
-                for r in results:
-                    splited_ms_list.append(r)
-                if len(tasks)==0:
-                    break
-                else:
-                    available_cpu_frac = round((100 - psutil.cpu_percent(interval=1))/100.,2)
-                    available_mem_frac = round(psutil.virtual_memory().available/psutil.virtual_memory().total,2)
-                    cpu_frac=min(max_cpu_frac,max(cpu_frac,available_cpu_frac))
-                    mem_frac=min(max_mem_frac,max(mem_frac,available_mem_frac))
-                    print (f"Updated CPU fraction: {cpu_frac}, memory fraction: {mem_frac}.")
-        else:
-            ########################################
-            # Correcting solar differential rotation
-            ########################################
-            splited_ms_list = []
-            for scan in filtered_scan_list:
-                if timerange != "":
-                    time_range = scan_timerange_dic[scan]
-                else:
-                    time_range = ""
-                for chanrange in chanlist:
-                    outputvis = f"{workdir}/target_scan_{scan}_spw_{chanrange}.ms"
-                    if os.path.exists(outputvis):
-                        data_valid = check_datacolumn_valid(
-                            outputvis, datacolumn="DATA"
-                        )
-                        if data_valid:
-                            splited_ms_list.append(outputvis)
-                        else:
-                            os.system("rm -rf " + outputvis)
-                if len(splited_ms_list) == 0:
-                    print("No good splited ms is present. Starting with spliting.")
-                    do_only_sidereal_cor = False
-
         #############################################
         # Memory limit
         #############################################
-        task = delayed(correct_solar_sidereal_motion)(dry_run=True)
+        task = delayed(split_scan)(dry_run=True)
         mem_limit = run_limited_memory_task(task, dask_dir = workdir)
-        #############################################
+        #######################
+        dask_client, dask_cluster, max_n_jobs, n_threads, mem_limit = get_dask_client(
+            total_chunks,
+            dask_dir=workdir,
+            cpu_frac=max_cpu_frac,
+            mem_frac=max_mem_frac,
+            min_mem_per_job=mem_limit / 0.6,
+            only_cal = True,
+        )
         tasks = []
-        for ms in splited_ms_list:
-            tasks.append(delayed(correct_solar_sidereal_motion)(ms))
+        for scan in filtered_scan_list:
+            if timerange != "":
+                time_range = scan_timerange_dic[scan]
+            else:
+                time_range = ""
+            for chanrange in chanlist:
+                outputvis = f"{workdir}/{prefix}_scan_{scan}_spw_{chanrange}.ms"
+                task = delayed(split_scan)(
+                    msname,
+                    outputvis,
+                    scan,
+                    chanwidth,
+                    timebin,
+                    datacolumn,
+                    timerange=timerange,
+                    spw='0:'+chanrange,
+                    n_threads=n_threads,
+                )
+                tasks.append(task)
+        #####################################
+        # Adaptive dask client
+        #####################################
+        splited_ms_list=[]
         while True:
             total_chunks=len(tasks)
             dask_client, dask_cluster, n_jobs, n_threads, mem_limit = get_dask_client(
@@ -337,33 +287,22 @@ def split_target_scans(
             results = compute(*chunk_tasks)
             dask_client.close()
             dask_cluster.close()
+            for r in results:
+                splited_ms_list.append(r)
+            n_current_process=get_nprocess_meersolar()-1 # One is subtracted for the current process
             if len(tasks)==0:
                 break
-            else:
+            elif n_current_process==0:
                 available_cpu_frac = round((100 - psutil.cpu_percent(interval=1))/100.,2)
                 available_mem_frac = round(psutil.virtual_memory().available/psutil.virtual_memory().total,2)
                 cpu_frac=min(max_cpu_frac,max(cpu_frac,available_cpu_frac))
                 mem_frac=min(max_mem_frac,max(mem_frac,available_mem_frac))
-                print (f"Updated CPU fraction: {cpu_frac}, memory fraction: {mem_frac}.")
-        splited_ms_list_phaserotated = []
-        for ms in splited_ms_list:
-            if os.path.exists(ms+"/.sidereal_cor"):
-                splited_ms_list_phaserotated.append(splited_ms_list[i])
-        if len(splited_ms_list_phaserotated) == 0:
-            print(
-                "Sidereal motion correction is not successful for any measurement set."
-            )
-            print("##################")
-            print("Spliting of target scans are done successfully.")
-            print("Total time taken : ", time.time() - start_time)
-            print("##################\n")
-            return 0, splited_ms_list
-        else:
-            print("##################")
-            print("Spliting of target scans are done successfully.")
-            print("Total time taken : ", time.time() - start_time)
-            print("##################\n")
-            return 0, splited_ms_list_phaserotated
+                print (f"Updated CPU fraction: {cpu_frac}, memory fraction: {mem_frac}.")          
+        print("##################")
+        print("Spliting of target scans are done successfully.")
+        print("Total time taken : ", time.time() - start_time)
+        print("##################\n")
+        return 0, splited_ms_list
     except Exception as e:
         traceback.print_exc()
         print("##################")
@@ -426,6 +365,13 @@ def main():
         metavar="Float",
     )
     parser.add_option(
+        "--n_spectral_chunk",
+        dest="n_spectral_chunk",
+        default=-1,
+        help="Numbers of spectral chunks to split",
+        metavar="Integer",
+    )
+    parser.add_option(
         "--print_casalog",
         dest="print_casalog",
         default=False,
@@ -447,11 +393,11 @@ def main():
         metavar="Float",
     )
     parser.add_option(
-        "--only_sidereal_cor",
-        dest="only_sidereal_cor",
-        default=False,
-        help="Correct only sidereal motion",
-        metavar="Boolean",
+        "--prefix",
+        dest="prefix",
+        default="targets",
+        help="Splited ms prefix name",
+        metavar="String",
     )
     parser.add_option(
         "--cpu_frac",
@@ -505,7 +451,8 @@ def main():
                 spw=options.spw,
                 timerange=options.timerange,
                 scans=scans,
-                do_only_sidereal_cor=eval(str(options.only_sidereal_cor)),
+                n_spectral_chunk=int(options.n_spectral_chunk),
+                prefix=options.prefix,
                 spectral_chunk=float(options.spectral_chunk),
                 cpu_frac=float(options.cpu_frac),
                 mem_frac=float(options.mem_frac),

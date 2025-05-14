@@ -9,7 +9,7 @@ from casatasks import casalog
 
 logfile = casalog.logfile()
 os.system("rm -rf " + logfile)
-
+casalog.showconsole(True)
 
 def single_selfcal_iteration(
     msname,
@@ -80,8 +80,8 @@ def single_selfcal_iteration(
         Number of CPUs to use in WSClean
     mem : float, optional
         Memory usage limit in WSClean
-    logfile : str, optional
-        Log file name
+    logfile : str or file object, optional
+        Log file name or file object
     Returns
     -------
     int
@@ -103,7 +103,10 @@ def single_selfcal_iteration(
     """
     limit_threads(n_threads=ncpu)
     from casatasks import gaincal, applycal, flagdata, delmod, flagmanager
-    logf=open(logfile,"a")
+    if isinstance(logfile, str):
+        logf = open(logfile, "a")
+    else:
+        logf = logfile
     try:
         ##################################
         # Setup wsclean params
@@ -111,7 +114,7 @@ def single_selfcal_iteration(
         if ncpu < 1:
             ncpu = psutil.cpu_count()
         if mem < 0:
-            mem = round(psutil.virtual_memory().total / (1024**3),2)
+            mem = round(psutil.virtual_memory().available / (1024**3),2)
         ngrid = max(1, int(ncpu / 2))
         msname = msname.rstrip("/")
         delmod(vis=msname, otf=True, scr=True)
@@ -158,11 +161,11 @@ def single_selfcal_iteration(
         subimsize=1024
         if imsize > (2 * subimsize):
             subimage_memory=8*(subimsize**2)/(1024**3)
-            n_subimage=int(imsize/subimsize)
+            n_subimage=max(1,int(imsize/subimsize))
             if ncpu*subimage_memory>mem:
                 if n_subimage*subimage_memory>mem:
-                    threads_to_use=int(mem/subimage_memory)
-                    subimsize=int(imsize/threads_to_use)
+                    threads_to_use=max(1,int(mem/subimage_memory))
+                    subimsize=max(1024,int(imsize/threads_to_use))
                 else:
                     threads_to_use=n_subimage
             else:
@@ -324,7 +327,6 @@ def single_selfcal_iteration(
             calwt=[False],
         )
         gc.collect()
-        os.system("cp -r " + msname + " " + prefix + ".ms")
         return (
             0,
             gain_caltable,
@@ -481,15 +483,15 @@ def do_selfcal(
                 field=str(field),
                 scan=str(scan),
                 outputvis=selfcalms,
-                datacolumn="corrected",
+                datacolumn="data",
             )
         msname = selfcalms
 
         ##########################################
         # Initiate proper weighting
         ##########################################
+        print ("Initiating weights ....",file=logf,flush=True)
         initweights(vis=msname, wtmode="ones", dowtsp=True)
-        statwt(vis=msname, datacolumn="data")
 
         ############################################
         # Imaging and calibration parameters
@@ -543,7 +545,7 @@ def do_selfcal(
             ##################################
             # Selfcal round parameters
             ##################################
-            print("######################################")
+            print("######################################",file=logf,flush=True)
             print(
                 f"{os.path.basename(msname)} -- Selfcal iteration : "
                 + str(num_iter)
@@ -575,6 +577,7 @@ def do_selfcal(
                     use_solar_mask=solar_selfcal,
                     ncpu=ncpu,
                     mem=round(mem,2),
+                    logfile=logf,
                 )
             )
             if msg == 1:
@@ -613,6 +616,7 @@ def do_selfcal(
                         use_solar_mask=solar_selfcal,
                         ncpu=ncpu,
                         mem=round(mem,2),
+                        logfile=logf,
                     )
                     if msg == 1:
                         return msg, []
@@ -682,15 +686,6 @@ def do_selfcal(
                 )
                 if do_apcal:
                     print(f"{os.path.basename(msname)} -- Changed calmode to 'ap'.",file=logf,flush=True)
-                    os.system("rm -rf " + msname)
-                    os.system(
-                        "cp -r "
-                        + msname.split(".ms")[0]
-                        + "_selfcal_"
-                        + str(num_iter - 1)
-                        + ".ms "
-                        + msname
-                    )
                     calmode = "ap"
                     solmode = "R"
                 else:
@@ -776,8 +771,8 @@ def do_selfcal(
                 ):
                     threshold -= 1
                     print(
-                        f"{os.path.basename(msname)} -- Reducing threshold to : "
-                        + str(threshold),file=logf,flush=True
+                        f"{os.path.basename(msname)} -- Reducing threshold to : ",file=logf,flush=True
+                        + str(threshold)
                     )
                     do_uvsub_flag = True
                     num_iter_fixed_sigma = 0
@@ -803,15 +798,6 @@ def do_selfcal(
                         f"{os.path.basename(msname)} -- Self-calibration has converged.\n",file=logf,flush=True
                     )
                     return 0, gaintable
-            os.system(
-                "cp -r "
-                + msname
-                + " "
-                + msname.split(".ms")[0]
-                + "_selfcal_"
-                + str(num_iter)
-                + ".ms "
-            )
             num_iter += 1
             if calmode == "ap":
                 num_iter_after_ap += 1
@@ -991,7 +977,7 @@ def main():
     if os.path.exists(caldir) == False:
         os.makedirs(caldir)
     task = delayed(do_selfcal)(dry_run=True)
-    mem_limit = run_limited_memory_task(task, dask_dir= options.workdir)
+    mem_limit = run_limited_memory_task(task,dask_dir=options.workdir)
     partial_do_selfcal = partial(
         do_selfcal,
         start_threshold=float(options.start_thresh),
@@ -1024,11 +1010,7 @@ def main():
             print (f"Issue in : {ms}",file=mainlog_file,flush=True)
             os.system("rm -rf {ms}")
     mslist=filtered_mslist  
-    if len(mslist)==0:
-        print ("No valid measurement set for self-calibration.",file=mainlog_file,flush=True)
-        print(f"Total time taken: {round(time.time()-starttime,2)}s",file=mainlog_file,flush=True)
-        return 1 
-            
+        
     dask_client, dask_cluster, n_jobs, n_threads, mem_limit = get_dask_client(
         len(mslist),
         dask_dir = options.workdir, 
@@ -1036,9 +1018,6 @@ def main():
         mem_frac=float(options.mem_frac),
         min_mem_per_job=mem_limit / 0.6,
     )
-    print("\n#################################",file=mainlog_file,flush=True)
-    print(f"Dask Dashboard: {dask_client.dashboard_link}",file=mainlog_file,flush=True)
-    print("\n#################################",file=mainlog_file,flush=True)
     tasks = []
     for ms in mslist:
         logfile=options.workdir+"/logs/"+os.path.basename(ms).split(".ms")[0]+ "_selfcal.log"
@@ -1083,13 +1062,13 @@ def main():
                     + "_selfcal"
                 )
                 os.system("rm -rf " + selfcaldir)
-        print("Final caltable:",file=mainlog_file,flush=True)
+        print("Final caltable:",file=logf,flush=True)
         if os.path.exists(final_gain_caltable):
-            print(f"{final_gain_caltable}",file=mainlog_file,flush=True)
+            print(f"{final_gain_caltable}",file=logf,flush=True)
         print(f"Total time taken: {round(time.time()-starttime,2)}s",file=mainlog_file,flush=True)
         return 0
     else:
-        print("No self-calibration is successful.",file=mainlog_file,flush=True)
+        print("No self-calibration is successful.",file=logf,flush=True)
         print(f"Total time taken: {round(time.time()-starttime,2)}s",file=mainlog_file,flush=True)
         return 1
 

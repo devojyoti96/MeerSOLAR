@@ -228,7 +228,6 @@ def partion_ms(
     else:
         print("Making multi-MS ....")
         from casatasks import virtualconcat
-
         virtualconcat(vis=splited_ms_list, concatvis=outputms)
 
     print("##################")

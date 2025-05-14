@@ -332,14 +332,16 @@ def run_target_split_jobs(
     timeres=-1,
     freqres=-1,
     target_freq_chunk=-1,
+    n_spectral_chunk=-1,
     target_scans=[],
+    prefix="targets",
     cpu_frac=0.8,
     mem_frac=0.8,
     max_cpu_frac=0.8,
     max_mem_frac=0.8,
 ):
     """
-    Apply calibration solutions and split corrected target scans
+    Split target scans
     Parameters
     ----------
     msname: str
@@ -354,8 +356,12 @@ def run_target_split_jobs(
         Frequency averaging in MHz
     target_freq_chunk : float, optional
         Target frequency chunk in MHz
+    n_spectral_chunk : int, optional
+        Number of spectral chunks to split
     target_scans : list, optional
         Target scans
+    prefix : str, optional
+        Prefix of splited targets
     cpu_frac : float, optional
         CPU fraction to use
     mem_frac : float, optional
@@ -374,7 +380,7 @@ def run_target_split_jobs(
         print("spliting target scans .....")
         print("###########################\n")
         msname = msname.rstrip("/")
-        split_basename = "split_targets"
+        split_basename = f"split_{prefix}"
         split_cmd = (
             "run_target_split --msname "
             + msname
@@ -396,6 +402,10 @@ def run_target_split_jobs(
             + str(max_cpu_frac)
             + " --max_mem_frac "
             + str(max_mem_frac)
+            + " --n_spectral_chunk "
+            + str(n_spectral_chunk)
+            + " --prefix "
+            + str(prefix)
         )
         if len(target_scans)>0:
             split_cmd = split_cmd + " --scans "+",".join([str(s) for s in target_scans])
@@ -409,6 +419,79 @@ def run_target_split_jobs(
         traceback.print_exc()
         return 1
 
+def run_sidereal_cor_jobs(
+    mslist,
+    workdir,
+    prefix="targets",
+    cpu_frac=0.8,
+    mem_frac=0.8,
+    max_cpu_frac=0.8,
+    max_mem_frac=0.8,
+):
+    """
+    Apply sidereal motion correction
+    Parameters
+    ----------
+    mslist: str
+        List of the measurement sets
+    workdir : str
+        Work directory
+    prefix : str, optional
+        Measurement set prefix
+    cpu_frac : float, optional
+        CPU fraction to use
+    mem_frac : float, optional
+        Memory fraction to use
+    max_cpu_frac : float, optional
+        Maximum CPU fraction to use
+    max_mem_frac : float, optional
+        Maximum memory fraction to use
+    Returns
+    -------
+    int
+        Success message 
+    """
+    try:
+        print("###########################")
+        print("Correcting sidereal motion .....")
+        print("###########################\n")
+        mslist = ",".join(mslist)
+        sidereal_basename = f"cor_sidereal_{prefix}"
+        sidereal_cor_cmd = (
+            "run_sidereal_cor --mslist "
+            + mslist
+            + " --workdir "
+            + str(workdir)
+            + " --cpu_frac "
+            + str(cpu_frac)
+            + " --mem_frac "
+            + str(mem_frac)
+            + " --max_cpu_frac "
+            + str(max_cpu_frac)
+            + " --max_mem_frac "
+            + str(max_mem_frac)
+        )
+        if os.path.isdir(workdir + "/logs") == False:
+            os.makedirs(workdir + "/logs")
+        batch_file = create_batch_script_nonhpc(sidereal_cor_cmd, workdir, sidereal_basename)
+        print(sidereal_cor_cmd + "\n")
+        os.system("bash " + batch_file)
+        print("Waiting to finish sidereal correction...\n")
+        while True:
+            finished_file = glob.glob(workdir + "/.Finished_" + sidereal_basename + "*")
+            if len(finished_file) > 0:
+                break
+            else:
+                time.sleep(1)
+        success_index_cal = int(finished_file[0].split("_")[-1])
+        if success_index_cal == 0:
+            print("Sidereal motion correction is done successfully.\n")
+        else:
+            print("Sidereal motion correction is unsuccessful.\n")
+        return success_index_cal
+    except Exception as e:
+        traceback.print_exc()
+        return 1
 
 def run_apply_basiccal_sol(
     target_mslist,
@@ -694,7 +777,7 @@ def run_selfcal_jobs(
             selfcal_cmd += " --min_fractional_bw " + str(min_fractional_bw)
         if os.path.isdir(workdir + "/logs") == False:
             os.makedirs(workdir + "/logs")
-        batch_file = create_batch_script_nonhpc(selfcal_cmd, workdir, selfcal_basename, write_logfile = False)
+        batch_file = create_batch_script_nonhpc(selfcal_cmd, workdir, selfcal_basename)
         print(selfcal_cmd + "\n")
         os.system("bash " + batch_file)
         print("Waiting to finish self-calibration...\n")
@@ -811,7 +894,7 @@ def run_imaging_jobs(
             imaging_cmd += " --multiscale_scales " + multiscales
         if os.path.isdir(workdir + "/logs") == False:
             os.makedirs(workdir + "/logs")
-        batch_file = create_batch_script_nonhpc(imaging_cmd, workdir, imaging_basename, write_logfile=False)
+        batch_file = create_batch_script_nonhpc(imaging_cmd, workdir, imaging_basename)
         print(imaging_cmd + "\n")
         os.system("bash " + batch_file)
         print("Waiting to finish imaging...\n")
@@ -877,6 +960,7 @@ def master_control(
     do_target_split=True,
     target_freq_chunk=-1,
     do_selfcal=True,
+    do_selfcal_split=True,
     do_apply_selfcal=True,
     do_ap_selfcal=True,
     solar_selfcal=True,
@@ -1101,7 +1185,7 @@ def master_control(
         print ("No other jobs to run in parallel with spliting targets. Making spliting target resource usuage fraction to unity.")
         split_target_frac=1.0 
     if do_target_split and (cpu_frac>min_cpu_frac or mem_frac>min_mem_frac):
-        if round((1-split_target_frac)*cpu_frac, 2)>=min_cpu_frac and round((1-split_target_frac)*mem_frac, 2)>=min_mem_frac:
+        if round((1-split_target_frac)*cpu_frac, 2)>=min_cpu_frac and round((1-split_target_frac)*mem_frac, 2)>=min_mem_frac: 
             msg = run_target_split_jobs(
                 msname,
                 workdir,
@@ -1109,6 +1193,8 @@ def master_control(
                 timeres=timeavg,
                 freqres=freqavg,
                 target_freq_chunk=target_freq_chunk,
+                n_spectral_chunk=-1,
+                prefix="targets",
                 target_scans=target_scans,
                 cpu_frac=round(split_target_frac*cpu_frac, 2),
                 mem_frac=round(split_target_frac*mem_frac, 2),
@@ -1230,95 +1316,77 @@ def master_control(
         )
         use_only_bandpass = True    
         
-    #############################################
-    # Check spliting target scans finished or not
-    #############################################
-    if do_target_split:
-        if split_start==False:
+    ############################################
+    # Spliting for self-cals
+    ############################################
+    if do_selfcal:
+        if do_selfcal_split:
+            prefix="selfcals"
             msg = run_target_split_jobs(
-                msname,
-                workdir,
-                datacolumn="data",
-                timeres=timeavg,
-                freqres=freqavg,
-                target_freq_chunk=target_freq_chunk,
-                target_scans=target_scans,
-                cpu_frac=round(cpu_frac, 2),
-                mem_frac=round(mem_frac, 2),
-                max_cpu_frac=round(cpu_frac, 2),
-                max_mem_frac=round(mem_frac, 2),
-            )
+                    msname,
+                    workdir,
+                    datacolumn="data",
+                    timeres=timeavg,
+                    freqres=freqavg,
+                    target_freq_chunk=50,
+                    n_spectral_chunk=1,
+                    target_scans=target_scans,
+                    prefix=prefix,
+                    cpu_frac=round(cpu_frac, 2),
+                    mem_frac=round(mem_frac, 2),
+                    max_cpu_frac=round(cpu_frac, 2),
+                    max_mem_frac=round(mem_frac, 2),
+                )
             if msg != 0:
-                print("!!!! WARNING: Error in running spliting target scans. !!!!")
-        print("Waiting to finish spliting of target scans...\n")
-        split_basename = "split_targets"
-        while True:
-            finished_file = glob.glob(workdir + "/.Finished_" + split_basename + "*")
-            if len(finished_file) > 0:
-                break
+                print("!!!! WARNING: Error in running spliting target scans for selfcal. !!!!")
+                do_selfcal=False
             else:
-                time.sleep(1)
-        success_index_split_target = int(finished_file[0].split("_")[-1])
-        if success_index_split_target == 0:
-            print("Spliting target scans are done successfully.\n")
-        else:
-            print(
-                "!!!! WARNING: Error in spliting target scans. Not continuing further. !!!!"
-            )
-            exit_job(start_time,mspath,workdir)
-            return 1
-    
+                print("Waiting to finish spliting of target scans for selfcal...\n")
+                split_basename = f"split_{prefix}"
+                while True:
+                    finished_file = glob.glob(workdir + "/.Finished_" + split_basename + "*")
+                    if len(finished_file) > 0:
+                        break
+                    else:
+                        time.sleep(1)
+                success_index_split_target = int(finished_file[0].split("_")[-1])
+                if success_index_split_target == 0:
+                    print("Spliting target scans are done successfully for selfcal.\n")
+                else:
+                    print(
+                        "!!!! WARNING: Error in spliting target scans for selfcal. Not continuing further for selfcal. !!!!"
+                    )
+                    do_selfcal=False
+                    
     cpu_frac=copy.deepcopy(cpu_frac_bkp)
     mem_frac=copy.deepcopy(mem_frac_bkp)
-    target_mslist = glob.glob(workdir + "/target_scan*.ms")
-    
+    selfcal_target_mslist = glob.glob(workdir + "/selfcals_scan*.ms")   
+     
     ####################################
     # Filtering any corrupted ms
     #####################################    
     filtered_mslist=[] # Filtering in case any ms is corrupted
-    for ms in target_mslist:
+    for ms in selfcal_target_mslist:
         checkcol=check_datacolumn_valid(ms)
         if checkcol:
             filtered_mslist.append(ms)
         else:
             print (f"Issue in : {ms}")
             os.system("rm -rf {ms}")
-    target_mslist=filtered_mslist  
-    if len(target_mslist) == 0:
-        print("No splited target scan ms are available in work directory.")
-        exit_job(start_time,mspath,workdir)
-        return 1
-    print(f"Target scan mslist : {[os.path.basename(i) for i in target_mslist]}")
-
-    #################################################################################
-    # Sorting only single frequency chunk ms for applycal if perform self-calibration
-    #################################################################################
-    target_mslist = sorted(target_mslist)
-    if do_selfcal:
-        selfcal_mslist = []
-        spw_list = []
-        for ms in target_mslist:
-            ms_spw = os.path.basename(ms).rstrip(".ms").split("_")[-1]
-            if ms_spw not in spw_list:
-                spw_list.append(ms_spw)
-        chosen_spw = spw_list[int(len(spw_list) / 2)]
-        for ms in target_mslist:
-            if chosen_spw in os.path.basename(ms):
-                selfcal_mslist.append(ms)
-        if len(selfcal_mslist)==0:
-            print ("No measurement set for self-calibration.")
-            do_selfcal=False
+    selfcal_mslist=filtered_mslist  
+    if len(selfcal_mslist) == 0:
+        print("No splited target scan ms are available in work directory for selfcal. Not continuing further for selfcal.")
+        do_selfcal=False
+    print(f"Selfcal mslist : {[os.path.basename(i) for i in selfcal_mslist]}")
             
     #########################################################
     # Applying solutions on target scans for self-calibration
     #########################################################
-    if (
-        do_selfcal or do_applycal
-    ):  # Applying solutions if do_selfcal is True even if do_applycal is False. This is for safety.
-        if len(target_mslist) > 0:
+    if do_selfcal: # Applying solutions for selfcal
+        if len(selfcal_mslist) > 0:
             caldir = workdir + "/caltables"
             msg = run_apply_basiccal_sol(
-                target_mslist,
+                selfcal_mslist,
                 workdir,
                 caldir,
                 use_only_bandpass=use_only_bandpass,
@@ -1329,22 +1397,31 @@ def master_control(
             )
             if msg != 0:
                 print(
-                    "!!!! WARNING: Error in applying basic calibration solutions on target scans. Not continuing further. !!!!"
+                    "!!!! WARNING: Error in applying basic calibration solutions on target scans. Not continuing further for selfcal.!!!!"
                 )
-                exit_job(start_time,mspath,workdir)
-                return 1
+                do_selfcal=False
         else:
             print(
-                "!!!! WARNING: No measurement set is present for basic calibration applying solutions. !!!!"
+                "!!!! WARNING: No measurement set is present for basic calibration applying solutions. Not continuing further for selfcal. !!!!"
             )
-            exit_job(start_time,mspath,workdir)
-            return 1
+            do_selfcal=False
 
     ########################################
     # Performing self-calibration
     ########################################
     if do_selfcal:
         os.system("rm -rf "+workdir+"/*selfcal "+workdir+"/caltables/*selfcal*")
+        msg=run_sidereal_cor_jobs(
+            selfcal_mslist,
+            workdir,
+            prefix="selfcals",
+            cpu_frac=round(cpu_frac, 2),
+            mem_frac=round(mem_frac, 2),
+            max_cpu_frac=round(cpu_frac, 2),
+            max_mem_frac=round(mem_frac, 2),
+        )
+        if msg!=0:
+            print ("Sidereal correction is not successful.")
         msg = run_selfcal_jobs(
             selfcal_mslist,
             workdir,
@@ -1372,6 +1449,109 @@ def master_control(
     if len(selfcaldir)==0:
         print ("Self-calibration is not performed and no self-calibration caltable is available.")
         do_apply_selfcal=False
+     
+    #############################################
+    # Check spliting target scans finished or not
+    #############################################
+    if do_target_split:
+        prefix="targets"
+        if split_start==False: 
+            msg = run_target_split_jobs(
+                msname,
+                workdir,
+                datacolumn="data",
+                timeres=timeavg,
+                freqres=freqavg,
+                target_freq_chunk=target_freq_chunk,
+                n_spectral_chunk=-1,
+                target_scans=target_scans,
+                prefix=prefix,
+                cpu_frac=round(cpu_frac, 2),
+                mem_frac=round(mem_frac, 2),
+                max_cpu_frac=round(cpu_frac, 2),
+                max_mem_frac=round(mem_frac, 2),
+            )
+            if msg != 0:
+                print("!!!! WARNING: Error in running spliting target scans. !!!!")
+                exit_job(start_time,mspath,workdir)
+                return 1
+        print("Waiting to finish spliting of target scans...\n")
+        split_basename = f"split_{prefix}"
+        while True:
+            finished_file = glob.glob(workdir + "/.Finished_" + split_basename + "*")
+            if len(finished_file) > 0:
+                break
+            else:
+                time.sleep(1)
+        success_index_split_target = int(finished_file[0].split("_")[-1])
+        if success_index_split_target == 0:
+            print("Spliting target scans are done successfully.\n")
+        else:
+            print(
+                "!!!! WARNING: Error in spliting target scans. Not continuing further. !!!!"
+            )
+            exit_job(start_time,mspath,workdir)
+            return 1
+    
+    cpu_frac=copy.deepcopy(cpu_frac_bkp)
+    mem_frac=copy.deepcopy(mem_frac_bkp)
+    target_mslist = glob.glob(workdir + "/targets_scan*.ms")
+    
+    ####################################
+    # Filtering any corrupted ms
+    #####################################    
+    filtered_mslist=[] # Filtering in case any ms is corrupted
+    for ms in target_mslist:
+        checkcol=check_datacolumn_valid(ms)
+        if checkcol:
+            filtered_mslist.append(ms)
+        else:
+            print (f"Issue in : {ms}")
+            os.system("rm -rf {ms}")
+    target_mslist=filtered_mslist  
+    if len(target_mslist) == 0:
+        print("No splited target scan ms are available in work directory.")
+        exit_job(start_time,mspath,workdir)
+        return 1
+    print(f"Target scan mslist : {[os.path.basename(i) for i in target_mslist]}")
+        
+    #########################################################
+    # Applying basic solutions on target scans
+    #########################################################
+    if do_applycal: 
+        if len(target_mslist) > 0:
+            caldir = workdir + "/caltables"
+            msg = run_apply_basiccal_sol(
+                target_mslist,
+                workdir,
+                caldir,
+                use_only_bandpass=use_only_bandpass,
+                overwrite_datacolumn=True,
+                applymode="calflag",
+                cpu_frac=round(cpu_frac, 2),
+                mem_frac=round(mem_frac, 2),
+            )
+            if msg != 0:
+                print(
+                    "!!!! WARNING: Error in applying basic calibration solutions on target scans. Not continuing further.!!!!"
+                )
+                exit_job(start_time,mspath,workdir)
+                return 1
+        else:
+            print(
+                "!!!! WARNING: No measurement set is present for basic calibration applying solutions. Not continuing further. !!!!"
+            )
+            exit_job(start_time,mspath,workdir)
+            return 1 
+        msg=run_sidereal_cor_jobs(
+            target_mslist,
+            workdir,
+            prefix="targets",
+            cpu_frac=round(cpu_frac, 2),
+            mem_frac=round(mem_frac, 2),
+            max_cpu_frac=round(cpu_frac, 2),
+            max_mem_frac=round(mem_frac, 2),
+        ) 
         
     ########################################
     # Apply self-calibration

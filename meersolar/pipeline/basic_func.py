@@ -53,7 +53,6 @@ def limit_threads(n_threads=-1):
         os.environ["MKL_NUM_THREADS"] = str(n_threads)
         os.environ["VECLIB_MAXIMUM_THREADS"] = str(n_threads)
 
-
 def split_noise_diode_scans(
     msname="",
     noise_on_ms="",
@@ -1850,6 +1849,20 @@ def merge_caltables(caltables, merged_caltable, append=False, keepcopy=False):
                     os.system("rm -rf " + caltable)
     return merged_caltable
 
+def get_nprocess_meersolar():
+    """
+    Get numbers of MeerSOLAR processes currently running
+    Returns
+    -------
+    int
+        Number of running processes
+    """
+    pids=np.loadtxt(datadir+"/pids.txt",unpack=True)
+    n_process=0
+    for pid in pids:
+        if psutil.pid_exists(int(pid)):
+            n_process+=1
+    return n_process
 
 def create_batch_script_nonhpc(cmd, workdir, basename, write_logfile=True):
     """
@@ -1871,12 +1884,12 @@ def create_batch_script_nonhpc(cmd, workdir, basename, write_logfile=True):
     """
     batch_file = workdir + "/" + basename + ".batch"
     cmd_batch = workdir + "/" + basename + "_cmd.batch"
-    pid_file = workdir + "/pids.txt"
+    pid_file = datadir + "/pids.txt"
     finished_touch_file = workdir + "/.Finished_" + basename
     os.system("rm -rf " + finished_touch_file + "*")
     finished_touch_file_error = finished_touch_file + "_1"
     finished_touch_file_success = finished_touch_file + "_0"
-    cmd_file_content = f"{cmd}; exit_code=$?; echo $exit_code; if [ $exit_code -ne 0 ]; then touch {finished_touch_file_error}; else touch {finished_touch_file_success}; fi"
+    cmd_file_content = f"{cmd}; exit_code=$?; if [ $exit_code -ne 0 ]; then touch {finished_touch_file_error}; else touch {finished_touch_file_success}; fi"
     if write_logfile:
         if os.path.isdir(workdir + "/logs") == False:
             os.makedirs(workdir + "/logs")
@@ -1932,7 +1945,7 @@ def get_dask_client(n_jobs, dask_dir="/tmp", cpu_frac=0.8, mem_frac=0.8, spill_f
     """
     # Create the Dask temporary working directory if it does not already exist
     if os.path.exists(dask_dir) == False:
-        os.makedirs(dask_dir)
+        os.makedirs(dask_dir,exist_ok=True)
     
     # Detect total system resources
     total_cpus = psutil.cpu_count(logical=True)  # Total logical CPU cores
@@ -2649,7 +2662,7 @@ def run_chgcenter(
             full_command += " >> tmp1 >> tmp2"
         else:
             print(cmd)
-        exit_code = os.system(cmd)
+        exit_code = os.system(full_command)
         os.system(f"rm -rf {temp_docker_path} tmp1 tmp2")
         return 0 if exit_code == 0 else 1
     except Exception as e:
