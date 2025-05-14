@@ -7,9 +7,8 @@ from optparse import OptionParser
 from functools import partial
 from casatasks import casalog
 
-logfile = casalog.logfile()
-os.system("rm -rf " + logfile)
-casalog.showconsole(True)
+casalogfile = casalog.logfile()
+os.system("rm -rf " + casalogfile)
 
 def single_selfcal_iteration(
     msname,
@@ -1062,13 +1061,13 @@ def main():
                     + "_selfcal"
                 )
                 os.system("rm -rf " + selfcaldir)
-        print("Final caltable:",file=logf,flush=True)
+        print("Final caltable:",file=mainlog_file,flush=True)
         if os.path.exists(final_gain_caltable):
-            print(f"{final_gain_caltable}",file=logf,flush=True)
+            print(f"{final_gain_caltable}",file=mainlog_file,flush=True)
         print(f"Total time taken: {round(time.time()-starttime,2)}s",file=mainlog_file,flush=True)
         return 0
     else:
-        print("No self-calibration is successful.",file=logf,flush=True)
+        print("No self-calibration is successful.",file=mainlog_file,flush=True)
         print(f"Total time taken: {round(time.time()-starttime,2)}s",file=mainlog_file,flush=True)
         return 1
 
