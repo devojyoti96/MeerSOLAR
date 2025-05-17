@@ -138,7 +138,7 @@ def perform_imaging(
             ncpu = psutil.cpu_count()
         if mem < 0:
             mem = psutil.virtual_memory().total / (1024**3)
-        ngrid = max(1, int(ncpu / 2))
+        ngrid = max(1, int(ncpu / 3))
         prefix = workdir + "/imaging_" + os.path.basename(msname).split(".ms")[0]
         if imagedir == "":
             imagedir = workdir
@@ -152,7 +152,6 @@ def perform_imaging(
         elif threshold == 1:
             threshold += 0.1
         wsclean_args = [
-            "-quiet",
             "-scale " + str(cellsize) + "asec",
             "-size " + str(imsize) + " " + str(imsize),
             "-no-dirty",
@@ -166,7 +165,6 @@ def perform_imaging(
             "-minuv-l " + str(minuv),
             "-j " + str(ncpu),
             "-abs-mem " + str(round(mem, 2)),
-            "-parallel-reordering " + str(ncpu),
             "-parallel-gridding " + str(ngrid),
             "-auto-threshold 1 -auto-mask " + str(threshold),
             "-no-update-model-required",
@@ -439,14 +437,18 @@ def run_all_imaging(
         if len(mslist) == 0:
             print("Provide valid measurement set list.",file=mainlog_file,flush=True)
             return 1
-        if freqres == -1 and timeres == -1:
-            imagedir = workdir + "/imagedir_f_all_t_all"
-        elif freqres != -1 and timeres == -1:
-            imagedir = workdir + f"/imagedir_f_{freqres}_t_all"
-        elif freqres == -1 and timeres != -1:
-            imagedir = workdir + f"/imagedir_f_all_t_{timeres}"
+        if weight=="briggs":
+            weight_str=f"{weight}_{robust}"
         else:
-            imagedir = workdir + f"/imagedir_f_{freqres}_t_{timeres}"
+            weight_str=weight
+        if freqres == -1 and timeres == -1:
+            imagedir = workdir + f"/imagedir_f_all_t_all_w_{weight_str}"
+        elif freqres != -1 and timeres == -1:
+            imagedir = workdir + f"/imagedir_f_{freqres}_t_all_w_{weight_str}"
+        elif freqres == -1 and timeres != -1:
+            imagedir = workdir + f"/imagedir_f_all_t_{timeres}_w_{weight_str}"
+        else:
+            imagedir = workdir + f"/imagedir_f_{freqres}_t_{timeres}_w_{weight_str}"
         if os.path.exists(imagedir) == False:
             os.makedirs(imagedir)
             

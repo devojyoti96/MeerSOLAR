@@ -1,5 +1,5 @@
 import sys, glob, time, gc, tempfile, copy, traceback
-import os, numpy as np, dask, psutil
+import os, numpy as np, dask, psutil, logging
 from datetime import datetime as dt, timezone
 from casatasks import (
     casalog,
@@ -588,7 +588,7 @@ def get_chans_flag(msname="", field="0", n_threads=-1, dry_run=False):
     return unflag_chans, flag_chans
 
 
-def reset_weights_and_flags(msname="", restore_flag=True, n_threads=-1, dry_run=False):
+def reset_weights_and_flags(msname="", restore_flag=True, n_threads=-1, force_reset=False, dry_run=False):
     """
     Reset weights and flags for the ms
     Parameters
@@ -599,6 +599,8 @@ def reset_weights_and_flags(msname="", restore_flag=True, n_threads=-1, dry_run=
         Restore flags or not
     n_threads : int, optional
         Number of OpenMP threads
+    force_reset : bool, optional
+        Force reset
     """
     limit_threads(n_threads=n_threads)
     from casatasks import flagdata
@@ -608,38 +610,40 @@ def reset_weights_and_flags(msname="", restore_flag=True, n_threads=-1, dry_run=
         mem = round(process.memory_info().rss / 1024**3, 2)  # in GB
         return mem
     msname = msname.rstrip("/")
-    mspath = os.path.dirname(os.path.abspath(msname))
-    os.chdir(mspath)
-    if restore_flag:
-        print(f"Restoring flags of measurement set : {msname}")
-        if os.path.exists(msname + ".flagversions"):
-            os.system("rm -rf " + msname + ".flagversions")
-        flagdata(vis=msname, mode="unflag", flagbackup=False)
-    print(f"Resetting previous weights of the measurement set: {msname}")
-    msmd = msmetadata()
-    msmd.open(msname)
-    npol = msmd.ncorrforpol()[0]
-    msmd.close()
-    tb = table()
-    tb.open(msname, nomodify=False)
-    colnames = tb.colnames()
-    nrows = tb.nrows()
-    if "WEIGHT" in colnames:
-        print(f"Resetting weight column to ones of measurement set : {msname}.")
-        weight = np.ones((npol, nrows))
-        tb.putcol("WEIGHT", weight)
-    if "SIGMA" in colnames:
-        print(f"Resetting sigma column to ones of measurement set: {msname}.")
-        sigma = np.ones((npol, nrows))
-        tb.putcol("SIGMA", sigma)
-    if "WEIGHT_SPECTRUM" in colnames:
-        print(f"Removing weight spectrum of measurement set: {msname}.")
-        tb.removecols("WEIGHT_SPECTRUM")
-    if "SIGMA_SPECTRUM" in colnames:
-        print(f"Removing sigma spectrum of measurement set: {msname}.")
-        tb.removecols("SIGMA_SPECTRUM")
-    tb.flush()
-    tb.close()
+    if os.path.exists(f"{msname}/.reset")==False or force_reset==True:
+        mspath = os.path.dirname(os.path.abspath(msname))
+        os.chdir(mspath)
+        if restore_flag:
+            print(f"Restoring flags of measurement set : {msname}")
+            if os.path.exists(msname + ".flagversions"):
+                os.system("rm -rf " + msname + ".flagversions")
+            flagdata(vis=msname, mode="unflag", flagbackup=False)
+        print(f"Resetting previous weights of the measurement set: {msname}")
+        msmd = msmetadata()
+        msmd.open(msname)
+        npol = msmd.ncorrforpol()[0]
+        msmd.close()
+        tb = table()
+        tb.open(msname, nomodify=False)
+        colnames = tb.colnames()
+        nrows = tb.nrows()
+        if "WEIGHT" in colnames:
+            print(f"Resetting weight column to ones of measurement set : {msname}.")
+            weight = np.ones((npol, nrows))
+            tb.putcol("WEIGHT", weight)
+        if "SIGMA" in colnames:
+            print(f"Resetting sigma column to ones of measurement set: {msname}.")
+            sigma = np.ones((npol, nrows))
+            tb.putcol("SIGMA", sigma)
+        if "WEIGHT_SPECTRUM" in colnames:
+            print(f"Removing weight spectrum of measurement set: {msname}.")
+            tb.removecols("WEIGHT_SPECTRUM")
+        if "SIGMA_SPECTRUM" in colnames:
+            print(f"Removing sigma spectrum of measurement set: {msname}.")
+            tb.removecols("SIGMA_SPECTRUM")
+        tb.flush()
+        tb.close()
+        os.system(f"touch {msname}/.reset")
     return
 
 
@@ -1463,11 +1467,41 @@ def calc_maxuv(msname):
     uvw = tb.getcol("UVW")
     tb.close()
     u, v, w = [uvw[i, :] for i in range(3)]
-    maxu = float(np.nanmax(u))
-    maxv = float(np.nanmax(v))
-    maxuv = np.nanmax([maxu, maxv])
+    uv=np.sqrt(u**2+v**2)
+    uv[uv==0]=np.nan
+    maxuv = np.nanmax(uv)
     return maxuv, maxuv / wavelength
-
+    
+def calc_minuv(msname):
+    """
+    Calculate minimum UV
+    Parameters
+    ----------
+    msname : str
+        Name of the measurement set
+    Returns
+    -------
+    float
+        Minimum UV in meter
+    float
+        Minimum UV in wavelength
+    """
+    import matplotlib.pyplot as plt
+    msmd = msmetadata()
+    msmd.open(msname)
+    freq = msmd.meanfreq(0)
+    wavelength = 299792458.0 / (freq)
+    msmd.close()
+    msmd.done()
+    tb = table()
+    tb.open(msname)
+    uvw = tb.getcol("UVW")
+    tb.close()
+    u, v, w = [uvw[i, :] for i in range(3)]
+    uv=np.sqrt(u**2+v**2)
+    uv[uv==0]=np.nan
+    minuv = np.nanmin(uv)
+    return minuv, minuv / wavelength
 
 def calc_field_of_view(msname, FWHM=True):
     """
@@ -1625,16 +1659,15 @@ def calc_multiscale_scales(msname, num_pixel_in_psf, max_scale=16, nmax=5):
             Multiscale scales in pixel units
     """
     psf = calc_psf(msname)
-    multiscale_scales = [0, num_pixel_in_psf]
-    max_scale_pixel = int(max_scale * 60 / psf)
-    if nmax > 2 and max_scale_pixel > 3 * num_pixel_in_psf:
-        other_scales = np.linspace(
-            3 * num_pixel_in_psf, max_scale_pixel, nmax - 2, endpoint=True
-        ).astype("int")
-        for scale in other_scales:
-            multiscale_scales.append(scale)
-    else:
-        multiscale_scales.append(max_scale_pixel)
+    minuv, minuv_l= calc_minuv(msname)
+    max_interferometric_scale=np.rad2deg(1.0/minuv_l)*60.0 # In arcmin
+    if max_scale>max_interferometric_scale:
+        max_scale=max_interferometric_scale
+    max_scale_pixel = int((max_scale * 60.) / (psf/num_pixel_in_psf))
+    multiscale_scales=[0]
+    other_scales=np.logspace(np.log10(3*num_pixel_in_psf),np.log10(max_scale_pixel),nmax-1,endpoint=True).astype("int")
+    for scale in other_scales:
+        multiscale_scales.append(scale)
     return multiscale_scales
 
 
@@ -2345,19 +2378,20 @@ def calc_fractional_bandwidth(msname):
     return round(frac_bandwidth * 100.0, 2)
 
 
-def calc_dyn_range(imagename, modelname, fits_mask=""):
+def calc_dyn_range(imagename, modelname, residualname, fits_mask =""):
     """
     Calculate dynamic ranges.
 
     Parameters
     ----------
     imagename : list or str
-        Image FITS file(s).
+        Image FITS file(s)
     modelname : list or str
-        Model FITS file(s).
+        Model FITS file(s)
+    residualname : list ot str
+        Residual FITS file(s)
     fits_mask : str, optional
-        FITS file mask.
-
+        FITS file mask
     Returns
     -------
     model_flux : float
@@ -2378,31 +2412,75 @@ def calc_dyn_range(imagename, modelname, fits_mask=""):
 
     imagename = to_list(imagename)
     modelname = to_list(modelname)
+    residualname = to_list(residualname)
 
     use_mask = bool(fits_mask and os.path.exists(fits_mask))
     mask_data = fits.getdata(fits_mask).astype(bool) if use_mask else None
 
-    model_flux, dr1, dr2 = 0, 0, 0
+    model_flux, dr1, dr2, rmsvalue = 0, 0, 0, 0
 
-    for img in imagename:
+    for i in range(len(imagename)):
+        img=imagename[i]
+        res=residualname[i]
         image = load_data(img)
+        residual=load_data(res)
+        rms = np.nanstd(residual)
         if use_mask:
             maxval = np.nanmax(image[mask_data])
-            rms = np.nanstd(image[~mask_data])
             minval = np.nanmin(image[mask_data])
         else:
             maxval = np.nanmax(image)
-            rms = np.nanstd(image)
             minval = np.nanmin(image)
         dr1 += maxval / rms if rms else 0
         dr2 += abs(maxval / minval) if minval else 0
+        rmsvalue+=rms
 
     for mod in modelname:
         model = load_data(mod)
         model_flux += np.nansum(model[mask_data] if use_mask else model)
+    
+    rmsvalue=rmsvalue/np.sqrt(len(residualname))       
+    return model_flux, round(dr1, 2), round(rmsvalue, 2), round(dr2, 2)
 
-    return model_flux, round(dr1, 2), round(rms, 2), round(dr2, 2)
+def init_logger_console(logname, logfile, verbose=False):
+    """
+    Initial logger.
 
+    Parameters
+    ----------
+    logname : str
+        Name of the log
+    workdir : str, optional
+        Name of the working directory
+    verbose : bool, optional
+        Verbose output or not
+    logfile : str, optional
+        Log file name
+    Returns
+    -------
+    logger
+        Python logging object
+    str
+        Log file name
+    """
+    if os.path.exists(logfile):
+        os.system("rm -rf " + logfile)
+    formatter = logging.Formatter(
+        "%(asctime)s %(name)s %(levelname)-8s%(message)s",
+        datefmt="%Y-%m-%d %H:%M:%S",
+    )
+    logger = logging.getLogger(logname)
+    logger.setLevel(logging.DEBUG)
+    if verbose == True:
+        console = logging.StreamHandler(sys.stdout)
+        console.setFormatter(formatter)
+        logger.addHandler(console)
+    filehandle = logging.FileHandler(logfile)
+    filehandle.setFormatter(formatter)
+    logger.addHandler(filehandle)
+    logger.propagate = False
+    logger.info("Log file : " + logfile + "\n")
+    return logger, logfile
 
 ####################
 # uDOCKER related

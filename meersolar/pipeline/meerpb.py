@@ -7,8 +7,6 @@ from astropy.time import Time
 from astropy.wcs import WCS
 from scipy.interpolate import RegularGridInterpolator
 
-
-
 # Define MeerKAT location
 meerpos = EarthLocation(lat=-30.7133 * u.deg, lon=21.4429 * u.deg, height=1086.6 * u.m)
 
@@ -49,18 +47,17 @@ def get_IQUV(filename,stokesaxis=4):
 	
 def get_brightness(stokes):
     """
-    Returns brightness matrix from stokes dictionary
+    Returns brightness matrix from stokes dictionary (X and Y are in opposite convention of IAU in MeerKAT)
     """
     I = stokes["I"]
     Q = stokes["Q"]
     U = stokes["U"]
     V = stokes["V"]
-    XX = I + Q
-    XY = U + 1.0j * V
-    YX = U - 1.0j * U
-    YY = I - Q
+    XX = I - Q
+    XY = U - 1.0j * V
+    YX = U + 1.0j * U
+    YY = I + Q
     return ((XX, XY), (YX, YY))
-
 
 def make_stokes(b):
     """

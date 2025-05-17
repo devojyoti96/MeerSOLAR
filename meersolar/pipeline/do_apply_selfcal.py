@@ -52,13 +52,11 @@ def run_all_applysol(
         os.chdir(workdir)
         mslist = np.unique(mslist).tolist()
         parang = False
-        gaintable=glob.glob(caldir+"/*cal")
-        gaintable_bkp = copy.deepcopy(gaintable)
-        for g in gaintable_bkp:
-            if "selfcal" not in g:
-                gaintable.remove(g)
-        del gaintable_bkp
-        
+        if os.path.exists(caldir+"/full_selfcal.gcal")==False:
+            print (f"No self-cal caltable is present in {caldir}.")
+            return 1
+        gaintable=[caldir+"/full_selfcal.gcal"]
+               
         ####################################
         # Filtering any corrupted ms
         #####################################    

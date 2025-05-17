@@ -138,7 +138,7 @@ def scale_bandpass(bandpass_table, att_table, n=15):
     tb.putcol("FLAG", flag)
     tb.flush()
     tb.close()
-    os.system("rm -rf casa*log")
+    flagdata(vis=output_table,mode='rflag',datacolumn="CPARAM",flagbackup=False)
     return output_table
 
 
@@ -333,20 +333,20 @@ def run_all_applysol(
         # Arranging applycal parameters
         ###############################
         if len(delay_table) > 0:
-            gaintable = delay_table
+            gaintable+= delay_table
         if len(gain_table) > 0 and use_only_bandpass == False:
-            gaintable += gain_table
+            gaintable+= gain_table
         if len(leakage_table) > 0:
-            gaintable += leakage_table
+            gaintable+= leakage_table
             if len(kcross_table) > 0:
-                gaintable += kcross_table
+                gaintable+= kcross_table
             if len(crossphase_table) > 0:
-                gaintable += crossphase_table
+                gaintable+= crossphase_table
             if len(pangle_table) > 0:
-                gaintable += pangle_table
+                gaintable+= pangle_table
         gaintable_bkp = copy.deepcopy(gaintable)
         for g in gaintable_bkp:
-            if "selfcal" in g:
+            if os.path.basename(g)=="full_selfcal.gcal":
                 gaintable.remove(g)
         del gaintable_bkp
         

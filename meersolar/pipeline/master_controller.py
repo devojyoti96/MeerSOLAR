@@ -674,7 +674,7 @@ def run_selfcal_jobs(
     weight="briggs",
     robust=0.0,
     applymode="calonly",
-    gaintype="G",
+    gaintype="T",
     min_fractional_bw=-1,
 ):
     """
@@ -950,7 +950,7 @@ def master_control(
     msname,
     workdir,
     solar_data=True,
-    do_reset_weight_flag=True,
+    do_forcereset_weightflag=False,
     do_cal_partition=True,
     do_cal_flag=True,
     do_import_model=True,
@@ -966,7 +966,8 @@ def master_control(
     solar_selfcal=True,
     target_scans=[],
     uvrange="",
-    solint="int",
+    solint="120s",
+    gaintype="G",
     do_imaging=True,
     weight="briggs",
     robust=0.0,
@@ -995,7 +996,7 @@ def master_control(
         Work directory path
     solar_data : bool, optional
         Whether it is solar data or not
-    do_reset_weight_flag : bool, optional
+    do_forcereset_weightflag : bool, optional
         Reset weights and flags of the input ms
     do_cal_partition : bool, optional
         Make calibrator multi-MS
@@ -1112,24 +1113,6 @@ def master_control(
         if solar_selfcal:
             solar_selfcal = False
 
-    ##########################################################
-    # Determining maximum allowed time and frequency averaging
-    ##########################################################
-    if freqavg > 0:
-        max_freqres = calc_bw_smearing_freqwidth(msname)
-        if freqavg > max_freqres:
-            freqavg = round(max_freqres, 2)
-        if image_freqres > 0 and freqavg>image_freqres:
-            freqavg = image_freqres
-    if timeavg > 0:
-        max_timeres = min(
-            calc_time_smearing_timewidth(msname), max_time_solar_smearing(msname)
-        )
-        if timeavg > max_timeres:
-            timeavg = round(max_timeres, 2)
-        if image_timeres > 0 and timeavg>image_timeres:
-            timeavg = image_timeres
-            
     ###################################################
     # Target spliting spectral and temporal chunks
     ##################################################
@@ -1145,16 +1128,34 @@ def master_control(
         image_timeres= 25*60
     elif image_timeres<0:
         image_timeres=25*60
-
+        
+    #################################################
+    # Determining maximum allowed frequency averaging
+    #################################################
+    max_freqres = calc_bw_smearing_freqwidth(msname)
+    if freqavg<0 or freqavg > max_freqres:
+        freqavg = round(max_freqres, 2)
+    if image_freqres > 0 and freqavg>image_freqres:
+        freqavg = image_freqres
+    ################################################
+    # Determining maximum allowed temporal averaging
+    ################################################
+    max_timeres = min(
+        calc_time_smearing_timewidth(msname), max_time_solar_smearing(msname)
+    )
+    if timeavg<0 or timeavg > max_timeres:
+        timeavg = round(max_timeres, 2)
+    if image_timeres > 0 and timeavg>image_timeres:
+        timeavg = image_timeres
+            
     #############################
     # Reset any previous weights
     ############################
-    if do_reset_weight_flag:
-        cpu_usage = psutil.cpu_percent(interval=1)  # Average over 1 second
-        total_cpus = psutil.cpu_count(logical=True)
-        available_cpus = int(total_cpus * (1 - cpu_usage / 100.0))
-        available_cpus = max(1, available_cpus)  # Avoid zero workers
-        reset_weights_and_flags(msname, n_threads=available_cpus)
+    cpu_usage = psutil.cpu_percent(interval=1)  # Average over 1 second
+    total_cpus = psutil.cpu_count(logical=True)
+    available_cpus = int(total_cpus * (1 - cpu_usage / 100.0))
+    available_cpus = max(1, available_cpus)  # Avoid zero workers
+    reset_weights_and_flags(msname, n_threads=available_cpus, force_reset=do_forcereset_weightflag)
 
     ########################################
     # Run noise-diode based flux calibration
@@ -1364,20 +1365,21 @@ def master_control(
      
     ####################################
     # Filtering any corrupted ms
-    #####################################    
-    filtered_mslist=[] # Filtering in case any ms is corrupted
-    for ms in selfcal_target_mslist:
-        checkcol=check_datacolumn_valid(ms)
-        if checkcol:
-            filtered_mslist.append(ms)
-        else:
-            print (f"Issue in : {ms}")
-            os.system("rm -rf {ms}")
-    selfcal_mslist=filtered_mslist  
-    if len(selfcal_mslist) == 0:
-        print("No splited target scan ms are available in work directory for selfcal. Not continuing further for selfcal.")
-        do_selfcal=False
-    print(f"Selfcal mslist : {[os.path.basename(i) for i in selfcal_mslist]}")
+    ##################################### 
+    if do_selfcal:   
+        filtered_mslist=[] # Filtering in case any ms is corrupted
+        for ms in selfcal_target_mslist:
+            checkcol=check_datacolumn_valid(ms)
+            if checkcol:
+                filtered_mslist.append(ms)
+            else:
+                print (f"Issue in : {ms}")
+                os.system(f"rm -rf {ms}")
+        selfcal_mslist=filtered_mslist  
+        if len(selfcal_mslist) == 0:
+            print("No splited target scan ms are available in work directory for selfcal. Not continuing further for selfcal.")
+            do_selfcal=False
+        print(f"Selfcal mslist : {[os.path.basename(i) for i in selfcal_mslist]}")
             
     #########################################################
     # Applying solutions on target scans for self-calibration
@@ -1432,9 +1434,9 @@ def master_control(
             solar_selfcal=solar_selfcal,
             keep_backup=keep_backup,
             uvrange=uvrange,
-            minuv=50,
             weight=weight,
             robust=robust,
+            gaintype=gaintype,
         )
         if msg != 0:
             print(
