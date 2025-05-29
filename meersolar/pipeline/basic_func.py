@@ -53,6 +53,7 @@ def limit_threads(n_threads=-1):
         os.environ["MKL_NUM_THREADS"] = str(n_threads)
         os.environ["VECLIB_MAXIMUM_THREADS"] = str(n_threads)
 
+
 def split_noise_diode_scans(
     msname="",
     noise_on_ms="",
@@ -173,9 +174,9 @@ def get_band_name(msname):
     meanfreq = msmd.meanfreq(0) / 10**6
     msmd.close()
     msmd.done()
-    if meanfreq > 580 and meanfreq < 1000:
+    if meanfreq >= 544 and meanfreq <= 1088:
         return "U"
-    elif meanfreq > 880 and meanfreq < 1700:
+    elif meanfreq >= 856 and meanfreq <= 1712:
         return "L"
     else:
         return "S"
@@ -203,7 +204,7 @@ def get_bad_chans(msname):
         bad_freqs = [
             (-1, 580),
             (925, 960),
-            (1040, -1),
+            (1010, -1),
         ]
     elif bandname == "L":
         bad_freqs = [
@@ -213,14 +214,12 @@ def get_bad_chans(msname):
             (1217, 1237),
             (1242, 1249),
             (1375, 1387),
-            (1526, 1554),
-            (1565, 1585),
-            (1592, 1610),            
-            (1616, 1626),
+            (1526, 1626),
             (1681, -1),
         ]
     else:
-        bad_freqs = []  # TODO: fill it
+        print("Data is not in UHF or L-band.")
+        bad_freqs = []
     spw = "0:"
     for freq_range in bad_freqs:
         start_freq = freq_range[0]
@@ -258,9 +257,9 @@ def get_good_chans(msname):
     msmd.done()
     bandname = get_band_name(msname)
     if bandname == "U":
-        good_freqs = [(650, 700)]  # For UHF band
+        good_freqs = [(580, 620)]  # For UHF band
     elif bandname == "L":
-        good_freqs = [(1400, 1450)]  # For L band
+        good_freqs = [(890, 920)]  # For L band
     else:
         good_freqs = []  # For S band #TODO: fill it
     spw = "0:"
@@ -294,6 +293,7 @@ def get_bad_ants(msname="", fieldnames=[], n_threads=-1, dry_run=False):
     """
     limit_threads(n_threads=n_threads)
     from casatasks import visstat
+
     if dry_run:
         process = psutil.Process(os.getpid())
         mem = round(process.memory_info().rss / 1024**3, 2)  # in GB
@@ -545,7 +545,7 @@ def get_submsname_scans(msname):
     return mslist, scans
 
 
-def get_chans_flag(msname="", field="0", n_threads=-1, dry_run=False):
+def get_chans_flag(msname="", field="", n_threads=-1, dry_run=False):
     """
     Get flag/unflag channel list
     Parameters
@@ -588,7 +588,90 @@ def get_chans_flag(msname="", field="0", n_threads=-1, dry_run=False):
     return unflag_chans, flag_chans
 
 
-def reset_weights_and_flags(msname="", restore_flag=True, n_threads=-1, force_reset=False, dry_run=False):
+def get_optimal_image_interval(
+    msname, temporal_tol_factor=0.1, spectral_tol_factor=0.1
+):
+    """
+    Get optimal image spectral temporal interval such that total flux max-median in each chunk is within tolerance limit
+    Parameters
+    ----------
+    msname : str
+        Name of the measurement set
+    temporal_tol_factor : float, optional
+        Tolerance factor for temporal variation (default : 0.1, 10%)
+    spectral_tol_factor : float, optional
+        Tolerance factor for spectral variation (default : 0.1, 10%)
+    Returns
+    -------
+    int
+        Number of time intervals to average
+    int
+        Number of channels to averages
+    """
+    print(
+        f"Temporal tolerance factor: {temporal_tol_factor}, Spectral tolerance factor: {spectral_tol_factor}"
+    )
+
+    def is_valid_chunk(chunk, tolerance):
+        mean_flux = np.nanmedian(chunk)
+        if mean_flux == 0:
+            return False
+        return (np.nanmax(chunk) - np.nanmin(chunk)) / mean_flux <= tolerance
+
+    def find_max_valid_chunk_length(fluxes, tolerance):
+        n = len(fluxes)
+        for window in range(n, 1, -1):  # Try from largest to smallest
+            valid = True
+            for start in range(0, n, window):
+                end = min(start + window, n)
+                chunk = fluxes[start:end]
+                if len(chunk) < window:  # Optionally require full window
+                    valid = False
+                    break
+                if not is_valid_chunk(chunk, tolerance):
+                    valid = False
+                    break
+            if valid:
+                return window  # Return the largest valid window
+        return 1  # Minimum chunk size is 1 if nothing else is valid
+
+    tb = table()
+    mstool = casamstool()
+    msmd = msmetadata()
+    msmd.open(msname)
+    nchan = msmd.nchan(0)
+    times = msmd.timesforspws(0)
+    ntime = len(times)
+    del times
+    msmd.close()
+    tb.open(msname)
+    u, v, w = tb.getcol("UVW")
+    tb.close()
+    uvdist = np.sort(np.unique(np.sqrt(u**2 + v**2)))
+    mstool.open(msname)
+    if uvdist[0] == 0.0:
+        mstool.select({"uvdist": [0.0, 0.0]})
+    else:
+        mstool.select({"antenna1": 0, "antenna2": 1})
+    data_and_flag = mstool.getdata(["DATA", "FLAG"], ifraxis=True)
+    data = data_and_flag["data"]
+    flag = data_and_flag["flag"]
+    data[flag] = np.nan
+    mstool.close()
+    t_series = np.nanmedian(data, axis=(0, 1, 2))
+    spectra = np.nanmedian(data, axis=(0, 2, 3))
+    t_series=t_series[t_series!=0]
+    spectra=spectra[spectra!=0]
+    t_chunksize = find_max_valid_chunk_length(t_series, temporal_tol_factor)
+    f_chunksize = find_max_valid_chunk_length(spectra, spectral_tol_factor)
+    n_time_interval = int(len(t_series) / t_chunksize)
+    n_spectral_interval = int(len(spectra) / f_chunksize)
+    return n_time_interval, n_spectral_interval
+
+
+def reset_weights_and_flags(
+    msname="", restore_flag=True, n_threads=-1, force_reset=False, dry_run=False
+):
     """
     Reset weights and flags for the ms
     Parameters
@@ -610,7 +693,7 @@ def reset_weights_and_flags(msname="", restore_flag=True, n_threads=-1, force_re
         mem = round(process.memory_info().rss / 1024**3, 2)  # in GB
         return mem
     msname = msname.rstrip("/")
-    if os.path.exists(f"{msname}/.reset")==False or force_reset==True:
+    if os.path.exists(f"{msname}/.reset") == False or force_reset == True:
         mspath = os.path.dirname(os.path.abspath(msname))
         os.chdir(mspath)
         if restore_flag:
@@ -1144,7 +1227,10 @@ def get_timeranges_for_scan(msname, scan, time_interval, time_window):
     """
     msmd = msmetadata()
     msmd.open(msname)
-    times = msmd.timesforscan(int(scan))
+    try:
+        times = msmd.timesforscan(int(scan))
+    except:
+        times = msmd.timesforspws(0)
     msmd.close()
     msmd.done()
     time_ranges = []
@@ -1316,18 +1402,19 @@ def correct_solar_sidereal_motion(msname="", verbose=False, dry_run=False):
         mem = run_solar_sidereal_cor(dry_run=True)
         return mem
     print(f"Correcting sidereal motion for ms: {msname}\n")
-    if os.path.exists(msname+"/.sidereal_cor")==False:
+    if os.path.exists(msname + "/.sidereal_cor") == False:
         msg = run_solar_sidereal_cor(
             msname=msname, container_name="meerwsclean", verbose=verbose
         )
         if msg != 0:
             print("Sidereal motion correction is not successful.")
         else:
-            os.system("touch "+msname+"/.sidereal_cor")
+            os.system("touch " + msname + "/.sidereal_cor")
         return msg
     else:
-        print (f"Sidereal motion correction is already done for ms: {msname}")
+        print(f"Sidereal motion correction is already done for ms: {msname}")
         return 0
+
 
 def check_scan_in_caltable(caltable, scan):
     """
@@ -1441,14 +1528,43 @@ def get_valid_scans(msname, field="", min_scan_time=1):
                 valid_scans.append(scan)
     return valid_scans
 
+def split_into_chunks(lst, target_chunk_size):
+    """
+    Split a list into equal number of elements
+    Parameters
+    ----------
+    lst : list
+        List of numbers
+    target_chunk_size: int
+        Number of elements per chunk
+    Returns
+    -------
+    list
+        Chunked list
+    """
+    n = len(lst)
+    num_chunks = max(1, round(n / target_chunk_size))
+    avg_chunk_size = n // num_chunks
+    remainder = n % num_chunks
 
-def calc_maxuv(msname):
+    chunks = []
+    start = 0
+    for i in range(num_chunks):
+        extra = 1 if i < remainder else 0  # Distribute remainder
+        end = start + avg_chunk_size + extra
+        chunks.append(lst[start:end])
+        start = end
+    return chunks
+    
+def calc_maxuv(msname,chan_number=-1):
     """
     Calculate maximum UV
     Parameters
     ----------
     msname : str
         Name of the measurement set
+    chan_number : int, optional
+        Channel number
     Returns
     -------
     float
@@ -1458,7 +1574,7 @@ def calc_maxuv(msname):
     """
     msmd = msmetadata()
     msmd.open(msname)
-    freq = msmd.meanfreq(0)
+    freq = msmd.chanfreqs(0)[chan_number]
     wavelength = 299792458.0 / (freq)
     msmd.close()
     msmd.done()
@@ -1467,18 +1583,21 @@ def calc_maxuv(msname):
     uvw = tb.getcol("UVW")
     tb.close()
     u, v, w = [uvw[i, :] for i in range(3)]
-    uv=np.sqrt(u**2+v**2)
-    uv[uv==0]=np.nan
+    uv = np.sqrt(u**2 + v**2)
+    uv[uv == 0] = np.nan
     maxuv = np.nanmax(uv)
     return maxuv, maxuv / wavelength
-    
-def calc_minuv(msname):
+
+
+def calc_minuv(msname,chan_number=-1):
     """
     Calculate minimum UV
     Parameters
     ----------
     msname : str
         Name of the measurement set
+    chan_number : int, optional
+        Channel number
     Returns
     -------
     float
@@ -1487,9 +1606,10 @@ def calc_minuv(msname):
         Minimum UV in wavelength
     """
     import matplotlib.pyplot as plt
+
     msmd = msmetadata()
     msmd.open(msname)
-    freq = msmd.meanfreq(0)
+    freq = msmd.chanfreqs(0)[chan_number]
     wavelength = 299792458.0 / (freq)
     msmd.close()
     msmd.done()
@@ -1498,10 +1618,11 @@ def calc_minuv(msname):
     uvw = tb.getcol("UVW")
     tb.close()
     u, v, w = [uvw[i, :] for i in range(3)]
-    uv=np.sqrt(u**2+v**2)
-    uv[uv==0]=np.nan
+    uv = np.sqrt(u**2 + v**2)
+    uv[uv == 0] = np.nan
     minuv = np.nanmin(uv)
     return minuv, minuv / wavelength
+
 
 def calc_field_of_view(msname, FWHM=True):
     """
@@ -1534,6 +1655,23 @@ def calc_field_of_view(msname, FWHM=True):
     return fov_arcsec
 
 
+def ceil_to_multiple(n, base):
+    """
+    Round up to the next multiple
+    Parameters
+    ----------
+    n : float
+        The number
+    base : float
+        Whose multiple will be
+    Returns
+    -------
+    float
+        The modified number
+    """
+    return ((n // base) + 1) * base
+
+
 def calc_bw_smearing_freqwidth(msname):
     """
     Function to calculate spectral width to procude bandwidth smearing
@@ -1552,10 +1690,12 @@ def calc_bw_smearing_freqwidth(msname):
     msmd = msmetadata()
     msmd.open(msname)
     freq = msmd.meanfreq(0)
+    freqres = msmd.chanres(0)[0] / 10**6
     msmd.close()
     msmd.done()
     delta_nu = np.sqrt((1 / R**2) - 1) * (psf / fov) * freq
     delta_nu /= 10**6
+    delta_nu = ceil_to_multiple(delta_nu, freqres)
     return round(delta_nu, 2)
 
 
@@ -1574,7 +1714,9 @@ def calc_time_smearing_timewidth(msname):
     msmd = msmetadata()
     msmd.open(msname)
     freq_Hz = msmd.chanfreqs(0)[0]
+    times = msmd.timesforspws(0)
     msmd.close()
+    timeres = times[1] - times[0]
     c = 299792458.0  # speed of light in m/s
     omega_E = 7.2921159e-5  # Earth rotation rate in rad/s
     lam = c / freq_Hz  # wavelength in meters
@@ -1583,7 +1725,8 @@ def calc_time_smearing_timewidth(msname):
     uv, uvlambda = calc_maxuv(msname)
     # Approximate maximum allowable time to avoid >10% amplitude loss
     delta_t_max = lam / (2 * np.pi * uv * omega_E * fov_rad)
-    return delta_t_max
+    delta_t_max = ceil_to_multiple(delta_t_max, timeres)
+    return round(delta_t_max, 2)
 
 
 def max_time_solar_smearing(msname):
@@ -1604,19 +1747,21 @@ def max_time_solar_smearing(msname):
     return t_max
 
 
-def calc_psf(msname):
+def calc_psf(msname,chan_number=-1):
     """
     Function to calculate PSF size in arcsec
     Parameters
     ----------
     msname : str
         Name of the measurement set
+    chan_number : int, optional
+        Channel number
     Returns
     -------
     float
             PSF size in arcsec
     """
-    maxuv_m, maxuv_l = calc_maxuv(msname)
+    maxuv_m, maxuv_l = calc_maxuv(msname,chan_number=chan_number)
     psf = np.rad2deg(1.2 / maxuv_l) * 3600.0  # In arcsec
     return psf
 
@@ -1640,7 +1785,7 @@ def calc_cellsize(msname, num_pixel_in_psf):
     return pixel
 
 
-def calc_multiscale_scales(msname, num_pixel_in_psf, max_scale=16, nmax=5):
+def calc_multiscale_scales(msname, num_pixel_in_psf, chan_number=-1, max_scale=16):
     """
     Calculate multiscale scales
     Parameters
@@ -1651,26 +1796,56 @@ def calc_multiscale_scales(msname, num_pixel_in_psf, max_scale=16, nmax=5):
             Number of pixels in one PSF
     max_scale : float, optional
         Maximum scale in arcmin
-    nmax : int, optional
-        Maximum number of scales
     Returns
     -------
     list
             Multiscale scales in pixel units
     """
-    psf = calc_psf(msname)
-    minuv, minuv_l= calc_minuv(msname)
-    max_interferometric_scale=np.rad2deg(1.0/minuv_l)*60.0 # In arcmin
-    if max_scale>max_interferometric_scale:
-        max_scale=max_interferometric_scale
-    max_scale_pixel = int((max_scale * 60.) / (psf/num_pixel_in_psf))
-    multiscale_scales=[0]
-    other_scales=np.logspace(np.log10(3*num_pixel_in_psf),np.log10(max_scale_pixel),nmax-1,endpoint=True).astype("int")
-    for scale in other_scales:
-        multiscale_scales.append(scale)
+    psf = calc_psf(msname, chan_number=chan_number)
+    minuv, minuv_l = calc_minuv(msname, chan_number=chan_number)
+    max_interferometric_scale = (
+        0.5 * np.rad2deg(1.0 / minuv_l) * 60.0
+    )  # In arcmin, half of maximum scale
+    max_interferometric_scale = min(max_scale, max_interferometric_scale)
+    max_scale_pixel = int((max_interferometric_scale * 60.0) / (psf / num_pixel_in_psf))
+    multiscale_scales = [0]
+    current_scale = num_pixel_in_psf
+    while True:
+        current_scale = 2 * current_scale
+        if current_scale >= max_scale_pixel:
+            break
+        multiscale_scales.append(current_scale)
     return multiscale_scales
 
-
+def get_multiscale_bias(freq, bias_min=0.6, bias_max=0.9):
+    """
+    Get frequency dependent multiscale bias
+    Parameters
+    ----------
+    freq : float
+        Frequency in MHz
+    bias_min : float, optional
+        Minimum bias at minimum L-band frequency
+    bias_max : float, optional
+        Maximum bias at maximum L-band frequency
+    Returns
+    -------
+    float
+        Multiscale bias patrameter
+    """
+    if freq<=1015:
+        return bias_min
+    elif freq>=1670:
+        return bias_max
+    else:   
+        freq_min=1015
+        freq_max=1670 
+        logf = np.log10(freq)
+        logf_min = np.log10(freq_min)
+        logf_max = np.log10(freq_max)
+        frac = (logf - logf_min) / (logf_max - logf_min)
+        return round(np.clip(bias_min + frac * (bias_max - bias_min), bias_min, bias_max),3)
+    
 def delaycal(msname="", caltable="", refant="", solint="inf", dry_run=False):
     """
     General delay calibration using CASA, not assuming any point source
@@ -1748,6 +1923,58 @@ def delaycal(msname="", caltable="", refant="", solint="inf", dry_run=False):
     tb.close()
     os.system("rm -rf " + caltable + ".tempbcal")
     return caltable
+
+
+def average_timestamp(timestamps):
+    """
+    Compute the average timestamp using astropy from a list of ISO 8601 strings.
+    Parameters
+    ----------
+    timestamps : list
+        timestamps (list of str): List of timestamp strings in 'YYYY-MM-DDTHH:MM:SS' format.
+    Returns
+    --------
+    str
+        Average timestamp in 'YYYY-MM-DDTHH:MM:SS' format.
+    """
+    times = Time(timestamps, format="isot", scale="utc")
+    avg_time = Time(np.mean(times.jd), format="jd", scale="utc")
+    return avg_time.isot.split(".")[0]  # Strip milliseconds for clean output
+
+
+def make_timeavg_image(wsclean_images, outfile_name, keep_wsclean_images=True):
+    """
+    Convert WSClean images into a time averaged image
+    Parameters
+    ----------
+    wsclean_images : list
+        List of WSClean images.
+    outfile_name : str
+        Name of the output file.
+    keep_wsclean_images : bool, optional
+        Whether to retain the original WSClean images (default: True).
+    Returns
+    -------
+    str
+        Output image name.
+    """
+    timestamps = []
+    for i in range(len(wsclean_images)):
+        image = wsclean_images[i]
+        if i == 0:
+            data = fits.getdata(image)
+        else:
+            data += fits.getdata(image)
+        timestamps.append(fits.getheader(image)["DATE-OBS"])
+    data /= len(wsclean_images)
+    avg_timestamp = average_timestamp(timestamps)
+    header = fits.getheader(wsclean_images[0])
+    header["DATE-OBS"] = avg_timestamp
+    fits.writeto(outfile_name, data=data, header=header, overwrite=True)
+    if not keep_wsclean_images:
+        for img in wsclean_images:
+            os.system(f"rm -rf {img}")
+    return outfile_name
 
 
 def make_stokes_wsclean_imagecube(
@@ -1882,6 +2109,7 @@ def merge_caltables(caltables, merged_caltable, append=False, keepcopy=False):
                     os.system("rm -rf " + caltable)
     return merged_caltable
 
+
 def get_nprocess_meersolar():
     """
     Get numbers of MeerSOLAR processes currently running
@@ -1890,12 +2118,29 @@ def get_nprocess_meersolar():
     int
         Number of running processes
     """
-    pids=np.loadtxt(datadir+"/pids.txt",unpack=True)
-    n_process=0
+    pid_file = datadir + "/pids.txt"
+    pids = np.loadtxt(pid_file, unpack=True)
+    n_process = 0
     for pid in pids:
         if psutil.pid_exists(int(pid)):
-            n_process+=1
+            n_process += 1
     return n_process
+
+
+def save_main_process_info(pid, cpu_frac, mem_frac):
+    """
+    Save MeerSOLAR main processes info
+    Parameters
+    ----------
+    pid : int
+        Main job process id
+    cpu_frac : float
+        CPU fraction of the job
+    mem_frac : float
+        Mempry fraction of the job
+    """
+    main_job_file = datadir + "/main_pids.txt"
+
 
 def create_batch_script_nonhpc(cmd, workdir, basename, write_logfile=True):
     """
@@ -1928,7 +2173,7 @@ def create_batch_script_nonhpc(cmd, workdir, basename, write_logfile=True):
             os.makedirs(workdir + "/logs")
         outputfile = workdir + "/logs/" + basename + ".log"
     else:
-        outputfile="/dev/null"
+        outputfile = "/dev/null"
     batch_file_content = f"""export PYTHONUNBUFFERED=1\nnohup sh {cmd_batch}> {outputfile} 2>&1 &\necho $! >> {pid_file}\nsleep 2\n rm -rf {batch_file}\n rm -rf {cmd_batch}"""
     if os.path.exists(cmd_batch):
         os.system("rm -rf " + cmd_batch)
@@ -1944,7 +2189,16 @@ def create_batch_script_nonhpc(cmd, workdir, basename, write_logfile=True):
     return workdir + "/" + basename + ".batch"
 
 
-def get_dask_client(n_jobs, dask_dir="/tmp", cpu_frac=0.8, mem_frac=0.8, spill_frac = 0.6, min_mem_per_job=-1,only_cal=False):
+def get_dask_client(
+    n_jobs,
+    dask_dir,
+    cpu_frac=0.8,
+    mem_frac=0.8,
+    spill_frac=0.6,
+    min_mem_per_job=-1,
+    min_cpu_per_job=1,
+    only_cal=False,
+):
     """
     Create a Dask client optimized for one-task-per-worker execution,
     where each worker is a separate process that can use multiple threads internally.
@@ -1963,8 +2217,10 @@ def get_dask_client(n_jobs, dask_dir="/tmp", cpu_frac=0.8, mem_frac=0.8, spill_f
         Spill to disk at this fraction
     min_mem_per_job : float, optional
         Minimum memory per job
+    min_cpu_per_job : int, optional
+        Minimum CPU threads per job
     only_cal : bool, optional
-        Only calculate number of workers 
+        Only calculate number of workers
     Returns
     -------
     client : dask.distributed.Client
@@ -1977,29 +2233,42 @@ def get_dask_client(n_jobs, dask_dir="/tmp", cpu_frac=0.8, mem_frac=0.8, spill_f
         Threads per worker to use
     """
     # Create the Dask temporary working directory if it does not already exist
-    if os.path.exists(dask_dir) == False:
-        os.makedirs(dask_dir,exist_ok=True)
-    
+    os.makedirs(dask_dir, exist_ok=True)
+    dask_dir_tmp=dask_dir+"/tmp"
+    os.makedirs(dask_dir_tmp, exist_ok=True)
+
     # Detect total system resources
     total_cpus = psutil.cpu_count(logical=True)  # Total logical CPU cores
-    total_mem = psutil.virtual_memory().total    # Total system memory (bytes)
-    if cpu_frac>0.8:
-        print ("Given CPU fraction is more than 80%. Resetting to 80% to avoid system crash.")
-        cpu_frac=0.8
-    if mem_frac>0.8:
-        print ("Given memory fraction is more than 80%. Resetting to 80% to avoid system crash.")
-        mem_frac=0.8
-        
+    total_mem = psutil.virtual_memory().total  # Total system memory (bytes)
+    if cpu_frac > 0.8:
+        print(
+            "Given CPU fraction is more than 80%. Resetting to 80% to avoid system crash."
+        )
+        cpu_frac = 0.8
+    if mem_frac > 0.8:
+        print(
+            "Given memory fraction is more than 80%. Resetting to 80% to avoid system crash."
+        )
+        mem_frac = 0.8
+
     ############################################
     # Wait until enough free CPU is available
     ############################################
     count = 0
     while True:
-        available_cpu_pct = 100 - psutil.cpu_percent(interval=1)  # Percent CPUs currently free
-        available_cpus = int(total_cpus * available_cpu_pct / 100.0)  # Number of free CPU cores
-        usable_cpus = max(1, int(total_cpus * cpu_frac))  # Target number of CPU cores we want available based on cpu_frac
-        if available_cpus >= int(0.5*usable_cpus): # Enough free CPUs (at-least more than 50%), exit loop
-            usable_cpus=min(usable_cpus,available_cpus)
+        available_cpu_pct = 100 - psutil.cpu_percent(
+            interval=1
+        )  # Percent CPUs currently free
+        available_cpus = int(
+            total_cpus * available_cpu_pct / 100.0
+        )  # Number of free CPU cores
+        usable_cpus = max(
+            1, int(total_cpus * cpu_frac)
+        )  # Target number of CPU cores we want available based on cpu_frac
+        if available_cpus >= int(
+            0.5 * usable_cpus
+        ):  # Enough free CPUs (at-least more than 50%), exit loop
+            usable_cpus = min(usable_cpus, available_cpus)
             break
         else:
             if count == 0:
@@ -2011,40 +2280,56 @@ def get_dask_client(n_jobs, dask_dir="/tmp", cpu_frac=0.8, mem_frac=0.8, spill_f
     ############################################
     count = 0
     while True:
-        available_mem = psutil.virtual_memory().available  # Current available system memory (bytes)
+        available_mem = (
+            psutil.virtual_memory().available
+        )  # Current available system memory (bytes)
         usable_mem = total_mem * mem_frac  # Target usable memory based on mem_frac
-        if available_mem >= usable_mem: # Enough free memory, exit loop
-            usable_mem=min(usable_mem,available_mem)
+        if (
+            available_mem >= 0.5 * usable_mem
+        ):  # Enough free memory, (at-least more than 50%) exit loop
+            usable_mem = min(usable_mem, available_mem)
             break
         else:
             if count == 0:
                 print("Waiting for available free memory...")
             time.sleep(5)  # Wait and retry
         count += 1
-        
+
     ############################################
     # Calculate memory per worker
     ############################################
     mem_per_worker = usable_mem / n_jobs  # Assume initially one job per worker
     # Apply minimum memory per worker constraint
-    min_mem_per_job = round(min_mem_per_job, 2)  # Ensure min_mem_per_job is a clean float
+    min_mem_per_job = round(
+        min_mem_per_job, 2
+    )  # Ensure min_mem_per_job is a clean float
     if min_mem_per_job > 0 and mem_per_worker < (min_mem_per_job * 1024**3):
         # If calculated memory per worker is smaller than user-requested minimum, adjust number of workers
         print(
             f"Total memory per job is smaller than {min_mem_per_job} GB. Adjusting total number of workers to meet this."
         )
-        mem_per_worker = min_mem_per_job * 1024**3  # Reset memory per worker to minimum allowed
-        n_workers = min(n_jobs, int(usable_mem / mem_per_worker))  # Reduce number of workers accordingly
+        mem_per_worker = (
+            min_mem_per_job * 1024**3
+        )  # Reset memory per worker to minimum allowed
+        n_workers = min(
+            n_jobs, int(usable_mem / mem_per_worker)
+        )  # Reduce number of workers accordingly
     else:
         # Otherwise, just keep n_jobs workers
         n_workers = n_jobs
+
     #########################################
     # Cap number of workers to available CPUs
-    n_workers = max(1,min(n_workers, usable_cpus))  # Prevent CPU oversubscription
+    n_workers = max(
+        1, min(n_workers, int(usable_cpus / min_cpu_per_job))
+    )  # Prevent CPU oversubscription
     # Recalculate final memory per worker based on capped n_workers
     mem_per_worker = usable_mem / n_workers
     # Calculate threads per worker
-    threads_per_worker = max(1, usable_cpus // max(1, n_workers))  # Each worker gets 1 or more threads
+    threads_per_worker = max(
+        1, usable_cpus // max(1, n_workers)
+    )  # Each worker gets min_cpu_per_job or more threads
+
     ##########################################
     print("\n#################################")
     print(
@@ -2052,36 +2337,42 @@ def get_dask_client(n_jobs, dask_dir="/tmp", cpu_frac=0.8, mem_frac=0.8, spill_f
     )
     # Memory control settings
     swap = psutil.swap_memory()
-    swap_gb = swap.total / 1024.0**3  
-    if swap_gb>16:
+    swap_gb = swap.total / 1024.0**3
+    if swap_gb > 16:
         pass
-    elif swap_gb>4:
-        spill_frac=0.6
+    elif swap_gb > 4:
+        spill_frac = 0.6
     else:
-        spill_frac=0.5  
-        
-    if spill_frac>0.7:
-        spill_frac=0.7  
+        spill_frac = 0.5
+
+    if spill_frac > 0.7:
+        spill_frac = 0.7
     if only_cal:
-        final_mem_per_worker=round((mem_per_worker*spill_frac)/(1024.0**3),2)
+        final_mem_per_worker = round((mem_per_worker * spill_frac) / (1024.0**3), 2)
         return None, None, n_workers, threads_per_worker, final_mem_per_worker
     dask.config.set({"temporary-directory": dask_dir})
     cluster = LocalCluster(
         n_workers=n_workers,
-        threads_per_worker=1, # one python-thread per worker, in workers OpenMP threads can be used
+        threads_per_worker=1,  # one python-thread per worker, in workers OpenMP threads can be used
         memory_limit=f"{round(mem_per_worker/(1024.0**3),2)}GB",
         local_directory=dask_dir,
         processes=True,  # one process per worker
         dashboard_address=":0",
-        env={"MALLOC_TRIM_THRESHOLD_": "0"},  # Explicitly set for workers
+        env={
+            "TMPDIR": dask_dir_tmp,
+            "TMP": dask_dir_tmp,
+            "TEMP": dask_dir_tmp,
+            "DASK_TEMPORARY_DIRECTORY": dask_dir,
+            "MALLOC_TRIM_THRESHOLD_": "0",
+        },  # Explicitly set for workers
     )
     client = Client(cluster)
     dask.config.set(
         {
             "distributed.worker.memory.target": spill_frac,
-            "distributed.worker.memory.spill": spill_frac+0.1,
-            "distributed.worker.memory.pause": spill_frac+0.2,
-            "distributed.worker.memory.terminate": spill_frac+0.25,
+            "distributed.worker.memory.spill": spill_frac + 0.1,
+            "distributed.worker.memory.pause": spill_frac + 0.2,
+            "distributed.worker.memory.terminate": spill_frac + 0.25,
         }
     )
 
@@ -2089,11 +2380,11 @@ def get_dask_client(n_jobs, dask_dir="/tmp", cpu_frac=0.8, mem_frac=0.8, spill_f
 
     print(f"Dask Dashboard: {client.dashboard_link}")
     print("#################################\n")
-    final_mem_per_worker=round((mem_per_worker*spill_frac)/(1024.0**3),2)
+    final_mem_per_worker = round((mem_per_worker * spill_frac) / (1024.0**3), 2)
     return client, cluster, n_workers, threads_per_worker, final_mem_per_worker
 
 
-def run_limited_memory_task(task, dask_dir ="/tmp", timeout=30):
+def run_limited_memory_task(task, dask_dir="/tmp", timeout=30):
     """
     Run a task for a limited time, then kill and return memory usage.
     Parameters
@@ -2108,11 +2399,12 @@ def run_limited_memory_task(task, dask_dir ="/tmp", timeout=30):
         Memory used by task (in GB)
     """
     import warnings
+
     dask.config.set({"temporary-directory": dask_dir})
     warnings.filterwarnings("ignore")
     cluster = LocalCluster(
         n_workers=1,
-        threads_per_worker=1, # one python-thread per worker, in workers OpenMP threads can be used
+        threads_per_worker=1,  # one python-thread per worker, in workers OpenMP threads can be used
         local_directory=dask_dir,
         processes=True,  # one process per worker
         dashboard_address=":0",
@@ -2146,7 +2438,7 @@ def run_limited_memory_task(task, dask_dir ="/tmp", timeout=30):
     per_worker_mem = total_rss
     client.close()
     cluster.close()
-    return round(per_worker_mem,2)
+    return round(per_worker_mem, 2)
 
 
 def baseline_names(msname):
@@ -2171,6 +2463,7 @@ def baseline_names(msname):
         baseline_names.append(str(ant1) + "&&" + str(ant2))
     return baseline_names
 
+
 def get_ms_size(msname):
     """
     Get measurement set total size
@@ -2187,7 +2480,8 @@ def get_ms_size(msname):
         for f in filenames:
             fp = os.path.join(dirpath, f)
             total_size += os.path.getsize(fp)
-    return total_size / (1024 ** 3)  # in GB
+    return total_size / (1024**3)  # in GB
+
 
 def get_chunk_size(msname, memory_limit=-1, ncol=3):
     """
@@ -2272,8 +2566,8 @@ def check_datacolumn_valid(msname, datacolumn="DATA"):
         Whether valid data column is present or not
     """
     tb = table()
-    msname=msname.rstrip("/")
-    msname=os.path.abspath(msname)
+    msname = msname.rstrip("/")
+    msname = os.path.abspath(msname)
     try:
         tb.open(msname)
         colnames = tb.colnames()
@@ -2373,12 +2667,14 @@ def calc_fractional_bandwidth(msname):
     """
     msmd = msmetadata()
     msmd.open(msname)
-    frac_bandwidth = msmd.bandwidths(0) / msmd.meanfreq(0)
+    freqs=msmd.chanfreqs(0)
+    bw=max(freqs)-min(freqs)
+    frac_bandwidth = bw / msmd.meanfreq(0)
     msmd.close()
     return round(frac_bandwidth * 100.0, 2)
 
 
-def calc_dyn_range(imagename, modelname, residualname, fits_mask =""):
+def calc_dyn_range(imagename, modelname, residualname, fits_mask=""):
     """
     Calculate dynamic ranges.
 
@@ -2400,8 +2696,6 @@ def calc_dyn_range(imagename, modelname, residualname, fits_mask =""):
         Max/RMS dynamic range.
     rms : float
         RMS of the image
-    dyn_range_min : float
-        Max/|Min| dynamic range.
     """
 
     def load_data(name):
@@ -2417,30 +2711,28 @@ def calc_dyn_range(imagename, modelname, residualname, fits_mask =""):
     use_mask = bool(fits_mask and os.path.exists(fits_mask))
     mask_data = fits.getdata(fits_mask).astype(bool) if use_mask else None
 
-    model_flux, dr1, dr2, rmsvalue = 0, 0, 0, 0
+    model_flux, dr1, rmsvalue = 0, 0, 0
 
     for i in range(len(imagename)):
-        img=imagename[i]
-        res=residualname[i]
+        img = imagename[i]
+        res = residualname[i]
         image = load_data(img)
-        residual=load_data(res)
+        residual = load_data(res)
         rms = np.nanstd(residual)
         if use_mask:
             maxval = np.nanmax(image[mask_data])
-            minval = np.nanmin(image[mask_data])
         else:
             maxval = np.nanmax(image)
-            minval = np.nanmin(image)
         dr1 += maxval / rms if rms else 0
-        dr2 += abs(maxval / minval) if minval else 0
-        rmsvalue+=rms
+        rmsvalue += rms
 
     for mod in modelname:
         model = load_data(mod)
         model_flux += np.nansum(model[mask_data] if use_mask else model)
-    
-    rmsvalue=rmsvalue/np.sqrt(len(residualname))       
-    return model_flux, round(dr1, 2), round(rmsvalue, 2), round(dr2, 2)
+
+    rmsvalue = rmsvalue / np.sqrt(len(residualname))
+    return model_flux, round(dr1, 2), round(rmsvalue, 2)
+
 
 def init_logger_console(logname, logfile, verbose=False):
     """
@@ -2466,7 +2758,7 @@ def init_logger_console(logname, logfile, verbose=False):
     if os.path.exists(logfile):
         os.system("rm -rf " + logfile)
     formatter = logging.Formatter(
-        "%(asctime)s %(name)s %(levelname)-8s%(message)s",
+        "%(asctime)s %(levelname)-8s%(message)s",
         datefmt="%Y-%m-%d %H:%M:%S",
     )
     logger = logging.getLogger(logname)
@@ -2481,6 +2773,42 @@ def init_logger_console(logname, logfile, verbose=False):
     logger.propagate = False
     logger.info("Log file : " + logfile + "\n")
     return logger, logfile
+
+
+def generate_tb_map(imagename, outfile=""):
+    """
+    Function to generate brightness temperature map
+    Parameters
+    ----------
+    imagename : str
+        Name of the flux calibrated image
+    outfile : str, optional
+        Output brightess temperature image name
+    Returns
+    -------
+    str
+        Output image name
+    """
+    print(f"Generating brightness temperature map for image: {imagename}")
+    if outfile == "":
+        outfile = imagename.split(".fits")[0] + "_TB.fits"
+    image_header = fits.getheader(imagename)
+    image_data = fits.getdata(imagename)
+    major = float(image_header["BMAJ"]) * 3600.0  # In arcsec
+    minor = float(image_header["BMIN"]) * 3600.0  # In arcsec
+    if image_header["CTYPE3"] == "FREQ":
+        freq = image_header["CRVAL3"] / 10**9  # In GHz
+    elif image_header["CTYPE4"] == "FREQ":
+        freq = image_header["CRVAL4"] / 10**9  # In GHz
+    else:
+        print("No frequency information is present in header.")
+        return
+    TB_conv_factor = (1.222e6) / ((freq**2) * major * minor)
+    TB_data = image_data * TB_conv_factor
+    image_header["BUNIT"] = "K"
+    fits.writeto(outfile, data=TB_data, header=image_header, overwrite=True)
+    return outfile
+
 
 ####################
 # uDOCKER related
@@ -2497,8 +2825,12 @@ def check_udocker_container(name):
     bool
         Whether present or not
     """
-    b = os.system("udocker --insecure --quiet inspect " + name + " >> tmp2 >> tmp1")
-    os.system("rm -rf tmp1 tmp2")
+    pid = os.getpid()
+    timestamp = int(time.time() * 1000)
+    tmp1 = f"tmp1_{pid}_{timestamp}.txt"
+    tmp2 = f"tmp2_{pid}_{timestamp}.txt"
+    b = os.system(f"udocker --insecure --quiet inspect " + name + f" >> {tmp1} >> {tmp2}")
+    os.system(f"rm -rf {tmp1} {tmp2}")
     if b != 0:
         return False
     else:
@@ -2541,11 +2873,16 @@ def run_wsclean(wsclean_cmd, container_name, verbose=False, dry_run=False):
     int
         Success message
     """
+    pid = os.getpid()
+    timestamp = int(time.time() * 1000)
+    tmp1 = f"tmp1_{pid}_{timestamp}.txt"
+    tmp2 = f"tmp2_{pid}_{timestamp}.txt"
     def show_file(path):
         try:
             print(open(path).read())
         except Exception as e:
             print(f"Error: {e}")
+
     container_present = check_udocker_container(container_name)
     if container_present == False:
         container_name = initialize_wsclean_container(container_name)
@@ -2555,7 +2892,7 @@ def run_wsclean(wsclean_cmd, container_name, verbose=False, dry_run=False):
             )
             return 1
     if dry_run:
-        cmd = "chgenter >> tmp1 >> tmp2"
+        cmd = f"chgenter >> {tmp1} >> {tmp2}"
         cwd = os.getcwd()
         full_command = (
             f"udocker --quiet run --nobanner --volume={cwd}:{cwd} meerwsclean {cmd}"
@@ -2563,7 +2900,7 @@ def run_wsclean(wsclean_cmd, container_name, verbose=False, dry_run=False):
         os.system(full_command)
         process = psutil.Process(os.getpid())
         mem = round(process.memory_info().rss / 1024**3, 2)  # in GB
-        os.system("rm -rf tmp1 tmp2")
+        os.system(f"rm -rf {tmp1} {tmp2}")
         return mem
     msname = wsclean_cmd.split(" ")[-1]
     msname = os.path.abspath(msname)
@@ -2605,16 +2942,16 @@ def run_wsclean(wsclean_cmd, container_name, verbose=False, dry_run=False):
     try:
         full_command = f"udocker run --nobanner --volume={mspath}:{temp_docker_path} --workdir {temp_docker_path} meerwsclean {wsclean_cmd}"
         if verbose == False:
-            full_command += f" >> {mspath}/tmp1 "
+            full_command += f" >> {mspath}/{tmp1} "
         else:
             print(wsclean_cmd + "\n")
         exit_code = os.system(full_command)
-        if exit_code!=0:
-            print ("##########################")
-            print (os.path.basename(msname))
-            print ("##########################")
-            show_file(f"{mspath}/tmp1")
-        os.system(f"rm -rf {temp_docker_path} {mspath}/tmp1")
+        if exit_code != 0:
+            print("##########################")
+            print(os.path.basename(msname))
+            print("##########################")
+            show_file(f"{mspath}/{tmp1}")
+        os.system(f"rm -rf {temp_docker_path} {mspath}/{tmp1}")
         return 0 if exit_code == 0 else 1
     except Exception as e:
         os.system(f"rm -rf {temp_docker_path}")
@@ -2640,6 +2977,10 @@ def run_solar_sidereal_cor(
     int
         Success message
     """
+    pid = os.getpid()
+    timestamp = int(time.time() * 1000)
+    tmp1 = f"tmp1_{pid}_{timestamp}.txt"
+    tmp2 = f"tmp2_{pid}_{timestamp}.txt"
     container_present = check_udocker_container(container_name)
     if container_present == False:
         container_name = initialize_wsclean_container(container_name)
@@ -2650,7 +2991,7 @@ def run_solar_sidereal_cor(
             return 1
 
     if dry_run:
-        cmd = "chgcentre >> tmp1 >> tmp2"
+        cmd = f"chgcentre >> {tmp1} >> {tmp2}"
         cwd = os.getcwd()
         full_command = (
             f"udocker --quiet run --nobanner --volume={cwd}:{cwd} meerwsclean {cmd}"
@@ -2658,7 +2999,7 @@ def run_solar_sidereal_cor(
         os.system(full_command)
         process = psutil.Process(os.getpid())
         mem = round(process.memory_info().rss / 1024**3, 2)  # in GB
-        os.system("rm -rf tmp1 tmp2")
+        os.system(f"rm -rf {tmp1} {tmp2}")
         return mem
 
     msname = os.path.abspath(msname)
@@ -2668,14 +3009,14 @@ def run_solar_sidereal_cor(
     try:
         full_command = f"udocker --quiet run --nobanner --volume={mspath}:{temp_docker_path} --workdir {temp_docker_path} meerwsclean {cmd}"
         if verbose == False:
-            full_command += " >> tmp1 >> tmp2"
+            full_command += f" >> {tmp1} >> {tmp2}"
         else:
             print(cmd)
         exit_code = os.system(full_command)
-        os.system(f"rm -rf {temp_docker_path} tmp1 tmp2")
+        os.system(f"rm -rf {temp_docker_path} {tmp1} {tmp2}")
         return 0 if exit_code == 0 else 1
     except Exception as e:
-        os.system(f"rm -rf {temp_docker_path} tmp1 tmp2")
+        os.system(f"rm -rf {temp_docker_path} {tmp1} {tmp2}")
         traceback.print_exc()
         return 1
 
@@ -2702,6 +3043,10 @@ def run_chgcenter(
     int
         Success message
     """
+    pid = os.getpid()
+    timestamp = int(time.time() * 1000)
+    tmp1 = f"tmp1_{pid}_{timestamp}.txt"
+    tmp2 = f"tmp2_{pid}_{timestamp}.txt"
     container_present = check_udocker_container(container_name)
     if container_present == False:
         container_name = initialize_wsclean_container(container_name)
@@ -2711,7 +3056,7 @@ def run_chgcenter(
             )
             return 1
     if dry_run:
-        cmd = "chgenter >> tmp1 >> tmp2"
+        cmd = f"chgenter >> {tmp1} >> {tmp2}"
         cwd = os.getcwd()
         full_command = (
             f"udocker --quiet run --nobanner --volume={cwd}:{cwd} meerwsclean {cmd}"
@@ -2719,7 +3064,7 @@ def run_chgcenter(
         os.system(full_command)
         process = psutil.Process(os.getpid())
         mem = round(process.memory_info().rss / 1024**3, 2)  # in GB
-        os.system("rm -rf tmp1 tmp2")
+        os.system(f"rm -rf {tmp1} {tmp2}")
         return mem
     msname = os.path.abspath(msname)
     mspath = os.path.dirname(msname)
@@ -2737,13 +3082,14 @@ def run_chgcenter(
     try:
         full_command = f"udocker --quiet run --nobanner --volume={mspath}:{temp_docker_path} --workdir {temp_docker_path} meerwsclean {cmd}"
         if verbose == False:
-            full_command += " >> tmp1 >> tmp2"
+            full_command += f" >> {tmp1} >> {tmp2}"
         else:
             print(cmd)
         exit_code = os.system(full_command)
-        os.system(f"rm -rf {temp_docker_path} tmp1 tmp2")
+        os.system(f"rm -rf {temp_docker_path} {tmp1} {tmp2}")
         return 0 if exit_code == 0 else 1
     except Exception as e:
-        os.system(f"rm -rf {temp_docker_path} tmp1 tmp2")
+        os.system(f"rm -rf {temp_docker_path} {tmp1} {tmp2}")
         traceback.print_exc()
         return 1
+    return

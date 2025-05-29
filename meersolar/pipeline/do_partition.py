@@ -15,6 +15,7 @@ def single_mstransform(
     scan="",
     width=1,
     timebin="",
+    corr="",
     datacolumn="DATA",
     n_threads=-1,
     dry_run=False,
@@ -35,6 +36,8 @@ def single_mstransform(
         Number of channels to average
     timebin : str, optional
         Time to average
+    corr : str, optional
+        Correlation to split
     datacolumn : str, optional
         Data column to split
     n_threads : int, optional
@@ -75,6 +78,7 @@ def single_mstransform(
             scan=scan,
             datacolumn=datacolumn,
             createmms=True,
+            correlation=corr,
             timeaverage=timeaverage,
             timebin=timebin,
             chanaverage=chanaverage,
@@ -98,6 +102,7 @@ def partion_ms(
     scans="",
     width=1,
     timebin="",
+    fullpol=False,
     datacolumn="DATA",
     cpu_frac=0.8,
     mem_frac=0.8,
@@ -118,6 +123,8 @@ def partion_ms(
         Number of channels to average
     timebin : str, optional
         Time to average
+    fullpol : bool, optional
+        Split full polar
     datacolumn : str, optional
         Data column to split
     ncpu : int, optional
@@ -183,7 +190,10 @@ def partion_ms(
     msmd.close()
     msmd.done()
     field = ",".join(field_list)
-
+    if fullpol == False:
+        corr = "XX,YY"
+    else:
+        corr = ""
     ###########################
     # Dask local cluster setup
     ###########################
@@ -191,7 +201,7 @@ def partion_ms(
     mem_limit = run_limited_memory_task(task, dask_dir=mspath)
     dask_client, dask_cluster, n_jobs, n_threads, mem_limit = get_dask_client(
         len(scan_list),
-        dask_dir = mspath,
+        dask_dir=mspath,
         cpu_frac=cpu_frac,
         mem_frac=mem_frac,
         min_mem_per_job=mem_limit / 0.6,
@@ -205,6 +215,7 @@ def partion_ms(
             outputvis,
             scan=str(scan),
             field="",
+            corr=corr,
             width=width,
             timebin=timebin,
             n_threads=n_threads,
@@ -228,6 +239,7 @@ def partion_ms(
     else:
         print("Making multi-MS ....")
         from casatasks import virtualconcat
+
         virtualconcat(vis=splited_ms_list, concatvis=outputms)
 
     print("##################")
@@ -290,6 +302,13 @@ def main():
         metavar="String",
     )
     parser.add_option(
+        "--split_fullpol",
+        dest="fullpol",
+        default=False,
+        help="Split full polar data",
+        metavar="Boolean",
+    )
+    parser.add_option(
         "--print_casalog",
         dest="print_casalog",
         default=False,
@@ -322,6 +341,7 @@ def main():
                 scans=options.scans,
                 width=int(options.width),
                 timebin=options.timebin,
+                fullpol=eval(str(options.fullpol)),
                 datacolumn=options.datacolumn,
                 cpu_frac=float(options.cpu_frac),
                 mem_frac=float(options.mem_frac),

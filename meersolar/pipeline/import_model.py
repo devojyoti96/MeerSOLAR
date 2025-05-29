@@ -218,7 +218,7 @@ def import_phasecal_models(msname, workdir, cpu_frac=0.8, mem_frac=0.8):
             mem_limit = run_limited_memory_task(task)
             dask_client, dask_cluster, n_jobs, n_threads, mem_limit = get_dask_client(
                 len(mslist),
-                dask_dir = workdir, 
+                dask_dir=workdir,
                 cpu_frac=cpu_frac,
                 mem_frac=mem_frac,
                 min_mem_per_job=mem_limit / 0.6,
@@ -286,7 +286,7 @@ def import_polcal_model(msname, workdir, cpu_frac=0.8, mem_frac=0.8):
             mem_limit = run_limited_memory_task(task)
             dask_client, dask_cluster, n_jobs, n_threads, mem_limit = get_dask_client(
                 len(p_scans),
-                dask_dir = workdir,
+                dask_dir=workdir,
                 cpu_frac=cpu_frac,
                 mem_frac=mem_frac,
                 min_mem_per_job=mem_limit / 0.6,
@@ -433,7 +433,9 @@ def main():
             os.system("touch " + workdir + "/.fluxcal_" + str(fluxcal_result))
             os.system("touch " + workdir + "/.phasecal_" + str(phasecal_result))
             os.system("touch " + workdir + "/.polcal_" + str(polcal_result))
-            if fluxcal_result==1 or (fluxcal_result==1 and phasecal_result==1 and polcal_result==1):
+            if fluxcal_result == 1 or (
+                fluxcal_result == 1 and phasecal_result == 1 and polcal_result == 1
+            ):
                 return 1
             else:
                 return 0

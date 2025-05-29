@@ -7,7 +7,6 @@ from meersolar.pipeline.basic_func import *
 from dask import delayed, compute
 from optparse import OptionParser
 from casatasks import casalog
-
 logfile = casalog.logfile()
 os.system("rm -rf " + logfile)
 
@@ -84,6 +83,8 @@ def scale_bandpass(bandpass_table, att_table, n=15):
     str
         Name of the output table.
     """
+    from casatasks import flagdata
+
     warnings.filterwarnings("ignore", category=RuntimeWarning)
     if att_table == "":
         print(f"No attenuation caltable is provided for scan : {scan}")
@@ -103,9 +104,9 @@ def scale_bandpass(bandpass_table, att_table, n=15):
     tb.open(output_table, nomodify=False)
     gain = tb.getcol("CPARAM")
     flag = tb.getcol("FLAG")
-    if len(flag_ants)>0:
+    if len(flag_ants) > 0:
         for flag_ant in flag_ants:
-            flag[...,flag_ant]+=True
+            flag[..., flag_ant] += True
     for i in range(att_values.shape[0]):
         att = filter_outliers(att_values[i])
         num_blocks = att.shape[0] // n
@@ -130,7 +131,7 @@ def scale_bandpass(bandpass_table, att_table, n=15):
         # Broadcast to CPARAM shape
         interp_scaled = np.sqrt(best_fit)
         # Apply scaling
-        gain[i,...] *= interp_scaled[...,None]
+        gain[i, ...] *= interp_scaled[..., None]
     mask = np.isnan(gain)
     gain[mask] = 1.0
     flag[mask] = True
@@ -138,13 +139,13 @@ def scale_bandpass(bandpass_table, att_table, n=15):
     tb.putcol("FLAG", flag)
     tb.flush()
     tb.close()
-    flagdata(vis=output_table,mode='rflag',datacolumn="CPARAM",flagbackup=False)
+    print(f"Flagging table: {output_table}")
+    flagdata(vis=output_table, mode="rflag", datacolumn="CPARAM", flagbackup=False)
     return output_table
 
 
 def applysol(
     msname="",
-    scan="",
     gaintable=[],
     gainfield=[],
     interp=[],
@@ -155,6 +156,7 @@ def applysol(
     memory_limit=-1,
     force_apply=False,
     soltype="basic",
+    do_post_flag=True,
     dry_run=False,
 ):
     """
@@ -163,8 +165,6 @@ def applysol(
     ----------
     msname : str
         Measurement set
-    scan : int
-        Scan number
     gaintable : list, optional
         Caltable list
     gainfield : list, optional
@@ -185,6 +185,8 @@ def applysol(
         Force to apply solutions if it is already applied
     soltype : str, optional
         Solution type
+    do_post_flag : bool, optional
+        Do post calibration flagging
     Returns
     -------
     int
@@ -192,49 +194,71 @@ def applysol(
     """
     limit_threads(n_threads=n_threads)
     from casatasks import applycal, flagdata, split, clearcal
+    from meersolar.pipeline.flagging import single_ms_flag
 
     if dry_run:
         process = psutil.Process(os.getpid())
         mem = round(process.memory_info().rss / 1024**3, 2)  # in GB
         return mem
     print(
-        f"Applying solutions on ms: {os.path.basename(msname)} of scan : {scan} from caltables: {','.join([os.path.basename(i) for i in gaintable])}\n"
+        f"Applying solutions on ms: {os.path.basename(msname)} from caltables: {','.join([os.path.basename(i) for i in gaintable])}\n"
     )
-    if soltype=="basic":
-        check_file="/.applied_sol"
+    if soltype == "basic":
+        check_file = "/.applied_sol"
     else:
-        check_file="/.applied_selfcalsol"
+        check_file = "/.applied_selfcalsol"
     try:
-        if os.path.exists(msname+check_file) and force_apply==False:
-            print ("Solutions are already applied.")
+        if os.path.exists(msname + check_file) and force_apply == False:
+            print("Solutions are already applied.")
             return 0
         else:
-            if os.path.exists(msname+check_file) and force_apply==True:
+            if os.path.exists(msname + check_file) and force_apply == True:
                 clearcal(vis=msname)
-                flagdata(vis=msname,mode="unflag",spw="0",flagbackup=False)
-                if os.path.exists(msname+".flagversions"):
-                    os.system("rm -rf "+msname+".flagversions")
+                flagdata(vis=msname, mode="unflag", spw="0", flagbackup=False)
+                if os.path.exists(msname + ".flagversions"):
+                    os.system("rm -rf " + msname + ".flagversions")
             applycal(
                 vis=msname,
-                scan=str(scan),
                 gaintable=gaintable,
                 gainfield=gainfield,
                 applymode=applymode,
+                interp=interp,
                 calwt=[False],
                 parang=parang,
                 flagbackup=False,
-            )            
+            )
         if overwrite_datacolumn:
             print(f"Spliting corrected data for ms: {msname}.")
-            outputvis=msname.split(".ms")[0]+"_cor.ms"
+            outputvis = msname.split(".ms")[0] + "_cor.ms"
             if os.path.exists(outputvis):
                 os.system(f"rm -rf {outputvis}")
-            split(vis=msname,outputvis=outputvis,datacolumn="corrected")
+            touch_file_names=glob.glob(f"{msname}/.*")
+            if len(touch_file_names)>0:
+                touch_file_names=[os.path.basename(f) for f in touch_file_names]
+            split(vis=msname, outputvis=outputvis, datacolumn="corrected")
             if os.path.exists(outputvis):
-                os.system(f"rm -rf {msname}")
+                os.system(f"rm -rf {msname} {msname}.flagversions")
                 os.system(f"mv {outputvis} {msname}")
+            for t in touch_file_names:
+                os.system(f"touch {msname}/{t}") 
             gc.collect()
-        os.system("touch "+msname+check_file)
+        if do_post_flag:
+            print (f"Post calibration flagging on: {msname}")
+            if overwrite_datacolumn:
+                datacolumn="data"
+            else:
+                datacolumn="corrected"
+            single_ms_flag(
+                msname=msname,
+                datacolumn=datacolumn,
+                use_tfcrop=True,
+                use_rflag=False,
+                flagdimension="freq",
+                flag_autocorr=False,
+                n_threads=n_threads,
+                memory_limit=memory_limit,
+            )
+        os.system("touch " + msname + check_file)
         return 0
     except Exception as e:
         traceback.print_exc()
@@ -249,6 +273,7 @@ def run_all_applysol(
     overwrite_datacolumn=False,
     applymode="calflag",
     force_apply=False,
+    do_post_flag=True,
     cpu_frac=0.8,
     mem_frac=0.8,
 ):
@@ -269,7 +294,9 @@ def run_all_applysol(
     applymode : str, optional
         Apply mode
     force_apply : bool, optional
-        Force to apply solutions even already applied 
+        Force to apply solutions even already applied
+    do_post_flag : bool, optional
+        Do post calibration flagging
     cpu_frac : float, optional
         CPU fraction to use
     mem_frac : float, optional
@@ -320,7 +347,10 @@ def run_all_applysol(
             )
         else:
             dask_client, dask_cluster, n_jobs, n_threads, mem_limit = get_dask_client(
-                len(att_caltables), dask_dir=workdir, cpu_frac=cpu_frac, mem_frac=mem_frac
+                len(att_caltables),
+                dask_dir=workdir,
+                cpu_frac=cpu_frac,
+                mem_frac=mem_frac,
             )
             tasks = []
             for att_table in att_caltables:
@@ -333,55 +363,53 @@ def run_all_applysol(
         # Arranging applycal parameters
         ###############################
         if len(delay_table) > 0:
-            gaintable+= delay_table
+            gaintable += delay_table
         if len(gain_table) > 0 and use_only_bandpass == False:
-            gaintable+= gain_table
+            gaintable += gain_table
         if len(leakage_table) > 0:
-            gaintable+= leakage_table
+            gaintable += leakage_table
             if len(kcross_table) > 0:
-                gaintable+= kcross_table
+                gaintable += kcross_table
             if len(crossphase_table) > 0:
-                gaintable+= crossphase_table
+                gaintable += crossphase_table
             if len(pangle_table) > 0:
-                gaintable+= pangle_table
+                gaintable += pangle_table
         gaintable_bkp = copy.deepcopy(gaintable)
         for g in gaintable_bkp:
-            if os.path.basename(g)=="full_selfcal.gcal":
+            if os.path.basename(g) == "full_selfcal.gcal":
                 gaintable.remove(g)
         del gaintable_bkp
-        
+
         ####################################
         # Filtering any corrupted ms
-        #####################################    
-        filtered_mslist=[] # Filtering in case any ms is corrupted
+        #####################################
+        filtered_mslist = []  # Filtering in case any ms is corrupted
         for ms in mslist:
-            checkcol=check_datacolumn_valid(ms)
+            checkcol = check_datacolumn_valid(ms)
             if checkcol:
                 filtered_mslist.append(ms)
             else:
-                print (f"Issue in : {ms}")
+                print(f"Issue in : {ms}")
                 os.system("rm -rf {ms}")
-        mslist=filtered_mslist  
-        if len(mslist)==0:
-            print ("No valid measurement set.")
+        mslist = filtered_mslist
+        if len(mslist) == 0:
+            print("No valid measurement set.")
             print(f"Total time taken: {round(time.time()-start_time,2)}s")
-            return 1  
-        
+            return 1
+
         ####################################
         # Applycal jobs
         ####################################
         print(f"Total ms list: {len(mslist)}")
         task = delayed(applysol)(dry_run=True)
-        mem_limit = run_limited_memory_task(task, dask_dir= workdir)
-        ms_size_list=[get_ms_size(ms)+mem_limit for ms in mslist]
-        mem_limit=max(ms_size_list)
+        mem_limit = 2*run_limited_memory_task(task, dask_dir=workdir)
         dask_client, dask_cluster, n_jobs, n_threads, mem_limit = get_dask_client(
             len(mslist),
             dask_dir=workdir,
             cpu_frac=cpu_frac,
             mem_frac=mem_frac,
             min_mem_per_job=mem_limit / 0.6,
-        ) 
+        )
         tasks = []
         scaled_bandpass_scans = [
             int(a.split("scan_")[-1].split(".bcal")[0]) for a in scaled_bandpass_list
@@ -395,22 +423,20 @@ def run_all_applysol(
                 pos = scaled_bandpass_scans.index(scan)
                 bandpass_table = scaled_bandpass_list[pos]
                 interp = []
-                final_gaintable=gaintable + [bandpass_table]
+                final_gaintable = gaintable + [bandpass_table]
                 for g in final_gaintable:
-                    if ".bcal" in g:
-                        interp.append("nearest,nearestflag")
-                    elif ".gcal" in g:
+                    if ".gcal" in g:
                         interp.append("linear")
                     else:
-                        interp.append("nearest") 
+                        interp.append("nearest,nearestflag")
                 tasks.append(
                     delayed(applysol)(
                         ms,
-                        scan,
                         gaintable=final_gaintable,
                         overwrite_datacolumn=overwrite_datacolumn,
                         applymode=applymode,
                         interp=interp,
+                        do_post_flag=do_post_flag,
                         n_threads=n_threads,
                         parang=parang,
                         memory_limit=mem_limit,
@@ -501,10 +527,10 @@ def main():
         metavar="Boolean",
     )
     parser.add_option(
-        "--print_casalog",
-        dest="print_casalog",
-        default=False,
-        help="Print CASA log",
+        "--do_post_flag",
+        dest="do_post_flag",
+        default=True,
+        help="Do post calibration flagging",
         metavar="Boolean",
     )
     parser.add_option(
@@ -521,9 +547,7 @@ def main():
         help="Memory fraction to use",
         metavar="Float",
     )
-    (options, args) = parser.parse_args()
-    if eval(str(options.print_casalog)) == True:
-        casalog.showconsole(True)
+    (options, args) = parser.parse_args()        
     if options.mslist != "":
         print("\n###################################")
         print("Starting applying solutions...")
@@ -541,6 +565,7 @@ def main():
                 options.caldir,
                 use_only_bandpass=eval(str(options.use_only_bandpass)),
                 overwrite_datacolumn=eval(str(options.overwrite_datacolumn)),
+                do_post_flag=eval(str(options.do_post_flag)),
                 applymode=options.applymode,
                 force_apply=eval(str(options.force_apply)),
                 cpu_frac=float(options.cpu_frac),

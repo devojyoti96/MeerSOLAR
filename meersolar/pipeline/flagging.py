@@ -15,7 +15,7 @@ def single_ms_flag(
     msname="",
     badspw="",
     bad_ants_str="",
-    datacolumn="DATA",
+    datacolumn="data",
     use_tfcrop=True,
     use_rflag=False,
     flagdimension="freqtime",
@@ -121,6 +121,7 @@ def single_ms_flag(
         datacolumn_present = check_datacolumn_valid(msname, datacolumn="DATA")
         if modelcolumn_present == False or datacolumn_present == False:
             datacolumn = "corrected"
+            
     ########################################################
     # Whenther memory is sufficient for calculating residual
     ########################################################
@@ -140,6 +141,7 @@ def single_ms_flag(
                 datacolumn = "corrected"
             else:
                 datacolumn = "data"
+                
     #################################################
     # Whether corrected data column is present or not
     #################################################
@@ -150,6 +152,21 @@ def single_ms_flag(
                 "Corrected data column is chosen for flagging, but it is not present."
             )
             return
+        else:
+            datacolumn="corrected"
+    #################################################
+    # Whether data column is present or not
+    #################################################
+    if datacolumn == "data" or datacolumn == "DATA":
+        datacolumn_present = check_datacolumn_valid(msname, datacolumn="DATA")
+        if datacolumn_present == False:
+            print(
+                "Data column is chosen for flagging, but it is not present."
+            )
+            return
+        else:
+            datacolumn="data"
+            
     ##############
     # Tfcrop flag
     ##############
@@ -159,7 +176,6 @@ def single_ms_flag(
         )
         if baseline_chunk == None or time_chunk == None:
             print("Memory limit is too small to work. Do not flagging.")
-
             return
         baseline_name_list = baseline_names(msname)
         if baseline_chunk > len(baseline_name_list):
@@ -217,7 +233,6 @@ def single_ms_flag(
         )
         if baseline_chunk == None or time_chunk == None:
             print("Memory limit is too small to work. Do not flagging.")
-
             return
         baseline_name_list = baseline_names(msname)
         if baseline_chunk > len(baseline_name_list):
@@ -273,7 +288,6 @@ def single_ms_flag(
         )
         if baseline_chunk == None or time_chunk == None:
             print("Memory limit is too small to work. Do not flagging.")
-
             return
         baseline_name_list = baseline_names(msname)
         if baseline_chunk > len(baseline_name_list):
@@ -327,7 +341,9 @@ def single_ms_flag(
 
 def do_flagging(
     msname,
-    datacolumn="DATA",
+    datacolumn="data",
+    flag_bad_ants=True,
+    flag_bad_spw=True,
     use_tfcrop=True,
     use_rflag=False,
     flagdimension="freqtime",
@@ -344,6 +360,10 @@ def do_flagging(
         Name of the ms
     datacolumn : str, optional
         Data column
+    flag_bad_ants : bool, optional
+        Flag bad antennas
+    flag_bad_spw : bool, optional
+        Flag bad channels
     use_tfcrop : bool, optional
         Use tfcrop or not
     use_rflag : bool, optional
@@ -372,8 +392,17 @@ def do_flagging(
         print("Flagging measurement set : ", msname)
         print("###########################\n")
         fluxcal_field, fluxcal_scans = get_fluxcals(msname)
-        badspw = get_bad_chans(msname)
-        bad_ants, bad_ants_str = get_bad_ants(msname, fieldnames=fluxcal_field)
+        if len(fluxcal_field)==0:
+            flag_bad_spw=False
+            flag_bad_ants=False
+        if flag_bad_spw:
+            badspw = get_bad_chans(msname)
+        else:
+            bandspw=""
+        if flag_bad_ants:
+            bad_ants, bad_ants_str = get_bad_ants(msname, fieldnames=fluxcal_field)
+        else:
+            bad_ants_str=""
         ###########################
         # Dask local cluster setup
         ##########################
@@ -440,10 +469,17 @@ def main():
         metavar="String",
     )
     parser.add_option(
-        "--print_casalog",
-        dest="print_casalog",
-        default=False,
-        help="Print CASA log",
+        "--flag_bad_ants",
+        dest="flag_bad_ants",
+        default=True,
+        help="Flag bad antennas",
+        metavar="Boolean",
+    )
+    parser.add_option(
+        "--flag_bad_spw",
+        dest="flag_bad_spw",
+        default=True,
+        help="Flag bad channels",
         metavar="Boolean",
     )
     parser.add_option(
@@ -496,13 +532,13 @@ def main():
         metavar="Float",
     )
     (options, args) = parser.parse_args()
-    if eval(str(options.print_casalog)) == True:
-        casalog.showconsole(True)
     if options.msname != None and os.path.exists(options.msname):
         try:
             result = do_flagging(
                 options.msname,
                 datacolumn=options.datacolumn,
+                flag_bad_ants=eval(str(options.flag_bad_ants)),
+                flag_bad_spw=eval(str(options.flag_bad_spw)),
                 use_tfcrop=eval(str(options.use_tfcrop)),
                 use_rflag=eval(str(options.use_rflag)),
                 flagdimension=options.flagdimension,

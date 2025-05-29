@@ -12,6 +12,7 @@ from casatasks import casalog
 logfile = casalog.logfile()
 os.system("rm -rf " + logfile)
 
+
 def run_all_applysol(
     mslist,
     workdir,
@@ -37,7 +38,7 @@ def run_all_applysol(
     applymode : str, optional
         Apply mode
     force_apply : bool, optional
-        Force to apply solutions even already applied 
+        Force to apply solutions even already applied
     cpu_frac : float, optional
         CPU fraction to use
     mem_frac : float, optional
@@ -52,36 +53,34 @@ def run_all_applysol(
         os.chdir(workdir)
         mslist = np.unique(mslist).tolist()
         parang = False
-        if os.path.exists(caldir+"/full_selfcal.gcal")==False:
-            print (f"No self-cal caltable is present in {caldir}.")
+        if os.path.exists(caldir + "/full_selfcal.gcal") == False:
+            print(f"No self-cal caltable is present in {caldir}.")
             return 1
-        gaintable=[caldir+"/full_selfcal.gcal"]
-               
+        gaintable = [caldir + "/full_selfcal.gcal"]
+
         ####################################
         # Filtering any corrupted ms
-        #####################################    
-        filtered_mslist=[] # Filtering in case any ms is corrupted
+        #####################################
+        filtered_mslist = []  # Filtering in case any ms is corrupted
         for ms in mslist:
-            checkcol=check_datacolumn_valid(ms)
+            checkcol = check_datacolumn_valid(ms)
             if checkcol:
                 filtered_mslist.append(ms)
             else:
-                print (f"Issue in : {ms}")
+                print(f"Issue in : {ms}")
                 os.system("rm -rf {ms}")
-        mslist=filtered_mslist  
-        if len(mslist)==0:
-            print ("No valid measurement set.")
+        mslist = filtered_mslist
+        if len(mslist) == 0:
+            print("No valid measurement set.")
             print(f"Total time taken: {round(time.time()-start_time,2)}s")
-            return 1  
-               
+            return 1
+
         ####################################
         # Applycal jobs
         ####################################
         print(f"Total ms list: {len(mslist)}")
         task = delayed(applysol)(dry_run=True)
-        mem_limit = run_limited_memory_task(task, dask_dir = workdir)
-        ms_size_list=[get_ms_size(ms)+mem_limit for ms in mslist]
-        mem_limit=max(ms_size_list)
+        mem_limit = 2*run_limited_memory_task(task, dask_dir=workdir)
         dask_client, dask_cluster, n_jobs, n_threads, mem_limit = get_dask_client(
             len(mslist),
             dask_dir=workdir,
@@ -164,7 +163,7 @@ def main():
     parser.add_option(
         "--applymode",
         dest="applymode",
-        default="calflag",
+        default="calonly",
         help="Applycal mode",
         metavar="String",
     )

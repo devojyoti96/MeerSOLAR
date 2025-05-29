@@ -1,4 +1,4 @@
-import os, glob, resource, traceback, psutil, time
+import os, glob, resource, traceback, psutil, time, copy, scipy, math
 from astropy.io import fits
 from casatools import msmetadata
 from meersolar.pipeline.basic_func import *
@@ -10,7 +10,7 @@ logfile = casalog.logfile()
 os.system("rm -rf " + logfile)
 
 
-def rename_image(imagename, imagedir="", pol=""):
+def rename_image(imagename, imagedir="", pol="", band=""):
     """
     Rename and move image to image directory
     Parameters
@@ -19,12 +19,21 @@ def rename_image(imagename, imagedir="", pol=""):
         Image name
     imagedir : str, optional
         Image directory (default given image directory)
+    pol : str, optional
+        Stokes parameters
+    band : str, optional
+        Observing band
     Returns
     -------
     str
         New imagename with full path
     """
     imagename = imagename.rstrip("/")
+    with fits.open(imagename, mode="update") as hdul:
+        hdr = hdul[0].header
+        hdr["AUTHOR"] = "DevojyotiKansabanik,DeepanPatra"
+        if band != "":
+            hdr["BAND"] = band
     header = fits.getheader(imagename)
     time = header["DATE-OBS"]
     freq = round(header["CRVAL3"] / 10**6, 2)
@@ -55,9 +64,10 @@ def perform_imaging(
     weight="briggs",
     robust=0.0,
     multiscale_scales=[],
-    minuv=50,
+    minuv=0,
     threshold=1.0,
     use_solar_mask=True,
+    mask_radius = 20,
     savemodel=True,
     saveres=True,
     ncpu=-1,
@@ -97,6 +107,8 @@ def perform_imaging(
         CLEAN threshold
     use_solar_mask : bool, optional
         Use solar mask
+    mask_radius : float, optional
+        Mask radius in arcminute
     savemodel : bool, optional
         Save model images or not
     saveres : bool, optional
@@ -116,7 +128,9 @@ def perform_imaging(
     """
     if os.path.exists(logfile):
         os.system(f"rm -rf {logfile}")
-    logf=open(logfile,"a")
+    logger, logfile = init_logger_console(
+            os.path.basename(logfile).split(".log")[0], logfile, verbose=False
+        )
     if dry_run:
         process = psutil.Process(os.getpid())
         usemem = round(process.memory_info().rss / 1024**3, 2)  # in GB
@@ -124,12 +138,16 @@ def perform_imaging(
     try:
         msname = msname.rstrip("/")
         msname = os.path.abspath(msname)
-        print(f"{os.path.basename(msname)} --Perform imaging...\n",file=logf,flush=True)
+        band = get_band_name(msname)
+        logger.info(
+            f"{os.path.basename(msname)} --Perform imaging...\n"
+        )
         #########
         # Imaging
         #########
         msmd = msmetadata()
         msmd.open(msname)
+        freq=msmd.meanfreq(0,unit="MHz")
         npol = msmd.ncorrforpol()[0]
         msmd.close()
         if npol < 4 and pol == "IQUV":
@@ -138,7 +156,6 @@ def perform_imaging(
             ncpu = psutil.cpu_count()
         if mem < 0:
             mem = psutil.virtual_memory().total / (1024**3)
-        ngrid = max(1, int(ncpu / 3))
         prefix = workdir + "/imaging_" + os.path.basename(msname).split(".ms")[0]
         if imagedir == "":
             imagedir = workdir
@@ -147,14 +164,18 @@ def perform_imaging(
         os.system("rm -rf " + prefix + "*")
         if weight == "briggs":
             weight += " " + str(robust)
-        if threshold < 1:
-            threshold += 1
-        elif threshold == 1:
-            threshold += 0.1
+        if threshold <= 1:
+            threshold = 1.1  
+        if minuv==0:
+            minuv_m,minuv_l=calc_minuv(msname)  
+            minuv_l=2*minuv_l
+        else:
+            minuv_l=100
         wsclean_args = [
             "-scale " + str(cellsize) + "asec",
             "-size " + str(imsize) + " " + str(imsize),
             "-no-dirty",
+            "-gridder tuned-wgridder",
             "-weight " + weight,
             "-name " + prefix,
             "-pol " + str(pol),
@@ -165,31 +186,13 @@ def perform_imaging(
             "-minuv-l " + str(minuv),
             "-j " + str(ncpu),
             "-abs-mem " + str(round(mem, 2)),
-            "-parallel-gridding " + str(ngrid),
             "-auto-threshold 1 -auto-mask " + str(threshold),
             "-no-update-model-required",
-            "-no-negative",
+            "-taper-inner-tukey "+str(minuv_l),
         ]
-        
-        ############################################
-        # Parallel deconvolution within memory limit
-        ############################################
-        subimsize=1024
-        if imsize > (2 * subimsize):
-            subimage_memory=8*(subimsize**2)/(1024**3)
-            n_subimage=int(imsize/subimsize)
-            if ncpu*subimage_memory>mem:
-                if n_subimage*subimage_memory>mem:
-                    threads_to_use=int(mem/subimage_memory)
-                    subimsize=int(imsize/threads_to_use)
-                else:
-                    threads_to_use=n_subimage
-            else:
-                threads_to_use=ncpu
-            if threads_to_use>1 and subimsize>1024: 
-                wsclean_args.append("-parallel-deconvolution 1024")
-                wsclean_args.append("-deconvolution-threads " + str(threads_to_use))
-
+        if pol=="I":
+            wsclean_args.append("-no-negative")
+            
         ######################################
         # Multiscale configuration
         ######################################
@@ -199,13 +202,15 @@ def perform_imaging(
             wsclean_args.append(
                 "-multiscale-scales " + ",".join([str(s) for s in multiscale_scales])
             )
+            scale_bias=get_multiscale_bias(freq)
+            wsclean_args.append(f"-multiscale-scale-bias {scale_bias}")
 
         #####################################
         # Spectral imaging configuration
         #####################################
         if nchan > 1:
             wsclean_args.append(f"-channels-out {nchan}")
-            wsclean_args.append(f"-join-channels")
+            wsclean_args.append("-no-mf-weighting")
 
         #####################################
         # Temporal imaging configuration
@@ -214,14 +219,13 @@ def perform_imaging(
             wsclean_args.append(f"-intervals-out {ntime}")
 
         ################################################
-        # Creating and using a 40arcmin diameter solar mask
+        # Creating and using a solar mask
         ################################################
         if use_solar_mask:
             fits_mask = prefix + "_solar-mask.fits"
             if os.path.exists(fits_mask) == False:
-                mask_radius = 20
-                print(
-                    f"{os.path.basename(msname)} -- Creating solar mask of size: {mask_radius} arcmin.\n",file=logf,flush=True
+                logger.info(
+                    f"{os.path.basename(msname)} -- Creating solar mask of size: {mask_radius} arcmin.\n",
                 )
                 fits_mask = create_circular_mask(
                     msname, cellsize, imsize, mask_radius=mask_radius
@@ -233,19 +237,21 @@ def perform_imaging(
         # Resetting maximum file limit
         ######################################
         soft_limit, hard_limit = resource.getrlimit(resource.RLIMIT_NOFILE)
-        total_chunks = abs(nchan * ntime * npol)
-        if total_chunks > soft_limit:
-            resource.setrlimit(resource.RLIMIT_NOFILE, (total_chunks, hard_limit))
+        resource.setrlimit(resource.RLIMIT_NOFILE, (hard_limit, hard_limit))
 
         ######################################
         # Running imaging
         ######################################
         wsclean_cmd = "wsclean " + " ".join(wsclean_args) + " " + msname
-        print(f"{os.path.basename(msname)} -- WSClean command: {wsclean_cmd}\n",file=logf,flush=True)
+        logger.info(
+            f"{os.path.basename(msname)} -- WSClean command: {wsclean_cmd}\n",
+        )
         msg = run_wsclean(wsclean_cmd, "meerwsclean", verbose=False)
         if msg != 0:
             gc.collect()
-            print(f"{os.path.basename(msname)} -- Imaging is not successful.\n",file=logf,flush=True)
+            logger.info(
+                f"{os.path.basename(msname)} -- Imaging is not successful.\n",
+            )
             return 1, []
 
         os.system("rm -rf " + prefix + "*psf.fits")
@@ -330,7 +336,10 @@ def perform_imaging(
             final_image_list = []
             for imagename in imagelist:
                 renamed_image = rename_image(
-                    imagename, imagedir=imagedir + "/images", pol=pol
+                    imagename,
+                    imagedir=imagedir + "/images",
+                    pol=pol,
+                    band=band,
                 )
                 final_image_list.append(renamed_image)
             final_list = [final_image_list]
@@ -340,7 +349,10 @@ def perform_imaging(
                     os.makedirs(imagedir + "/models")
                 for modelname in modellist:
                     renamed_model = rename_image(
-                        modelname, imagedir=imagedir + "/models", pol=pol
+                        modelname,
+                        imagedir=imagedir + "/models",
+                        pol=pol,
+                        band=band,
                     )
                     final_model_list.append(renamed_model)
                 final_list.append(final_model_list)
@@ -350,18 +362,25 @@ def perform_imaging(
                     os.makedirs(imagedir + "/residuals")
                 for resname in reslist:
                     renamed_res = rename_image(
-                        resname, imagedir=imagedir + "/residuals", pol=pol
+                        resname,
+                        imagedir=imagedir + "/residuals",
+                        pol=pol,
+                        band=band,
                     )
                     final_res_list.append(renamed_res)
                 final_list.append(final_res_list)
             if use_solar_mask and os.path.exists(fits_mask):
                 os.system("rm -rf " + fits_mask)
-            print(f"{os.path.basename(msname)} -- Imaging is successfully done.\n",file=logf,flush=True)
+            logger.info(
+                f"{os.path.basename(msname)} -- Imaging is successfully done.\n",
+            )
             return 0, final_list
         else:
             if use_solar_mask and os.path.exists(fits_mask):
                 os.system("rm -rf " + fits_mask)
-            print(f"{os.path.basename(msname)} -- No image is made.\n",file=logf,flush=True)
+            logger.info(
+                f"{os.path.basename(msname)} -- No image is made.\n",
+            )
             return 1, []
     except Exception as e:
         traceback.print_exc()
@@ -370,12 +389,13 @@ def perform_imaging(
 
 def run_all_imaging(
     mslist="",
+    mainlog_file="",
     workdir="",
     freqres=-1,
     timeres=-1,
     weight="briggs",
     robust=0.0,
-    minuv=50,
+    minuv=0,
     pol="I",
     multiscale_scales=[],
     threshold=1.0,
@@ -392,6 +412,8 @@ def run_all_imaging(
     ----------
     mslist : list
         Measurement set list
+    mainlog_file : str
+        Main log file name
     workdir : str
         Work directory
     freqres : float, optional
@@ -425,22 +447,20 @@ def run_all_imaging(
     int
         Success message
     """
-    if os.path.exists(workdir+"/logs/")==False:
-        os.makedirs(workdir+"/logs/")
-    mainlog_file_name=workdir+"/logs/imaging_targets_mainlog.log"
-    if os.path.exists(mainlog_file_name):
-        os.system(f"rm -rf {mainlog_file_name}")
-    mainlog_file=open(mainlog_file_name,"a")
     start_time = time.time()
-    mslist=sorted(mslist)
+    mslist = sorted(mslist)
+    if mainlog_file!="":
+        mainlogger, mainlog_file = init_logger_console(
+            os.path.basename(mainlog_file).split(".mainlog")[0], mainlog_file, verbose=False
+        )
     try:
         if len(mslist) == 0:
-            print("Provide valid measurement set list.",file=mainlog_file,flush=True)
+            mainlogger.error("Provide valid measurement set list.")
             return 1
-        if weight=="briggs":
-            weight_str=f"{weight}_{robust}"
+        if weight == "briggs":
+            weight_str = f"{weight}_{robust}"
         else:
-            weight_str=weight
+            weight_str = weight
         if freqres == -1 and timeres == -1:
             imagedir = workdir + f"/imagedir_f_all_t_all_w_{weight_str}"
         elif freqres != -1 and timeres == -1:
@@ -449,21 +469,21 @@ def run_all_imaging(
             imagedir = workdir + f"/imagedir_f_all_t_{timeres}_w_{weight_str}"
         else:
             imagedir = workdir + f"/imagedir_f_{freqres}_t_{timeres}_w_{weight_str}"
-        if os.path.exists(imagedir) == False:
-            os.makedirs(imagedir)
-            
+        os.makedirs(imagedir,exist_ok=True)
+        os.system(f"rm -rf {imagedir}/*")
+
         ####################################
         # Filtering any corrupted ms
-        #####################################    
-        filtered_mslist=[] # Filtering in case any ms is corrupted
+        #####################################
+        filtered_mslist = []  # Filtering in case any ms is corrupted
         for ms in mslist:
-            checkcol=check_datacolumn_valid(ms)
+            checkcol = check_datacolumn_valid(ms)
             if checkcol:
                 filtered_mslist.append(ms)
             else:
-                print (f"Issue in : {ms}",file=mainlog_file,flush=True)
-                os.system("rm -rf {ms}")
-        mslist=filtered_mslist    
+                mainlogger.warning(f"Issue in : {ms}")
+                os.system(f"rm -rf {ms}")
+        mslist = filtered_mslist
 
         #####################################
         # Determining spectro-temporal chunks
@@ -490,43 +510,52 @@ def run_all_imaging(
                 freqs = msmd.chanfreqs(0, unit="MHz")
                 msmd.close()
                 bw = max(freqs) - min(freqs)
-                nchan = max(1, int(bw / freqres))
+                nchan = max(1, math.ceil(bw / freqres))
                 nchan_list.append(nchan)
-                
+      
         #################################
         # Dask client setup
         #################################
         task = delayed(perform_imaging)(dry_run=True)
-        mem_limit = run_limited_memory_task(task, dask_dir= workdir)
+        mem_limit = run_limited_memory_task(task, dask_dir=workdir)
         dask_client, dask_cluster, n_jobs, n_threads, mem_limit = get_dask_client(
             len(mslist),
             dask_dir=workdir,
             cpu_frac=cpu_frac,
             mem_frac=mem_frac,
+            min_cpu_per_job=3,
             min_mem_per_job=mem_limit / 0.6,
         )
-        print("\n#################################",file=mainlog_file,flush=True)
-        print(f"Dask Dashboard: {dask_client.dashboard_link}",file=mainlog_file,flush=True)
-        print("\n#################################",file=mainlog_file,flush=True)
+        mainlogger.info("\n#################################")
+        mainlogger.info(
+            f"Dask Dashboard: {dask_client.dashboard_link}",
+        )
+        mainlogger.info("\n#################################")
         tasks = []
+        org_multiscale_scales = copy.deepcopy(multiscale_scales)
         for i in range(len(mslist)):
             ms = mslist[i]
             nchan = nchan_list[i]
             ntime = ntime_list[i]
             cellsize = calc_cellsize(ms, 5)
-            fov = calc_field_of_view(ms)
-            if fov < 60 * 60.0:  # Minimum 60 arcmin field of view
-                fov = 60 * 60.0
+            fov = 32*3*60 # 3 solar radii
             imsize = int(fov / cellsize)
-            pow2 = round(np.log2(imsize / 10.0), 0)
-            imsize = int((2**pow2) * 10)
-            if len(multiscale_scales) == 0:
+            imsize=scipy.fft.next_fast_len(imsize)
+            if len(org_multiscale_scales) == 0:
                 multiscale_scales = calc_multiscale_scales(ms, 5)
-            multiscale_scales = [str(i) for i in multiscale_scales]
-            if os.path.exists(workdir+"/logs")==False:
-                os.makedirs(workdir+"/logs")
-            logfile=workdir+"/logs/imaging_"+os.path.basename(ms).split(".ms")[0]+".log"
-            print (f"Starting imaging for ms : {ms}, Log file : {logfile}\n",file=mainlog_file,flush=True)
+            else:
+                multiscale_scales = copy.deepcopy(org_multiscale_scales)
+            if os.path.exists(workdir + "/logs") == False:
+                os.makedirs(workdir + "/logs")
+            logfile = (
+                workdir
+                + "/logs/imaging_"
+                + os.path.basename(ms).split(".ms")[0]
+                + ".log"
+            )
+            mainlogger.info(
+                f"Starting imaging for ms : {ms}, Log file : {logfile}\n",
+            )
             tasks.append(
                 delayed(perform_imaging)(
                     msname=ms,
@@ -558,21 +587,31 @@ def run_all_imaging(
         for i in range(len(results)):
             r = results[i]
             if r[0] != 0:
-                print(f"Imaging failed for ms : {mslist[i]}",file=mainlog_file,flush=True)
+                mainlogger.info(
+                    f"Imaging failed for ms : {mslist[i]}",
+                )
             else:
                 all_imaged_ms_list.append(mslist[i])
                 for image in r[1][0]:
                     all_image_list.append(image)
-        print(f"Numbers of input measurement sets : {len(mslist)}.",file=mainlog_file,flush=True)
-        print(
-            f"Imaging successfully done for: {len(all_imaged_ms_list)} measurement sets.",file=mainlog_file,flush=True
+        mainlogger.info(
+            f"Numbers of input measurement sets : {len(mslist)}.",
         )
-        print(f"Total images made: {len(all_image_list)}.",file=mainlog_file,flush=True)
-        print(f"Total time taken: {round(time.time()-start_time,2)}s",file=mainlog_file,flush=True)
+        mainlogger.info(
+            f"Imaging successfully done for: {len(all_imaged_ms_list)} measurement sets.",
+        )
+        mainlogger.info(
+            f"Total images made: {len(all_image_list)}."
+        )
+        mainlogger.info(
+            f"Total time taken: {round(time.time()-start_time,2)}s",
+        )
         return 0
     except Exception as e:
         traceback.print_exc()
-        print(f"Total time taken: {round(time.time()-start_time,2)}s",file=mainlog_file,flush=True)
+        mainlogger.info(
+            f"Total time taken: {round(time.time()-start_time,2)}s",
+        )
         return 1
 
 
@@ -692,6 +731,9 @@ def main():
         print("Please provide correct workdiring directory.")
         return 1
     else:
+        if os.path.exists(options.workdir + "/logs/") == False:
+            os.makedirs(options.workdir + "/logs/")
+        mainlog_file = options.workdir + "/logs/imaging_targets.mainlog"
         mslist = str(options.mslist).split(",")
         if len(mslist) == 0:
             print("Please provide correct measurement set list.")
@@ -702,6 +744,7 @@ def main():
             multiscale_scales = []
         msg = run_all_imaging(
             mslist=mslist,
+            mainlog_file=mainlog_file,
             workdir=options.workdir,
             freqres=float(options.freqres),
             timeres=float(options.timeres),

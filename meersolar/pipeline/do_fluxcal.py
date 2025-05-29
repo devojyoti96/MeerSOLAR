@@ -33,6 +33,7 @@ def split_casatask(
     )
     return outputvis
 
+
 def split_autocorr(
     msname, workdir, scan_list, time_window=-1, cpu_frac=0.8, mem_frac=0.8
 ):
@@ -105,6 +106,7 @@ def split_autocorr(
     dask_cluster.close()
     return autocorr_mslist
 
+
 def get_on_off_power(msname="", scale_factor="", ant_list=[], dry_run=False):
     """
     Get noise diode on and off power averaged over antennas
@@ -137,7 +139,7 @@ def get_on_off_power(msname="", scale_factor="", ant_list=[], dry_run=False):
     del data_dict
     gc.collect()
     n_total = data_source.shape[-1]
-    n_tstamps = (n_total // 2) * 2  
+    n_tstamps = (n_total // 2) * 2
     antslice = slice(min(ant_list), max(ant_list) + 1)
     if data_source[0, 0, 0, 0] > data_source[0, 0, 0, 1]:
         on_idx = slice(0, n_tstamps, 2)
@@ -148,12 +150,17 @@ def get_on_off_power(msname="", scale_factor="", ant_list=[], dry_run=False):
     ###################################################
     # Averaging along time axis in the antenna chunk
     ###################################################
-    diff_source=np.nanmean(scale_factor[...,None,None]*data_source[..., on_idx]-data_source[..., off_idx],axis=-1)
+    diff_source = np.nanmean(
+        scale_factor[..., None, None] * data_source[..., on_idx]
+        - data_source[..., off_idx],
+        axis=-1,
+    )
     del data_source
     gc.collect()
     return diff_source
-    
-def get_att_per_ant(cal_msname,source_msname,scale_factor,ant_list=[]):
+
+
+def get_att_per_ant(cal_msname, source_msname, scale_factor, ant_list=[]):
     """
     Get per antenna attenuatioin array
     Parameters
@@ -171,23 +178,32 @@ def get_att_per_ant(cal_msname,source_msname,scale_factor,ant_list=[]):
     numpy.array
         Attenuation per antenna array. Shape : npol, nchan, nantenna
     """
-    if len(ant_list)==0:
-        msmd=msmetadata()
+    if len(ant_list) == 0:
+        msmd = msmetadata()
         msmd.open(cal_msname)
         nant = msmd.nantennas()
         msmd.close()
         del msmd
-        ant_list=[i for i in range(nant)]
-    cal_diff=get_on_off_power(cal_msname,scale_factor, ant_list=ant_list)
+        ant_list = [i for i in range(nant)]
+    cal_diff = get_on_off_power(cal_msname, scale_factor, ant_list=ant_list)
     gc.collect()
-    source_diff=get_on_off_power(source_msname, scale_factor*0+1, ant_list=ant_list)
+    source_diff = get_on_off_power(
+        source_msname, scale_factor * 0 + 1, ant_list=ant_list
+    )
     gc.collect()
-    att=source_diff/cal_diff
-    del source_diff,cal_diff
+    att = source_diff / cal_diff
+    del source_diff, cal_diff
     return att
-   
+
+
 def get_power_diff(
-    cal_msname="", source_msname="", on_cal="", off_cal="", n_threads=-1, memory_limit=-1, dry_run=False
+    cal_msname="",
+    source_msname="",
+    on_cal="",
+    off_cal="",
+    n_threads=-1,
+    memory_limit=-1,
+    dry_run=False,
 ):
     """
     Estimate power level difference between alternative correlator dumps.
@@ -218,6 +234,7 @@ def get_power_diff(
         mem = round(process.memory_info().rss / 1024**3, 2)  # in GB
         return mem
     import warnings
+
     warnings.filterwarnings("ignore")
     starttime = time.time()
     limit_threads(n_threads=n_threads)
@@ -225,7 +242,9 @@ def get_power_diff(
         memory_limit = psutil.virtual_memory().available / 1024**3  # GB
     cal_msname = cal_msname.rstrip("/")
     source_msname = source_msname.rstrip("/")
-    print(f"Estimating power difference from {os.path.basename(cal_msname)} and {os.path.basename(source_msname)}....")
+    print(
+        f"Estimating power difference from {os.path.basename(cal_msname)} and {os.path.basename(source_msname)}...."
+    )
     # Get MS metadata
     msmd = msmetadata()
     msmd.open(source_msname)
@@ -243,36 +262,36 @@ def get_power_diff(
     ####################################
     # Calculate mean on-off gain offset
     ####################################
-    tb=table()
+    tb = table()
     tb.open(on_cal)
-    ongain=np.abs(tb.getcol("CPARAM"))**2
+    ongain = np.abs(tb.getcol("CPARAM")) ** 2
     tb.close()
     tb.open(off_cal)
-    offgain=np.abs(tb.getcol("CPARAM"))**2
+    offgain = np.abs(tb.getcol("CPARAM")) ** 2
     tb.close()
     del tb
-    G=(ongain-offgain)/offgain # Power offset
-    del ongain,offgain
+    G = (ongain - offgain) / offgain  # Power offset
+    del ongain, offgain
     gc.collect()
-    G_mean=np.nanmean(G,axis=-1) # Averaged over antennas
+    G_mean = np.nanmean(G, axis=-1)  # Averaged over antennas
     del G
     gc.collect()
-    scale_factor=1/(1+G_mean)
+    scale_factor = 1 / (1 + G_mean)
     del G_mean
     gc.collect()
     ########################################
     # Determining chunk size
     ########################################
-    cal_mssize=get_ms_size(cal_msname)
-    source_mssize=get_ms_size(source_msname)
-    total_mssize=cal_mssize+source_mssize
-    scale_factor_size=nant*ntime*scale_factor.nbytes/(1024.**3)
-    att_ant_array_size=(npol * nchan * nant * 16)/ (1024.**3) 
-    func_mem=get_on_off_power(dry_run=True)
-    per_ant_memory=(scale_factor_size+total_mssize)/nant
-    per_ant_memory+=(att_ant_array_size+func_mem)
+    cal_mssize = get_ms_size(cal_msname)
+    source_mssize = get_ms_size(source_msname)
+    total_mssize = cal_mssize + source_mssize
+    scale_factor_size = nant * ntime * scale_factor.nbytes / (1024.0**3)
+    att_ant_array_size = (npol * nchan * nant * 16) / (1024.0**3)
+    func_mem = get_on_off_power(dry_run=True)
+    per_ant_memory = (scale_factor_size + total_mssize) / nant
+    per_ant_memory += att_ant_array_size + func_mem
     nant_per_chunk = min(nant, max(2, int(memory_limit / per_ant_memory)))
-    print (f"Numbers of antennas per chunk : {nant_per_chunk}")
+    print(f"Numbers of antennas per chunk : {nant_per_chunk}")
     ##############################################
     # Estimating per antenna attenuation in chunks
     ##############################################
@@ -282,15 +301,24 @@ def get_power_diff(
     ]
     for i, ant_block in enumerate(ant_blocks):
         print(f"{os.path.basename(source_msname)} -- Antenna block: {ant_block}")
-        if i==0:
-            att_ant_array=get_att_per_ant(cal_msname,source_msname,scale_factor,ant_list=ant_block)
+        if i == 0:
+            att_ant_array = get_att_per_ant(
+                cal_msname, source_msname, scale_factor, ant_list=ant_block
+            )
         else:
-            att_ant_array=np.append(att_ant_array,get_att_per_ant(cal_msname,source_msname,scale_factor,ant_list=ant_block),axis=-1)      
+            att_ant_array = np.append(
+                att_ant_array,
+                get_att_per_ant(
+                    cal_msname, source_msname, scale_factor, ant_list=ant_block
+                ),
+                axis=-1,
+            )
     ######################################
     # Averaging over all antennas
     ######################################
-    att=np.nanmedian(att_ant_array,axis=-1)
-    return att,att_ant_array
+    att = np.nanmedian(att_ant_array, axis=-1)
+    return att, att_ant_array
+
 
 def estimate_att(
     msname,
@@ -435,10 +463,10 @@ def estimate_att(
         ########################
         for i in range(len(filtered_scans)):
             att_value = results[i][0]
-            att_ant_array=results[i][1]
+            att_ant_array = results[i][1]
             if np.nanmean(att_value) < 0:
                 att_value *= -1
-                att_ant_array*=-1
+                att_ant_array *= -1
             scan = filtered_scans[i]
             att_level[scan] = att_value
             filename = (
@@ -448,17 +476,27 @@ def estimate_att(
                 + "_attval_scan_"
                 + str(scan)
             )
-            att_ant_array_percentage_change=(att_value[...,None]-att_ant_array)/att_value[...,None]
-            flag_ants=[]
+            att_ant_array_percentage_change = (
+                att_value[..., None] - att_ant_array
+            ) / att_value[..., None]
+            flag_ants = []
             for pol in range(2):
-                mean_percentage_change=np.nanmean(att_ant_array_percentage_change[pol,...],axis=0)
-                std_percentage_change=np.nanstd(att_ant_array_percentage_change[pol,...],axis=0)
-                pos=np.where(np.abs(mean_percentage_change)>3*std_percentage_change)[0]
-                if len(pos)>0:
+                mean_percentage_change = np.nanmean(
+                    att_ant_array_percentage_change[pol, ...], axis=0
+                )
+                std_percentage_change = np.nanstd(
+                    att_ant_array_percentage_change[pol, ...], axis=0
+                )
+                pos = np.where(
+                    np.abs(mean_percentage_change) > 3 * std_percentage_change
+                )[0]
+                if len(pos) > 0:
                     for i in range(len(pos)):
                         if pos[i] not in flag_ants:
                             flag_ants.append(pos[i])
-            np.save(filename, np.array([scan, freqs, att_value, flag_ants], dtype="object"))
+            np.save(
+                filename, np.array([scan, freqs, att_value, flag_ants], dtype="object")
+            )
             all_scaling_files.append(filename + ".npy")
         return 0, att_level, all_scaling_files
     except Exception as e:
@@ -621,7 +659,7 @@ def run_noise_cal(
             uvrange=">200lambda",
             minsnr=1,
         )
-        
+
         #####################################
         # Determine attenuation scaling
         #####################################

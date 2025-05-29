@@ -7,6 +7,19 @@ from dask import delayed, compute
 logfile = casalog.logfile()
 os.system("rm -rf " + logfile)
 
+
+def chanlist_to_str(lst):
+    lst = sorted(lst)
+    ranges = []
+    start = lst[0]
+
+    for i in range(1, len(lst)):
+        if lst[i] != lst[i - 1] + 1:
+            ranges.append(f"{start}~{lst[i - 1]}")
+            start = lst[i]
+    ranges.append(f"{start}~{lst[-1]}")
+    return ";".join(ranges)
+
 def split_scan(
     msname="",
     outputvis="",
@@ -15,6 +28,7 @@ def split_scan(
     timebin="",
     datacolumn="",
     spw="",
+    corr="",
     timerange="",
     n_threads=-1,
     dry_run=False,
@@ -37,6 +51,8 @@ def split_scan(
         Datacolumn to split
     spw : str, optional
         Spectral window to split
+    corr : str, optional
+        Correlation to split
     timerange : str, optional
         Time range to split
     n_threads : int, optional
@@ -47,7 +63,7 @@ def split_scan(
         Splited measurement set
     """
     limit_threads(n_threads=n_threads)
-    from casatasks import split, clearcal, initweights
+    from casatasks import split, flagdata, initweights
     from casatools import msmetadata
 
     msmd = msmetadata()
@@ -63,28 +79,41 @@ def split_scan(
     for f in fields:
         fields_str += str(f) + ","
     fields_str = fields_str[:-1]
-
-    if os.path.exists(outputvis):
-        os.system("rm -rf " + outputvis)
-    if os.path.exists(outputvis + ".flagversions"):
-        os.system("rm -rf " + outputvis + ".flagversions")
-    print(f"Spliting scan : {scan} of ms: {msname}\n")
-    print(
-        f"split(vis='{msname}',outputvis='{outputvis}',field='{fields_str}',scan={scan},spw='{spw}',timerange='{timerange}',width={width},timebin='{timebin}',datacolumn='{datacolumn}')\n"
-    )
-    s=time.time()
-    split(
-        vis=msname,
-        outputvis=outputvis,
-        field=fields_str,
-        scan=scan,
-        spw=spw,
-        timerange=timerange,
-        width=width,
-        timebin=timebin,
-        datacolumn=datacolumn,
-    )
-    reset_weights_and_flags(outputvis,n_threads=n_threads)
+    if os.path.exists(f"{outputvis}/.splited") == False:
+        if os.path.exists(outputvis):
+            os.system("rm -rf " + outputvis)
+        if os.path.exists(outputvis + ".flagversions"):
+            os.system("rm -rf " + outputvis + ".flagversions")
+        print(f"Spliting scan : {scan} of ms: {msname}\n")
+        print(
+            f"split(vis='{msname}',outputvis='{outputvis}',field='{fields_str}',scan={scan},spw='{spw}',correlation='{corr}',timerange='{timerange}',width={width},timebin='{timebin}',datacolumn='{datacolumn}')\n"
+        )
+        s = time.time()
+        split(
+            vis=msname,
+            outputvis=outputvis,
+            field=fields_str,
+            correlation=corr,
+            scan=scan,
+            spw=spw,
+            timerange=timerange,
+            width=width,
+            timebin=timebin,
+            datacolumn=datacolumn,
+        )
+        ##########################################
+        # Initiate proper weighting
+        ##########################################
+        print("Initiating weights ....")
+        initweights(vis=outputvis, wtmode="ones", dowtsp=True)
+        flagdata(
+            vis=outputvis,
+            mode="clip",
+            clipzeros=True,
+            datacolumn="data",
+            flagbackup=False,
+        )
+        os.system(f"touch {outputvis}/.splited")
     return outputvis
 
 
@@ -100,6 +129,7 @@ def split_target_scans(
     timerange="",
     scans=[],
     prefix="targets",
+    fullpol=False,
     cpu_frac=0.8,
     mem_frac=0.8,
     max_cpu_frac=0.8,
@@ -131,6 +161,8 @@ def split_target_scans(
         Scan list to split
     prefix : str, optional
         Splited ms prefix
+    fullpol : bool, optional
+        Full polar split
     cpu_frac : float, optional
         CPU fraction to use
     mem_frac : float, optional
@@ -178,6 +210,10 @@ def split_target_scans(
             timebin = str(timeres) + "s"
         else:
             timebin = ""
+        if fullpol == False:
+            corr = "XX,YY"
+        else:
+            corr = ""
 
         #############################
         # Making spectral chunks
@@ -190,27 +226,33 @@ def split_target_scans(
             good_spws.append(f"{start_chan}~{end_chan}")
         if spw != "":
             good_spws = "0:" + ";".join(good_spws)
-            common_spws = get_common_spw(good_spws, spws)
+            common_spws = get_common_spw(good_spws, spw)
             good_spws = common_spws.split("0:")[-1].split(";")
         chanlist = []
         if spectral_chunk > 0:
-            nchan_per_chunk = max(1,int(spectral_chunk / chanres))
+            nchan_per_chunk = max(1, int(spectral_chunk / chanres))
+            good_channels=[]
             for good_spw in good_spws:
                 start_chan = int(good_spw.split("~")[0])
                 end_chan = int(good_spw.split("~")[-1])
-                for s in range(start_chan, end_chan+nchan_per_chunk, nchan_per_chunk):
-                    e = s + nchan_per_chunk - 1
-                    if e > end_chan:
-                        e = end_chan
-                        chanlist.append(f"{s}~{e}")
-                        break
-                    else:
-                        chanlist.append(f"{s}~{e}")
+                for s in range(start_chan, end_chan):
+                    good_channels.append(s)
+            channel_chunks=split_into_chunks(good_channels, nchan_per_chunk)        
+            for chunk in channel_chunks:
+                chan_str=chanlist_to_str(chunk)        
+                chanlist.append(chan_str)          
+            if n_spectral_chunk > 0:
+                chanlist = chanlist[0:n_spectral_chunk]
         else:
-            chanlist = good_spws    
-        if n_spectral_chunk>0:
-            chanlist=chanlist[0:n_spectral_chunk]        
-        print (f"Spliting channel blocks : {chanlist}")
+            chan_range = ""
+            for good_spw in good_spws:
+                s = int(good_spw.split("~")[0])
+                e = int(good_spw.split("~")[-1])
+                chan_range += f"{s}~{e};"
+            chan_range = chan_range[:-1]
+            chanlist.append(chan_range)
+
+        print(f"Spliting channel blocks : {chanlist}")
 
         ##################################
         # Time range
@@ -225,8 +267,8 @@ def split_target_scans(
             del filtered_scan_list_bkp
         else:
             scan_timerange_dic = {}
-        print (f"Spliting scans : {filtered_scan_list}.")
-        
+        print(f"Spliting scans : {filtered_scan_list}.")
+
         ##################################
         # Parallel spliting
         ##################################
@@ -238,7 +280,7 @@ def split_target_scans(
         # Memory limit
         #############################################
         task = delayed(split_scan)(dry_run=True)
-        mem_limit = run_limited_memory_task(task, dask_dir = workdir)
+        mem_limit = run_limited_memory_task(task, dask_dir=workdir)
         #######################
         dask_client, dask_cluster, max_n_jobs, n_threads, mem_limit = get_dask_client(
             total_chunks,
@@ -246,34 +288,44 @@ def split_target_scans(
             cpu_frac=max_cpu_frac,
             mem_frac=max_mem_frac,
             min_mem_per_job=mem_limit / 0.6,
-            only_cal = True,
+            only_cal=True,
         )
         tasks = []
+        splited_ms_list = []
         for scan in filtered_scan_list:
             if timerange != "":
                 time_range = scan_timerange_dic[scan]
             else:
                 time_range = ""
             for chanrange in chanlist:
-                outputvis = f"{workdir}/{prefix}_scan_{scan}_spw_{chanrange}.ms"
-                task = delayed(split_scan)(
-                    msname,
-                    outputvis,
-                    scan,
-                    chanwidth,
-                    timebin,
-                    datacolumn,
-                    timerange=timerange,
-                    spw='0:'+chanrange,
-                    n_threads=n_threads,
+                chanrange_str = (
+                    chanrange.split(";")[0].split("~")[0]
+                    + "~"
+                    + chanrange.split(";")[-1].split("~")[-1]
                 )
-                tasks.append(task)
+                outputvis = f"{workdir}/{prefix}_scan_{scan}_spw_{chanrange_str}.ms"
+                if os.path.exists(f"{outputvis}/.splited"):
+                    print(f"{outputvis} is already splited successfully.")
+                    splited_ms_list.append(outputvis)
+                else:
+                    task = delayed(split_scan)(
+                        msname,
+                        outputvis,
+                        scan,
+                        chanwidth,
+                        timebin,
+                        datacolumn,
+                        corr=corr,
+                        timerange=timerange,
+                        spw="0:" + chanrange,
+                        n_threads=n_threads,
+                    )
+                    tasks.append(task)
         #####################################
         # Adaptive dask client
         #####################################
-        splited_ms_list=[]
         while True:
-            total_chunks=len(tasks)
+            total_chunks = len(tasks)
             dask_client, dask_cluster, n_jobs, n_threads, mem_limit = get_dask_client(
                 total_chunks,
                 dask_dir=workdir,
@@ -281,7 +333,7 @@ def split_target_scans(
                 mem_frac=mem_frac,
                 min_mem_per_job=mem_limit / 0.6,
             )
-            chunk_tasks=tasks[0:min(n_jobs,max_n_jobs)]
+            chunk_tasks = tasks[0 : min(n_jobs, max_n_jobs)]
             for ctask in chunk_tasks:
                 tasks.remove(ctask)
             results = compute(*chunk_tasks)
@@ -289,15 +341,21 @@ def split_target_scans(
             dask_cluster.close()
             for r in results:
                 splited_ms_list.append(r)
-            n_current_process=get_nprocess_meersolar()-1 # One is subtracted for the current process
-            if len(tasks)==0:
+            n_current_process = (
+                get_nprocess_meersolar() - 1
+            )  # One is subtracted for the current process
+            if len(tasks) == 0:
                 break
-            elif n_current_process==0:
-                available_cpu_frac = round((100 - psutil.cpu_percent(interval=1))/100.,2)
-                available_mem_frac = round(psutil.virtual_memory().available/psutil.virtual_memory().total,2)
-                cpu_frac=min(max_cpu_frac,max(cpu_frac,available_cpu_frac))
-                mem_frac=min(max_mem_frac,max(mem_frac,available_mem_frac))
-                print (f"Updated CPU fraction: {cpu_frac}, memory fraction: {mem_frac}.")          
+            elif n_current_process == 0:
+                available_cpu_frac = round(
+                    (100 - psutil.cpu_percent(interval=1)) / 100.0, 2
+                )
+                available_mem_frac = round(
+                    psutil.virtual_memory().available / psutil.virtual_memory().total, 2
+                )
+                cpu_frac = min(max_cpu_frac, max(cpu_frac, available_cpu_frac))
+                mem_frac = min(max_mem_frac, max(mem_frac, available_mem_frac))
+                print(f"Updated CPU fraction: {cpu_frac}, memory fraction: {mem_frac}.")
         print("##################")
         print("Spliting of target scans are done successfully.")
         print("Total time taken : ", time.time() - start_time)
@@ -400,6 +458,13 @@ def main():
         metavar="String",
     )
     parser.add_option(
+        "--split_fullpol",
+        dest="fullpol",
+        default=False,
+        help="Split full polar data",
+        metavar="Boolean",
+    )
+    parser.add_option(
         "--cpu_frac",
         dest="cpu_frac",
         default=0.8,
@@ -448,9 +513,10 @@ def main():
                 float(options.timeres),
                 float(options.freqres),
                 options.datacolumn,
-                spw=options.spw,
+                spw=str(options.spw),
                 timerange=options.timerange,
                 scans=scans,
+                fullpol=eval(str(options.fullpol)),
                 n_spectral_chunk=int(options.n_spectral_chunk),
                 prefix=options.prefix,
                 spectral_chunk=float(options.spectral_chunk),
