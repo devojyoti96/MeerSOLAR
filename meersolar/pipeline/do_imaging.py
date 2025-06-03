@@ -67,11 +67,12 @@ def perform_imaging(
     minuv=0,
     threshold=1.0,
     use_solar_mask=True,
-    mask_radius = 20,
+    mask_radius=20,
     savemodel=True,
     saveres=True,
     ncpu=-1,
     mem=-1,
+    band="",
     logfile="imaging.log",
     dry_run=False,
 ):
@@ -113,6 +114,8 @@ def perform_imaging(
         Save model images or not
     saveres : bool, optional
         Save residual images or not
+    band : str, optional
+        Band name
     logfile : str, optional
         Log file name
     ncpu : int, optional
@@ -129,8 +132,8 @@ def perform_imaging(
     if os.path.exists(logfile):
         os.system(f"rm -rf {logfile}")
     logger, logfile = init_logger_console(
-            os.path.basename(logfile).split(".log")[0], logfile, verbose=False
-        )
+        os.path.basename(logfile).split(".log")[0], logfile, verbose=False
+    )
     if dry_run:
         process = psutil.Process(os.getpid())
         usemem = round(process.memory_info().rss / 1024**3, 2)  # in GB
@@ -138,16 +141,15 @@ def perform_imaging(
     try:
         msname = msname.rstrip("/")
         msname = os.path.abspath(msname)
-        band = get_band_name(msname)
-        logger.info(
-            f"{os.path.basename(msname)} --Perform imaging...\n"
-        )
+        if band == "":
+            band = get_band_name(msname)
+        logger.info(f"{os.path.basename(msname)} --Perform imaging...\n")
         #########
         # Imaging
         #########
         msmd = msmetadata()
         msmd.open(msname)
-        freq=msmd.meanfreq(0,unit="MHz")
+        freq = msmd.meanfreq(0, unit="MHz")
         npol = msmd.ncorrforpol()[0]
         msmd.close()
         if npol < 4 and pol == "IQUV":
@@ -165,12 +167,8 @@ def perform_imaging(
         if weight == "briggs":
             weight += " " + str(robust)
         if threshold <= 1:
-            threshold = 1.1  
-        if minuv==0:
-            minuv_m,minuv_l=calc_minuv(msname)  
-            minuv_l=2*minuv_l
-        else:
-            minuv_l=100
+            threshold = 1.1
+
         wsclean_args = [
             "-scale " + str(cellsize) + "asec",
             "-size " + str(imsize) + " " + str(imsize),
@@ -188,11 +186,15 @@ def perform_imaging(
             "-abs-mem " + str(round(mem, 2)),
             "-auto-threshold 1 -auto-mask " + str(threshold),
             "-no-update-model-required",
-            "-taper-inner-tukey "+str(minuv_l),
         ]
-        if pol=="I":
-            wsclean_args.append("-no-negative")
+        
+        ngrid=int(ncpu/2)
+        if ngrid>1:
+            wsclean_args.append("-parallel-gridding "+str(ngrid))
             
+        if pol == "I":
+            wsclean_args.append("-no-negative")
+
         ######################################
         # Multiscale configuration
         ######################################
@@ -202,7 +204,7 @@ def perform_imaging(
             wsclean_args.append(
                 "-multiscale-scales " + ",".join([str(s) for s in multiscale_scales])
             )
-            scale_bias=get_multiscale_bias(freq)
+            scale_bias = get_multiscale_bias(freq)
             wsclean_args.append(f"-multiscale-scale-bias {scale_bias}")
 
         #####################################
@@ -211,6 +213,7 @@ def perform_imaging(
         if nchan > 1:
             wsclean_args.append(f"-channels-out {nchan}")
             wsclean_args.append("-no-mf-weighting")
+            wsclean_args.append("-join-channels")
 
         #####################################
         # Temporal imaging configuration
@@ -402,6 +405,7 @@ def run_all_imaging(
     use_solar_mask=True,
     savemodel=False,
     saveres=False,
+    band="",
     cpu_frac=0.8,
     mem_frac=0.8,
     logfile="imaging.log",
@@ -438,6 +442,8 @@ def run_all_imaging(
         Save model images or not
     saveres : bool, optional
         Save residual images or not
+    band : str, optional
+        Band name
     cpu_frac : float, optional
         CPU fraction to use
     mem_frac : float, optional
@@ -449,9 +455,11 @@ def run_all_imaging(
     """
     start_time = time.time()
     mslist = sorted(mslist)
-    if mainlog_file!="":
+    if mainlog_file != "":
         mainlogger, mainlog_file = init_logger_console(
-            os.path.basename(mainlog_file).split(".mainlog")[0], mainlog_file, verbose=False
+            os.path.basename(mainlog_file).split(".mainlog")[0],
+            mainlog_file,
+            verbose=False,
         )
     try:
         if len(mslist) == 0:
@@ -469,7 +477,7 @@ def run_all_imaging(
             imagedir = workdir + f"/imagedir_f_all_t_{timeres}_w_{weight_str}"
         else:
             imagedir = workdir + f"/imagedir_f_{freqres}_t_{timeres}_w_{weight_str}"
-        os.makedirs(imagedir,exist_ok=True)
+        os.makedirs(imagedir, exist_ok=True)
         os.system(f"rm -rf {imagedir}/*")
 
         ####################################
@@ -512,7 +520,7 @@ def run_all_imaging(
                 bw = max(freqs) - min(freqs)
                 nchan = max(1, math.ceil(bw / freqres))
                 nchan_list.append(nchan)
-      
+
         #################################
         # Dask client setup
         #################################
@@ -538,9 +546,16 @@ def run_all_imaging(
             nchan = nchan_list[i]
             ntime = ntime_list[i]
             cellsize = calc_cellsize(ms, 5)
-            fov = 32*3*60 # 3 solar radii
+            fov = 32 * 3 * 60  # 3 solar radii
             imsize = int(fov / cellsize)
-            imsize=scipy.fft.next_fast_len(imsize)
+            pow2 = np.ceil(np.log2(imsize)).astype("int")
+            possible_sizes = []
+            for p in range(pow2):
+                for k in [3, 5]:
+                    possible_sizes.append(k * 2**p)
+            possible_sizes = np.sort(np.array(possible_sizes))
+            possible_sizes = possible_sizes[possible_sizes >= imsize]
+            imsize = int(possible_sizes[0])
             if len(org_multiscale_scales) == 0:
                 multiscale_scales = calc_multiscale_scales(ms, 5)
             else:
@@ -574,6 +589,7 @@ def run_all_imaging(
                     use_solar_mask=use_solar_mask,
                     savemodel=savemodel,
                     saveres=saveres,
+                    band=band,
                     ncpu=n_threads,
                     mem=mem_limit,
                     logfile=logfile,
@@ -600,9 +616,7 @@ def run_all_imaging(
         mainlogger.info(
             f"Imaging successfully done for: {len(all_imaged_ms_list)} measurement sets.",
         )
-        mainlogger.info(
-            f"Total images made: {len(all_image_list)}."
-        )
+        mainlogger.info(f"Total images made: {len(all_image_list)}.")
         mainlogger.info(
             f"Total time taken: {round(time.time()-start_time,2)}s",
         )
@@ -710,6 +724,13 @@ def main():
         metavar="Boolean",
     )
     parser.add_option(
+        "--band",
+        dest="band",
+        default="",
+        help="Band name",
+        metavar="String",
+    )
+    parser.add_option(
         "--cpu_frac",
         dest="cpu_frac",
         default=0.8,
@@ -755,6 +776,7 @@ def main():
             threshold=float(options.threshold),
             use_solar_mask=eval(str(options.use_solar_mask)),
             pol=options.pol,
+            band=options.band,
             savemodel=eval(str(options.savemodel)),
             saveres=eval(str(options.saveres)),
             cpu_frac=float(options.cpu_frac),

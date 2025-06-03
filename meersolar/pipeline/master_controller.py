@@ -133,7 +133,7 @@ def run_import_model(msname, workdir, cpu_frac=0.8, mem_frac=0.8):
         return 1
 
 
-def run_basic_cal(msname, workdir, perform_polcal=False, cpu_frac=0.8, mem_frac=0.8):
+def run_basic_cal_jobs(msname, workdir, perform_polcal=False, cpu_frac=0.8, mem_frac=0.8, keep_backup = False):
     """
     Perform basic calibration
     Parameters
@@ -148,6 +148,8 @@ def run_basic_cal(msname, workdir, perform_polcal=False, cpu_frac=0.8, mem_frac=
         CPU fraction to use
     mem_frac : float, optional
         Memory fraction to use
+    keep_backup : bool, optional
+        Keep backups
     Returns
     -------
     int
@@ -169,6 +171,8 @@ def run_basic_cal(msname, workdir, perform_polcal=False, cpu_frac=0.8, mem_frac=
         + str(cpu_frac)
         + " --mem_frac "
         + str(mem_frac)
+        + " --keep_backup "
+        + str(keep_backup)
     )
     if os.path.isdir(workdir + "/logs") == False:
         os.makedirs(workdir + "/logs")
@@ -341,6 +345,9 @@ def run_target_split_jobs(
     target_scans=[],
     prefix="targets",
     split_fullpol=False,
+    merge_spws=False,
+    time_window=-1,
+    time_interval=-1,
     cpu_frac=0.8,
     mem_frac=0.8,
     max_cpu_frac=0.8,
@@ -372,14 +379,16 @@ def run_target_split_jobs(
         Prefix of splited targets
     split_fullpol : bool, optional
         Split full polar data or not
+    merge_spws : bool, optional
+        Merge spectral windows
+    time_window : float, optional
+        Time window in seconds
+    time_interval : float, optional
+        Time interval in seconds
     cpu_frac : float, optional
         CPU fraction to use
     mem_frac : float, optional
         Memory fraction to use
-    max_cpu_frac : float, optional
-        Maximum CPU fraction to use
-    max_mem_frac : float, optional
-        Maximum memory fraction to use
     Returns
     -------
     int
@@ -418,9 +427,15 @@ def run_target_split_jobs(
             + str(prefix)
             + " --split_fullpol "
             + str(split_fullpol)
+            + " --time_window "
+            + str(time_window)
+            + " --time_interval "
+            + str(time_interval)
+            + " --merge_spws "
+            + str(merge_spws)
         )
-        if spw!="":
-            split_cmd=split_cmd+" --spw "+ str(spw)
+        if spw != "":
+            split_cmd = split_cmd + " --spw " + str(spw)
         if len(target_scans) > 0:
             split_cmd = (
                 split_cmd + " --scans " + ",".join([str(s) for s in target_scans])
@@ -759,8 +774,7 @@ def run_selfcal_jobs(
     weight="briggs",
     robust=0.0,
     applymode="calonly",
-    gaintype="T",
-    min_tol_factor=1.0,
+    min_tol_factor=10.0,
 ):
     """
     Self-calibration on target scans
@@ -802,8 +816,6 @@ def run_selfcal_jobs(
         Minimum tolerance in temporal variation in imaging
     applymode : str, optional
         Solution apply mode
-    gaintype : str, optional
-        Gaintype, G or T
     solar_selfcal : bool, optional
         Whether is is solar selfcal or not
     Returns
@@ -825,7 +837,6 @@ def run_selfcal_jobs(
             + str(cpu_frac)
             + " --mem_frac "
             + str(mem_frac)
-            + " --weight natural"
         )
         if start_thresh > 0:
             selfcal_cmd += " --start_thresh " + str(start_thresh)
@@ -853,8 +864,6 @@ def run_selfcal_jobs(
             selfcal_cmd += " --minuv " + str(minuv)
         if applymode != "":
             selfcal_cmd += " --applymode " + str(applymode)
-        if gaintype != "":
-            selfcal_cmd += " --gaintype " + str(gaintype)
         if min_tol_factor > 0:
             selfcal_cmd += " --min_tol_factor " + str(min_tol_factor)
         if weight != "":
@@ -895,6 +904,7 @@ def run_imaging_jobs(
     pol="IQUV",
     freqres=-1,
     timeres=-1,
+    band="",
     threshold=1.0,
     multiscale_scales=[],
     use_solar_mask=True,
@@ -925,6 +935,8 @@ def run_imaging_jobs(
         Frequency resolution of spectral chunk in MHz (default : -1, no spectral chunking)
     timeres : float, optional
         Time resolution of temporal chunks in MHz (default : -1, no temporal chunking)
+    band : str, optional
+        Band name
     threshold : float, optional
         CLEAN threshold
     multiscale_scales : list, optional
@@ -975,6 +987,8 @@ def run_imaging_jobs(
             + " --saveres "
             + str(saveres)
         )
+        if band != "":
+            imaging_cmd += " --band " + str(band)
         if len(multiscale_scales) > 0:
             multiscales = ",".join([str(i) for i in multiscale_scales])
             imaging_cmd += " --multiscale_scales " + multiscales
@@ -1031,9 +1045,9 @@ def exit_job(start_time, mspath="", workdir=""):
     time.sleep(10)
     gc.collect()
     if mspath != "" and os.path.exists(mspath + "/dask-scratch-space"):
-        os.system("rm -rf " + mspath + "/dask-scratch-space "+mspath + "/tmp")
+        os.system("rm -rf " + mspath + "/dask-scratch-space " + mspath + "/tmp")
     if workdir != "" and os.path.exists(workdir + "/dask-scratch-space"):
-        os.system("rm -rf " + workdir + "/dask-scratch-space "+workdir + "/tmp")
+        os.system("rm -rf " + workdir + "/dask-scratch-space " + workdir + "/tmp")
 
 
 def master_control(
@@ -1057,8 +1071,7 @@ def master_control(
     target_scans=[],
     spw="",
     uvrange="",
-    solint="60s",
-    gaintype="T",
+    solint="5min",
     do_imaging=True,
     do_pbcor=True,
     weight="briggs",
@@ -1173,6 +1186,7 @@ def master_control(
         exit_job(start_time)
         return 1
     mspath = os.path.dirname(msname)
+    band = get_band_name(msname)
     ###################################
     # Preparing working directories
     ###################################
@@ -1228,34 +1242,37 @@ def master_control(
         freqavg = round(max_freqres, 2)
     if image_freqres > 0 and freqavg > image_freqres:
         freqavg = image_freqres
-    
+
     #########################################
     # Target ms frequency chunk based on band
     #########################################
-    if spw=="":
+    if spw == "":
         bad_spws = get_bad_chans(msname).split("0:")[-1].split(";")
         good_start = []
-        good_end=[]
+        good_end = []
         for i in range(len(bad_spws) - 1):
             start_chan = int(bad_spws[i].split("~")[-1]) + 1
             end_chan = int(bad_spws[i + 1].split("~")[0]) - 1
             good_start.append(start_chan)
             good_end.append(end_chan)
-        start_chan=min(good_start)
-        end_chan=max(good_end)
-        spw=f'0:{start_chan}~{end_chan}'
+        start_chan = min(good_start)
+        end_chan = max(good_end)
+        spw = f"0:{start_chan}~{end_chan}"
     else:
-        start_chan=int(spw.split('0:')[-1].split(";")[0].split("~")[0])
-        end_chan=int(spw.split('0:')[-1].split(";")[-1].split("~")[-1])
-    msmd=msmetadata()
+        start_chan = int(spw.split("0:")[-1].split(";")[0].split("~")[0])
+        end_chan = int(spw.split("0:")[-1].split(";")[-1].split("~")[-1])
+    
+    msmd = msmetadata()
     msmd.open(msname)
-    chanres=msmd.chanres(0,unit="MHz")[0]
-    total_bw=chanres*(end_chan-start_chan)
-    target_freq_chunk=total_bw/4
-    if image_freqres>0 and image_freqres>target_freq_chunk:
-        nchunk=(image_freqres//target_freq_chunk)
-        target_freq_chunk=image_freqres/nchunk
-     
+    chanres = msmd.chanres(0, unit="MHz")[0]
+    msmd.close()
+    total_bw = chanres * (end_chan - start_chan)
+    nchunk = 4
+    target_freq_chunk = total_bw / nchunk
+    if image_freqres > 0 and image_freqres > target_freq_chunk:
+        nchunk = image_freqres // target_freq_chunk
+        target_freq_chunk = image_freqres / nchunk
+
     ################################################
     # Determining maximum allowed temporal averaging
     ################################################
@@ -1348,7 +1365,7 @@ def master_control(
         cpu_frac = copy.deepcopy(cpu_frac_bkp)
         mem_frac = copy.deepcopy(mem_frac_bkp)
     calibrator_msname = workdir + "/calibrator.ms"
-    if do_cal_partition or os.path.exists(calibrator_msname) == False:
+    if do_cal_partition or (do_basic_cal and os.path.exists(calibrator_msname) == False):
         msg = run_partion(
             msname,
             workdir,
@@ -1425,12 +1442,13 @@ def master_control(
             print(f"Calibrator ms: {calibrator_ms} is not present.")
             exit_job(start_time, mspath, workdir)
             return 1
-        msg = run_basic_cal(
+        msg = run_basic_cal_jobs(
             calibrator_msname,
             workdir,
             perform_polcal=do_polcal,
             cpu_frac=round(cpu_frac, 2),
             mem_frac=round(mem_frac, 2),
+            keep_backup=keep_backup,
         )  # Run basic calibration
         if msg != 0:
             print(
@@ -1455,55 +1473,68 @@ def master_control(
     ############################################
     # Spliting for self-cals
     ############################################
-    if do_selfcal:
-        if do_selfcal_split:
-            prefix = "selfcals"
-            selfcal_spw=get_good_chans(msname)
-            msg = run_target_split_jobs(
-                msname,
-                workdir,
-                datacolumn="data",
-                spw=selfcal_spw,
-                timeres=timeavg,
-                freqres=freqavg,
-                target_freq_chunk=50,
-                n_spectral_chunk=1,
-                target_scans=target_scans,
-                prefix=prefix,
-                split_fullpol=do_polcal,
-                cpu_frac=round(cpu_frac, 2),
-                mem_frac=round(mem_frac, 2),
-                max_cpu_frac=round(cpu_frac, 2),
-                max_mem_frac=round(mem_frac, 2),
+    if do_selfcal_split:
+        prefix = "selfcals"
+        try:
+            time_interval = float(solint)
+        except:
+            if "s" in solint:
+                time_interval = float(solint.split("s")[0])
+            elif "min" in solint:
+                time_interval = float(solint.split("min")[0]) * 60
+            elif solint == "int":
+                time_interval = timeavg
+            else:
+                time_interval = -1
+        msg = run_target_split_jobs(
+            msname,
+            workdir,
+            datacolumn="data",
+            timeres=timeavg,
+            freqres=freqavg,
+            target_freq_chunk=25,
+            n_spectral_chunk=nchunk,  # Number of target spectral chunk
+            target_scans=target_scans,
+            prefix=prefix,
+            merge_spws=True,
+            time_window=min(60,time_interval),
+            time_interval=time_interval,
+            split_fullpol=do_polcal,
+            cpu_frac=round(cpu_frac, 2),
+            mem_frac=round(mem_frac, 2),
+            max_cpu_frac=round(cpu_frac, 2),
+            max_mem_frac=round(mem_frac, 2),
+        )
+        if msg != 0:
+            print(
+                "!!!! WARNING: Error in running spliting target scans for selfcal. !!!!"
             )
-            if msg != 0:
+            do_selfcal = False
+        else:
+            print("Waiting to finish spliting of target scans for selfcal...\n")
+            split_basename = f"split_{prefix}"
+            while True:
+                finished_file = glob.glob(
+                    workdir + "/.Finished_" + split_basename + "*"
+                )
+                if len(finished_file) > 0:
+                    break
+                else:
+                    time.sleep(1)
+            success_index_split_target = int(finished_file[0].split("_")[-1])
+            if success_index_split_target == 0:
+                print("Spliting target scans are done successfully for selfcal.\n")
+            else:
                 print(
-                    "!!!! WARNING: Error in running spliting target scans for selfcal. !!!!"
+                    "!!!! WARNING: Error in spliting target scans for selfcal. Not continuing further for selfcal. !!!!"
                 )
                 do_selfcal = False
-            else:
-                print("Waiting to finish spliting of target scans for selfcal...\n")
-                split_basename = f"split_{prefix}"
-                while True:
-                    finished_file = glob.glob(
-                        workdir + "/.Finished_" + split_basename + "*"
-                    )
-                    if len(finished_file) > 0:
-                        break
-                    else:
-                        time.sleep(1)
-                success_index_split_target = int(finished_file[0].split("_")[-1])
-                if success_index_split_target == 0:
-                    print("Spliting target scans are done successfully for selfcal.\n")
-                else:
-                    print(
-                        "!!!! WARNING: Error in spliting target scans for selfcal. Not continuing further for selfcal. !!!!"
-                    )
-                    do_selfcal = False
 
     cpu_frac = copy.deepcopy(cpu_frac_bkp)
     mem_frac = copy.deepcopy(mem_frac_bkp)
     selfcal_target_mslist = glob.glob(workdir + "/selfcals_scan*.ms")
+    if len(selfcal_target_mslist) == 0:
+        do_selfcal = False
 
     ####################################
     # Filtering any corrupted ms
@@ -1536,7 +1567,7 @@ def master_control(
                 workdir,
                 caldir,
                 use_only_bandpass=use_only_bandpass,
-                overwrite_datacolumn=True,
+                overwrite_datacolumn=False,
                 applymode="calflag",
                 cpu_frac=round(cpu_frac, 2),
                 mem_frac=round(mem_frac, 2),
@@ -1568,12 +1599,6 @@ def master_control(
         )
         if msg != 0:
             print("Sidereal correction is not successful.")
-        if weight=="uniform" or (weight=="briggs" and robust<0.0):
-            selfcal_weight="briggs"
-            selfcal_robust=0.0
-        else:
-            selfcal_weight=weight
-            selfcal_robust=robust
         msg = run_selfcal_jobs(
             selfcal_mslist,
             workdir,
@@ -1584,9 +1609,8 @@ def master_control(
             solar_selfcal=solar_selfcal,
             keep_backup=keep_backup,
             uvrange=uvrange,
-            gaintype=gaintype,
-            weight=selfcal_weight,
-            robust=selfcal_robust,
+            weight="briggs",
+            robust=0.0,
         )
         if msg != 0:
             print(
@@ -1669,7 +1693,7 @@ def master_control(
         print("No splited target scan ms are available in work directory.")
         exit_job(start_time, mspath, workdir)
         return 1
-        
+
     if do_applycal or do_imaging:
         print(f"Target scan mslist : {[os.path.basename(i) for i in target_mslist]}")
 
@@ -1748,6 +1772,7 @@ def master_control(
             weight=weight,
             robust=float(robust),
             pol=pol,
+            band=band,
             freqres=image_freqres,
             timeres=image_timeres,
             threshold=float(clean_threshold),
@@ -1774,21 +1799,30 @@ def master_control(
         if image_freqres == -1 and image_timeres == -1:
             imagedir = workdir + f"/imagedir_f_all_t_all_w_{weight_str}"
         elif image_freqres != -1 and image_timeres == -1:
-            imagedir = workdir + f"/imagedir_f_{round(float(image_freqres),1)}_t_all_w_{weight_str}"
+            imagedir = (
+                workdir
+                + f"/imagedir_f_{round(float(image_freqres),1)}_t_all_w_{weight_str}"
+            )
         elif image_freqres == -1 and image_timeres != -1:
-            imagedir = workdir + f"/imagedir_f_all_t_{round(float(image_timeres),1)}_w_{weight_str}"
+            imagedir = (
+                workdir
+                + f"/imagedir_f_all_t_{round(float(image_timeres),1)}_w_{weight_str}"
+            )
         else:
             imagedir = (
                 workdir
                 + f"/imagedir_f_{round(float(image_freqres),1)}_t_{round(float(image_timeres),1)}_w_{weight_str}"
             )
-        imagedir=imagedir+"/images"
-        images=glob.glob(imagedir+"/*.fits")
-        if len(images)==0:
-            print (f"No image is present in image directory: {imagedir}")
+        imagedir = imagedir + "/images"
+        images = glob.glob(imagedir + "/*.fits")
+        if len(images) == 0:
+            print(f"No image is present in image directory: {imagedir}")
         else:
             msg = run_apply_pbcor(
-                imagedir, workdir, cpu_frac=round(cpu_frac, 2), mem_frac=round(mem_frac, 2)
+                imagedir,
+                workdir,
+                cpu_frac=round(cpu_frac, 2),
+                mem_frac=round(mem_frac, 2),
             )
             if msg != 0:
                 print(

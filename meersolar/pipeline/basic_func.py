@@ -1,5 +1,9 @@
 import sys, glob, time, gc, tempfile, copy, traceback
-import os, numpy as np, dask, psutil, logging
+import os, numpy as np, dask, psutil, logging, sunpy
+import astropy.units as u
+from astropy.coordinates import EarthLocation, SkyCoord
+from sunpy.map import Map
+from sunpy.coordinates import frames, sun
 from datetime import datetime as dt, timezone
 from casatasks import (
     casalog,
@@ -589,7 +593,13 @@ def get_chans_flag(msname="", field="", n_threads=-1, dry_run=False):
 
 
 def get_optimal_image_interval(
-    msname, temporal_tol_factor=0.1, spectral_tol_factor=0.1
+    msname,
+    temporal_tol_factor=0.1,
+    spectral_tol_factor=0.1,
+    chan_range="",
+    timestamp_range="",
+    max_nchan=-1,
+    max_ntime=-1,
 ):
     """
     Get optimal image spectral temporal interval such that total flux max-median in each chunk is within tolerance limit
@@ -601,6 +611,14 @@ def get_optimal_image_interval(
         Tolerance factor for temporal variation (default : 0.1, 10%)
     spectral_tol_factor : float, optional
         Tolerance factor for spectral variation (default : 0.1, 10%)
+    chan_range : str, optional
+        Channel range
+    timestamp_range : str, optional
+        Timestamp range
+    max_nchan : int, optional
+        Maxmium number of spectral chunk
+    max_ntime : int, optional
+        Maximum number of temporal chunk
     Returns
     -------
     int
@@ -608,9 +626,6 @@ def get_optimal_image_interval(
     int
         Number of channels to averages
     """
-    print(
-        f"Temporal tolerance factor: {temporal_tol_factor}, Spectral tolerance factor: {spectral_tol_factor}"
-    )
 
     def is_valid_chunk(chunk, tolerance):
         mean_flux = np.nanmedian(chunk)
@@ -658,14 +673,28 @@ def get_optimal_image_interval(
     flag = data_and_flag["flag"]
     data[flag] = np.nan
     mstool.close()
-    t_series = np.nanmedian(data, axis=(0, 1, 2))
-    spectra = np.nanmedian(data, axis=(0, 2, 3))
-    t_series=t_series[t_series!=0]
-    spectra=spectra[spectra!=0]
+    if chan_range != "":
+        start_chan = int(chan_range.split(",")[0])
+        end_chan = int(chan_range.split(",")[-1])
+        spectra = np.nanmedian(data[:, start_chan:end_chan, ...], axis=(0, 2, 3))
+    else:
+        spectra = np.nanmedian(data, axis=(0, 2, 3))
+    if timestamp_range != "":
+        t_start = int(timestamp_range.split(",")[0])
+        t_end = int(timestamp_range.split(",")[-1])
+        t_series = np.nanmedian(data[..., t_start:t_end], axis=(0, 1, 2))
+    else:
+        t_series = np.nanmedian(data, axis=(0, 1, 2))
+    t_series = t_series[t_series != 0]
+    spectra = spectra[spectra != 0]
     t_chunksize = find_max_valid_chunk_length(t_series, temporal_tol_factor)
     f_chunksize = find_max_valid_chunk_length(spectra, spectral_tol_factor)
     n_time_interval = int(len(t_series) / t_chunksize)
     n_spectral_interval = int(len(spectra) / f_chunksize)
+    if max_nchan > 0 and n_spectral_interval > max_nchan:
+        n_spectral_interval = max_nchan
+    if max_ntime > 0 and n_time_interval > max_ntime:
+        n_time_interval = max_ntime
     return n_time_interval, n_spectral_interval
 
 
@@ -1236,21 +1265,25 @@ def get_timeranges_for_scan(msname, scan, time_interval, time_window):
     time_ranges = []
     start_time = times[0]
     end_time = times[-1]
-    while start_time < end_time:
-        if start_time + time_window < end_time:
-            t = (
-                mjdsec_to_timestamp(start_time, str_format=1)
-                + "~"
-                + mjdsec_to_timestamp(start_time + time_window, str_format=1)
-            )
-        else:
-            t = (
-                mjdsec_to_timestamp(start_time, str_format=1)
-                + "~"
-                + mjdsec_to_timestamp(end_time, str_format=1)
-            )
+    if time_interval < 0 or time_window < 0:
+        t = (
+            mjdsec_to_timestamp(start_time, str_format=1)
+            + "~"
+            + mjdsec_to_timestamp(end_time, str_format=1)
+        )
         time_ranges.append(t)
-        start_time += time_interval
+        return time_ranges
+    total_time=(end_time-start_time)
+    timeres=total_time/len(times)
+    ntime_chunk=int(total_time/time_interval)
+    ntime=int(time_window/timeres)
+    start_time=times[:-ntime]
+    indices = np.linspace(
+        0, len(start_time) - 1, num=ntime_chunk, dtype=int
+    )
+    timelist = [start_time[i] for i in indices]
+    for t in timelist:
+        time_ranges.append(f"{mjdsec_to_timestamp(t, str_format=1)}~{mjdsec_to_timestamp(t+time_window, str_format=1)}")
     return time_ranges
 
 
@@ -1528,6 +1561,7 @@ def get_valid_scans(msname, field="", min_scan_time=1):
                 valid_scans.append(scan)
     return valid_scans
 
+
 def split_into_chunks(lst, target_chunk_size):
     """
     Split a list into equal number of elements
@@ -1555,8 +1589,9 @@ def split_into_chunks(lst, target_chunk_size):
         chunks.append(lst[start:end])
         start = end
     return chunks
-    
-def calc_maxuv(msname,chan_number=-1):
+
+
+def calc_maxuv(msname, chan_number=-1):
     """
     Calculate maximum UV
     Parameters
@@ -1589,7 +1624,7 @@ def calc_maxuv(msname,chan_number=-1):
     return maxuv, maxuv / wavelength
 
 
-def calc_minuv(msname,chan_number=-1):
+def calc_minuv(msname, chan_number=-1):
     """
     Calculate minimum UV
     Parameters
@@ -1747,7 +1782,7 @@ def max_time_solar_smearing(msname):
     return t_max
 
 
-def calc_psf(msname,chan_number=-1):
+def calc_psf(msname, chan_number=-1):
     """
     Function to calculate PSF size in arcsec
     Parameters
@@ -1761,7 +1796,7 @@ def calc_psf(msname,chan_number=-1):
     float
             PSF size in arcsec
     """
-    maxuv_m, maxuv_l = calc_maxuv(msname,chan_number=chan_number)
+    maxuv_m, maxuv_l = calc_maxuv(msname, chan_number=chan_number)
     psf = np.rad2deg(1.2 / maxuv_l) * 3600.0  # In arcsec
     return psf
 
@@ -1817,6 +1852,7 @@ def calc_multiscale_scales(msname, num_pixel_in_psf, chan_number=-1, max_scale=1
         multiscale_scales.append(current_scale)
     return multiscale_scales
 
+
 def get_multiscale_bias(freq, bias_min=0.6, bias_max=0.9):
     """
     Get frequency dependent multiscale bias
@@ -1833,19 +1869,22 @@ def get_multiscale_bias(freq, bias_min=0.6, bias_max=0.9):
     float
         Multiscale bias patrameter
     """
-    if freq<=1015:
+    if freq <= 1015:
         return bias_min
-    elif freq>=1670:
+    elif freq >= 1670:
         return bias_max
-    else:   
-        freq_min=1015
-        freq_max=1670 
+    else:
+        freq_min = 1015
+        freq_max = 1670
         logf = np.log10(freq)
         logf_min = np.log10(freq_min)
         logf_max = np.log10(freq_max)
         frac = (logf - logf_min) / (logf_max - logf_min)
-        return round(np.clip(bias_min + frac * (bias_max - bias_min), bias_min, bias_max),3)
-    
+        return round(
+            np.clip(bias_min + frac * (bias_max - bias_min), bias_min, bias_max), 3
+        )
+
+
 def delaycal(msname="", caltable="", refant="", solint="inf", dry_run=False):
     """
     General delay calibration using CASA, not assuming any point source
@@ -1975,6 +2014,218 @@ def make_timeavg_image(wsclean_images, outfile_name, keep_wsclean_images=True):
         for img in wsclean_images:
             os.system(f"rm -rf {img}")
     return outfile_name
+
+
+def make_freqavg_image(wsclean_images, outfile_name, keep_wsclean_images=True):
+    """
+    Convert WSClean images into a frequency averaged image
+    Parameters
+    ----------
+    wsclean_images : list
+        List of WSClean images.
+    outfile_name : str
+        Name of the output file.
+    keep_wsclean_images : bool, optional
+        Whether to retain the original WSClean images (default: True).
+    Returns
+    -------
+    str
+        Output image name.
+    """
+    freqs = []
+    for i in range(len(wsclean_images)):
+        image = wsclean_images[i]
+        if i == 0:
+            data = fits.getdata(image)
+        else:
+            data += fits.getdata(image)
+        header = fits.getheader(image)
+        if header["CTYPE3"] == "FREQ":
+            freqs.append(float(header["CRVAL3"]))
+            freqaxis = 3
+        elif header["CTYPE4"] == "FREQ":
+            freqs.append(float(header["CRVAL4"]))
+            freqaxis = 4
+    data /= len(wsclean_images)
+    if len(freqs) > 0:
+        mean_freq = np.nanmean(freqs)
+        width = max(freqs) - min(freqs)
+        header = fits.getheader(wsclean_images[0])
+        if freqaxis == 3:
+            header["CRAVL3"] = mean_freq
+            header["CDELT3"] = width
+        elif freqaxis == 4:
+            header["CRAVL4"] = mean_freq
+            header["CDELT4"] = width
+    fits.writeto(outfile_name, data=data, header=header, overwrite=True)
+    if not keep_wsclean_images:
+        for img in wsclean_images:
+            os.system(f"rm -rf {img}")
+    return outfile_name
+
+
+def plot_in_hpc(
+    fits_image, draw_limb=False, extension="pdf", xlim=[-2000, 2000], ylim=[-2000, 2000]
+):
+    """
+    Function to convert MeerKAT image into Helioprojective co-ordinate
+    Parameters
+    ----------
+    fits_image : str
+        Name of the fits image
+    draw_limb : bool, optional
+        Draw solar limb or not
+    extension : str, optional
+        Output file extension
+    xlim : list
+        X axis limit in arcsecond
+    ylim : list
+        Y axis limit in arcsecond
+    Returns
+    -------
+    sunpy.Map
+        MeerKAT image in helioprojective co-ordinate
+    """
+    from astropy.visualization import ImageNormalize, PowerStretch, PercentileInterval
+    from matplotlib.patches import Ellipse, Rectangle
+    import matplotlib, matplotlib.pyplot as plt
+
+    matplotlib.rcParams.update({"font.size": 12})
+    MEERLAT = -30.7133
+    MEERLON = 21.4429
+    MEERALT = 1086.6
+    fits_image = fits_image.rstrip("/")
+    output_image = fits_image.split(".fits")[0] + f".{extension}"
+    meer_hdu = fits.open(fits_image)  # Opening MeerKAT fits file
+    meer_header = meer_hdu[0].header  # meer header
+    meer_data = meer_hdu[0].data
+    if len(meer_data.shape) > 2:
+        meer_data = meer_data[0, 0, :, :]  # meer data
+    if meer_header["CTYPE3"] == "FREQ":
+        frequency = meer_header["CRVAL3"] * u.Hz
+    elif meer_header["CTYPE4"] == "FREQ":
+        frequency = meer_header["CRVAL4"] * u.Hz
+    else:
+        frequency = ""
+    try:
+        band = meer_header["BAND"]
+    except:
+        band = ""
+    try:
+        pixel_unit = meer_header["BUNIT"]
+    except:
+        pixel_nuit = ""
+    obstime = Time(meer_header["date-obs"])
+    meerpos = EarthLocation(
+        lat=MEERLAT * u.deg, lon=MEERLON * u.deg, height=MEERALT * u.m
+    )
+    meer_gcrs = SkyCoord(meerpos.get_gcrs(obstime))  # Converting into GCRS coordinate
+    reference_coord = SkyCoord(
+        meer_header["crval1"] * u.Unit(meer_header["cunit1"]),
+        meer_header["crval2"] * u.Unit(meer_header["cunit2"]),
+        frame="gcrs",
+        obstime=obstime,
+        obsgeoloc=meer_gcrs.cartesian,
+        obsgeovel=meer_gcrs.velocity.to_cartesian(),
+        distance=meer_gcrs.hcrs.distance,
+    )
+    reference_coord_arcsec = reference_coord.transform_to(
+        frames.Helioprojective(observer=meer_gcrs)
+    )
+    cdelt1 = (np.abs(meer_header["cdelt1"]) * u.deg).to(u.arcsec)
+    cdelt2 = (np.abs(meer_header["cdelt2"]) * u.deg).to(u.arcsec)
+    P1 = sun.P(obstime)  # Relative rotation angle
+    new_meer_header = sunpy.map.make_fitswcs_header(
+        meer_data,
+        reference_coord_arcsec,
+        reference_pixel=u.Quantity(
+            [meer_header["crpix1"] - 1, meer_header["crpix2"] - 1] * u.pixel
+        ),
+        scale=u.Quantity([cdelt1, cdelt2] * u.arcsec / u.pix),
+        rotation_angle=-P1,
+        wavelength=frequency.to(u.MHz).round(2),
+        observatory="MeerKAT",
+    )
+    meer_map = Map(meer_data, new_meer_header)
+    meer_map_rotate = meer_map.rotate()
+    top_right = SkyCoord(
+        xlim[1] * u.arcsec, ylim[1] * u.arcsec, frame=meer_map_rotate.coordinate_frame
+    )
+    bottom_left = SkyCoord(
+        xlim[0] * u.arcsec, ylim[0] * u.arcsec, frame=meer_map_rotate.coordinate_frame
+    )
+    cropped_map = meer_map_rotate.submap(bottom_left, top_right=top_right)
+    norm = ImageNormalize(
+        meer_data,
+        vmin=max(np.nanmin(meer_data), -0.01 * np.nanmax(meer_data)),
+        stretch=PowerStretch(0.5),
+    )
+    if band == "U":
+        cmap = "inferno"
+    elif band == "L":
+        cmap = "YlGnBu_r"
+    else:
+        cmap = "cubehelix"
+    fig = plt.figure()
+    ax = plt.subplot(projection=cropped_map)
+    cropped_map.plot(norm=norm, cmap=cmap, axes=ax)
+    ax.coords.grid(False)
+    # Read synthesized beam from header
+    try:
+        bmaj = meer_header["BMAJ"] * u.deg.to(u.arcsec)  # in arcsec
+        bmin = meer_header["BMIN"] * u.deg.to(u.arcsec)
+        bpa = meer_header["BPA"] - sun.P(obstime).deg  # in degrees
+    except KeyError:
+        bmaj = bmin = bpa = None
+
+    # Plot PSF ellipse in bottom-left if all values are present
+    if bmaj and bmin and bpa is not None:
+        # Coordinates where to place the beam (e.g., 5% above bottom-left corner)
+        x0, x1 = ax.get_xlim()
+        y0, y1 = ax.get_ylim()
+
+        beam_center = SkyCoord(
+            x0 + 0.08 * (x1 - x0),
+            y0 + 0.08 * (y1 - y0),
+            unit=u.arcsec,
+            frame=cropped_map.coordinate_frame,
+        )
+
+        # Add ellipse patch
+        beam_ellipse = Ellipse(
+            (beam_center.Tx.value, beam_center.Ty.value),  # center in arcsec
+            width=bmin,
+            height=bmaj,
+            angle=bpa,
+            edgecolor="white",
+            facecolor="white",
+            lw=1,
+        )
+        ax.add_patch(beam_ellipse)
+        # Draw square box around the ellipse
+        box_size = 100  # slightly bigger than beam
+        rect = Rectangle(
+            (beam_center.Tx.value - box_size / 2, beam_center.Ty.value - box_size / 2),
+            width=box_size,
+            height=box_size,
+            edgecolor="white",
+            facecolor="none",
+            lw=1.2,
+            linestyle="solid",
+        )
+        ax.add_patch(rect)
+
+    if draw_limb:
+        cropped_map.draw_limb()
+    cbar = plt.colorbar()
+    if pixel_unit == "K":
+        cbar.set_label("Brightness temperature (K)")
+    elif pixel_unit == "JY/BEAM":
+        cbar.set_label("Flux density (Jy/beam)")
+    fig.tight_layout()
+    fig.savefig(output_image)
+    plt.close(fig)
+    return output_image
 
 
 def make_stokes_wsclean_imagecube(
@@ -2234,7 +2485,7 @@ def get_dask_client(
     """
     # Create the Dask temporary working directory if it does not already exist
     os.makedirs(dask_dir, exist_ok=True)
-    dask_dir_tmp=dask_dir+"/tmp"
+    dask_dir_tmp = dask_dir + "/tmp"
     os.makedirs(dask_dir_tmp, exist_ok=True)
 
     # Detect total system resources
@@ -2331,10 +2582,11 @@ def get_dask_client(
     )  # Each worker gets min_cpu_per_job or more threads
 
     ##########################################
-    print("\n#################################")
-    print(
-        f"Dask workers: {n_workers}, Threads per worker: {threads_per_worker}, Mem/worker: {round(mem_per_worker/(1024.0**3),2)} GB"
-    )
+    if only_cal == False:
+        print("\n#################################")
+        print(
+            f"Dask workers: {n_workers}, Threads per worker: {threads_per_worker}, Mem/worker: {round(mem_per_worker/(1024.0**3),2)} GB"
+        )
     # Memory control settings
     swap = psutil.swap_memory()
     swap_gb = swap.total / 1024.0**3
@@ -2377,9 +2629,9 @@ def get_dask_client(
     )
 
     client.run_on_scheduler(gc.collect)
-
-    print(f"Dask Dashboard: {client.dashboard_link}")
-    print("#################################\n")
+    if only_cal == False:
+        print(f"Dask Dashboard: {client.dashboard_link}")
+        print("#################################\n")
     final_mem_per_worker = round((mem_per_worker * spill_frac) / (1024.0**3), 2)
     return client, cluster, n_workers, threads_per_worker, final_mem_per_worker
 
@@ -2608,48 +2860,57 @@ def create_circular_mask(msname, cellsize, imsize, mask_radius=20):
     str
         Fits mask file name
     """
-    msname = msname.rstrip("/")
-    imagename_prefix = msname.split(".ms")[0] + "_solar"
-    wsclean_args = [
-        "-quiet",
-        "-scale " + str(cellsize) + "asec",
-        "-size " + str(imsize) + " " + str(imsize),
-        "-nwlayers 1",
-        "-niter 0 -name " + imagename_prefix,
-        "-channel-range 0 1",
-        "-interval 0 1",
-    ]
-    wsclean_cmd = "wsclean " + " ".join(wsclean_args) + " " + msname
-    msg = run_wsclean(wsclean_cmd, "meerwsclean", verbose=False)
-    if msg == 0:
-        center = (int(imsize / 2), int(imsize / 2))
-        radius = mask_radius * 60 / cellsize
-        Y, X = np.ogrid[:imsize, :imsize]
-        dist_from_center = np.sqrt((X - center[0]) ** 2 + (Y - center[1]) ** 2)
-        mask = dist_from_center <= radius
-        os.system(
-            "cp -r "
-            + imagename_prefix
-            + "-image.fits mask-"
-            + os.path.basename(imagename_prefix)
-            + ".fits"
-        )
-        os.system("rm -rf " + imagename_prefix + "*")
-        data = fits.getdata("mask-" + os.path.basename(imagename_prefix) + ".fits")
-        header = fits.getheader("mask-" + os.path.basename(imagename_prefix) + ".fits")
-        data[0, 0, ...][mask] = 1.0
-        data[0, 0, ...][~mask] = 0.0
-        fits.writeto(
-            imagename_prefix + "-mask.fits", data=data, header=header, overwrite=True
-        )
-        os.system("rm -rf mask-" + os.path.basename(imagename_prefix) + ".fits")
-        if os.path.exists(imagename_prefix + "-mask.fits"):
-            return imagename_prefix + "-mask.fits"
+    try:
+        msname = msname.rstrip("/")
+        imagename_prefix = msname.split(".ms")[0] + "_solar"
+        wsclean_args = [
+            "-quiet",
+            "-scale " + str(cellsize) + "asec",
+            "-size " + str(imsize) + " " + str(imsize),
+            "-nwlayers 1",
+            "-niter 0 -name " + imagename_prefix,
+            "-channel-range 0 1",
+            "-interval 0 1",
+        ]
+        wsclean_cmd = "wsclean " + " ".join(wsclean_args) + " " + msname
+        msg = run_wsclean(wsclean_cmd, "meerwsclean", verbose=False)
+        if msg == 0:
+            center = (int(imsize / 2), int(imsize / 2))
+            radius = mask_radius * 60 / cellsize
+            Y, X = np.ogrid[:imsize, :imsize]
+            dist_from_center = np.sqrt((X - center[0]) ** 2 + (Y - center[1]) ** 2)
+            mask = dist_from_center <= radius
+            os.system(
+                "cp -r "
+                + imagename_prefix
+                + "-image.fits mask-"
+                + os.path.basename(imagename_prefix)
+                + ".fits"
+            )
+            os.system("rm -rf " + imagename_prefix + "*")
+            data = fits.getdata("mask-" + os.path.basename(imagename_prefix) + ".fits")
+            header = fits.getheader(
+                "mask-" + os.path.basename(imagename_prefix) + ".fits"
+            )
+            data[0, 0, ...][mask] = 1.0
+            data[0, 0, ...][~mask] = 0.0
+            fits.writeto(
+                imagename_prefix + "-mask.fits",
+                data=data,
+                header=header,
+                overwrite=True,
+            )
+            os.system("rm -rf mask-" + os.path.basename(imagename_prefix) + ".fits")
+            if os.path.exists(imagename_prefix + "-mask.fits"):
+                return imagename_prefix + "-mask.fits"
+            else:
+                print("Circular mask could not be created.")
+                return
         else:
             print("Circular mask could not be created.")
             return
-    else:
-        print("Circular mask could not be created.")
+    except Exception as e:
+        traceback.print_exc()
         return
 
 
@@ -2667,8 +2928,8 @@ def calc_fractional_bandwidth(msname):
     """
     msmd = msmetadata()
     msmd.open(msname)
-    freqs=msmd.chanfreqs(0)
-    bw=max(freqs)-min(freqs)
+    freqs = msmd.chanfreqs(0)
+    bw = max(freqs) - min(freqs)
     frac_bandwidth = bw / msmd.meanfreq(0)
     msmd.close()
     return round(frac_bandwidth * 100.0, 2)
@@ -2829,7 +3090,9 @@ def check_udocker_container(name):
     timestamp = int(time.time() * 1000)
     tmp1 = f"tmp1_{pid}_{timestamp}.txt"
     tmp2 = f"tmp2_{pid}_{timestamp}.txt"
-    b = os.system(f"udocker --insecure --quiet inspect " + name + f" >> {tmp1} >> {tmp2}")
+    b = os.system(
+        f"udocker --insecure --quiet inspect " + name + f" >> {tmp1} >> {tmp2}"
+    )
     os.system(f"rm -rf {tmp1} {tmp2}")
     if b != 0:
         return False
@@ -2877,6 +3140,7 @@ def run_wsclean(wsclean_cmd, container_name, verbose=False, dry_run=False):
     timestamp = int(time.time() * 1000)
     tmp1 = f"tmp1_{pid}_{timestamp}.txt"
     tmp2 = f"tmp2_{pid}_{timestamp}.txt"
+
     def show_file(path):
         try:
             print(open(path).read())

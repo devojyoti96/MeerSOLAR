@@ -51,7 +51,7 @@ def pbcor_all_images(imagedir, make_TB=True, cpu_frac=0.8, mem_frac=0.8):
         os.makedirs(pbcor_dir, exist_ok=True)
         if make_TB:
             tb_dir = os.path.dirname(imagedir.rstrip("/")) + "/tb_images"
-            os.makedirs(tb_dir,exist_ok=True)
+            os.makedirs(tb_dir, exist_ok=True)
         if len(images) == 0:
             print(f"No image is present in image directory: {imagedir}")
             return 1
@@ -68,7 +68,7 @@ def pbcor_all_images(imagedir, make_TB=True, cpu_frac=0.8, mem_frac=0.8):
         mem_limit = (
             16 * max([os.path.getsize(image) for image in images]) / 1024**3
         )  # In GB
-        if len(first_set)>0:
+        if len(first_set) > 0:
             dask_client, dask_cluster, n_jobs, n_threads, mem_limit = get_dask_client(
                 len(first_set),
                 dask_dir=pbdir,
@@ -87,8 +87,8 @@ def pbcor_all_images(imagedir, make_TB=True, cpu_frac=0.8, mem_frac=0.8):
             for r in results:
                 if r == 0:
                     successful_pbcor += 1
-        if len(remaining_set)>0:
-            print (f"Correcting remaining images of different timestamps.")
+        if len(remaining_set) > 0:
+            print(f"Correcting remaining images of different timestamps.")
             dask_client, dask_cluster, n_jobs, n_threads, mem_limit = get_dask_client(
                 len(remaining_set),
                 dask_dir=pbdir,
@@ -106,10 +106,15 @@ def pbcor_all_images(imagedir, make_TB=True, cpu_frac=0.8, mem_frac=0.8):
             for r in results:
                 if r == 0:
                     successful_pbcor += 1
-        if successful_pbcor>0 and make_TB:
-            successful_images=glob.glob(pbcor_dir+"/*.fits")
+        if successful_pbcor > 0 and make_TB:
+            successful_images = glob.glob(pbcor_dir + "/*.fits")
             for pbcor_image in successful_images:
-                tb_image=tb_dir+"/"+os.path.basename(pbcor_image).split('.fits')[0]+"_TB.fits"  
+                tb_image = (
+                    tb_dir
+                    + "/"
+                    + os.path.basename(pbcor_image).split(".fits")[0]
+                    + "_TB.fits"
+                )
                 generate_tb_map(pbcor_image, outfile=tb_image)
         print(f"Total input images: {len(images)}")
         print(f"Total corrected images: {successful_pbcor}")

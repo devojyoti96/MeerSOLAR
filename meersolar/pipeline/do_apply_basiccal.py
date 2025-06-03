@@ -7,6 +7,7 @@ from meersolar.pipeline.basic_func import *
 from dask import delayed, compute
 from optparse import OptionParser
 from casatasks import casalog
+
 logfile = casalog.logfile()
 os.system("rm -rf " + logfile)
 
@@ -91,7 +92,7 @@ def scale_bandpass(bandpass_table, att_table, n=15):
         return
     print(f"Bandpass table: {bandpass_table}, Attenuation table: {att_table}")
     results = np.load(att_table, allow_pickle=True)
-    scan, freqs, att_values, flag_ants = results
+    scan, freqs, att_values, flag_ants, att_array = results
     output_table = bandpass_table.split(".bcal")[0] + "_scan_" + str(scan) + ".bcal"
     tb = table()
     tb.open(f"{bandpass_table}/SPECTRAL_WINDOW")
@@ -104,9 +105,6 @@ def scale_bandpass(bandpass_table, att_table, n=15):
     tb.open(output_table, nomodify=False)
     gain = tb.getcol("CPARAM")
     flag = tb.getcol("FLAG")
-    if len(flag_ants) > 0:
-        for flag_ant in flag_ants:
-            flag[..., flag_ant] += True
     for i in range(att_values.shape[0]):
         att = filter_outliers(att_values[i])
         num_blocks = att.shape[0] // n
@@ -156,7 +154,7 @@ def applysol(
     memory_limit=-1,
     force_apply=False,
     soltype="basic",
-    do_post_flag=True,
+    do_post_flag=False,
     dry_run=False,
 ):
     """
@@ -232,22 +230,22 @@ def applysol(
             outputvis = msname.split(".ms")[0] + "_cor.ms"
             if os.path.exists(outputvis):
                 os.system(f"rm -rf {outputvis}")
-            touch_file_names=glob.glob(f"{msname}/.*")
-            if len(touch_file_names)>0:
-                touch_file_names=[os.path.basename(f) for f in touch_file_names]
+            touch_file_names = glob.glob(f"{msname}/.*")
+            if len(touch_file_names) > 0:
+                touch_file_names = [os.path.basename(f) for f in touch_file_names]
             split(vis=msname, outputvis=outputvis, datacolumn="corrected")
             if os.path.exists(outputvis):
                 os.system(f"rm -rf {msname} {msname}.flagversions")
                 os.system(f"mv {outputvis} {msname}")
             for t in touch_file_names:
-                os.system(f"touch {msname}/{t}") 
+                os.system(f"touch {msname}/{t}")
             gc.collect()
         if do_post_flag:
-            print (f"Post calibration flagging on: {msname}")
+            print(f"Post calibration flagging on: {msname}")
             if overwrite_datacolumn:
-                datacolumn="data"
+                datacolumn = "data"
             else:
-                datacolumn="corrected"
+                datacolumn = "corrected"
             single_ms_flag(
                 msname=msname,
                 datacolumn=datacolumn,
@@ -313,15 +311,15 @@ def run_all_applysol(
         parang = False
         os.system("rm -rf " + caldir + "/*scan*.bcal")
         att_caltables = glob.glob(caldir + "/*_attval_scan_*.npy")
-        bandpass_table = glob.glob(caldir + "/*.bcal")
-        delay_table = glob.glob(caldir + "/*.kcal")
-        gain_table = glob.glob(caldir + "/*.gcal")
-        leakage_table = glob.glob(caldir + "/*.dcal")
+        bandpass_table = glob.glob(caldir + "/calibrator_caltable*.bcal")
+        delay_table = glob.glob(caldir + "/calibrator_caltable*.kcal")
+        gain_table = glob.glob(caldir + "/calibrator_caltable*.gcal")
+        leakage_table = glob.glob(caldir + "/calibrator_caltable*.dcal")
         if len(leakage_table) > 0:
             parang = True
-            kcross_table = glob.glob(caldir + "/*.kcrosscal")
-            crossphase_table = glob.glob(caldir + "/*.xfcal")
-            pangle_table = glob.glob(caldir + "/*.panglecal")
+            kcross_table = glob.glob(caldir + "/calibrator_caltable*.kcrosscal")
+            crossphase_table = glob.glob(caldir + "/calibrator_caltable*.xfcal")
+            pangle_table = glob.glob(caldir + "/calibrator_caltable*.panglecal")
         else:
             print(f"No polarization leakage calibration table is present in : {caldir}")
             kcross_table = []
@@ -402,7 +400,9 @@ def run_all_applysol(
         ####################################
         print(f"Total ms list: {len(mslist)}")
         task = delayed(applysol)(dry_run=True)
-        mem_limit = 2*run_limited_memory_task(task, dask_dir=workdir)
+        mem_limit = run_limited_memory_task(task, dask_dir=workdir)
+        ms_size_list = [get_ms_size(ms) + mem_limit for ms in mslist]
+        mem_limit = max(ms_size_list)
         dask_client, dask_cluster, n_jobs, n_threads, mem_limit = get_dask_client(
             len(mslist),
             dask_dir=workdir,
@@ -427,8 +427,10 @@ def run_all_applysol(
                 for g in final_gaintable:
                     if ".gcal" in g:
                         interp.append("linear")
+                    elif ".kcal" in g:
+                        interp.append("nearest")
                     else:
-                        interp.append("nearest,nearestflag")
+                        interp.append("nearestflag")
                 tasks.append(
                     delayed(applysol)(
                         ms,
@@ -547,7 +549,7 @@ def main():
         help="Memory fraction to use",
         metavar="Float",
     )
-    (options, args) = parser.parse_args()        
+    (options, args) = parser.parse_args()
     if options.mslist != "":
         print("\n###################################")
         print("Starting applying solutions...")

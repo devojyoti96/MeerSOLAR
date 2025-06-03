@@ -63,6 +63,7 @@ def single_ms_flag(
     # Flagging bad channels
     ##############################
     if badspw != "":
+        print (f"Flagging bad spectral windows: {badspw}")
         flagdata(
             vis=msname,
             mode="manual",
@@ -75,6 +76,7 @@ def single_ms_flag(
     # Flagging bad antennas
     ##############################
     if bad_ants_str != "":
+        print (f"Flagging bad antenna: {bad_ants_str}")
         flagdata(
             vis=msname,
             mode="manual",
@@ -121,7 +123,7 @@ def single_ms_flag(
         datacolumn_present = check_datacolumn_valid(msname, datacolumn="DATA")
         if modelcolumn_present == False or datacolumn_present == False:
             datacolumn = "corrected"
-            
+
     ########################################################
     # Whenther memory is sufficient for calculating residual
     ########################################################
@@ -141,7 +143,7 @@ def single_ms_flag(
                 datacolumn = "corrected"
             else:
                 datacolumn = "data"
-                
+
     #################################################
     # Whether corrected data column is present or not
     #################################################
@@ -153,20 +155,18 @@ def single_ms_flag(
             )
             return
         else:
-            datacolumn="corrected"
+            datacolumn = "corrected"
     #################################################
     # Whether data column is present or not
     #################################################
     if datacolumn == "data" or datacolumn == "DATA":
         datacolumn_present = check_datacolumn_valid(msname, datacolumn="DATA")
         if datacolumn_present == False:
-            print(
-                "Data column is chosen for flagging, but it is not present."
-            )
+            print("Data column is chosen for flagging, but it is not present.")
             return
         else:
-            datacolumn="data"
-            
+            datacolumn = "data"
+
     ##############
     # Tfcrop flag
     ##############
@@ -385,24 +385,27 @@ def do_flagging(
     """
     start_time = time.time()
     try:
+        from casatasks import flagdata
         msname = msname.rstrip("/")
         mspath = os.path.dirname(os.path.abspath(msname))
         os.chdir(mspath)
         print("###########################")
         print("Flagging measurement set : ", msname)
         print("###########################\n")
+        print ("Restoring all previous flags...")
+        flagdata(vis=msname,mode="unflag",spw="0",flagbackup=False)
         fluxcal_field, fluxcal_scans = get_fluxcals(msname)
-        if len(fluxcal_field)==0:
-            flag_bad_spw=False
-            flag_bad_ants=False
+        if len(fluxcal_field) == 0:
+            flag_bad_spw = False
+            flag_bad_ants = False
         if flag_bad_spw:
             badspw = get_bad_chans(msname)
         else:
-            bandspw=""
+            bandspw = ""
         if flag_bad_ants:
             bad_ants, bad_ants_str = get_bad_ants(msname, fieldnames=fluxcal_field)
         else:
-            bad_ants_str=""
+            bad_ants_str = ""
         ###########################
         # Dask local cluster setup
         ##########################

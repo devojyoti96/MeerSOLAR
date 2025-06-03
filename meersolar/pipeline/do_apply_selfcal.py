@@ -80,7 +80,9 @@ def run_all_applysol(
         ####################################
         print(f"Total ms list: {len(mslist)}")
         task = delayed(applysol)(dry_run=True)
-        mem_limit = 2*run_limited_memory_task(task, dask_dir=workdir)
+        mem_limit = run_limited_memory_task(task, dask_dir=workdir)
+        ms_size_list = [get_ms_size(ms) + mem_limit for ms in mslist]
+        mem_limit = max(ms_size_list)
         dask_client, dask_cluster, n_jobs, n_threads, mem_limit = get_dask_client(
             len(mslist),
             dask_dir=workdir,
@@ -97,7 +99,7 @@ def run_all_applysol(
                     gaintable=gaintable,
                     overwrite_datacolumn=overwrite_datacolumn,
                     applymode=applymode,
-                    interp=["linear"],
+                    interp=["linear,linearflag"],
                     n_threads=n_threads,
                     parang=parang,
                     memory_limit=mem_limit,

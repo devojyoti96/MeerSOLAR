@@ -495,7 +495,7 @@ def estimate_att(
                         if pos[i] not in flag_ants:
                             flag_ants.append(pos[i])
             np.save(
-                filename, np.array([scan, freqs, att_value, flag_ants], dtype="object")
+                filename, np.array([scan, freqs, att_value, flag_ants, att_ant_array], dtype="object")
             )
             all_scaling_files.append(filename + ".npy")
         return 0, att_level, all_scaling_files

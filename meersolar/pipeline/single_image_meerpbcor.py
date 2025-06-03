@@ -338,7 +338,7 @@ def get_beam_interpolator(jones, coords):
 
 def apply_parallactic_rotation(jones, p_angle):
     """
-    Apply left-side parallactic rotation: J' = R(-p_angle) · J
+    Apply left-side parallactic rotation: J' = J.R(p_angle)
     as needed in the RIME context (sky-frame transformation).
     Parameters
     ----------
@@ -352,19 +352,20 @@ def apply_parallactic_rotation(jones, p_angle):
     jones_rot : ndarray
         Rotated Jones matrix, shape (4, H, W)
     """
+    print (p_angle)
     p_angle = np.deg2rad(p_angle)
     c = np.cos(p_angle)
-    s = np.sin(p_angle)
+    s = -np.sin(p_angle)
     j00, j01, j10, j11 = jones
-    # R(-chi) · J
-    jj00 = c * j00 + s * j10
-    jj01 = c * j01 + s * j11
-    jj10 = -s * j00 + c * j10
-    jj11 = -s * j01 + c * j11
+    # J · R(chi)
+    jj00 = j00 * c - j01 * s
+    jj01 = j00 * s + j01 * c
+    jj10 = j10 * c - j11 * s
+    jj11 = j10 * s + j11 * c
     return np.stack([jj00, jj01, jj10, jj11], axis=0).astype("complex64")
 
 
-def get_image_beam(image_file, pbdir, save_beam=True, band="", n_cpu=8, verbose =False):
+def get_image_beam(image_file, pbdir, save_beam=True, band="", n_cpu=8, verbose=False):
     """
     Get image beam
     Parameters
@@ -400,6 +401,11 @@ def get_image_beam(image_file, pbdir, save_beam=True, band="", n_cpu=8, verbose 
         return
     freq = round(freq / 10**6, 1)  # In MHz
     pbfile = f"{pbdir}/freq_{freq}_pb.npy"
+    obs_time = header["DATE-OBS"]
+    ra0, dec0 = get_pointingcenter_radec(image_file)  # Phase center
+    p_angle = get_parallactic_angle(
+        obs_time, ra0, dec0
+    )  # Parallactic angle of the center
     #######################################
     # If beam file exists
     #######################################
@@ -407,97 +413,92 @@ def get_image_beam(image_file, pbdir, save_beam=True, band="", n_cpu=8, verbose 
         if verbose:
             print(f"Loading beam from: {pbfile}")
         jones_array = np.load(pbfile, allow_pickle=True)
-        if verbose:
-            print(f"Beam calculated in : {round(time.time()-start_time,1)}s")
-        return jones_array
-    obs_time = header["DATE-OBS"]
-    ra0, dec0 = get_pointingcenter_radec(image_file)  # Phase center
-    ra_grid, dec_grid = get_radec_grid(image_file)  # RA DEC grid
-    l_grid, m_grid = radec_to_lm(ra_grid, dec_grid, ra0, dec0)
-    p_angle = get_parallactic_angle(
-        obs_time, ra0, dec0
-    )  # Parallactic angle of the center
-    ############################
-    # Load beam
-    ############################
-    beam_results = load_beam(image_file, band=band)
-    if beam_results == None:
-        return
-    lm_coords, beam = beam_results
-    j00_r, j00_i, j01_r, j01_i, j10_r, j10_i, j11_r, j11_i = get_beam_interpolator(
-        beam, lm_coords
-    )
-    l_grid_flat = l_grid.flatten()
-    m_grid_flat = m_grid.flatten()
-    grid_shape = l_grid.shape
-    del l_grid, m_grid
-    gc.collect()
-    with Parallel(n_jobs=n_cpu, backend="threading") as parallel:
-        results = parallel(
-            [
-                delayed(j00_r)(l_grid_flat, m_grid_flat, grid=False),
-                delayed(j00_i)(l_grid_flat, m_grid_flat, grid=False),
-                delayed(j01_r)(l_grid_flat, m_grid_flat, grid=False),
-                delayed(j01_i)(l_grid_flat, m_grid_flat, grid=False),
-                delayed(j10_r)(l_grid_flat, m_grid_flat, grid=False),
-                delayed(j10_i)(l_grid_flat, m_grid_flat, grid=False),
-                delayed(j11_r)(l_grid_flat, m_grid_flat, grid=False),
-                delayed(j11_i)(l_grid_flat, m_grid_flat, grid=False),
-            ]
+    else:
+        ra_grid, dec_grid = get_radec_grid(image_file)  # RA DEC grid
+        l_grid, m_grid = radec_to_lm(ra_grid, dec_grid, ra0, dec0)
+        ############################
+        # Load beam
+        ############################
+        beam_results = load_beam(image_file, band=band)
+        if beam_results == None:
+            return
+        lm_coords, beam = beam_results
+        j00_r, j00_i, j01_r, j01_i, j10_r, j10_i, j11_r, j11_i = get_beam_interpolator(
+            beam, lm_coords
         )
-    del parallel
-    (
-        j00_r_arr,
-        j00_i_arr,
-        j01_r_arr,
-        j01_i_arr,
-        j10_r_arr,
-        j10_i_arr,
-        j11_r_arr,
-        j11_i_arr,
-    ) = results
-    j00_r_arr = j00_r_arr.reshape(grid_shape)
-    j00_i_arr = j00_i_arr.reshape(grid_shape)
-    j01_r_arr = j01_r_arr.reshape(grid_shape)
-    j01_i_arr = j01_i_arr.reshape(grid_shape)
-    j10_r_arr = j10_r_arr.reshape(grid_shape)
-    j10_i_arr = j10_i_arr.reshape(grid_shape)
-    j11_r_arr = j11_r_arr.reshape(grid_shape)
-    j11_i_arr = j11_i_arr.reshape(grid_shape)
-    jones_array = np.array(
-        [
-            j00_r_arr + 1j * j00_i_arr,
-            j01_r_arr + 1j * j01_i_arr,
-            j10_r_arr + 1j * j10_i_arr,
-            j11_r_arr + 1j * j11_i_arr,
-        ]
-    ).astype("complex64")
-    del (
-        j00_r_arr,
-        j00_i_arr,
-        j01_r_arr,
-        j01_i_arr,
-        j10_r_arr,
-        j10_i_arr,
-        j11_r_arr,
-        j11_i_arr,
-    )
-    gc.collect()
+        l_grid_flat = l_grid.flatten()
+        m_grid_flat = m_grid.flatten()
+        grid_shape = l_grid.shape
+        del l_grid, m_grid
+        gc.collect()
+        with Parallel(n_jobs=n_cpu, backend="threading") as parallel:
+            results = parallel(
+                [
+                    delayed(j00_r)(l_grid_flat, m_grid_flat, grid=False),
+                    delayed(j00_i)(l_grid_flat, m_grid_flat, grid=False),
+                    delayed(j01_r)(l_grid_flat, m_grid_flat, grid=False),
+                    delayed(j01_i)(l_grid_flat, m_grid_flat, grid=False),
+                    delayed(j10_r)(l_grid_flat, m_grid_flat, grid=False),
+                    delayed(j10_i)(l_grid_flat, m_grid_flat, grid=False),
+                    delayed(j11_r)(l_grid_flat, m_grid_flat, grid=False),
+                    delayed(j11_i)(l_grid_flat, m_grid_flat, grid=False),
+                ]
+            )
+        del parallel
+        (
+            j00_r_arr,
+            j00_i_arr,
+            j01_r_arr,
+            j01_i_arr,
+            j10_r_arr,
+            j10_i_arr,
+            j11_r_arr,
+            j11_i_arr,
+        ) = results
+        j00_r_arr = j00_r_arr.reshape(grid_shape)
+        j00_i_arr = j00_i_arr.reshape(grid_shape)
+        j01_r_arr = j01_r_arr.reshape(grid_shape)
+        j01_i_arr = j01_i_arr.reshape(grid_shape)
+        j10_r_arr = j10_r_arr.reshape(grid_shape)
+        j10_i_arr = j10_i_arr.reshape(grid_shape)
+        j11_r_arr = j11_r_arr.reshape(grid_shape)
+        j11_i_arr = j11_i_arr.reshape(grid_shape)
+        jones_array = np.array(
+            [
+                j00_r_arr + 1j * j00_i_arr,
+                j01_r_arr + 1j * j01_i_arr,
+                j10_r_arr + 1j * j10_i_arr,
+                j11_r_arr + 1j * j11_i_arr,
+            ]
+        ).astype("complex64")
+        del (
+            j00_r_arr,
+            j00_i_arr,
+            j01_r_arr,
+            j01_i_arr,
+            j10_r_arr,
+            j10_i_arr,
+            j11_r_arr,
+            j11_i_arr,
+        )
+        gc.collect()
+        if save_beam and os.path.exists(pbfile) == False:
+            np.save(pbfile, jones_array)
+            if verbose:
+                print(f"Beam saved in: {pbfile}")
     jones_array = apply_parallactic_rotation(
         jones_array, p_angle
-    ).T  # This is to account B'=P(-X)BP(X) parallactic trasnform on brightness matrix
+    ).T  # This is to account B'=P(X)BP(-X) parallactic trasnform on brightness matrix
     jones_array = jones_array.reshape(jones_array.shape[0], jones_array.shape[1], 2, 2)
     gc.collect()
-    if save_beam and os.path.exists(pbfile) == False:
-        np.save(pbfile, jones_array)
-        if verbose:
-            print(f"Beam saved in: {pbfile}")
     if verbose:
         print(f"Beam calculated in : {round(time.time()-start_time,1)}s")
     return jones_array
 
 
-def get_pbcor_image(image_file, pbdir, pbcor_dir, save_beam=True, band="", n_cpu=8, verbose=False):
+def get_pbcor_image(
+    image_file, pbdir, pbcor_dir, save_beam=True, band="", n_cpu=8, verbose=False
+):
     """
     Get primary beam corrected image
     Parameters
@@ -515,7 +516,7 @@ def get_pbcor_image(image_file, pbdir, pbcor_dir, save_beam=True, band="", n_cpu
     n_cpu : int, optional
         Number of CPU threads to use
     verbose : bool, optional
-        Verbose output 
+        Verbose output
     Returns
     -------
     str
@@ -525,7 +526,12 @@ def get_pbcor_image(image_file, pbdir, pbcor_dir, save_beam=True, band="", n_cpu
         image_file = image_file.rstrip("/")
         print(f"Correcting beam for image: {os.path.basename(image_file)}...")
         beam = get_image_beam(
-            image_file, pbdir, save_beam=save_beam, band=band, n_cpu=n_cpu, verbose=verbose,
+            image_file,
+            pbdir,
+            save_beam=save_beam,
+            band=band,
+            n_cpu=n_cpu,
+            verbose=verbose,
         )
         if type(beam) != np.ndarray:
             print(f"Error in correct beam for image: {os.path.basename(image_file)}")
@@ -636,7 +642,7 @@ def main():
     if options.imagename != "" and os.path.exists(options.imagename):
         try:
             if options.pbdir == "":
-                print("Provide existing work directory name.")
+                print("Provide an existing directory name in pbdir.")
                 return 1
             os.makedirs(options.pbdir, exist_ok=True)
             if options.pbcor_dir == "":

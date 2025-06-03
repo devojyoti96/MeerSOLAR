@@ -20,6 +20,7 @@ def chanlist_to_str(lst):
     ranges.append(f"{start}~{lst[-1]}")
     return ";".join(ranges)
 
+
 def split_scan(
     msname="",
     outputvis="",
@@ -126,10 +127,12 @@ def split_target_scans(
     spw="",
     spectral_chunk=-1,
     n_spectral_chunk=-1,
-    timerange="",
     scans=[],
     prefix="targets",
     fullpol=False,
+    time_interval=-1,
+    time_window=-1,
+    merge_spws=False,
     cpu_frac=0.8,
     mem_frac=0.8,
     max_cpu_frac=0.8,
@@ -155,14 +158,18 @@ def split_target_scans(
         Spectral chunk in MHz
     n_spectral_chunk : int, optional
         Number of spectral chunks to split from the beginning
-    timerange : str, optional
-        Time range
     scans : list
         Scan list to split
     prefix : str, optional
         Splited ms prefix
     fullpol : bool, optional
         Full polar split
+    time_interval : float
+        Time interval in seconds
+    time_window : float
+        Time window in seconds
+    merge_spws : bool, optional
+        Merge spectral window ranges
     cpu_frac : float, optional
         CPU fraction to use
     mem_frac : float, optional
@@ -189,7 +196,8 @@ def split_target_scans(
             if scan in valid_scans:
                 if len(scans) == 0 or (len(scans) > 0 and scan in scans):
                     filtered_scan_list.append(scan)
-
+        filtered_scan_list=sorted(filtered_scan_list)
+        
         #######################################
         # Extracting time frequency information
         #######################################
@@ -231,18 +239,21 @@ def split_target_scans(
         chanlist = []
         if spectral_chunk > 0:
             nchan_per_chunk = max(1, int(spectral_chunk / chanres))
-            good_channels=[]
+            good_channels = []
             for good_spw in good_spws:
                 start_chan = int(good_spw.split("~")[0])
                 end_chan = int(good_spw.split("~")[-1])
                 for s in range(start_chan, end_chan):
                     good_channels.append(s)
-            channel_chunks=split_into_chunks(good_channels, nchan_per_chunk)        
+            channel_chunks = split_into_chunks(good_channels, nchan_per_chunk)
             for chunk in channel_chunks:
-                chan_str=chanlist_to_str(chunk)        
-                chanlist.append(chan_str)          
+                chan_str = chanlist_to_str(chunk)
+                chanlist.append(chan_str)
             if n_spectral_chunk > 0:
-                chanlist = chanlist[0:n_spectral_chunk]
+                indices = np.linspace(
+                    0, len(chanlist) - 1, num=n_spectral_chunk, dtype=int
+                )
+                chanlist = [chanlist[i] for i in indices]
         else:
             chan_range = ""
             for good_spw in good_spws:
@@ -252,22 +263,11 @@ def split_target_scans(
             chan_range = chan_range[:-1]
             chanlist.append(chan_range)
 
-        print(f"Spliting channel blocks : {chanlist}")
+        if merge_spws:
+            temp_spw = ";".join(chanlist)
+            chanlist = [temp_spw]
 
-        ##################################
-        # Time range
-        ##################################
-        if timerange != "":
-            scan_timerange_dic = scans_in_timerange(msname, timerange)
-            scan_list = list(scan_timerange_dic.keys())
-            filtered_scan_list_bkp = copy.deepcopy(filtered_scan_list)
-            for s in filtered_scan_list_bkp:
-                if s not in scan_list:
-                    filtered_scan_list.remove(s)
-            del filtered_scan_list_bkp
-        else:
-            scan_timerange_dic = {}
-        print(f"Spliting scans : {filtered_scan_list}.")
+        print(f"Spliting channel blocks : {chanlist}")
 
         ##################################
         # Parallel spliting
@@ -276,6 +276,7 @@ def split_target_scans(
             total_chunks = len(chanlist) * len(filtered_scan_list)
         else:
             total_chunks = len(filtered_scan_list)
+
         #############################################
         # Memory limit
         #############################################
@@ -293,10 +294,10 @@ def split_target_scans(
         tasks = []
         splited_ms_list = []
         for scan in filtered_scan_list:
-            if timerange != "":
-                time_range = scan_timerange_dic[scan]
-            else:
-                time_range = ""
+            timerange_list = get_timeranges_for_scan(
+                msname, scan, time_interval, time_window
+            )
+            timerange = ",".join(timerange_list)
             for chanrange in chanlist:
                 chanrange_str = (
                     chanrange.split(";")[0].split("~")[0]
@@ -324,38 +325,63 @@ def split_target_scans(
         #####################################
         # Adaptive dask client
         #####################################
-        while True:
+        if cpu_frac == max_cpu_frac and mem_frac == max_mem_frac:
             total_chunks = len(tasks)
-            dask_client, dask_cluster, n_jobs, n_threads, mem_limit = get_dask_client(
-                total_chunks,
-                dask_dir=workdir,
-                cpu_frac=cpu_frac,
-                mem_frac=mem_frac,
-                min_mem_per_job=mem_limit / 0.6,
-            )
-            chunk_tasks = tasks[0 : min(n_jobs, max_n_jobs)]
-            for ctask in chunk_tasks:
-                tasks.remove(ctask)
-            results = compute(*chunk_tasks)
-            dask_client.close()
-            dask_cluster.close()
-            for r in results:
-                splited_ms_list.append(r)
-            n_current_process = (
-                get_nprocess_meersolar() - 1
-            )  # One is subtracted for the current process
-            if len(tasks) == 0:
-                break
-            elif n_current_process == 0:
-                available_cpu_frac = round(
-                    (100 - psutil.cpu_percent(interval=1)) / 100.0, 2
+            if total_chunks>0:
+                dask_client, dask_cluster, n_jobs, n_threads, mem_limit = get_dask_client(
+                    total_chunks,
+                    dask_dir=workdir,
+                    cpu_frac=cpu_frac,
+                    mem_frac=mem_frac,
+                    min_mem_per_job=mem_limit / 0.6,
                 )
-                available_mem_frac = round(
-                    psutil.virtual_memory().available / psutil.virtual_memory().total, 2
-                )
-                cpu_frac = min(max_cpu_frac, max(cpu_frac, available_cpu_frac))
-                mem_frac = min(max_mem_frac, max(mem_frac, available_mem_frac))
-                print(f"Updated CPU fraction: {cpu_frac}, memory fraction: {mem_frac}.")
+                results = compute(*tasks)
+                dask_client.close()
+                dask_cluster.close()
+                for r in results:
+                    splited_ms_list.append(r)
+        else:
+            while True:
+                total_chunks = len(tasks)
+                if total_chunks==0:
+                    break
+                else:
+                    dask_client, dask_cluster, n_jobs, n_threads, mem_limit = (
+                        get_dask_client(
+                            total_chunks,
+                            dask_dir=workdir,
+                            cpu_frac=cpu_frac,
+                            mem_frac=mem_frac,
+                            min_mem_per_job=mem_limit / 0.6,
+                        )
+                    )
+                    chunk_tasks = tasks[0 : min(n_jobs, max_n_jobs)]
+                    for ctask in chunk_tasks:
+                        tasks.remove(ctask)
+                    results = compute(*chunk_tasks)
+                    dask_client.close()
+                    dask_cluster.close()
+                    for r in results:
+                        splited_ms_list.append(r)
+                    n_current_process = (
+                        get_nprocess_meersolar() - 1
+                    )  # One is subtracted for the current process
+                    if len(tasks) == 0:
+                        break
+                    elif n_current_process == 0:
+                        available_cpu_frac = round(
+                            (100 - psutil.cpu_percent(interval=1)) / 100.0, 2
+                        )
+                        available_mem_frac = round(
+                            psutil.virtual_memory().available
+                            / psutil.virtual_memory().total,
+                            2,
+                        )
+                        cpu_frac = min(max_cpu_frac, max(cpu_frac, available_cpu_frac))
+                        mem_frac = min(max_mem_frac, max(mem_frac, available_mem_frac))
+                        print(
+                            f"Updated CPU fraction: {cpu_frac}, memory fraction: {mem_frac}."
+                        )
         print("##################")
         print("Spliting of target scans are done successfully.")
         print("Total time taken : ", time.time() - start_time)
@@ -402,18 +428,25 @@ def main():
         metavar="String",
     )
     parser.add_option(
-        "--timerange",
-        dest="timerange",
-        default="",
-        help="Timerange to split",
-        metavar="String",
-    )
-    parser.add_option(
         "--scans",
         dest="scans",
         default="",
         help="Target scan list (default: all)",
         metavar="String",
+    )
+    parser.add_option(
+        "--time_window",
+        dest="time_window",
+        default=-1,
+        help="Time window in seconds",
+        metavar="Float",
+    )
+    parser.add_option(
+        "--time_interval",
+        dest="time_interval",
+        default=-1,
+        help="Time interval in seconds",
+        metavar="Float",
     )
     parser.add_option(
         "--spectral_chunk",
@@ -428,13 +461,6 @@ def main():
         default=-1,
         help="Numbers of spectral chunks to split",
         metavar="Integer",
-    )
-    parser.add_option(
-        "--print_casalog",
-        dest="print_casalog",
-        default=False,
-        help="Print CASA log",
-        metavar="Boolean",
     )
     parser.add_option(
         "--freqres",
@@ -462,6 +488,13 @@ def main():
         dest="fullpol",
         default=False,
         help="Split full polar data",
+        metavar="Boolean",
+    )
+    parser.add_option(
+        "--merge_spws",
+        dest="merge_spws",
+        default=False,
+        help="Merge spectral windows",
         metavar="Boolean",
     )
     parser.add_option(
@@ -493,8 +526,6 @@ def main():
         metavar="Float",
     )
     (options, args) = parser.parse_args()
-    if eval(str(options.print_casalog)) == True:
-        casalog.showconsole(True)
     if options.msname != "" and os.path.exists(options.msname):
         print("\n###################################")
         print("Start spliting target scans.")
@@ -514,11 +545,13 @@ def main():
                 float(options.freqres),
                 options.datacolumn,
                 spw=str(options.spw),
-                timerange=options.timerange,
+                time_window=float(options.time_window),
+                time_interval=float(options.time_interval),
                 scans=scans,
                 fullpol=eval(str(options.fullpol)),
                 n_spectral_chunk=int(options.n_spectral_chunk),
                 prefix=options.prefix,
+                merge_spws=eval(str(options.merge_spws)),
                 spectral_chunk=float(options.spectral_chunk),
                 cpu_frac=float(options.cpu_frac),
                 mem_frac=float(options.mem_frac),

@@ -155,12 +155,6 @@ def run_gaincal(
         gainfield=gainfield,
         interp=interp,
     )
-    flagdata(
-        vis=caltable_prefix + ".gcal",
-        mode="rflag",
-        datacolumn="CPARAM",
-        flagbackup=False,
-    )
     return caltable_prefix + ".gcal"
 
 
@@ -339,6 +333,7 @@ def run_applycal(
 def run_postcal_flag(
     msname="",
     datacolumn="corrected",
+    uvrange="",
     mode="rflag",
     n_threads=-1,
     memory_limit=-1,
@@ -418,6 +413,7 @@ def run_postcal_flag(
                 flagdata(
                     vis=msname,
                     mode=mode,
+                    uvrange=uvrange,
                     datacolumn=datacolumn,
                     flagbackup=False,
                     antenna=ant_str,
@@ -576,20 +572,16 @@ def single_round_cal_and_flag(
         ##############################
         # Delay calibration
         ##############################
-        if len(fluxcal_mslist) > 0 or len(phasecal_mslist) > 0:
-            if do_phasecal:
-                delaycal_mslist = fluxcal_mslist + phasecal_mslist
-            else:
-                delaycal_mslist = fluxcal_mslist
+        if len(fluxcal_mslist) > 0:
             #############################################
             # Memory limit
             #############################################
             task = delayed(run_delaycal)(dry_run=True)
             mem_limit = run_limited_memory_task(task, dask_dir=workdir)
-            ms_size_list = [get_ms_size(ms) + mem_limit for ms in delaycal_mslist]
+            ms_size_list = [get_ms_size(ms) + mem_limit for ms in fluxcal_mslist]
             mem_limit = max(ms_size_list)
             dask_client, dask_cluster, n_jobs, n_threads, mem_limit = get_dask_client(
-                len(delaycal_mslist),
+                len(fluxcal_mslist),
                 dask_dir=workdir,
                 cpu_frac=cpu_frac,
                 mem_frac=mem_frac,
@@ -599,7 +591,7 @@ def single_round_cal_and_flag(
                 delayed(run_delaycal)(
                     sub_msname, refant=refant, solint="inf", n_threads=n_threads
                 )
-                for sub_msname in delaycal_mslist
+                for sub_msname in fluxcal_mslist
             ]
             delaycal_tables = list(compute(*tasks))
             delay_caltable = merge_caltables(
@@ -608,6 +600,13 @@ def single_round_cal_and_flag(
             dask_client.close()
             dask_cluster.close()
             if delay_caltable != None and os.path.exists(delay_caltable):
+                tb=table()
+                tb.open(delay_caltable,nomodify=False)
+                flag=tb.getcol("FLAG")
+                flag*=False
+                tb.putcol("FLAG",flag)
+                tb.flush()
+                tb.close()
                 applycal_gaintable.append(delay_caltable)
                 applycal_gainfield.append("")
                 applycal_interp.append("nearest")
@@ -651,7 +650,7 @@ def single_round_cal_and_flag(
             if bpass_caltable != None and os.path.exists(bpass_caltable):
                 applycal_gaintable.append(bpass_caltable)
                 applycal_gainfield.append("")
-                applycal_interp.append("nearest,nearestflag")
+                applycal_interp.append("nearestflag")
             else:
                 print("Bandpass calibration is not successful.")
                 return 1, []
@@ -1013,6 +1012,7 @@ def single_round_cal_and_flag(
                         delayed(run_postcal_flag)(
                             sub_msname,
                             datacolumn=datacolumn,
+                            uvrange=uvrange,
                             mode="rflag",
                             n_threads=n_threads,
                             memory_limit=mem_limit,
@@ -1132,7 +1132,7 @@ def run_basic_cal_rounds(
         do_phasecal = False
         do_polcal = False
         do_leakagecal = False
-        do_postcal_flag = True
+        do_postcal_flag = False
         ###################################################
         # Determining what calibrations will be done or not
         ###################################################
@@ -1244,13 +1244,6 @@ def main():
         metavar="String",
     )
     parser.add_option(
-        "--print_casalog",
-        dest="print_casalog",
-        default=False,
-        help="Print CASA log",
-        metavar="Boolean",
-    )
-    parser.add_option(
         "--refant",
         dest="refant",
         default="",
@@ -1307,8 +1300,6 @@ def main():
             caldir = workdir + "/caltables"
             if os.path.exists(caldir) == False:
                 os.makedirs(caldir)
-            if eval(str(options.print_casalog)) == True:
-                casalog.showconsole(True)
             msg, caltables = run_basic_cal_rounds(
                 options.msname,
                 workdir,
