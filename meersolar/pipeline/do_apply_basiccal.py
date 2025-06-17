@@ -31,6 +31,7 @@ def interpolate_nans(data):
 def filter_outliers(data, threshold=5, max_iter=3):
     """
     Filter outliers and perform cubic spline fitting
+
     Parameters
     ----------
     y : numpy.array
@@ -39,6 +40,7 @@ def filter_outliers(data, threshold=5, max_iter=3):
         Threshold of filtering
     max_iter : int
         Maximum number of iterations
+
     Returns
     -------
     numpy.array
@@ -71,6 +73,7 @@ def scale_bandpass(bandpass_table, att_table, n=15):
     """
     Scale a bandpass calibration table using attenuation data.
 
+
     Parameters
     ----------
     bandpass_table : str
@@ -79,13 +82,12 @@ def scale_bandpass(bandpass_table, att_table, n=15):
         NumPy .npy file containing attenuation frequency and values.
     n : int, optional
         Number of channels to average over for polynomial fitting (default is 15). Final table has same number pf channels as input.
+
     Returns
     -------
     str
         Name of the output table.
     """
-    from casatasks import flagdata
-
     warnings.filterwarnings("ignore", category=RuntimeWarning)
     if att_table == "":
         print(f"No attenuation caltable is provided for scan : {scan}")
@@ -130,15 +132,10 @@ def scale_bandpass(bandpass_table, att_table, n=15):
         interp_scaled = np.sqrt(best_fit)
         # Apply scaling
         gain[i, ...] *= interp_scaled[..., None]
-    mask = np.isnan(gain)
-    gain[mask] = 1.0
-    flag[mask] = True
+    gain[flag] = 1.0
     tb.putcol("CPARAM", gain)
-    tb.putcol("FLAG", flag)
     tb.flush()
     tb.close()
-    print(f"Flagging table: {output_table}")
-    flagdata(vis=output_table, mode="rflag", datacolumn="CPARAM", flagbackup=False)
     return output_table
 
 
@@ -159,6 +156,7 @@ def applysol(
 ):
     """
     Apply flux calibrated and attenuation calibrated solutions
+
     Parameters
     ----------
     msname : str
@@ -185,6 +183,7 @@ def applysol(
         Solution type
     do_post_flag : bool, optional
         Do post calibration flagging
+
     Returns
     -------
     int
@@ -271,12 +270,13 @@ def run_all_applysol(
     overwrite_datacolumn=False,
     applymode="calflag",
     force_apply=False,
-    do_post_flag=True,
+    do_post_flag=False,
     cpu_frac=0.8,
     mem_frac=0.8,
 ):
     """
     Apply self-calibrator solutions on all target scans
+
     Parameters
     ----------
     mslist : str
@@ -299,6 +299,7 @@ def run_all_applysol(
         CPU fraction to use
     mem_frac : float, optional
         Memory fraction to use
+
     Returns
     --------
     list
@@ -341,8 +342,9 @@ def run_all_applysol(
         ################################
         if len(att_caltables) == 0:
             print(
-                "No attenuation table is present. Bandpass is scaled for attenuation."
+                "No attenuation table is present. Bandpass is not scaled for attenuation."
             )
+            scaled_bandpass_list = []
         else:
             dask_client, dask_cluster, n_jobs, n_threads, mem_limit = get_dask_client(
                 len(att_caltables),
@@ -358,7 +360,7 @@ def run_all_applysol(
             dask_cluster.close()
 
         ###############################
-        # Arranging applycal parameters
+        # Arranging applycal
         ###############################
         if len(delay_table) > 0:
             gaintable += delay_table
@@ -411,19 +413,24 @@ def run_all_applysol(
             min_mem_per_job=mem_limit / 0.6,
         )
         tasks = []
-        scaled_bandpass_scans = [
-            int(a.split("scan_")[-1].split(".bcal")[0]) for a in scaled_bandpass_list
-        ]
+        if len(scaled_bandpass_list) > 0:
+            scaled_bandpass_scans = [
+                int(a.split("scan_")[-1].split(".bcal")[0])
+                for a in scaled_bandpass_list
+            ]
         msmd = msmetadata()
         for ms in mslist:
             msmd.open(ms)
             scans = msmd.scannumbers()
             msmd.close()
             for scan in scans:
-                pos = scaled_bandpass_scans.index(scan)
-                bandpass_table = scaled_bandpass_list[pos]
+                if len(scaled_bandpass_list) > 0:
+                    pos = scaled_bandpass_scans.index(scan)
+                    bpass_table = scaled_bandpass_list[pos]
+                else:
+                    bpass_table = bandpass_table[0]
                 interp = []
-                final_gaintable = gaintable + [bandpass_table]
+                final_gaintable = gaintable + [bpass_table]
                 for g in final_gaintable:
                     if ".gcal" in g:
                         interp.append("linear")
@@ -531,7 +538,7 @@ def main():
     parser.add_option(
         "--do_post_flag",
         dest="do_post_flag",
-        default=True,
+        default=False,
         help="Do post calibration flagging",
         metavar="Boolean",
     )
@@ -549,39 +556,63 @@ def main():
         help="Memory fraction to use",
         metavar="Float",
     )
+    parser.add_option(
+        "--logfile",
+        dest="logfile",
+        default=None,
+        help="Log file",
+        metavar="String",
+    )
     (options, args) = parser.parse_args()
-    if options.mslist != "":
-        print("\n###################################")
-        print("Starting applying solutions...")
-        print("###################################\n")
-        try:
+    if options.workdir == "" or os.path.exists(options.workdir) == False:
+        workdir = os.path.dirname(os.path.abspath(options.msname)) + "/workdir"
+        if os.path.exists(workdir) == False:
+            os.makedirs(workdir)
+    else:
+        workdir = options.workdir
+    logfile=options.logfile
+    observer=None
+    if os.path.exists(f"{workdir}/jobname_password.npy") and logfile!=None: 
+        time.sleep(5)
+        jobname,password=np.load(f"{workdir}/jobname_password.npy",allow_pickle=True)
+        if os.path.exists(logfile):
+            print (f"Starting remote logger. Remote logger password: {password}")
+            observer=init_logger("apply_basiccal",logfile,jobname=jobname,password=password)
+    try:
+        if options.mslist != "":
+            print("\n###################################")
+            print("Starting applying solutions...")
+            print("###################################\n")
             if options.workdir == "" or os.path.exists(options.workdir) == False:
                 print("Provide existing work directory name.")
-                return 1
-            if options.caldir == "" or os.path.exists(options.caldir) == False:
+                msg=1
+            elif options.caldir == "" or os.path.exists(options.caldir) == False:
                 print("Provide existing caltable directory.")
-                return 1
-            msg = run_all_applysol(
-                options.mslist.split(","),
-                options.workdir,
-                options.caldir,
-                use_only_bandpass=eval(str(options.use_only_bandpass)),
-                overwrite_datacolumn=eval(str(options.overwrite_datacolumn)),
-                do_post_flag=eval(str(options.do_post_flag)),
-                applymode=options.applymode,
-                force_apply=eval(str(options.force_apply)),
-                cpu_frac=float(options.cpu_frac),
-                mem_frac=float(options.mem_frac),
-            )
-            return msg
-        except Exception as e:
-            traceback.print_exc()
-            return 1
-    else:
-        print("Please provide valid measurement set list.\n")
-        return 1
-
-
+                msg=1
+            else:
+                msg = run_all_applysol(
+                    options.mslist.split(","),
+                    options.workdir,
+                    options.caldir,
+                    use_only_bandpass=eval(str(options.use_only_bandpass)),
+                    overwrite_datacolumn=eval(str(options.overwrite_datacolumn)),
+                    do_post_flag=eval(str(options.do_post_flag)),
+                    applymode=options.applymode,
+                    force_apply=eval(str(options.force_apply)),
+                    cpu_frac=float(options.cpu_frac),
+                    mem_frac=float(options.mem_frac),
+                )
+        else:
+            print("Please provide valid measurement set list.\n")
+            msg=1
+    except Exception as e:
+        traceback.print_exc()
+        msg=1
+    finally:
+        time.sleep(5)
+        clean_shutdown(observer)
+    return msg  
+    
 if __name__ == "__main__":
     result = main()
     print(

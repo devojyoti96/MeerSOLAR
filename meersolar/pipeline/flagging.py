@@ -26,6 +26,7 @@ def single_ms_flag(
 ):
     """
     Flag on a single ms
+
     Parameters
     ----------
     msname : str
@@ -63,53 +64,64 @@ def single_ms_flag(
     # Flagging bad channels
     ##############################
     if badspw != "":
-        print (f"Flagging bad spectral windows: {badspw}")
-        flagdata(
-            vis=msname,
-            mode="manual",
-            spw=badspw,
-            cmdreason="badchan",
-            flagbackup=False,
-        )
+        print(f"Flagging bad spectral windows: {badspw}\n")
+        try:
+            flagdata(
+                vis=msname,
+                mode="manual",
+                spw=badspw,
+                cmdreason="badchan",
+                flagbackup=False,
+            )
+        except:
+            pass
 
     ##############################
     # Flagging bad antennas
     ##############################
     if bad_ants_str != "":
-        print (f"Flagging bad antenna: {bad_ants_str}")
-        flagdata(
-            vis=msname,
-            mode="manual",
-            antenna=bad_ants_str,
-            cmdreason="badant",
-            flagbackup=False,
-        )
+        print(f"Flagging bad antenna: {bad_ants_str}\n")
+        try:
+            flagdata(
+                vis=msname,
+                mode="manual",
+                antenna=bad_ants_str,
+                cmdreason="badant",
+                flagbackup=False,
+            )
+        except:
+            pass
 
     #################################
     # Clip zero amplitude data points
     #################################
-    flagdata(
-        vis=msname,
-        mode="clip",
-        clipzeros=True,
-        datacolumn=datacolumn,
-        autocorr=flag_autocorr,
-        flagbackup=False,
-    )
+    try:
+        flagdata(
+            vis=msname,
+            mode="clip",
+            clipzeros=True,
+            datacolumn=datacolumn,
+            autocorr=flag_autocorr,
+            flagbackup=False,
+        )
+    except:
+        pass
 
     #################################
     # Flag auto-correlations
     #################################
     if flag_autocorr:
-        flagdata(
-            vis=msname,
-            mode="manual",
-            autocorr=True,
-            datacolumn=datacolumn,
-            flagbackup=False,
-        )
+        try:
+            flagdata(
+                vis=msname,
+                mode="manual",
+                autocorr=True,
+                datacolumn=datacolumn,
+                flagbackup=False,
+            )
+        except:
+            pass
 
-    ncol = 3
     ####################################################
     # Check if required columns are present for residual
     ####################################################
@@ -124,26 +136,6 @@ def single_ms_flag(
         if modelcolumn_present == False or datacolumn_present == False:
             datacolumn = "corrected"
 
-    ########################################################
-    # Whenther memory is sufficient for calculating residual
-    ########################################################
-    if (
-        datacolumn == "residual"
-        or datacolumn == "RESIDUAL"
-        or datacolumn == "RESIDUAL_DATA"
-    ):
-        colsize = get_column_size(msname)
-        if memory_limit > (3 * colsize):
-            ncol = 4
-        else:
-            print(
-                "Total available memory for this job is not sufficient to calculate residual."
-            )
-            if datacolumn == "residual":
-                datacolumn = "corrected"
-            else:
-                datacolumn = "data"
-
     #################################################
     # Whether corrected data column is present or not
     #################################################
@@ -151,38 +143,50 @@ def single_ms_flag(
         corcolumn_present = check_datacolumn_valid(msname, datacolumn="CORRECTED_DATA")
         if corcolumn_present == False:
             print(
-                "Corrected data column is chosen for flagging, but it is not present."
+                "Corrected data column is chosen for flagging, but it is not present.\n"
             )
             return
         else:
             datacolumn = "corrected"
+
     #################################################
     # Whether data column is present or not
     #################################################
     if datacolumn == "data" or datacolumn == "DATA":
         datacolumn_present = check_datacolumn_valid(msname, datacolumn="DATA")
         if datacolumn_present == False:
-            print("Data column is chosen for flagging, but it is not present.")
+            print("Data column is chosen for flagging, but it is not present.\n")
             return
         else:
             datacolumn = "data"
+
+    ###########################
+    # Determinign time chunking
+    ############################
+    if use_tfcrop or use_rflag:
+        nchunk = get_chunk_size(msname, memory_limit=memory_limit)
+        if nchunk <= 1:
+            ntime = "scan"
+        else:
+            msmd = msmetadata()
+            msmd.open(msname)
+            scan = np.unique(msmd.scannumbers())[0]
+            times = msmd.timesforspws(0)
+            msmd.close()
+            total_time = np.nanmax(times) - np.nanmin(times)
+            timeres = np.nanmin(np.diff(times))
+            ntime = float(total_time / nchunk)
+            if ntime < timeres:
+                ntime = timeres
 
     ##############
     # Tfcrop flag
     ##############
     if use_tfcrop:
-        time_chunk, baseline_chunk = get_chunk_size(
-            msname, memory_limit=memory_limit, ncol=ncol
-        )
-        if baseline_chunk == None or time_chunk == None:
-            print("Memory limit is too small to work. Do not flagging.")
-            return
-        baseline_name_list = baseline_names(msname)
-        if baseline_chunk > len(baseline_name_list):
+        try:
             flagdata(
                 vis=msname,
                 mode="tfcrop",
-                ntime="scan",
                 timefit="line",
                 freqfit="line",
                 extendflags=False,
@@ -196,146 +200,59 @@ def single_ms_flag(
                 overwrite=True,
                 writeflags=True,
                 datacolumn=datacolumn,
+                ntime=ntime,
             )
-
-        else:
-            baseline_blocks = [
-                ";".join(str(x) for x in baseline_name_list[i : i + baseline_chunk])
-                for i in range(0, len(baseline_name_list), baseline_chunk)
-            ]
-            for ant_str in baseline_blocks:
-                flagdata(
-                    vis=msname,
-                    mode="tfcrop",
-                    ntime="scan",
-                    timefit="line",
-                    freqfit="line",
-                    extendflags=False,
-                    flagdimension=flagdimension,
-                    timecutoff=5.0,
-                    freqcutoff=5.0,
-                    extendpols=True,
-                    growaround=False,
-                    action="apply",
-                    flagbackup=False,
-                    overwrite=True,
-                    writeflags=True,
-                    datacolumn=datacolumn,
-                    antenna=ant_str,
-                )
+        except:
+            pass
 
     #############
     # Rflag flag
     #############
-    if use_rflag:
-        time_chunk, baseline_chunk = get_chunk_size(
-            msname, memory_limit=memory_limit, ncol=ncol
+    try:
+        flagdata(
+            vis=msname,
+            mode="rflag",
+            timefit="line",
+            freqfit="line",
+            extendflags=False,
+            timedevscale=5.0,
+            freqdevscale=5.0,
+            extendpols=True,
+            growaround=False,
+            action="apply",
+            flagbackup=False,
+            overwrite=True,
+            writeflags=True,
+            datacolumn=datacolumn,
+            ntime=ntime,
         )
-        if baseline_chunk == None or time_chunk == None:
-            print("Memory limit is too small to work. Do not flagging.")
-            return
-        baseline_name_list = baseline_names(msname)
-        if baseline_chunk > len(baseline_name_list):
-            flagdata(
-                vis=msname,
-                mode="rflag",
-                ntime="scan",
-                timefit="line",
-                freqfit="line",
-                extendflags=False,
-                timedevscale=5.0,
-                freqdevscale=5.0,
-                extendpols=True,
-                growaround=False,
-                action="apply",
-                flagbackup=False,
-                overwrite=True,
-                writeflags=True,
-                datacolumn=datacolumn,
-            )
-
-        else:
-            baseline_blocks = [
-                ";".join(str(x) for x in baseline_name_list[i : i + baseline_chunk])
-                for i in range(0, len(baseline_name_list), baseline_chunk)
-            ]
-            for ant_str in baseline_blocks:
-                flagdata(
-                    vis=msname,
-                    mode="rflag",
-                    ntime="scan",
-                    timefit="line",
-                    freqfit="line",
-                    extendflags=False,
-                    timedevscale=5.0,
-                    freqdevscale=5.0,
-                    extendpols=True,
-                    growaround=False,
-                    action="apply",
-                    flagbackup=False,
-                    overwrite=True,
-                    writeflags=True,
-                    datacolumn=datacolumn,
-                    antenna=ant_str,
-                )
+    except:
+        pass
 
     ##############
     # Extend flag
     ##############
-    if use_tfcrop or use_rflag:
-        time_chunk, baseline_chunk = get_chunk_size(
-            msname, memory_limit=memory_limit, ncol=ncol
+    try:
+        flagdata(
+            vis=msname,
+            mode="extend",
+            datacolumn="data",
+            clipzeros=True,
+            extendflags=False,
+            extendpols=True,
+            growtime=80.0,
+            growfreq=80.0,
+            growaround=False,
+            flagneartime=False,
+            flagnearfreq=False,
+            action="apply",
+            flagbackup=False,
+            overwrite=True,
+            writeflags=True,
+            ntime=ntime,
         )
-        if baseline_chunk == None or time_chunk == None:
-            print("Memory limit is too small to work. Do not flagging.")
-            return
-        baseline_name_list = baseline_names(msname)
-        if baseline_chunk > len(baseline_name_list):
-            flagdata(
-                vis=msname,
-                mode="extend",
-                datacolumn="data",
-                clipzeros=True,
-                ntime="scan",
-                extendflags=False,
-                extendpols=True,
-                growtime=80.0,
-                growfreq=80.0,
-                growaround=False,
-                flagneartime=False,
-                flagnearfreq=False,
-                action="apply",
-                flagbackup=False,
-                overwrite=True,
-                writeflags=True,
-            )
-
-        else:
-            baseline_blocks = [
-                ";".join(str(x) for x in baseline_name_list[i : i + baseline_chunk])
-                for i in range(0, len(baseline_name_list), baseline_chunk)
-            ]
-            for ant_str in baseline_blocks:
-                flagdata(
-                    vis=msname,
-                    mode="extend",
-                    datacolumn=datacolumn,
-                    clipzeros=True,
-                    ntime="scan",
-                    extendflags=False,
-                    extendpols=True,
-                    growtime=80.0,
-                    growfreq=80.0,
-                    growaround=False,
-                    flagneartime=False,
-                    flagnearfreq=False,
-                    action="apply",
-                    flagbackup=False,
-                    overwrite=True,
-                    writeflags=True,
-                    antenna=ant_str,
-                )
-
+    except:
+        pass
     return
 
 
@@ -354,6 +271,7 @@ def do_flagging(
 ):
     """
     Function to perform initial flagging
+
     Parameters
     ----------
     msname : str
@@ -378,6 +296,7 @@ def do_flagging(
         CPU fraction to use
     mem_frac : float, optional
         Memory fraction to use
+
     Returns
     -------
     int
@@ -392,8 +311,11 @@ def do_flagging(
         print("###########################")
         print("Flagging measurement set : ", msname)
         print("###########################\n")
-        print ("Restoring all previous flags...")
-        flagdata(vis=msname,mode="unflag",spw="0",flagbackup=False)
+        total_cpus = psutil.cpu_count(logical=True)
+        ncpu=int(total_cpus*cpu_frac)
+        correct_missing_col_subms(msname)
+        print("Restoring all previous flags...")
+        flagdata(vis=msname, mode="unflag", spw="0", flagbackup=False)
         fluxcal_field, fluxcal_scans = get_fluxcals(msname)
         if len(fluxcal_field) == 0:
             flag_bad_spw = False
@@ -411,6 +333,8 @@ def do_flagging(
         ##########################
         if os.path.exists(msname + "/SUBMSS"):
             subms_list = glob.glob(msname + "/SUBMSS/*")
+            for subms in subms_list:
+                os.system(f"rm -rf {subms}/.flagversions")
         else:
             subms_list = [msname]
         task = delayed(single_ms_flag)(dry_run=True)
@@ -463,6 +387,13 @@ def main():
         default=None,
         help="Name of measurement set",
         metavar="Measurement Set",
+    )
+    parser.add_option(
+        "--workdir",
+        dest="workdir",
+        default="",
+        help="Name of work directory",
+        metavar="String",
     )
     parser.add_option(
         "--datacolumn",
@@ -534,10 +465,31 @@ def main():
         help="Memory fraction to use",
         metavar="Float",
     )
+    parser.add_option(
+        "--logfile",
+        dest="logfile",
+        default=None,
+        help="Log file",
+        metavar="String",
+    )
     (options, args) = parser.parse_args()
-    if options.msname != None and os.path.exists(options.msname):
-        try:
-            result = do_flagging(
+    if options.workdir == "" or os.path.exists(options.workdir) == False:
+        workdir = os.path.dirname(os.path.abspath(options.msname)) + "/workdir"
+        if os.path.exists(workdir) == False:
+            os.makedirs(workdir)
+    else:
+        workdir = options.workdir
+    logfile=options.logfile
+    observer=None
+    if os.path.exists(f"{workdir}/jobname_password.npy") and logfile!=None: 
+        time.sleep(5)
+        jobname,password=np.load(f"{workdir}/jobname_password.npy",allow_pickle=True)
+        if os.path.exists(logfile):
+            print (f"Starting remote logger. Remote logger password: {password}")
+            observer=init_logger("do_flagging",logfile,jobname=jobname,password=password)
+    try:
+        if options.msname != None and os.path.exists(options.msname):
+            msg = do_flagging(
                 options.msname,
                 datacolumn=options.datacolumn,
                 flag_bad_ants=eval(str(options.flag_bad_ants)),
@@ -550,14 +502,16 @@ def main():
                 cpu_frac=float(options.cpu_frac),
                 mem_frac=float(options.mem_frac),
             )
-            return result
-        except Exception as e:
-            traceback.print_exc()
-            return 1
-    else:
-        print("Please provide correct measurement set.\n")
-        return 1
-
+        else:
+            print("Please provide correct measurement set.\n")
+            msg=1
+    except Exception as e:
+        traceback.print_exc()
+        msg=1
+    finally:
+        time.sleep(5)
+        clean_shutdown(observer)
+    return msg  
 
 if __name__ == "__main__":
     result = main()

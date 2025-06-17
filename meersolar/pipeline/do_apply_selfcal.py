@@ -25,6 +25,7 @@ def run_all_applysol(
 ):
     """
     Apply self-calibrator solutions on all target scans
+
     Parameters
     ----------
     mslist : str
@@ -43,6 +44,7 @@ def run_all_applysol(
         CPU fraction to use
     mem_frac : float, optional
         Memory fraction to use
+
     Returns
     --------
     list
@@ -53,11 +55,17 @@ def run_all_applysol(
         os.chdir(workdir)
         mslist = np.unique(mslist).tolist()
         parang = False
-        if os.path.exists(caldir + "/full_selfcal.gcal") == False:
+        selfcal_tables = glob.glob(caldir + "/selfcal_scan*.gcal")
+        print(f"Selfcal caltables: {selfcal_tables}\n")
+        if len(selfcal_tables) == 0:
             print(f"No self-cal caltable is present in {caldir}.")
             return 1
-        gaintable = [caldir + "/full_selfcal.gcal"]
-
+        selfcal_tables_scans = np.array(
+            [
+                int(os.path.basename(i).split(".gcal")[0].split("scan_")[-1])
+                for i in selfcal_tables
+            ]
+        )
         ####################################
         # Filtering any corrupted ms
         #####################################
@@ -93,6 +101,15 @@ def run_all_applysol(
         tasks = []
         msmd = msmetadata()
         for ms in mslist:
+            msmd.open(ms)
+            ms_scan = msmd.scannumbers()[0]
+            msmd.close()
+            if ms_scan not in selfcal_tables_scans:
+                print(
+                    f"Target scan: {ms_scan}. Corresponding self-calibration table is not present. Using the closet one."
+                )
+            caltable_pos = np.argmin(np.abs(selfcal_tables_scans - ms_scan))
+            gaintable = [selfcal_tables[caltable_pos]]
             tasks.append(
                 delayed(applysol)(
                     msname=ms,
@@ -184,13 +201,6 @@ def main():
         metavar="Boolean",
     )
     parser.add_option(
-        "--print_casalog",
-        dest="print_casalog",
-        default=False,
-        help="Print CASA log",
-        metavar="Boolean",
-    )
-    parser.add_option(
         "--cpu_frac",
         dest="cpu_frac",
         default=0.8,
@@ -204,39 +214,61 @@ def main():
         help="Memory fraction to use",
         metavar="Float",
     )
+    parser.add_option(
+        "--logfile",
+        dest="logfile",
+        default=None,
+        help="Log file",
+        metavar="String",
+    )
     (options, args) = parser.parse_args()
-    if eval(str(options.print_casalog)) == True:
-        casalog.showconsole(True)
-    if options.mslist != "":
-        print("\n###################################")
-        print("Starting applying solutions...")
-        print("###################################\n")
-        try:
+    if options.workdir == "" or os.path.exists(options.workdir) == False:
+        workdir = os.path.dirname(os.path.abspath(options.msname)) + "/workdir"
+        if os.path.exists(workdir) == False:
+            os.makedirs(workdir)
+    else:
+        workdir = options.workdir
+    logfile=options.logfile
+    observer=None
+    if os.path.exists(f"{workdir}/jobname_password.npy") and logfile!=None: 
+        time.sleep(5)
+        jobname,password=np.load(f"{workdir}/jobname_password.npy",allow_pickle=True)
+        if os.path.exists(logfile):
+            print (f"Starting remote logger. Remote logger password: {password}")
+            observer=init_logger("apply_selfcal",logfile,jobname=jobname,password=password)
+    try:
+        if options.mslist != "":
+            print("\n###################################")
+            print("Starting applying solutions...")
+            print("###################################\n")
             if options.workdir == "" or os.path.exists(options.workdir) == False:
                 print("Provide existing work directory name.")
-                return 1
-            if options.caldir == "" or os.path.exists(options.caldir) == False:
+                msg=1
+            elif options.caldir == "" or os.path.exists(options.caldir) == False:
                 print("Provide existing caltable directory.")
-                return 1
-            msg = run_all_applysol(
-                options.mslist.split(","),
-                options.workdir,
-                options.caldir,
-                overwrite_datacolumn=eval(str(options.overwrite_datacolumn)),
-                applymode=options.applymode,
-                force_apply=eval(str(options.force_apply)),
-                cpu_frac=float(options.cpu_frac),
-                mem_frac=float(options.mem_frac),
-            )
-            return msg
-        except Exception as e:
-            traceback.print_exc()
-            return 1
-    else:
-        print("Please provide valid measurement set list.\n")
-        return 1
-
-
+                msg=1
+            else:
+                msg = run_all_applysol(
+                    options.mslist.split(","),
+                    options.workdir,
+                    options.caldir,
+                    overwrite_datacolumn=eval(str(options.overwrite_datacolumn)),
+                    applymode=options.applymode,
+                    force_apply=eval(str(options.force_apply)),
+                    cpu_frac=float(options.cpu_frac),
+                    mem_frac=float(options.mem_frac),
+                )
+        else:
+            print("Please provide valid measurement set list.\n")
+            msg=1
+    except Exception as e:
+        traceback.print_exc()
+        msg=1
+    finally:
+        time.sleep(5)
+        clean_shutdown(observer)
+    return msg  
+    
 if __name__ == "__main__":
     result = main()
     print(

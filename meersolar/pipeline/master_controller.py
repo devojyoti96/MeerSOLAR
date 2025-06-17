@@ -1,4 +1,4 @@
-import os, glob, psutil, copy, time, traceback
+import os, glob, psutil, copy, time, traceback, argparse, socket, threading
 from meersolar.pipeline.basic_func import *
 from casatasks import casalog
 
@@ -9,6 +9,7 @@ os.system("rm -rf " + logfile)
 def run_flag(msname, workdir, flag_calibrators=True, cpu_frac=0.8, mem_frac=0.8):
     """
     Run flagging jobs
+
     Parameters
     ----------
     msname: str
@@ -21,6 +22,7 @@ def run_flag(msname, workdir, flag_calibrators=True, cpu_frac=0.8, mem_frac=0.8)
         CPU fraction to use
     mem_frac : float, optional
         Memory fraction to use
+
     Returns
     -------
     int
@@ -43,6 +45,8 @@ def run_flag(msname, workdir, flag_calibrators=True, cpu_frac=0.8, mem_frac=0.8)
             + str(cpu_frac)
             + " --mem_frac "
             + str(mem_frac)
+            + " --workdir "
+            + str(workdir)
         )
     else:
         flagfield_type = "target"
@@ -54,16 +58,20 @@ def run_flag(msname, workdir, flag_calibrators=True, cpu_frac=0.8, mem_frac=0.8)
             + str(cpu_frac)
             + " --mem_frac "
             + str(mem_frac)
+            + " --workdir "
+            + str(workdir)
         )
-    basename = f"flagging_{flagfield_type}_" + os.path.basename(msname).split(".ms")[0]
+    flag_basename = f"flagging_{flagfield_type}_" + os.path.basename(msname).split(".ms")[0]
+    logfile = workdir + "/logs/" + flag_basename + ".log"
+    flagging_cmd+=f" --logfile {logfile}"
     if os.path.isdir(workdir + "/logs") == False:
         os.makedirs(workdir + "/logs")
-    batch_file = create_batch_script_nonhpc(flagging_cmd, workdir, basename)
+    batch_file = create_batch_script_nonhpc(flagging_cmd, workdir, flag_basename)
     print(flagging_cmd + "\n")
     os.system("bash " + batch_file)
     print("Waiting to finish flagging...\n")
     while True:
-        finished_file = glob.glob(workdir + "/.Finished_" + basename + "*")
+        finished_file = glob.glob(workdir + "/.Finished_" + flag_basename + "*")
         if len(finished_file) > 0:
             break
         else:
@@ -80,6 +88,7 @@ def run_flag(msname, workdir, flag_calibrators=True, cpu_frac=0.8, mem_frac=0.8)
 def run_import_model(msname, workdir, cpu_frac=0.8, mem_frac=0.8):
     """
     Importing calibrator models
+
     Parameters
     ----------
     msname: str
@@ -90,6 +99,7 @@ def run_import_model(msname, workdir, cpu_frac=0.8, mem_frac=0.8):
         CPU fraction to use
     mem_frac : float, optional
         Memory fraction to use
+
     Returns
     -------
     int
@@ -109,15 +119,17 @@ def run_import_model(msname, workdir, cpu_frac=0.8, mem_frac=0.8):
         + " --mem_frac "
         + str(mem_frac)
     )
-    basename = "modeling_" + os.path.basename(msname).split(".ms")[0]
+    model_basename = "modeling_" + os.path.basename(msname).split(".ms")[0]
+    logfile = workdir + "/logs/" + model_basename + ".log"
+    import_model_cmd+=f" --logfile {logfile}"
     if os.path.isdir(workdir + "/logs") == False:
         os.makedirs(workdir + "/logs")
-    batch_file = create_batch_script_nonhpc(import_model_cmd, workdir, basename)
+    batch_file = create_batch_script_nonhpc(import_model_cmd, workdir, model_basename)
     print(import_model_cmd + "\n")
     os.system("bash " + batch_file)
     print("Waiting to finish visibility simulation for calibrators...\n")
     while True:
-        finished_file = glob.glob(workdir + "/.Finished_" + basename + "*")
+        finished_file = glob.glob(workdir + "/.Finished_" + model_basename + "*")
         if len(finished_file) > 0:
             break
         else:
@@ -133,9 +145,12 @@ def run_import_model(msname, workdir, cpu_frac=0.8, mem_frac=0.8):
         return 1
 
 
-def run_basic_cal_jobs(msname, workdir, perform_polcal=False, cpu_frac=0.8, mem_frac=0.8, keep_backup = False):
+def run_basic_cal_jobs(
+    msname, workdir, perform_polcal=False, cpu_frac=0.8, mem_frac=0.8, keep_backup=False
+):
     """
     Perform basic calibration
+
     Parameters
     ----------
     msname: str
@@ -150,6 +165,7 @@ def run_basic_cal_jobs(msname, workdir, perform_polcal=False, cpu_frac=0.8, mem_
         Memory fraction to use
     keep_backup : bool, optional
         Keep backups
+
     Returns
     -------
     int
@@ -174,6 +190,8 @@ def run_basic_cal_jobs(msname, workdir, perform_polcal=False, cpu_frac=0.8, mem_
         + " --keep_backup "
         + str(keep_backup)
     )
+    logfile = workdir + "/logs/" + cal_basename + ".log"
+    basic_cal_cmd+=f" --logfile {logfile}"
     if os.path.isdir(workdir + "/logs") == False:
         os.makedirs(workdir + "/logs")
     batch_file = create_batch_script_nonhpc(basic_cal_cmd, workdir, cal_basename)
@@ -197,6 +215,7 @@ def run_basic_cal_jobs(msname, workdir, perform_polcal=False, cpu_frac=0.8, mem_
 def run_noise_diode_cal(msname, workdir, cpu_frac=0.8, mem_frac=0.8):
     """
     Perform noise diode based flux calibration
+
     Parameters
     ----------
     msname: str
@@ -207,6 +226,7 @@ def run_noise_diode_cal(msname, workdir, cpu_frac=0.8, mem_frac=0.8):
         CPU fraction to use
     mem_frac : float, optional
         Memory fraction to use
+
     Returns
     -------
     int
@@ -228,6 +248,8 @@ def run_noise_diode_cal(msname, workdir, cpu_frac=0.8, mem_frac=0.8):
             + " --mem_frac "
             + str(mem_frac)
         )
+        logfile = workdir + "/logs/" + noisecal_basename + ".log"
+        noise_cal_cmd+=f" --logfile {logfile}"
         if os.path.isdir(workdir + "/logs") == False:
             os.makedirs(workdir + "/logs")
         batch_file = create_batch_script_nonhpc(
@@ -256,6 +278,7 @@ def run_noise_diode_cal(msname, workdir, cpu_frac=0.8, mem_frac=0.8):
 def run_partion(msname, workdir, split_fullpol=False, cpu_frac=0.8, mem_frac=0.8):
     """
     Perform basic calibration
+
     Parameters
     ----------
     msname: str
@@ -268,6 +291,7 @@ def run_partion(msname, workdir, split_fullpol=False, cpu_frac=0.8, mem_frac=0.8
         CPU fraction to use
     mem_frac : float, optional
         Memory fraction to use
+
     Returns
     -------
     int
@@ -306,20 +330,22 @@ def run_partion(msname, workdir, split_fullpol=False, cpu_frac=0.8, mem_frac=0.8
     cal_scans = copy.deepcopy(cal_scans_copy)
     cal_scans = ",".join([str(s) for s in cal_scans])
     calibrator_ms = workdir + "/calibrator.ms"
-    split_cmd = f"run_partition --msname {msname} --outputms {calibrator_ms} --scans {cal_scans} --timebin {timebin} --width {width} --cpu_frac {cpu_frac} --mem_frac {mem_frac} --split_fullpol {split_fullpol}"
+    split_cmd = f"run_partition --msname {msname} --outputms {calibrator_ms} --scans {cal_scans} --timebin {timebin} --width {width} --cpu_frac {cpu_frac} --mem_frac {mem_frac} --split_fullpol {split_fullpol} --workdir {workdir}"
     ####################################
     # Partition fields
     ####################################
     print("\n########################################")
-    basename = f"partition_cal"
+    partition_basename = f"partition_cal"
+    logfile = workdir + "/logs/" + partition_basename + ".log"
+    split_cmd+=f" --logfile {logfile}"
     if os.path.isdir(workdir + "/logs") == False:
         os.makedirs(workdir + "/logs")
-    batch_file = create_batch_script_nonhpc(split_cmd, workdir, basename)
+    batch_file = create_batch_script_nonhpc(split_cmd, workdir, partition_basename)
     print(split_cmd + "\n")
     os.system("bash " + batch_file)
     print("Waiting to finish partitioning...\n")
     while True:
-        finished_file = glob.glob(workdir + "/.Finished_" + basename + "*")
+        finished_file = glob.glob(workdir + "/.Finished_" + partition_basename + "*")
         if len(finished_file) > 0:
             break
         else:
@@ -355,6 +381,7 @@ def run_target_split_jobs(
 ):
     """
     Split target scans
+
     Parameters
     ----------
     msname: str
@@ -389,6 +416,7 @@ def run_target_split_jobs(
         CPU fraction to use
     mem_frac : float, optional
         Memory fraction to use
+
     Returns
     -------
     int
@@ -440,6 +468,8 @@ def run_target_split_jobs(
             split_cmd = (
                 split_cmd + " --scans " + ",".join([str(s) for s in target_scans])
             )
+        logfile = workdir + "/logs/" + split_basename + ".log"
+        split_cmd+=f" --logfile {logfile}"
         if os.path.isdir(workdir + "/logs") == False:
             os.makedirs(workdir + "/logs")
         batch_file = create_batch_script_nonhpc(split_cmd, workdir, split_basename)
@@ -462,6 +492,7 @@ def run_sidereal_cor_jobs(
 ):
     """
     Apply sidereal motion correction
+
     Parameters
     ----------
     mslist: str
@@ -478,6 +509,7 @@ def run_sidereal_cor_jobs(
         Maximum CPU fraction to use
     max_mem_frac : float, optional
         Maximum memory fraction to use
+
     Returns
     -------
     int
@@ -505,6 +537,8 @@ def run_sidereal_cor_jobs(
         )
         if os.path.isdir(workdir + "/logs") == False:
             os.makedirs(workdir + "/logs")
+        logfile = workdir + "/logs/" + sidereal_basename + ".log"
+        sidereal_cor_cmd+=f" --logfile {logfile}"
         batch_file = create_batch_script_nonhpc(
             sidereal_cor_cmd, workdir, sidereal_basename
         )
@@ -531,21 +565,26 @@ def run_sidereal_cor_jobs(
 def run_apply_pbcor(
     imagedir,
     workdir,
+    apply_parang=True,
     cpu_frac=0.8,
     mem_frac=0.8,
 ):
     """
     Apply primary beam corrections on all images
+
     Parameters
     ----------
     imagedir: str
         Image directory name
     workdir : str
         Work directory
+    apply_parang : bool, optional
+        Apply parallactic angle correction
     cpu_frac : float, optional
         CPU fraction to use
     mem_frac : float, optional
         Memory fraction to use
+
     Returns
     -------
     int
@@ -559,13 +598,19 @@ def run_apply_pbcor(
         applypbcor_cmd = (
             "run_meerpbcor --imagedir "
             + str(imagedir)
+            + " --workdir "
+            + str(workdir)
             + " --cpu_frac "
             + str(cpu_frac)
             + " --mem_frac "
             + str(mem_frac)
+            + " --apply_parang "
+            + str(apply_parang)
         )
         if os.path.isdir(workdir + "/logs") == False:
             os.makedirs(workdir + "/logs")
+        logfile = workdir + "/logs/" + applypbcor_basename + ".log"
+        applypbcor_cmd+=f" --logfile {logfile}"
         batch_file = create_batch_script_nonhpc(
             applypbcor_cmd, workdir, applypbcor_basename
         )
@@ -603,6 +648,7 @@ def run_apply_basiccal_sol(
 ):
     """
     Apply basic calibration solutions on splited target scans
+
     Parameters
     ----------
     target_mslist: list
@@ -621,6 +667,7 @@ def run_apply_basiccal_sol(
         Memory fraction to use
     overwrite_datacolumn : bool
         Overwrite data column or not
+
     Returns
     -------
     int
@@ -648,9 +695,12 @@ def run_apply_basiccal_sol(
             + str(overwrite_datacolumn)
             + " --applymode "
             + str(applymode)
+            + " --do_post_flag False"
         )
         if os.path.isdir(workdir + "/logs") == False:
             os.makedirs(workdir + "/logs")
+        logfile = workdir + "/logs/" + applycal_basename + ".log"
+        applycal_cmd+=f" --logfile {logfile}"
         batch_file = create_batch_script_nonhpc(
             applycal_cmd, workdir, applycal_basename
         )
@@ -685,6 +735,7 @@ def run_apply_selfcal_sol(
 ):
     """
     Apply self-calibration solutions on splited target scans
+
     Parameters
     ----------
     target_mslist: list
@@ -703,6 +754,7 @@ def run_apply_selfcal_sol(
         Memory fraction to use
     overwrite_datacolumn : bool
         Overwrite data column or not
+
     Returns
     -------
     int
@@ -731,6 +783,8 @@ def run_apply_selfcal_sol(
         )
         if os.path.isdir(workdir + "/logs") == False:
             os.makedirs(workdir + "/logs")
+        logfile = workdir + "/logs/" + applycal_basename + ".log"
+        applycal_cmd+=f" --logfile {logfile}"
         batch_file = create_batch_script_nonhpc(
             applycal_cmd, workdir, applycal_basename
         )
@@ -778,6 +832,7 @@ def run_selfcal_jobs(
 ):
     """
     Self-calibration on target scans
+
     Parameters
     ----------
     mslist: list
@@ -818,6 +873,7 @@ def run_selfcal_jobs(
         Solution apply mode
     solar_selfcal : bool, optional
         Whether is is solar selfcal or not
+
     Returns
     -------
     int
@@ -896,6 +952,8 @@ def run_selfcal_jobs(
 def run_imaging_jobs(
     mslist,
     workdir,
+    freqrange="",
+    timerange="",
     cpu_frac=0.8,
     mem_frac=0.8,
     minuv=-1,
@@ -906,19 +964,26 @@ def run_imaging_jobs(
     timeres=-1,
     band="",
     threshold=1.0,
-    multiscale_scales=[],
+    use_multiscale=True,
     use_solar_mask=True,
+    cutout_rsun=2.5,
+    make_overlay=True,
     savemodel=False,
     saveres=False,
 ):
     """
     Self-calibration on target scans
+
     Parameters
     ----------
     mslist: list
         Target measurement set list
     workdir : str
         Working directory
+    freqrange : str, optional
+        Frequency range to image
+    timerange : str, optional
+        Time range to image
     cpu_frac : float, optional
         CPU fraction to use
     mem_frac : float, optional
@@ -930,7 +995,8 @@ def run_imaging_jobs(
     robust : float, optional
         Briggs weighting robust parameter (-1 to 1)
     pol : str, optional
-        Stokes parameters to image
+        Stokes
+    Parameters to image
     freqres : float, optional
         Frequency resolution of spectral chunk in MHz (default : -1, no spectral chunking)
     timeres : float, optional
@@ -939,14 +1005,19 @@ def run_imaging_jobs(
         Band name
     threshold : float, optional
         CLEAN threshold
-    multiscale_scales : list, optional
-        Multiscale scales in pixel unit
+    use_multiscale : bool, optional
+        Use multiscale or not
     use_solar_mask : bool, optional
         Use solar mask or not
+    cutout_rsun : float, optional
+        Cutout image size from center in solar radii (default : 2.5 solar radii)
+    make_overlay : bool, optional
+        Make SUVI MeerKAT overlay
     savemodel : bool, optional
         Save model images or not
     saveres : bool, optional
         Save residual images or not
+
     Returns
     -------
     int
@@ -986,12 +1057,20 @@ def run_imaging_jobs(
             + str(savemodel)
             + " --saveres "
             + str(saveres)
+            + " --use_multiscale "
+            + str(use_multiscale)
+            + " --make_overlay "
+            + str(make_overlay)
+            + " --cutout_rsun "
+            + str(cutout_rsun)
+            + " --make_plots True"
         )
+        if freqrange != "":
+            imaging_cmd += " --freqrange " + str(freqrange)
+        if timerange != "":
+            imaging_cmd += " --timerange " + str(timerange)
         if band != "":
             imaging_cmd += " --band " + str(band)
-        if len(multiscale_scales) > 0:
-            multiscales = ",".join([str(i) for i in multiscale_scales])
-            imaging_cmd += " --multiscale_scales " + multiscales
         if os.path.isdir(workdir + "/logs") == False:
             os.makedirs(workdir + "/logs")
         batch_file = create_batch_script_nonhpc(imaging_cmd, workdir, imaging_basename)
@@ -1018,12 +1097,14 @@ def run_imaging_jobs(
 def check_status(workdir, basename):
     """
     Check job status
+
     Parameters
     ----------
     workdir : str
         Work directory
     basename : str
         Basename
+
     Returns
     -------
     bool
@@ -1048,8 +1129,7 @@ def exit_job(start_time, mspath="", workdir=""):
         os.system("rm -rf " + mspath + "/dask-scratch-space " + mspath + "/tmp")
     if workdir != "" and os.path.exists(workdir + "/dask-scratch-space"):
         os.system("rm -rf " + workdir + "/dask-scratch-space " + workdir + "/tmp")
-
-
+        
 def master_control(
     msname,
     workdir,
@@ -1069,7 +1149,8 @@ def master_control(
     do_ap_selfcal=True,
     solar_selfcal=True,
     target_scans=[],
-    spw="",
+    freqrange="",
+    timerange="",
     uvrange="",
     solint="5min",
     do_imaging=True,
@@ -1082,17 +1163,20 @@ def master_control(
     image_freqres=-1,
     image_timeres=-1,
     pol="I",
+    apply_parang=True,
     clean_threshold=1.0,
-    multiscale_scales=[],
+    use_multiscale=True,
     use_solar_mask=True,
+    cutout_rsun=2.5,
+    make_overlay=True,
     cpu_frac=0.8,
     mem_frac=0.8,
-    split_target_frac=0.2,
     n_nodes=1,
     keep_backup=False,
 ):
     """
     Master controller of the entire pipeline
+
     Parameters
     ----------
     msname : str
@@ -1129,8 +1213,10 @@ def master_control(
         Whether self-calibration is performing on solar observation or not
     target_scans : list, optional
         Target scans to self-cal and image
-    spw : str, optional
-        Spectral window to image
+    freqrange : str, optional
+        Frequency range to image in MHz (xx1~xx2,xx3~xx4,)
+    timerange : str, optional
+        Time range to image in YYYY/MM/DD/hh:mm:ss format (tt1~tt2,tt3~tt4,...)
     uvrange : str, optional
         UV-range for calibration
     solint : str, optional
@@ -1154,23 +1240,29 @@ def master_control(
     image_timeres : float, optional
         Image temporal resolution
     pol : str, optional
-        Stokes parameters of final imaging
+        Stokes
+    Parameters of final imaging
+    apply_parang : bool, optional
+        Apply parallactic angle correction
     clean_threshold : float, optional
         CLEAN threshold of final imaging
-    multiscale_scales : list, optional
-        Multiscale scales in pixel unit
+    use_multiscale : bool, optional
+        Use multiscale scales or not
     use_solar_mask : bool, optional
         Use solar mask
+    cutout_rsun : float, optional
+        Cutout image size from center in solar radii (default : 2.5 solar radii)
+    make_overlay : bool, optional
+        Make SUVI MeerKAT overlay
     cpu_frac : float, optional
         CPU fraction to use
     mem_frac : float, optional
         Memory fraction to use
-    split_target_frac : float, optional
-        Fraction of compute resource to use for target data spliting
     n_nodes: int, optional
         Number of nodes to use (Only for cluster architechture)
     keep_backup : bool, optional
         Keep backup of self-cal rounds and final models and residual images
+
     Returns
     -------
     int
@@ -1196,11 +1288,33 @@ def master_control(
         workdir = workdir[:-1]
     if os.path.exists(workdir) == False:
         os.makedirs(workdir)
+    if mspath != "" and os.path.exists(mspath + "/dask-scratch-space"):
+        os.system("rm -rf " + mspath + "/dask-scratch-space " + mspath + "/tmp")
+    if workdir != "" and os.path.exists(workdir + "/dask-scratch-space"):
+        os.system("rm -rf " + workdir + "/dask-scratch-space " + workdir + "/tmp")
     os.chdir(workdir)
     caldir = workdir + "/caltables"
     cpu_frac_bkp = copy.deepcopy(cpu_frac)
     mem_frac_bkp = copy.deepcopy(mem_frac)
 
+    ####################################
+    # Job name and logging password
+    ####################################
+    hostname = socket.gethostname()
+    timestamp = dt.utcnow().strftime("%Y-%m-%dT%H:%M:%S")
+    job_name = f"{hostname} :: {timestamp} :: {os.path.basename(msname).split('.ms')[0]}"
+    timestamp1 = dt.utcnow().strftime("%Y%m%dT%H%M%S")
+    job_id = f"{hostname}_{timestamp1}_{os.path.basename(msname).split('.ms')[0]}"
+    password=generate_password()
+    np.save(f"{workdir}/jobname_password.npy",np.array([job_name,password],dtype="object"))
+    print ("############################################################################")
+    print ("https://meersolar-logger.onrender.com")
+    print (f"Job ID: {job_name}")
+    print (f"Remote access password: {password}")
+    stop_event = threading.Event()
+    threading.Thread(target=ping_logger, args=(job_id, stop_event), daemon=False).start()
+    print ("#############################################################################")
+    
     #####################################
     # Settings for solar data
     #####################################
@@ -1246,22 +1360,18 @@ def master_control(
     #########################################
     # Target ms frequency chunk based on band
     #########################################
-    if spw == "":
-        bad_spws = get_bad_chans(msname).split("0:")[-1].split(";")
-        good_start = []
-        good_end = []
-        for i in range(len(bad_spws) - 1):
-            start_chan = int(bad_spws[i].split("~")[-1]) + 1
-            end_chan = int(bad_spws[i + 1].split("~")[0]) - 1
-            good_start.append(start_chan)
-            good_end.append(end_chan)
-        start_chan = min(good_start)
-        end_chan = max(good_end)
-        spw = f"0:{start_chan}~{end_chan}"
-    else:
-        start_chan = int(spw.split("0:")[-1].split(";")[0].split("~")[0])
-        end_chan = int(spw.split("0:")[-1].split(";")[-1].split("~")[-1])
-    
+    bad_spws = get_bad_chans(msname).split("0:")[-1].split(";")
+    good_start = []
+    good_end = []
+    for i in range(len(bad_spws) - 1):
+        start_chan = int(bad_spws[i].split("~")[-1]) + 1
+        end_chan = int(bad_spws[i + 1].split("~")[0]) - 1
+        good_start.append(start_chan)
+        good_end.append(end_chan)
+    start_chan = min(good_start)
+    end_chan = max(good_end)
+    spw = f"0:{start_chan}~{end_chan}"
+
     msmd = msmetadata()
     msmd.open(msname)
     chanres = msmd.chanres(0, unit="MHz")[0]
@@ -1269,7 +1379,12 @@ def master_control(
     total_bw = chanres * (end_chan - start_chan)
     nchunk = 4
     target_freq_chunk = total_bw / nchunk
-    if image_freqres > 0 and image_freqres > target_freq_chunk:
+    if image_freqres < 0:
+        band = get_band_name(msname)
+        if band == "U":
+            target_freq_chunk = -1
+            nchunk = 1
+    elif image_freqres > target_freq_chunk:
         nchunk = image_freqres // target_freq_chunk
         target_freq_chunk = image_freqres / nchunk
 
@@ -1307,65 +1422,14 @@ def master_control(
         )  # Run noise diode based flux calibration
         if msg != 0:
             print(
-                "!!!! WARNING: Error in running noise-diode based flux calibration. Not continuing further. !!!!"
+                "!!!! WARNING: Error in running noise-diode based flux calibration. Flux density calibration may not be correct. !!!!"
             )
-            exit_job(start_time, mspath, workdir)
-            return 1
-
-    #########################################
-    # Spliting target scans
-    #########################################
-    split_start = False
-    total_cpus = psutil.cpu_count(logical=True)  # Total logical CPU cores
-    total_mem = psutil.virtual_memory().total / 1024**3  # Total system memory (GB)
-    min_cpu_frac = round(4.0 / total_cpus, 2)  # Minimum 4 CPU threads
-    min_mem_frac = round(4.0 / total_mem, 2)  # Minimum 4 GB (1GB/threads)
-    if (
-        do_cal_partition == False
-        and do_cal_flag == False
-        and do_import_model == False
-        and do_basic_cal == False
-    ):
-        print(
-            "No other jobs to run in parallel with spliting targets. Making spliting target resource usuage fraction to unity."
-        )
-        split_target_frac = 1.0
-    if do_target_split and (cpu_frac > min_cpu_frac or mem_frac > min_mem_frac):
-        if (
-            round((1 - split_target_frac) * cpu_frac, 2) >= min_cpu_frac
-            and round((1 - split_target_frac) * mem_frac, 2) >= min_mem_frac
-        ):
-            msg = run_target_split_jobs(
-                msname,
-                workdir,
-                datacolumn="data",
-                spw=spw,
-                target_freq_chunk=target_freq_chunk,
-                timeres=timeavg,
-                freqres=freqavg,
-                n_spectral_chunk=-1,
-                prefix="targets",
-                split_fullpol=do_polcal,
-                target_scans=target_scans,
-                cpu_frac=round(split_target_frac * cpu_frac, 2),
-                mem_frac=round(split_target_frac * mem_frac, 2),
-                max_cpu_frac=round(cpu_frac, 2),
-                max_mem_frac=round(mem_frac, 2),
-            )
-            cpu_frac = cpu_frac * (1 - split_target_frac)
-            mem_frac = mem_frac * (1 - split_target_frac)
-            if msg != 0:
-                print("!!!! WARNING: Error in running spliting target scans. !!!!")
-            split_start = True
 
     ##############################
     # Run partitioning jobs
     ##############################
-    if do_target_split and check_status(workdir, "split_targets") and split_start:
-        cpu_frac = copy.deepcopy(cpu_frac_bkp)
-        mem_frac = copy.deepcopy(mem_frac_bkp)
     calibrator_msname = workdir + "/calibrator.ms"
-    if do_cal_partition or (do_basic_cal and os.path.exists(calibrator_msname) == False):
+    if do_cal_partition or ((do_cal_flag or do_import_model or do_basic_cal) and os.path.exists(calibrator_msname) == False):
         msg = run_partion(
             msname,
             workdir,
@@ -1376,18 +1440,17 @@ def master_control(
         if msg != 0:
             print("!!!! WARNING: Error in partitioning calibrator fields. !!!!")
             exit_job(start_time, mspath, workdir)
+            threading.Timer(10000, stop_event.set).start()
             return 1
 
     ##################################
     # Run flagging jobs on calibrators
     ##################################
-    if do_target_split and check_status(workdir, "split_targets") and split_start:
-        cpu_frac = copy.deepcopy(cpu_frac_bkp)
-        mem_frac = copy.deepcopy(mem_frac_bkp)
     if do_cal_flag:
         if os.path.exists(calibrator_msname) == False:
             print(f"Calibrator ms: {calibrator_ms} is not present.")
             exit_job(start_time, mspath, workdir)
+            threading.Timer(10000, stop_event.set).start()
             return 1
         msg = run_flag(
             calibrator_msname,
@@ -1397,20 +1460,18 @@ def master_control(
             mem_frac=round(mem_frac, 2),
         )
         if msg != 0:
-            print("!!!! WARNING: Flagging error. !!!!")
+            print("!!!! WARNING: Flagging error. Examine calibration solutions with caution. !!!!")
             exit_job(start_time, mspath, workdir)
-            return 1
+            threading.Timer(10000, stop_event.set).start()
 
     #################################
     # Import model
     #################################
-    if do_target_split and check_status(workdir, "split_targets") and split_start:
-        cpu_frac = copy.deepcopy(cpu_frac_bkp)
-        mem_frac = copy.deepcopy(mem_frac_bkp)
     if do_import_model:
         if os.path.exists(calibrator_msname) == False:
             print(f"Calibrator ms: {calibrator_ms} is not present.")
             exit_job(start_time, mspath, workdir)
+            threading.Timer(10000, stop_event.set).start()
             return 1
         fluxcal_fields, fluxcal_scans = get_fluxcals(calibrator_msname)
         phasecal_fields, phasecal_scans, phasecal_fluxes = get_phasecals(
@@ -1428,19 +1489,18 @@ def master_control(
                 "!!!! WARNING: Error in importing calibrator models. Not continuing calibration. !!!!"
             )
             exit_job(start_time, mspath, workdir)
+            threading.Timer(10000, stop_event.set).start()
             return 1
 
     ###############################
     # Run basic calibration
     ###############################
-    if do_target_split and check_status(workdir, "split_targets") and split_start:
-        cpu_frac = copy.deepcopy(cpu_frac_bkp)
-        mem_frac = copy.deepcopy(mem_frac_bkp)
     use_only_bandpass = False
     if do_basic_cal:
         if os.path.exists(calibrator_msname) == False:
             print(f"Calibrator ms: {calibrator_ms} is not present.")
             exit_job(start_time, mspath, workdir)
+            threading.Timer(10000, stop_event.set).start()
             return 1
         msg = run_basic_cal_jobs(
             calibrator_msname,
@@ -1455,6 +1515,7 @@ def master_control(
                 "!!!! WARNING: Error in basic calibration. Not continuing further. !!!!"
             )
             exit_job(start_time, mspath, workdir)
+            threading.Timer(10000, stop_event.set).start()
             return 1
 
     ##########################################
@@ -1463,6 +1524,7 @@ def master_control(
     if len(glob.glob(caldir + "/*.bcal")) == 0:
         print(f"No bandpass table is present in calibration directory : {caldir}.")
         exit_job(start_time, mspath, workdir)
+        threading.Timer(10000, stop_event.set).start()
         return 1
     if len(glob.glob(caldir + "/*.gcal")) == 0:
         print(
@@ -1473,6 +1535,12 @@ def master_control(
     ############################################
     # Spliting for self-cals
     ############################################
+    if do_selfcal_split==False:
+        selfcal_target_mslist = glob.glob(workdir + "/selfcals_scan*.ms")
+        if len(selfcal_target_mslist) == 0:
+            print ("No measurement set is present for self-calibration. Spliting them..")
+            do_selfcal_split = True
+        
     if do_selfcal_split:
         prefix = "selfcals"
         try:
@@ -1497,7 +1565,7 @@ def master_control(
             target_scans=target_scans,
             prefix=prefix,
             merge_spws=True,
-            time_window=min(60,time_interval),
+            time_window=min(60, time_interval),
             time_interval=time_interval,
             split_fullpol=do_polcal,
             cpu_frac=round(cpu_frac, 2),
@@ -1530,16 +1598,11 @@ def master_control(
                 )
                 do_selfcal = False
 
-    cpu_frac = copy.deepcopy(cpu_frac_bkp)
-    mem_frac = copy.deepcopy(mem_frac_bkp)
-    selfcal_target_mslist = glob.glob(workdir + "/selfcals_scan*.ms")
-    if len(selfcal_target_mslist) == 0:
-        do_selfcal = False
-
     ####################################
     # Filtering any corrupted ms
     #####################################
     if do_selfcal:
+        selfcal_target_mslist = glob.glob(workdir + "/selfcals_scan*.ms")
         filtered_mslist = []  # Filtering in case any ms is corrupted
         for ms in selfcal_target_mslist:
             checkcol = check_datacolumn_valid(ms)
@@ -1560,29 +1623,23 @@ def master_control(
     # Applying solutions on target scans for self-calibration
     #########################################################
     if do_selfcal:  # Applying solutions for selfcal
-        if len(selfcal_mslist) > 0:
-            caldir = workdir + "/caltables"
-            msg = run_apply_basiccal_sol(
-                selfcal_mslist,
-                workdir,
-                caldir,
-                use_only_bandpass=use_only_bandpass,
-                overwrite_datacolumn=False,
-                applymode="calflag",
-                cpu_frac=round(cpu_frac, 2),
-                mem_frac=round(mem_frac, 2),
-            )
-            if msg != 0:
-                print(
-                    "!!!! WARNING: Error in applying basic calibration solutions on target scans. Not continuing further for selfcal.!!!!"
-                )
-                do_selfcal = False
-        else:
+        caldir = workdir + "/caltables"
+        msg = run_apply_basiccal_sol(
+            selfcal_mslist,
+            workdir,
+            caldir,
+            use_only_bandpass=use_only_bandpass,
+            overwrite_datacolumn=False,
+            applymode="calflag",
+            cpu_frac=round(cpu_frac, 2),
+            mem_frac=round(mem_frac, 2),
+        )
+        if msg != 0:
             print(
-                "!!!! WARNING: No measurement set is present for basic calibration applying solutions. Not continuing further for selfcal. !!!!"
+                "!!!! WARNING: Error in applying basic calibration solutions on target scans. Not continuing further for selfcal.!!!!"
             )
             do_selfcal = False
-
+        
     ########################################
     # Performing self-calibration
     ########################################
@@ -1621,7 +1678,7 @@ def master_control(
     ########################################
     # Checking self-cal caltables
     ########################################
-    selfcaldir = workdir + "/caltables/*selfcal*"
+    selfcaldir = glob.glob(workdir + "/caltables/*selfcal*")
     if len(selfcaldir) == 0:
         print(
             "Self-calibration is not performed and no self-calibration caltable is available."
@@ -1631,47 +1688,49 @@ def master_control(
     #############################################
     # Check spliting target scans finished or not
     #############################################
+    prefix = "targets"
     if do_target_split:
-        prefix = "targets"
-        if split_start == False:
-            msg = run_target_split_jobs(
-                msname,
-                workdir,
-                datacolumn="data",
-                spw=spw,
-                target_freq_chunk=target_freq_chunk,
-                timeres=timeavg,
-                freqres=freqavg,
-                n_spectral_chunk=-1,
-                target_scans=target_scans,
-                prefix=prefix,
-                split_fullpol=do_polcal,
-                cpu_frac=round(cpu_frac, 2),
-                mem_frac=round(mem_frac, 2),
-                max_cpu_frac=round(cpu_frac, 2),
-                max_mem_frac=round(mem_frac, 2),
-            )
-            if msg != 0:
-                print("!!!! WARNING: Error in running spliting target scans. !!!!")
-                exit_job(start_time, mspath, workdir)
-                return 1
-        print("Waiting to finish spliting of target scans...\n")
-        split_basename = f"split_{prefix}"
-        while True:
-            finished_file = glob.glob(workdir + "/.Finished_" + split_basename + "*")
-            if len(finished_file) > 0:
-                break
-            else:
-                time.sleep(1)
-        success_index_split_target = int(finished_file[0].split("_")[-1])
-        if success_index_split_target == 0:
-            print("Spliting target scans are done successfully.\n")
-        else:
-            print(
-                "!!!! WARNING: Error in spliting target scans. Not continuing further. !!!!"
-            )
+        msg = run_target_split_jobs(
+            msname,
+            workdir,
+            datacolumn="data",
+            spw=spw,
+            target_freq_chunk=target_freq_chunk,
+            timeres=timeavg,
+            freqres=freqavg,
+            n_spectral_chunk=-1,
+            target_scans=target_scans,
+            prefix=prefix,
+            split_fullpol=do_polcal,
+            cpu_frac=round(cpu_frac, 2),
+            mem_frac=round(mem_frac, 2),
+            max_cpu_frac=round(cpu_frac, 2),
+            max_mem_frac=round(mem_frac, 2),
+        )
+        if msg != 0:
+            print("!!!! WARNING: Error in running spliting target scans. !!!!")
             exit_job(start_time, mspath, workdir)
+            threading.Timer(10000, stop_event.set).start()
             return 1
+
+    print("Waiting to finish spliting of target scans...\n")
+    split_basename = f"split_{prefix}"
+    while True:
+        finished_file = glob.glob(workdir + "/.Finished_" + split_basename + "*")
+        if len(finished_file) > 0:
+            break
+        else:
+            time.sleep(1)
+    success_index_split_target = int(finished_file[0].split("_")[-1])
+    if success_index_split_target == 0:
+        print("Spliting target scans are done successfully.\n")
+    else:
+        print(
+            "!!!! WARNING: Error in spliting target scans. Not continuing further. !!!!"
+        )
+        exit_job(start_time, mspath, workdir)
+        threading.Timer(10000, stop_event.set).start()
+        return 1
 
     cpu_frac = copy.deepcopy(cpu_frac_bkp)
     mem_frac = copy.deepcopy(mem_frac_bkp)
@@ -1692,6 +1751,7 @@ def master_control(
     if len(target_mslist) == 0:
         print("No splited target scan ms are available in work directory.")
         exit_job(start_time, mspath, workdir)
+        threading.Timer(10000, stop_event.set).start()
         return 1
 
     if do_applycal or do_imaging:
@@ -1718,12 +1778,14 @@ def master_control(
                     "!!!! WARNING: Error in applying basic calibration solutions on target scans. Not continuing further.!!!!"
                 )
                 exit_job(start_time, mspath, workdir)
+                threading.Timer(10000, stop_event.set).start()
                 return 1
         else:
             print(
                 "!!!! WARNING: No measurement set is present for basic calibration applying solutions. Not continuing further. !!!!"
             )
             exit_job(start_time, mspath, workdir)
+            threading.Timer(10000, stop_event.set).start()
             return 1
         msg = run_sidereal_cor_jobs(
             target_mslist,
@@ -1766,6 +1828,8 @@ def master_control(
         msg = run_imaging_jobs(
             target_mslist,
             workdir,
+            freqrange=freqrange,
+            timerange=timerange,
             cpu_frac=round(cpu_frac, 2),
             mem_frac=round(mem_frac, 2),
             minuv=minuv,
@@ -1776,8 +1840,10 @@ def master_control(
             freqres=image_freqres,
             timeres=image_timeres,
             threshold=float(clean_threshold),
-            multiscale_scales=multiscale_scales,
+            use_multiscale=use_multiscale,
             use_solar_mask=use_solar_mask,
+            cutout_rsun=cutout_rsun,
+            make_overlay=make_overlay,
             savemodel=keep_backup,
             saveres=keep_backup,
         )
@@ -1786,6 +1852,7 @@ def master_control(
                 "!!!! WARNING: Final imaging on all measurement sets is not successful. Check the image directory. !!!!"
             )
             exit_job(start_time, mspath, workdir)
+            threading.Timer(10000, stop_event.set).start()
             return 1
 
     ###########################
@@ -1821,6 +1888,7 @@ def master_control(
             msg = run_apply_pbcor(
                 imagedir,
                 workdir,
+                apply_parang=apply_parang,
                 cpu_frac=round(cpu_frac, 2),
                 mem_frac=round(mem_frac, 2),
             )
@@ -1829,7 +1897,9 @@ def master_control(
                     "!!!! WARNING: Primary beam corrections of the final images are not successful. !!!!"
                 )
                 exit_job(start_time, mspath, workdir)
+                threading.Timer(10000, stop_event.set).start()
                 return 1
+            print(f"Final image directory: {os.path.dirname(imagedir)}\n")
     ###########################################
     # Successful exit
     ###########################################
@@ -1837,4 +1907,117 @@ def master_control(
         f"Calibration and imaging pipeline is successfully run on measurement set : {msname}\n"
     )
     exit_job(start_time, mspath, workdir)
+    threading.Timer(10000, stop_event.set).start()
     return 0
+    
+def main():
+    parser = argparse.ArgumentParser(
+        description="Run MeerSOLAR for calibration and imaging."
+    )
+    
+    # === Essential parameters ===
+    essential = parser.add_argument_group("Essential parameters")
+    essential.add_argument("msname", type=str, help="Measurement set name")
+    essential.add_argument("workdir", type=str, help="Working directory")
+    essential.add_argument("--solar_data", action="store_true", help="Enable solar data mode")
+    
+    # === Advanced options ===
+    advanced = parser.add_argument_group("Advanced parameters")
+
+    advanced.add_argument("--do_basic_cal", action="store_true", help="Perform basic gain calibration")
+    advanced.add_argument("--do_imaging", action="store_true", help="Run final imaging")
+    advanced.add_argument("--do_forcereset_weightflag", action="store_true")
+    advanced.add_argument("--do_cal_partition", action="store_true")
+    advanced.add_argument("--do_cal_flag", action="store_true")
+    advanced.add_argument("--do_import_model", action="store_true")
+    advanced.add_argument("--do_noise_cal", action="store_true")
+    advanced.add_argument("--do_applycal", action="store_true")
+    advanced.add_argument("--do_target_split", action="store_true")
+    advanced.add_argument("--do_polcal", action="store_true")
+    advanced.add_argument("--do_selfcal", action="store_true")
+    advanced.add_argument("--do_selfcal_split", action="store_true")
+    advanced.add_argument("--do_apply_selfcal", action="store_true")
+    advanced.add_argument("--do_ap_selfcal", action="store_true")
+    advanced.add_argument("--solar_selfcal", action="store_true")
+
+    advanced.add_argument("--target_scans", nargs='*', type=str, default=[])
+    advanced.add_argument("--freqrange", type=str, default="")
+    advanced.add_argument("--timerange", type=str, default="")
+    advanced.add_argument("--uvrange", type=str, default="")
+    advanced.add_argument("--solint", type=str, default="5min")
+
+    advanced.add_argument("--do_pbcor", action="store_true")
+    advanced.add_argument("--weight", type=str, default="briggs")
+    advanced.add_argument("--robust", type=float, default=0.0)
+    advanced.add_argument("--minuv", type=float, default=0)
+    advanced.add_argument("--freqavg", type=int, default=-1)
+    advanced.add_argument("--timeavg", type=int, default=-1)
+    advanced.add_argument("--image_freqres", type=int, default=-1)
+    advanced.add_argument("--image_timeres", type=int, default=-1)
+    advanced.add_argument("--pol", type=str, default="I")
+    advanced.add_argument("--apply_parang", action="store_true")
+    advanced.add_argument("--clean_threshold", type=float, default=1.0)
+    advanced.add_argument("--use_multiscale", action="store_true")
+    advanced.add_argument("--use_solar_mask", action="store_true")
+    advanced.add_argument("--cutout_rsun", type=float, default=2.5)
+    advanced.add_argument("--make_overlay", action="store_true")
+    advanced.add_argument("--cpu_frac", type=float, default=0.8)
+    advanced.add_argument("--mem_frac", type=float, default=0.8)
+    advanced.add_argument("--n_nodes", type=int, default=1)
+    advanced.add_argument("--keep_backup", action="store_true")
+
+    if len(sys.argv) == 1:
+        parser.print_help(sys.stderr)
+        sys.exit(1)
+    
+    args = parser.parse_args()
+    
+    master_control(
+        msname=args.msname,
+        workdir=args.workdir,
+        solar_data=args.solar_data,
+        do_forcereset_weightflag=args.do_forcereset_weightflag,
+        do_cal_partition=args.do_cal_partition,
+        do_cal_flag=args.do_cal_flag,
+        do_import_model=args.do_import_model,
+        do_basic_cal=args.do_basic_cal,
+        do_noise_cal=args.do_noise_cal,
+        do_applycal=args.do_applycal,
+        do_target_split=args.do_target_split,
+        do_polcal=args.do_polcal,
+        do_selfcal=args.do_selfcal,
+        do_selfcal_split=args.do_selfcal_split,
+        do_apply_selfcal=args.do_apply_selfcal,
+        do_ap_selfcal=args.do_ap_selfcal,
+        solar_selfcal=args.solar_selfcal,
+        target_scans=args.target_scans,
+        freqrange=args.freqrange,
+        timerange=args.timerange,
+        uvrange=args.uvrange,
+        solint=args.solint,
+        do_imaging=args.do_imaging,
+        do_pbcor=args.do_pbcor,
+        weight=args.weight,
+        robust=args.robust,
+        minuv=args.minuv,
+        freqavg=args.freqavg,
+        timeavg=args.timeavg,
+        image_freqres=args.image_freqres,
+        image_timeres=args.image_timeres,
+        pol=args.pol,
+        apply_parang=args.apply_parang,
+        clean_threshold=args.clean_threshold,
+        use_multiscale=args.use_multiscale,
+        use_solar_mask=args.use_solar_mask,
+        cutout_rsun=args.cutout_rsun,
+        make_overlay=args.make_overlay,
+        cpu_frac=args.cpu_frac,
+        mem_frac=args.mem_frac,
+        n_nodes=args.n_nodes,
+        keep_backup=args.keep_backup,
+    )
+
+if __name__ == "__main__":
+    main()
+    
+    

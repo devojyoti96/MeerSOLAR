@@ -36,6 +36,7 @@ def split_scan(
 ):
     """
     Split a single target scan
+
     Parameters
     ----------
     msname : str
@@ -58,6 +59,7 @@ def split_scan(
         Time range to split
     n_threads : int, optional
         Number of OpenMP threads
+
     Returns
     -------
     str
@@ -87,7 +89,7 @@ def split_scan(
             os.system("rm -rf " + outputvis + ".flagversions")
         print(f"Spliting scan : {scan} of ms: {msname}\n")
         print(
-            f"split(vis='{msname}',outputvis='{outputvis}',field='{fields_str}',scan={scan},spw='{spw}',correlation='{corr}',timerange='{timerange}',width={width},timebin='{timebin}',datacolumn='{datacolumn}')\n"
+            f"split(vis='{msname}',outputvis='{outputvis}',field='{fields_str}',scan='{scan}',spw='{spw}',correlation='{corr}',timerange='{timerange}',width={width},timebin='{timebin}',datacolumn='{datacolumn}')\n"
         )
         s = time.time()
         split(
@@ -132,6 +134,7 @@ def split_target_scans(
     fullpol=False,
     time_interval=-1,
     time_window=-1,
+    quack_timestamps=-1,
     merge_spws=False,
     cpu_frac=0.8,
     mem_frac=0.8,
@@ -140,6 +143,7 @@ def split_target_scans(
 ):
     """
     Split target scans
+
     Parameters
     ----------
     msname : str
@@ -168,6 +172,8 @@ def split_target_scans(
         Time interval in seconds
     time_window : float
         Time window in seconds
+    quack_timestamps : int, optional
+        Number of timestamps ignored at the start and end of each scan
     merge_spws : bool, optional
         Merge spectral window ranges
     cpu_frac : float, optional
@@ -178,6 +184,7 @@ def split_target_scans(
         Maximum CPU fraction to use
     max_mem_frac : float, optional
         Maximum memory fraction to use
+
     Returns
     -------
     list
@@ -196,8 +203,8 @@ def split_target_scans(
             if scan in valid_scans:
                 if len(scans) == 0 or (len(scans) > 0 and scan in scans):
                     filtered_scan_list.append(scan)
-        filtered_scan_list=sorted(filtered_scan_list)
-        
+        filtered_scan_list = sorted(filtered_scan_list)
+
         #######################################
         # Extracting time frequency information
         #######################################
@@ -206,6 +213,8 @@ def split_target_scans(
         msmd = msmetadata()
         msmd.open(msname)
         chanres = msmd.chanres(0, unit="MHz")[0]
+        freqs = msmd.chanfreqs(0, unit="MHz")
+        bw = max(freqs) - min(freqs)
         nchan = msmd.nchan(0)
         msmd.close()
         if freqres > 0:  # Image resolution is in MHz
@@ -238,6 +247,11 @@ def split_target_scans(
             good_spws = common_spws.split("0:")[-1].split(";")
         chanlist = []
         if spectral_chunk > 0:
+            if spectral_chunk > bw:
+                print(
+                    f"Given spectral chunk: {spectral_chunk} is more than total bandwidth: {bw} MHz."
+                )
+                spectral_chunk = bw
             nchan_per_chunk = max(1, int(spectral_chunk / chanres))
             good_channels = []
             for good_spw in good_spws:
@@ -248,7 +262,8 @@ def split_target_scans(
             channel_chunks = split_into_chunks(good_channels, nchan_per_chunk)
             for chunk in channel_chunks:
                 chan_str = chanlist_to_str(chunk)
-                chanlist.append(chan_str)
+                if chan_str not in chanlist:
+                    chanlist.append(chan_str)
             if n_spectral_chunk > 0:
                 indices = np.linspace(
                     0, len(chanlist) - 1, num=n_spectral_chunk, dtype=int
@@ -261,7 +276,8 @@ def split_target_scans(
                 e = int(good_spw.split("~")[-1])
                 chan_range += f"{s}~{e};"
             chan_range = chan_range[:-1]
-            chanlist.append(chan_range)
+            if chan_range not in chanlist:
+                chanlist.append(chan_range)
 
         if merge_spws:
             temp_spw = ";".join(chanlist)
@@ -295,7 +311,11 @@ def split_target_scans(
         splited_ms_list = []
         for scan in filtered_scan_list:
             timerange_list = get_timeranges_for_scan(
-                msname, scan, time_interval, time_window
+                msname,
+                scan,
+                time_interval,
+                time_window,
+                quack_timestamps=quack_timestamps,
             )
             timerange = ",".join(timerange_list)
             for chanrange in chanlist:
@@ -327,13 +347,15 @@ def split_target_scans(
         #####################################
         if cpu_frac == max_cpu_frac and mem_frac == max_mem_frac:
             total_chunks = len(tasks)
-            if total_chunks>0:
-                dask_client, dask_cluster, n_jobs, n_threads, mem_limit = get_dask_client(
-                    total_chunks,
-                    dask_dir=workdir,
-                    cpu_frac=cpu_frac,
-                    mem_frac=mem_frac,
-                    min_mem_per_job=mem_limit / 0.6,
+            if total_chunks > 0:
+                dask_client, dask_cluster, n_jobs, n_threads, mem_limit = (
+                    get_dask_client(
+                        total_chunks,
+                        dask_dir=workdir,
+                        cpu_frac=cpu_frac,
+                        mem_frac=mem_frac,
+                        min_mem_per_job=mem_limit / 0.6,
+                    )
                 )
                 results = compute(*tasks)
                 dask_client.close()
@@ -343,7 +365,7 @@ def split_target_scans(
         else:
             while True:
                 total_chunks = len(tasks)
-                if total_chunks==0:
+                if total_chunks == 0:
                     break
                 else:
                     dask_client, dask_cluster, n_jobs, n_threads, mem_limit = (
@@ -364,7 +386,7 @@ def split_target_scans(
                     for r in results:
                         splited_ms_list.append(r)
                     n_current_process = (
-                        get_nprocess_meersolar() - 1
+                        get_nprocess_meersolar(workdir) - 1
                     )  # One is subtracted for the current process
                     if len(tasks) == 0:
                         break
@@ -449,6 +471,13 @@ def main():
         metavar="Float",
     )
     parser.add_option(
+        "--quack_timestamps",
+        dest="quack_timestamps",
+        default=-1,
+        help="Time stamps to ignore at the start and end of the each scan",
+        metavar="Integer",
+    )
+    parser.add_option(
         "--spectral_chunk",
         dest="spectral_chunk",
         default=-1,
@@ -525,47 +554,73 @@ def main():
         help="Maximum memory fraction to use",
         metavar="Float",
     )
+    parser.add_option(
+        "--logfile",
+        dest="logfile",
+        default=None,
+        help="Log file",
+        metavar="String",
+    )
     (options, args) = parser.parse_args()
-    if options.msname != "" and os.path.exists(options.msname):
-        print("\n###################################")
-        print("Start spliting target scans.")
-        print("###################################\n")
-        try:
+    if options.workdir == "" or os.path.exists(options.workdir) == False:
+        workdir = os.path.dirname(os.path.abspath(options.msname)) + "/workdir"
+        if os.path.exists(workdir) == False:
+            os.makedirs(workdir)
+    else:
+        workdir = options.workdir
+    logfile=options.logfile
+    observer=None
+    if os.path.exists(f"{workdir}/jobname_password.npy") and logfile!=None: 
+        time.sleep(5)
+        jobname,password=np.load(f"{workdir}/jobname_password.npy",allow_pickle=True)
+        if os.path.exists(logfile):
+            print (f"Starting remote logger. Remote logger password: {password}")
+            observer=init_logger("do_target_split",logfile,jobname=jobname,password=password)
+    try:
+        if options.msname != "" and os.path.exists(options.msname):
+            print("\n###################################")
+            print("Start spliting target scans.")
+            print("###################################\n")
             if options.workdir == "" or os.path.exists(options.workdir) == False:
                 print("Provide existing work directory name.")
-                return 1
-            if options.scans != "":
-                scans = [int(i) for i in options.scans.split(",")]
+                msg=1
             else:
-                scans = []
-            msg, final_target_mslist = split_target_scans(
-                options.msname,
-                options.workdir,
-                float(options.timeres),
-                float(options.freqres),
-                options.datacolumn,
-                spw=str(options.spw),
-                time_window=float(options.time_window),
-                time_interval=float(options.time_interval),
-                scans=scans,
-                fullpol=eval(str(options.fullpol)),
-                n_spectral_chunk=int(options.n_spectral_chunk),
-                prefix=options.prefix,
-                merge_spws=eval(str(options.merge_spws)),
-                spectral_chunk=float(options.spectral_chunk),
-                cpu_frac=float(options.cpu_frac),
-                mem_frac=float(options.mem_frac),
-                max_cpu_frac=float(options.max_cpu_frac),
-                max_mem_frac=float(options.max_mem_frac),
-            )
-            return msg
-        except Exception as e:
-            traceback.print_exc()
-            return 1
-    else:
-        print("Please provide correct measurement set.\n")
-        return 1
-
+                if options.scans != "":
+                    scans = [int(i) for i in options.scans.split(",")]
+                else:
+                    scans = []
+                msg, final_target_mslist = split_target_scans(
+                    options.msname,
+                    options.workdir,
+                    float(options.timeres),
+                    float(options.freqres),
+                    options.datacolumn,
+                    spw=str(options.spw),
+                    time_window=float(options.time_window),
+                    time_interval=float(options.time_interval),
+                    quack_timestamps=int(options.quack_timestamps),
+                    scans=scans,
+                    fullpol=eval(str(options.fullpol)),
+                    n_spectral_chunk=int(options.n_spectral_chunk),
+                    prefix=options.prefix,
+                    merge_spws=eval(str(options.merge_spws)),
+                    spectral_chunk=float(options.spectral_chunk),
+                    cpu_frac=float(options.cpu_frac),
+                    mem_frac=float(options.mem_frac),
+                    max_cpu_frac=float(options.max_cpu_frac),
+                    max_mem_frac=float(options.max_mem_frac),
+                )
+        else:
+            print("Please provide correct measurement set.\n")
+            msg=1
+    except Exception as e:
+        traceback.print_exc()
+        msg=1
+    finally:
+        time.sleep(5)
+        clean_shutdown(observer)
+    return msg  
+    
 
 if __name__ == "__main__":
     result = main()

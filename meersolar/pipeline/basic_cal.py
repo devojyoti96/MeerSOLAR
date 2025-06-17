@@ -349,6 +349,7 @@ def run_postcal_flag(
         process = psutil.Process(os.getpid())
         mem = round(process.memory_info().rss / 1024**3, 2)  # in GB
         return mem
+    print(f"Post-calibration flagging on ms: {msname}")
     ncol = 3
     ####################################################
     # Check if required columns are present for residual
@@ -363,26 +364,7 @@ def run_postcal_flag(
         datacolumn_present = check_datacolumn_valid(msname, datacolumn="DATA")
         if modelcolumn_present == False or datacolumn_present == False:
             datacolumn = "corrected"
-    ########################################################
-    # Whenther memory is sufficient for calculating residual
-    ########################################################
-    if (
-        datacolumn == "residual"
-        or datacolumn == "RESIDUAL"
-        or datacolumn == "RESIDUAL_DATA"
-    ):
-        colsize = get_column_size(msname)
-        if memory_limit > (3 * colsize):
-            ncol = 4
-        else:
-            print(
-                "Total available memory for this job is not sufficient to calculate residual."
-            )
-            if datacolumn == "residual":
-                datacolumn = "corrected"
-            else:
-                datacolumn = "data"
-            ncol = 3
+
     #################################################
     # Whether corrected data column is present or not
     #################################################
@@ -394,30 +376,33 @@ def run_postcal_flag(
             )
             return
     try:
-        time_chunk, baseline_chunk = get_chunk_size(
-            msname, memory_limit=memory_limit, ncol=ncol
-        )
-        if baseline_chunk == None or time_chunk == None:
-            print("Memory limit is too small to work. Do not flagging.")
-            return
-        baseline_name_list = baseline_names(msname)
-        print(f"Performing post-calibration flagging on : {msname}")
-        if baseline_chunk > len(baseline_name_list):
-            flagdata(vis=msname, mode=mode, datacolumn=datacolumn, flagbackup=False)
+        nchunk = get_chunk_size(msname, memory_limit=memory_limit)
+        if nchunk <= 1:
+            ntime = "scan"
+            print("Time chunk : full scan")
         else:
-            baseline_blocks = [
-                ";".join(str(x) for x in baseline_name_list[i : i + baseline_chunk])
-                for i in range(0, len(baseline_name_list), baseline_chunk)
-            ]
-            for ant_str in baseline_blocks:
-                flagdata(
-                    vis=msname,
-                    mode=mode,
-                    uvrange=uvrange,
-                    datacolumn=datacolumn,
-                    flagbackup=False,
-                    antenna=ant_str,
-                )
+            msmd = msmetadata()
+            msmd.open(msname)
+            scan = np.unique(msmd.scannumbers())[0]
+            times = msmd.timesforspws(0)
+            msmd.close()
+            total_time = np.nanmax(times) - np.nanmin(times)
+            timeres = np.nanmin(np.diff(times))
+            ntime = float(total_time / nchunk)
+            if ntime < timeres:
+                ntime = timeres
+            print(f"Time chunk : {ntime}s")
+        try:
+            flagdata(
+                vis=msname,
+                mode=mode,
+                uvrange=uvrange,
+                datacolumn=datacolumn,
+                flagbackup=False,
+                ntime=ntime,
+            )
+        except:
+            pass
     except Exception as e:
         traceback.print_exc()
     return
@@ -442,9 +427,10 @@ def single_round_cal_and_flag(
     do_postcal_flag=True,
     cpu_frac=0.8,
     mem_frac=0.8,
-):
+    ):
     """
     Single round calibration and post-calibration flagging
+    
     Parameters
     ----------
     msname : str
@@ -484,6 +470,7 @@ def single_round_cal_and_flag(
         CPU fraction to use
     mem_frac : float, optional
         Memory fraction to use
+        
     Returns
     -------
     int
@@ -600,11 +587,11 @@ def single_round_cal_and_flag(
             dask_client.close()
             dask_cluster.close()
             if delay_caltable != None and os.path.exists(delay_caltable):
-                tb=table()
-                tb.open(delay_caltable,nomodify=False)
-                flag=tb.getcol("FLAG")
-                flag*=False
-                tb.putcol("FLAG",flag)
+                tb = table()
+                tb.open(delay_caltable, nomodify=False)
+                flag = tb.getcol("FLAG")
+                flag *= False
+                tb.putcol("FLAG", flag)
                 tb.flush()
                 tb.close()
                 applycal_gaintable.append(delay_caltable)
@@ -765,13 +752,12 @@ def single_round_cal_and_flag(
                         "Gain calibration was not successful and did not produce gain caltable."
                     )
                 else:
-                    fluxscale(
+                    fluxscale_result = fluxscale(
                         vis=msname,
                         caltable=gain_caltable,
                         fluxtable=fluxscale_caltable,
                         reference=fluxcal_fields,
                         transfer=phasecal_fields,
-                        listfile=caltable_prefix + ".listfcal",
                     )
                     if fluxscale_caltable != None and os.path.exists(
                         fluxscale_caltable
@@ -782,34 +768,23 @@ def single_round_cal_and_flag(
                         applycal_gaintable.append(gain_caltable)
                         applycal_gainfield.append("")
                         applycal_interp.append("nearest")
-                        fcal_file = open(caltable_prefix + ".listfcal", "r")
-                        lines = fcal_file.readlines()
-                        fcal_file.close()
-                        os.system("rm -rf " + caltable_prefix + ".listfcal")
-                        fluxes = []
-                        field_names = []
-                        for line in lines:
-                            field_name = line.split("for ")[-1].split(" in")[0]
-                            catalog_flux = phasecal_fluxes[field_name]
-                            flux = float(line.split("is: ")[-1].split(" +/-")[0])
-                            percent_err = round(
-                                (abs(flux - catalog_flux) / catalog_flux) * 100, 2
-                            )
-                            print("\n###################################")
-                            if percent_err > 10:
-                                print(
-                                    "There is flux scaling issue for field: "
-                                    + field_name
-                                )
-                            else:
-                                print(
-                                    "Flux level matched for phasecal "
-                                    + str(field_name)
-                                    + " with catalog value within : "
-                                    + str(100.0 - percent_err)
-                                    + "%"
-                                )
-                            print("###################################\n")
+                    msmd.open(msname)
+                    phasecal_field_ids = [
+                        str(msmd.fieldsforname(f)[0]) for f in phasecal_fields
+                    ]
+                    msmd.close()
+                    for pcal in phasecal_field_ids:
+                        field_name = fluxscale_result[pcal]["fieldName"]
+                        catalog_flux = phasecal_fluxes[field_name]
+                        result = fluxscale_result[pcal]["0"]
+                        flux = result["fluxd"][0]
+                        fluxerr = result["fluxdErr"][0]
+                        print(f"Catalog flux: {catalog_flux} Jy")
+                        print(f"Estimated flux: {flux} +/- {fluxerr} Jy")
+                        print(
+                            f"Difference from catalog flux: {round(abs(flux-catalog_flux),2)} Jy"
+                        )
+                        print("###################################\n")
 
         ##############################
         # Leakage calibration
@@ -1086,6 +1061,7 @@ def run_basic_cal_rounds(
 ):
     """
     Perform basic calibration rounds
+    
     Parameters
     ----------
     msname : str
@@ -1104,6 +1080,7 @@ def run_basic_cal_rounds(
         CPU fraction to use
     mem_frac : float, optional
         Memory fraction to use
+        
     Returns
     -------
     int
@@ -1132,7 +1109,7 @@ def run_basic_cal_rounds(
         do_phasecal = False
         do_polcal = False
         do_leakagecal = False
-        do_postcal_flag = False
+        do_postcal_flag = True
         ###################################################
         # Determining what calibrations will be done or not
         ###################################################
@@ -1192,10 +1169,7 @@ def run_basic_cal_rounds(
             )
             if keep_backup:
                 print("Backup directory: " + workdir + "/backup")
-                if os.path.isdir(workdir + "/backup") == False:
-                    os.makedirs(workdir + "/backup")
-                else:
-                    os.system("rm -rf " + workdir + "/backup/*")
+                os.makedirs(workdir + "/backup", exist_ok=True)
                 for caltable in caltables:
                     if caltable != None and os.path.exists(caltable):
                         cal_ext = os.path.basename(caltable).split(".")[-1]
@@ -1285,18 +1259,33 @@ def main():
         help="Memory fraction to use",
         metavar="Float",
     )
+    parser.add_option(
+        "--logfile",
+        dest="logfile",
+        default=None,
+        help="Log file",
+        metavar="String",
+    )
     (options, args) = parser.parse_args()
-    if options.msname != "" and os.path.exists(options.msname):
-        print("\n###################################")
-        print("Starting initial calibration.")
-        print("###################################\n")
-        try:
-            if options.workdir == "" or os.path.exists(options.workdir) == False:
-                workdir = os.path.dirname(os.path.abspath(options.msname)) + "/workdir"
-                if os.path.exists(workdir) == False:
-                    os.makedirs(workdir)
-            else:
-                workdir = options.workdir
+    if options.workdir == "" or os.path.exists(options.workdir) == False:
+        workdir = os.path.dirname(os.path.abspath(options.msname)) + "/workdir"
+        if os.path.exists(workdir) == False:
+            os.makedirs(workdir)
+    else:
+        workdir = options.workdir
+    logfile=options.logfile
+    observer=None
+    if os.path.exists(f"{workdir}/jobname_password.npy") and logfile!=None: 
+        time.sleep(5)
+        jobname,password=np.load(f"{workdir}/jobname_password.npy",allow_pickle=True)
+        if os.path.exists(logfile):
+            print (f"Starting remote logger. Remote logger password: {password}")
+            observer=init_logger("basic_cal",logfile,jobname=jobname,password=password)
+    try:
+        if options.msname != "" and os.path.exists(options.msname):
+            print("\n###################################")
+            print("Starting initial calibration.")
+            print("###################################\n")
             caldir = workdir + "/caltables"
             if os.path.exists(caldir) == False:
                 os.makedirs(caldir)
@@ -1315,15 +1304,18 @@ def main():
                     if os.path.exists(caldir + "/" + os.path.basename(caltable)):
                         os.system("rm -rf " + caldir + "/" + os.path.basename(caltable))
                     os.system("mv " + caltable + " " + caldir)
-            return msg
-        except Exception as e:
-            traceback.print_exc()
-            return 1
-    else:
-        print("Please provide correct measurement set.\n")
-        return 1
-
-
+        else:
+            print("Please provide correct measurement set.\n")
+            msg=1
+    except Exception as e:
+        traceback.print_exc()
+        msg=1
+    finally:
+        time.sleep(5)
+        clean_shutdown(observer)
+    return msg    
+    
+    
 if __name__ == "__main__":
     result = main()
     print(

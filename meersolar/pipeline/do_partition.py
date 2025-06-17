@@ -7,7 +7,6 @@ from casatasks import casalog
 logfile = casalog.logfile()
 os.system("rm -rf " + logfile)
 
-
 def single_mstransform(
     msname="",
     outputms="",
@@ -22,6 +21,7 @@ def single_mstransform(
 ):
     """
     Perform mstransform of a single scan
+
     Parameters
     ----------
     msname : str
@@ -42,6 +42,7 @@ def single_mstransform(
         Data column to split
     n_threads : int, optional
         Number of CPU threads
+
     Returns
     -------
     str
@@ -49,7 +50,6 @@ def single_mstransform(
     """
     limit_threads(n_threads=n_threads)
     from casatasks import mstransform
-
     if dry_run:
         process = psutil.Process(os.getpid())
         mem = round(process.memory_info().rss / 1024**3, 2)  # in GB
@@ -82,7 +82,7 @@ def single_mstransform(
             timeaverage=timeaverage,
             timebin=timebin,
             chanaverage=chanaverage,
-            width=width,
+            chanbin=int(width),
             nthreads=2,
             separationaxis="scan",
             numsubms=1,
@@ -109,6 +109,7 @@ def partion_ms(
 ):
     """
     Perform mstransform of a single scan
+
     Parameters
     ----------
     msname : str
@@ -129,6 +130,7 @@ def partion_ms(
         Data column to split
     ncpu : int, optional
         Number of CPU threads to use
+
     Returns
     -------
     str
@@ -139,7 +141,6 @@ def partion_ms(
     print("##################\n")
     print("Determining valid scan list ....")
     from casatools import msmetadata
-
     start_time = time.time()
     valid_scans = get_valid_scans(msname, min_scan_time=1)
     msmd = msmetadata()
@@ -236,12 +237,12 @@ def partion_ms(
         os.system("rm -rf " + outputms + ".flagversions")
     if len(splited_ms_list) == 0:
         print("No splited ms to concat.")
+    elif len(splited_ms_list)==1:
+        os.system(f"mv {splited_ms_list[0]} {outputms}")
     else:
         print("Making multi-MS ....")
         from casatasks import virtualconcat
-
         virtualconcat(vis=splited_ms_list, concatvis=outputms)
-
     print("##################")
     print("Total time taken : " + str(time.time() - start_time) + "s")
     print("##################\n")
@@ -265,6 +266,13 @@ def main():
         default="multi.ms",
         help="Name of output measurement set",
         metavar="Measurement Set",
+    )
+    parser.add_option(
+        "--workdir",
+        dest="workdir",
+        default="",
+        help="Name of work directory",
+        metavar="String",
     )
     parser.add_option(
         "--fields",
@@ -309,13 +317,6 @@ def main():
         metavar="Boolean",
     )
     parser.add_option(
-        "--print_casalog",
-        dest="print_casalog",
-        default=False,
-        help="Print CASA log",
-        metavar="Boolean",
-    )
-    parser.add_option(
         "--cpu_frac",
         dest="cpu_frac",
         default=0.8,
@@ -329,40 +330,62 @@ def main():
         help="Memory fraction to use",
         metavar="Float",
     )
+    parser.add_option(
+        "--logfile",
+        dest="logfile",
+        default=None,
+        help="Log file",
+        metavar="String",
+    )
     (options, args) = parser.parse_args()
-    if eval(str(options.print_casalog)) == True:
-        casalog.showconsole(True)
-    if options.msname != None and os.path.exists(options.msname):
-        try:
+    if options.workdir == "" or os.path.exists(options.workdir) == False:
+        workdir = os.path.dirname(os.path.abspath(options.msname)) + "/workdir"
+        if os.path.exists(workdir) == False:
+            os.makedirs(workdir)
+    else:
+        workdir = options.workdir
+    logfile=options.logfile
+    observer=None
+    if os.path.exists(f"{workdir}/jobname_password.npy") and logfile!=None: 
+        time.sleep(5)
+        jobname,password=np.load(f"{workdir}/jobname_password.npy",allow_pickle=True)
+        if os.path.exists(logfile):
+            print (f"Starting remote logger. Remote logger password: {password}")
+            observer=init_logger("partition_cal",logfile,jobname=jobname,password=password)
+    try:
+        if options.msname != None and os.path.exists(options.msname): 
             outputms = partion_ms(
                 options.msname,
                 options.outputms,
                 fields=options.fields,
                 scans=options.scans,
                 width=int(options.width),
-                timebin=options.timebin,
+                timebin=str(options.timebin),
                 fullpol=eval(str(options.fullpol)),
                 datacolumn=options.datacolumn,
                 cpu_frac=float(options.cpu_frac),
                 mem_frac=float(options.mem_frac),
             )
-        except Exception as e:
-            traceback.print_exc()
-            return 1
-        if outputms == None or os.path.exists(outputms) == False:
-            print("Error in partitioning measurement set.")
-            return 1
+            if outputms == None or os.path.exists(outputms) == False:
+                print("Error in partitioning measurement set.")
+                msg=0
+            else:
+                print("Partitioned multi-MS is created at: ", outputms)
+                msg=1
         else:
-            print("Partitioned multi-MS is created at: ", outputms)
-            return 0
-    else:
-        print("Please provide correct measurement set.\n")
-        return 1
-
-
+            print("Please provide correct measurement set.\n")
+            msg=1
+    except Exception as e:
+        traceback.print_exc()
+        msg=1
+    finally:
+        time.sleep(5)
+        clean_shutdown(observer)
+    return msg     
+    
 if __name__ == "__main__":
     result = main()
     print(
         "\n###################\nMeasurement set partitioning is finished.\n###################\n"
     )
-    os._exit(result)
+    sys.exit(result)

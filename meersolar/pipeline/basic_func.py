@@ -1,23 +1,39 @@
-import sys, glob, time, gc, tempfile, copy, traceback
+import sys, glob, time, gc, tempfile, copy, traceback, resource, requests, threading, socket
+import matplotlib.ticker as ticker, matplotlib.pyplot as plt, matplotlib, subprocess
 import os, numpy as np, dask, psutil, logging, sunpy
-import astropy.units as u
+import astropy.units as u, string, secrets
 from astropy.coordinates import EarthLocation, SkyCoord
 from sunpy.map import Map
 from sunpy.coordinates import frames, sun
-from datetime import datetime as dt, timezone
+from datetime import datetime as dt, timezone, timedelta
 from casatasks import (
     casalog,
     importfits,
     listpartition,
 )
+from scipy.ndimage import gaussian_filter
 from casatools import msmetadata, ms as casamstool, table, agentflagger
 from dask.distributed import Client, LocalCluster
 from dask import delayed, compute, config
 from optparse import OptionParser
 from astropy.time import Time
-from astropy.coordinates import get_sun
+from astropy.coordinates import get_sun, SkyCoord
 from astropy.io import fits
+from astropy.wcs import WCS
 from casatasks import casalog
+from astropy.visualization import ImageNormalize, PowerStretch, LogStretch
+from matplotlib.gridspec import GridSpec
+from matplotlib.patches import Ellipse, Rectangle
+from matplotlib.colors import ListedColormap
+from matplotlib import cm
+from sunpy import timeseries as ts
+from sunpy.net import Fido, attrs as a
+from sunpy.coordinates import SphericalScreen
+from sunpy.map.maputils import all_coordinates_from_map
+from sunpy.time import parse_time
+from watchdog.observers import Observer
+from watchdog.events import FileSystemEventHandler
+
 
 logfile = casalog.logfile()
 os.system("rm -rf " + logfile)
@@ -38,14 +54,18 @@ udocker_dir = datadir + "/udocker"
 os.environ["UDOCKER_DIR"] = udocker_dir
 os.environ["UDOCKER_TARBALL"] = datadir + "/udocker-englib-1.2.11.tar.gz"
 
-
 def init_udocker():
     os.system("udocker install")
-
+    
+def clean_shutdown(observer):
+    if observer:
+        observer.stop()
+        observer.join(timeout=5)
 
 def limit_threads(n_threads=-1):
     """
     Limit number of threads usuage
+
     Parameters
     ----------
     n_threads : int, optional
@@ -56,6 +76,952 @@ def limit_threads(n_threads=-1):
         os.environ["OPENBLAS_NUM_THREADS"] = str(n_threads)
         os.environ["MKL_NUM_THREADS"] = str(n_threads)
         os.environ["VECLIB_MAXIMUM_THREADS"] = str(n_threads)
+
+def generate_password(length=6):
+    """
+    Generate secure 6-character password with letters, digits, and symbols
+    """
+    chars = string.ascii_letters + string.digits + "@#$&*"
+    return ''.join(secrets.choice(chars) for _ in range(length))
+       
+class RemoteLogger(logging.Handler):
+    """
+    Remote logging handler for posting log messages to a web endpoint.
+    """
+    def __init__(self, job_id="default", log_id="run_default", password=""):
+        super().__init__()
+        self.job_id = job_id
+        self.log_id = log_id
+        self.password = password
+
+    def emit(self, record):
+        msg = self.format(record)
+        try:
+            requests.post(
+                "https://meersolar-logger.onrender.com/api/log",
+                json={
+                    "job_id": self.job_id,
+                    "log_id": self.log_id,
+                    "message": msg,
+                    "password": self.password,
+                    "first":False,
+                },
+                timeout=2
+            )
+        except Exception as e:
+            pass  # Fail silently to avoid interrupting the main app
+
+class LogTailHandler(FileSystemEventHandler):
+    """
+    Continuous logging 
+    """
+    def __init__(self, logfile, logger):
+        self.logfile = logfile
+        self.logger = logger
+        self._position = os.path.getsize(logfile) if os.path.exists(logfile) else 0
+    def on_modified(self, event):
+        if event.src_path == self.logfile:
+            try:
+                with open(self.logfile, 'r') as f:
+                    f.seek(self._position)
+                    lines = f.readlines()
+                    self._position = f.tell()
+                for line in lines:
+                    if line!="" and line!=" " and line!="\n":
+                        self.logger.info(line.strip())
+            except Exception:
+                pass  
+
+def ping_logger(jobid, stop_event, interval=10):
+    """Ping a job-specific keep-alive endpoint periodically until stop_event is set."""
+    url = f"https://meersolar-logger.onrender.com/api/ping/{jobid}"
+    while not stop_event.is_set():
+        try:
+            res = requests.post(url, timeout=2)
+        except Exception as e:
+            pass
+        stop_event.wait(interval)
+
+def create_logger(logname, logfile, verbose=False):
+    """
+    Create logger.
+
+    Parameters
+    ----------
+    logname : str
+        Name of the log
+    workdir : str, optional
+        Name of the working directory
+    verbose : bool, optional
+        Verbose output or not
+    logfile : str, optional
+        Log file name
+
+    Returns
+    -------
+    logger
+        Python logging object
+    str
+        Log file name
+    """
+    if os.path.exists(logfile):
+        os.system("rm -rf " + logfile)
+    formatter = logging.Formatter('%(message)s')
+    logger = logging.getLogger(logname)
+    logger.setLevel(logging.DEBUG)
+    if verbose == True:
+        console = logging.StreamHandler(sys.stdout)
+        console.setFormatter(formatter)
+        logger.addHandler(console)
+    filehandle = logging.FileHandler(logfile)
+    filehandle.setFormatter(formatter)
+    logger.addHandler(filehandle)
+    logger.propagate = False
+    logger.info("Log file : " + logfile + "\n")
+    return logger, logfile
+
+def get_logid(logfile):
+    """
+    Get log id for remote logger from logfile name
+    """
+    name = os.path.basename(logfile)
+    logmap = {
+        "apply_basiccal.log": "Applying basic calibration solutions",
+        "apply_pbcor.log": "Applying primary beam corrections",
+        "apply_selfcal.log": "Applying self-calibration solutions",
+        "basic_cal.log": "Basic calibration",
+        "cor_sidereal_selfcals.log": "Correction of sidereal motion before self-calibration",
+        "cor_sidereal_targets.log": "Correction of sidereal motion for target scans",
+        "flagging_cal_calibrator.log": "Basic flagging",
+        "modeling_calibrator.log": "Simulating visibilities of calibrators",
+        "split_targets.log": "Spliting target scans",
+        "split_selfcals.log": "Spliting for self-calibration",
+        "selfcal_targets.mainlog": "All self-calibrations main log",
+        "imaging_targets.mainlog": "All imaging main log",
+        "selfcal_targets.log": "All self-calibrations",
+        "imaging_targets.log": "All imaging",
+        "noise_cal.log": "Flux calibration using noise-diode",
+        "partition_cal.log": "Partioning for basic calibration"
+    }
+
+    if name in logmap:
+        return logmap[name]
+    elif "selfcals_scan_" in name:
+        name=name.rstrip("_selfcal.log")
+        scan = name.split("scan_")[-1].split("_spw")[0]
+        spw = name.split("spw_")[-1].split("_selfcal")[0]
+        return f"Self-calibration for: Scan : {scan}, Spectral window: {spw}"
+    elif "imaging_targets_scan_" in name:
+        name=name.rstrip(".log")
+        scan = name.split("scan_")[-1].split("_spw")[0]
+        spw = name.split("spw_")[-1].split("_selfcal")[0]
+        return f"Imaging for: Scan : {scan}, Spectral window: {spw}"
+    else:
+        return name
+     
+def init_logger(logname, logfile, jobname="", password=""):
+    """
+    Initialize a local + optional remote logger with watchdog-based tailing.
+
+    Parameters
+    ----------
+    logname : str
+        Logger name.
+    logfile : str
+        Path to the local logfile to also monitor.
+    jobname : str, optional
+        Remote logger job ID.
+    password : str
+        Password used for remote authentication.
+
+    Returns
+    -------
+    logger : logging.Logger
+        Configured logger instance.
+    """
+    timeout = 30 
+    waited = 0
+    while True:
+        if os.path.exists(logfile)==False: 
+            time.sleep(1)
+            waited += 1
+        elif waited >= timeout:
+            return
+        else:
+            break
+    logger = logging.getLogger(logname)
+    logger.setLevel(logging.INFO)
+    logger.propagate = False
+    if logger.hasHandlers():
+        logger.handlers.clear()
+    formatter = logging.Formatter('%(asctime)s %(levelname)s-%(message)s', "%Y-%m-%dT%H:%M:%S")
+    if jobname:
+        job_id = jobname
+        log_id=get_logid(logfile)
+        remote_handler = RemoteLogger(job_id=job_id, log_id=log_id, password=password)
+        remote_handler.setFormatter(formatter)
+        logger.addHandler(remote_handler)
+
+        try:
+            requests.post(
+                "https://meersolar-logger.onrender.com/api/log",
+                json={
+                    "job_id": job_id,
+                    "log_id": log_id,
+                    "message": "Job starting...",
+                    "password": password,
+                    "first": True,
+                },
+                timeout=2
+            )
+        except Exception:
+            pass
+    if os.path.exists(logfile):
+        event_handler = LogTailHandler(logfile, logger)
+        observer = Observer()
+        observer.schedule(event_handler, path=os.path.dirname(logfile), recursive=False)
+        observer.start()
+        return observer  
+    else:
+        return
+            
+def flag_outside_uvrange(vis, uvrange, n_threads=-1, flagbackup=True):
+    """
+    Flag outside the given uv range
+
+    Parameters
+    ----------
+    vis : str
+        Measurement set name
+    uvrange : str
+        UV-range
+    n_threads : int, optional
+        Number of OpenMP threads to use
+    flagbackup : bool, optional
+        Flag backup
+    """
+    limit_threads(n_threads=n_threads)
+    from casatasks import flagdata
+
+    if "lambda" in uvrange:
+        islambda = True
+        uvrange = uvrange.replace("lambda", "")
+    else:
+        islambda = False
+    if "~" in uvrange:
+        low, high = uvrange.split("~")
+        if islambda:
+            low = f"{low}lambda"
+            high = f"{high}lambda"
+        cmds = [
+            {"mode": "manual", "uvrange": f"<{low}", "flagbackup": flagbackup},
+            {"mode": "manual", "uvrange": f">{high}", "flagbackup": flagbackup},
+        ]
+    elif ">" in uvrange:
+        low = uvrange.split(">")[-1]
+        if islambda:
+            low = f"{low}lambda"
+        cmds = [
+            {"mode": "manual", "uvrange": f"<{low}", "flagbackup": flagbackup},
+        ]
+    elif "<" in uvrange:
+        if islambda:
+            high = f"{high}lambda"
+        cmds = [
+            {"mode": "manual", "uvrange": f">{high}", "flagbackup": flagbackup},
+        ]
+    else:
+        cmds = []
+    if len(cmds) > 0:
+        for cmd in cmds:
+            print(f"Flagging command: {cmd}")
+            flagdata(vis=vis, **cmd)
+    return
+
+
+def make_ds_plot(dsfiles, plot_file=None, showgui=False):
+    """
+    Make dynamic spectrum plot
+
+    Parameters
+    ----------
+    dsfile : list
+        DS files list
+    plot_file : str, optional
+        Plot file name to save the plot
+    showgui : bool, optional
+        Show GUI
+
+    Returns
+    -------
+    str
+        Plot name
+    """
+    if showgui:
+        matplotlib.use("TkAgg")
+    else:
+        matplotlib.use("Agg")
+    matplotlib.rcParams.update({"font.size": 18})
+    for i, dsfile in enumerate(dsfiles):
+        freqs_i, times_i, timestamps_i, data_i = np.load(dsfile, allow_pickle=True)
+        if i == 0:
+            freqs = freqs_i
+            times = times_i
+            timestamps = timestamps_i
+            data = data_i
+        else:
+            gapsize = int(
+                (np.nanmin(times_i) - np.nanmax(times)) / (times[1] - times[0])
+            )
+            if gapsize < 10:
+                last_time_median = np.nanmedian(data[:, -1], axis=0)
+                new_time_median = np.nanmedian(data_i[:, 0], axis=0)
+                data_i = (data_i / new_time_median) * last_time_median
+            # Insert vertical NaN gap (1 column wide)
+            gap = np.full((data.shape[0], gapsize), np.nan)
+            data = np.concatenate([data, gap, data_i], axis=1)
+            # Insert dummy time and timestamp
+            times = np.append(times, np.nan)
+            timestamps = np.append(timestamps, "GAP")
+            # Append new values
+            times = np.append(times, times_i)
+            timestamps = np.append(timestamps, timestamps_i)
+            # (Optional) Check or merge freqs if needed — assuming same across files
+    # Normalize by median bandshape
+    median_bandshape = np.nanmedian(data, axis=-1)
+    pos = np.where(np.isnan(median_bandshape) == False)[0]
+    data /= median_bandshape[:, None]
+    data = data[min(pos) : max(pos), :]
+    freqs = freqs[min(pos) : max(pos)]
+    temp_times = times[np.isnan(times) == False]
+    maxtimepos = np.argmax(temp_times)
+    mintimepos = np.argmin(temp_times)
+    datestamp = f"{timestamps[mintimepos].split('T')[0]}"
+    tstart = f"{timestamps[mintimepos].split('T')[0]} {':'.join(timestamps[mintimepos].split('T')[-1].split(':')[:2])}"
+    tend = f"{timestamps[maxtimepos].split('T')[0]} {':'.join(timestamps[maxtimepos].split('T')[-1].split(':')[:2])}"
+    print(f"Time range : {tstart}~{tend}")
+    results = Fido.search(
+        a.Time(tstart, tend), a.Instrument("XRS"), a.Resolution("avg1m")
+    )
+    files = Fido.fetch(results, path=os.path.dirname(dsfiles[0]), overwrite=False)
+    goes_tseries = ts.TimeSeries(files, concatenate=True)
+    goes_tseries = goes_tseries.truncate(tstart, tend)
+    timeseries = np.nanmean(data, axis=0)
+    # Normalization
+    data_std = np.nanstd(data)
+    data_median = np.nanmedian(data)
+    norm = ImageNormalize(
+        data,
+        stretch=LogStretch(1),
+        vmin=0.99 * np.nanmin(data),
+        vmax=0.99 * np.nanmax(data),
+    )
+    # Create figure and GridSpec layout
+    fig = plt.figure(figsize=(18, 10))
+    gs = GridSpec(nrows=3, ncols=2, width_ratios=[1, 0.03], height_ratios=[4, 1.5, 2])
+    # Axes
+    ax_spec = fig.add_subplot(gs[0, 0])
+    ax_ts = fig.add_subplot(gs[1, 0])
+    ax_goes = fig.add_subplot(gs[2, 0])
+    cax = fig.add_subplot(gs[:, 1])  # colorbar spans both rows
+    # Plot dynamic spectrum
+    im = ax_spec.imshow(data, aspect="auto", origin="lower", norm=norm, cmap="magma")
+    ax_spec.set_ylabel("Frequency (MHz)")
+    ax_spec.set_xticklabels([])  # Remove x-axis labels from top plot
+    # Y-ticks
+    yticks = ax_spec.get_yticks()
+    yticks = yticks[(yticks >= 0) & (yticks < len(freqs))]
+    ax_spec.set_yticks(yticks)
+    ax_spec.set_yticklabels([f"{freqs[int(i)]:.1f}" for i in yticks])
+    # Plot time series
+    ax_ts.plot(timeseries)
+    ax_ts.set_xlim(0, len(timeseries) - 1)
+    ax_ts.set_ylabel("Mean \n flux density")
+    goes_tseries.plot(axes=ax_goes)
+    goes_times = goes_tseries.time
+    times_dt = goes_times.to_datetime()
+    ax_goes.set_xlim(times_dt[0], times_dt[-1])
+    ax_goes.set_ylabel(r"Flux ($\frac{W}{m^2}$)")
+    ax_goes.legend(ncol=2, loc="upper right")
+    ax_goes.set_title("GOES light curve", fontsize=14)
+    ax_ts.set_title("MeerKAT light curve", fontsize=14)
+    ax_spec.set_title("MeerKAT dynamic spectrum", fontsize=14)
+    ax_goes.set_xlabel("Time (UTC)")
+    # Format x-ticks
+    ax_ts.set_xticks([])
+    ax_ts.set_xticklabels([])
+    # Colorbar
+    cbar = fig.colorbar(im, cax=cax)
+    cbar.set_label("Flux density (arb. unit)")
+    plt.tight_layout()
+    # Save or show
+    if plot_file:
+        plt.savefig(plot_file, bbox_inches="tight")
+        print(f"Plot saved: {plot_file}")
+    if showgui:
+        plt.show()
+        plt.close(fig)
+        plt.close("all")
+    else:
+        plt.close(fig)
+    return plot_file
+
+
+def make_solar_DS(
+    msname,
+    workdir,
+    ds_file_name="",
+    extension="png",
+    scans=[],
+    merge_scan=False,
+    showgui=False,
+    cpu_frac=0.8,
+    mem_frac=0.8,
+):
+    """
+    Make solar dynamic spectrum and plots
+
+    Parameters
+    ----------
+    msname : str
+        Measurement set name'
+    workdir : str
+        Work directory
+    ds_file_name : str, optional
+        DS file name prefix
+    extension : str, optional
+        Image file extension
+    scans : list, optional
+        Scan list
+    merge_scan : bool, optional
+        Merge scans in one plot or not
+    showgui : bool, optional
+        Show GUI
+    cpu_frac : float, optional
+        CPU fraction to use
+    mem_frac : float, optional
+        Memory fraction to use
+    """
+    import warnings
+
+    warnings.filterwarnings("ignore", category=RuntimeWarning)
+    os.makedirs(workdir, exist_ok=True)
+
+    ##############################
+    # Extract dynamic spectrum
+    ##############################
+    def make_ds_file_per_scan(msname, save_file, scan, datacolumn):
+        if os.path.exists(f"{save_file}.npy") == False:
+            mstool = casamstool()
+            try:
+                all_data = []
+                for ant in range(5):
+                    print(f"Extracting data for antenna :{ant}, scan: {scan}")
+                    mstool.open(msname)
+                    mstool.selectpolarization(["I"])
+                    mstool.select(
+                        {"antenna1": ant, "antenna2": ant, "scan_number": int(scan)}
+                    )
+                    data_dic = mstool.getdata(datacolumn)
+                    mstool.close()
+                    if datacolumn == "CORRECTED_DATA":
+                        data = np.abs(data_dic["corrected_data"][0, ...])
+                    else:
+                        data = np.abs(data_dic["data"][0, ...])
+                    del data_dic
+                    m = np.nanmedian(data, axis=1)
+                    data = data / m[:, None]
+                    all_data.append(data)
+                    del data
+            except Exception as e:
+                print("Auto-corrrelations are not present. Using short baselines.")
+                count = 0
+                all_data = []
+                while count <= 5:
+                    for i in range(5):
+                        for j in range(5):
+                            if i != j:
+                                print(
+                                    f"Extracting data for antennas :{i} and {j}, scan: {scan}"
+                                )
+                                mstool.open(msname)
+                                mstool.selectpolarization(["I"])
+                                mstool.select(
+                                    {
+                                        "antenna1": i,
+                                        "antenna2": j,
+                                        "scan_number": int(scan),
+                                    }
+                                )
+                                data_dic = mstool.getdata(datacolumn)
+                                mstool.close()
+                                if datacolumn == "CORRECTED_DATA":
+                                    data = np.abs(data_dic["corrected_data"][0, ...])
+                                else:
+                                    data = np.abs(data_dic["data"][0, ...])
+                                del data_dic
+                                m = np.nanmedian(data, axis=1)
+                                data = data / m[:, None]
+                                all_data.append(data)
+                                del data
+                                count += 1
+            all_data = np.array(all_data)
+            data = np.nanmedian(all_data, axis=0)
+            bad_chans = get_bad_chans(msname)
+            bad_chans = bad_chans.replace("0:", "").split(";")
+            for bad_chan in bad_chans:
+                s = int(bad_chan.split("~")[0])
+                e = int(bad_chan.split("~")[-1]) + 1
+                data[s:e, :] = np.nan
+            msmd = msmetadata()
+            msmd.open(msname)
+            freqs = msmd.chanfreqs(0, unit="MHz")
+            times = msmd.timesforscans(int(scan))
+            timestamps = [mjdsec_to_timestamp(mjdsec, str_format=0) for mjdsec in times]
+            msmd.close()
+            np.save(
+                f"{save_file}.npy",
+                np.array([freqs, times, timestamps, data], dtype="object"),
+            )
+            del msmd, mstool, data
+        return f"{save_file}.npy"
+
+    ##################################
+    # Making and ploting
+    ##################################
+    if len(scans) == 0:
+        scans, cal_scans, f_scans, g_scans, p_scans = get_cal_target_scans(msname)
+    valid_scans = get_valid_scans(msname)
+    final_scans = []
+    scan_size_list = []
+    msmd = msmetadata()
+    mstool = casamstool()
+    for scan in scans:
+        if scan in valid_scans:
+            final_scans.append(int(scan))
+            msmd.open(msname)
+            nchan = msmd.nchan(0)
+            nant = msmd.nantennas()
+            msmd.close()
+            mstool.open(msname)
+            mstool.select({"scan_number": int(scan)})
+            nrow = mstool.nrow(True)
+            mstool.close()
+            nbaselines = int(nant + (nant * (nant - 1) / 2))
+            scan_size_list.append((5 * (nrow / nbaselines) * 16) / (1024**3))
+    del scans
+    scans = sorted(final_scans)
+    print(f"Scans: {scans}")
+    msname = msname.rstrip("/")
+    if ds_file_name == "":
+        ds_file_name = os.path.basename(msname).split(".ms")[0] + "_DS"
+    hascor = check_datacolumn_valid(msname, datacolumn="CORRECTED_DATA")
+    if hascor:
+        datacolumn = "CORRECTED_DATA"
+    else:
+        datacolumn = "DATA"
+    mspath = os.path.dirname(msname)
+    mem_limit = max(scan_size_list)
+    dask_client, dask_cluster, n_jobs, n_threads, mem_limit = get_dask_client(
+        len(scans),
+        dask_dir=workdir,
+        cpu_frac=cpu_frac,
+        mem_frac=mem_frac,
+        min_mem_per_job=mem_limit / 0.6,
+    )
+    tasks = []
+    for scan in scans:
+        tasks.append(
+            delayed(make_ds_file_per_scan)(
+                msname, f"{workdir}/{ds_file_name}_scan_{scan}", scan, datacolumn
+            )
+        )
+    compute(*tasks)
+    dask_client.close()
+    dask_cluster.close()
+    ds_files = [f"{workdir}/{ds_file_name}_scan_{scan}.npy" for scan in scans]
+    print(f"DS files: {ds_files}")
+    if merge_scan == False:
+        plots = []
+        for dsfile in ds_files:
+            plot_file = make_ds_plot(
+                [dsfile],
+                plot_file=dsfile.replace(".npy", f".{extension}"),
+                showgui=showgui,
+            )
+            plots.append(plot_file)
+    else:
+        plot_file = make_ds_plot(
+            ds_files, plot_file=f"{workdir}/{ds_file_name}.{extension}", showgui=showgui
+        )
+    gc.collect()
+    goes_files = glob.glob(f"{workdir}/sci*.nc")
+    for f in goes_files:
+        os.system(f"rm -rf {f}")
+    os.system(f"rm -rf {workdir}/dask-scratch-space {workdir}/tmp")
+    return
+
+
+def plot_goes_full_timeseries(
+    msname, workdir, plot_file_prefix=None, extension="png", showgui=False
+):
+    """
+    Plot GOES full time series on the day of observation
+
+    Parameters
+    ----------
+    msname : str
+        Measurement set
+    workdir : str
+        Work directory
+    plot_file_prefix : str, optional
+        Plot file name prefix
+    extension : str, optional
+        Save file extension
+    showgui : bool, optional
+        Show GUI
+
+    Returns
+    -------
+    str
+        Plot file name
+    """
+    os.makedirs(workdir, exist_ok=True)
+    if showgui:
+        matplotlib.use("TkAgg")
+    else:
+        matplotlib.use("Agg")
+    matplotlib.rcParams.update({"font.size": 14})
+    scans, cal_scans, f_scans, g_scans, p_scans = get_cal_target_scans(msname)
+    valid_scans = get_valid_scans(msname)
+    filtered_scans = []
+    for scan in scans:
+        if scan in valid_scans:
+            filtered_scans.append(scan)
+    msmd = msmetadata()
+    msmd.open(msname)
+    tstart_mjd = min(msmd.timesforscan(int(min(filtered_scans))))
+    tend_mjd = max(msmd.timesforscan(int(max(filtered_scans))))
+    msmd.close()
+    tstart = mjdsec_to_timestamp(tstart_mjd, str_format=2)
+    tend = mjdsec_to_timestamp(tend_mjd, str_format=2)
+    print(f"Time range: {tstart}~{tend}")
+    results = Fido.search(
+        a.Time(tstart, tend), a.Instrument("XRS"), a.Resolution("avg1m")
+    )
+    files = Fido.fetch(results, path=workdir, overwrite=False)
+    goes_tseries = ts.TimeSeries(files, concatenate=True)
+    for f in files:
+        os.system(f"rm -rf {f}")
+    fig, ax = plt.subplots(figsize=(15, 5), constrained_layout=True)
+    goes_tseries.plot(axes=ax)
+    times = goes_tseries.time
+    times_dt = times.to_datetime()
+    ax.axvspan(tstart, tend, alpha=0.2)
+    ax.set_xlim(times_dt[0], times_dt[-1])
+    plt.tight_layout()
+    # Save or show
+    if plot_file_prefix:
+        plot_file = f"{workdir}/{plot_file_prefix}.{extension}"
+        plt.savefig(plot_file, bbox_inches="tight")
+        print(f"Plot saved: {plot_file}")
+    else:
+        plot_file = None
+    if showgui:
+        plt.show()
+        plt.close(fig)
+        plt.close("all")
+    else:
+        plt.close(fig)
+    return plot_file
+
+
+def get_suvi_map(obs_date, obs_time, workdir, wavelength=195):
+    """
+    Get GOES SUVI map
+
+    Parameters
+    ----------
+    obs_date : str
+        Observation date in yyyy-mm-dd format
+    obs_time : str
+        Observation time in hh:mm format
+    workdir : str
+        Work directory
+    wavelength : float, optional
+        Wavelength, options: 94, 131, 171, 195, 284, 304 Å
+
+    Returns
+    -------
+    sunpy.map
+        Sunpy SUVIMap
+    """
+    os.makedirs(workdir, exist_ok=True)
+    start_time = dt.fromisoformat(f"{obs_date}T{obs_time}")
+    t_start = (start_time - timedelta(minutes=2)).strftime("%Y-%m-%dT%H:%M")
+    t_end = (start_time + timedelta(minutes=2)).strftime("%Y-%m-%dT%H:%M")
+    time = a.Time(t_start, t_end)
+    instrument = a.Instrument("suvi")
+    wavelength = a.Wavelength(wavelength * u.angstrom)
+    results = Fido.search(time, instrument, wavelength, a.Level(2))
+    downloaded_files = Fido.fetch(results, path=workdir)
+    obs_times = []
+    for image in downloaded_files:
+        suvimap = Map(image)
+        dateobs = suvimap.meta["date-obs"].split(".")[0]
+        obs_times.append(dateobs)
+    times_dt = [dt.strptime(t, "%Y-%m-%dT%H:%M:%S") for t in obs_times]
+    closest_time = min(times_dt, key=lambda t: abs(t - start_time))
+    pos = times_dt.index(closest_time)
+    closest_time_str = closest_time.strftime("%Y-%m-%dT%H:%M")
+    final_image = downloaded_files[pos]
+    suvi_map = Map(final_image)
+    for f in downloaded_files:
+        os.system(f"rm -rf {f}")
+    return suvi_map
+
+
+def enhance_offlimb(sunpy_map, do_sharpen=True):
+    """
+    Enhance off-disk emission
+
+    Parameters
+    ----------
+    sunpy_map : sunpy.map
+        Sunpy map
+    do_sharpen : bool, optional
+        Sharpen images
+
+    Returns
+    -------
+    sunpy.map
+        Off-disk enhanced emission
+    """
+    hpc_coords = all_coordinates_from_map(sunpy_map)
+    r = np.sqrt(hpc_coords.Tx**2 + hpc_coords.Ty**2) / sunpy_map.rsun_obs
+    rsun_step_size = 0.01
+    rsun_array = np.arange(1, r.max(), rsun_step_size)
+    y = np.array(
+        [
+            sunpy_map.data[(r > this_r) * (r < this_r + rsun_step_size)].mean()
+            for this_r in rsun_array
+        ]
+    )
+    pos = np.where(y < 10e-3)[0][0]
+    r_lim = round(rsun_array[pos], 2)
+    params = np.polyfit(
+        rsun_array[rsun_array < r_lim], np.log(y[rsun_array < r_lim]), 1
+    )
+    scale_factor = np.exp((r - 1) * -params[0])
+    scale_factor[r < 1] = 1
+    if do_sharpen:
+        blurred = gaussian_filter(sunpy_map.data, sigma=3)
+        data = sunpy_map.data + (sunpy_map.data - blurred)
+    else:
+        data = sunpy_map.data
+    scaled_map = sunpy.map.Map(data * scale_factor, sunpy_map.meta)
+    scaled_map.plot_settings["norm"] = ImageNormalize(stretch=LogStretch(10))
+    return scaled_map
+
+
+def make_meer_overlay(
+    meerkat_image,
+    workdir,
+    suvi_wavelength=195,
+    plot_file_prefix=None,
+    plot_meer_colormap=True,
+    enhance_offdisk=True,
+    contour_levels=[0.05, 0.1, 0.2, 0.4, 0.6, 0.8],
+    do_sharpen_suvi=True,
+    xlim=[-1600, 1600],
+    ylim=[-1600, 1600],
+    extension="png",
+    showgui=False,
+):
+    """
+    Make overlay of MeerKAT image on GOES SUVI image
+
+    Parameters
+    ----------
+    meerkat_image : str
+        MeerKAT image
+    workdir : str
+        Work directory
+    suvi_wavelength : float, optional
+        GOES SUVI wavelength, options: 94, 131, 171, 195, 284, 304 Å
+    plot_file_prefix : str, optional
+        Plot file prefix name
+    plot_meer_colormap : bool, optional
+        Plot MeerKAT map colormap
+    enhance_offdisk : bool, optional
+        Enhance off-disk emission
+    contour_levels : list, optional
+        Contour levels in fraction of peak
+    do_sharpen_suvi : bool, optional
+        Do sharpen SUVI images
+    xlim : list, optional
+        X-axis limit in arcsec
+    tlim : list, optional
+        Y-axis limit in arcsec
+    extension : str, optional
+        Image file extension
+    showgui : bool, optional
+        Show GUI
+
+    Returns
+    -------
+    str
+        Plot file name
+    """
+    if showgui:
+        matplotlib.use("TkAgg")
+    else:
+        matplotlib.use("Agg")
+    os.makedirs(workdir, exist_ok=True)
+    meermap = get_meermap(meerkat_image)
+    obs_datetime = fits.getheader(meerkat_image)["DATE-OBS"]
+    obs_date = obs_datetime.split("T")[0]
+    obs_time = ":".join(obs_datetime.split("T")[-1].split(":")[:2])
+    suvi_map = get_suvi_map(obs_date, obs_time, workdir, wavelength=suvi_wavelength)
+    if enhance_offdisk:
+        suvi_map = enhance_offlimb(suvi_map, do_sharpen=do_sharpen_suvi)
+    projected_coord = SkyCoord(
+        0 * u.arcsec,
+        0 * u.arcsec,
+        obstime=suvi_map.observer_coordinate.obstime,
+        frame="helioprojective",
+        observer=suvi_map.observer_coordinate,
+        rsun=suvi_map.coordinate_frame.rsun,
+    )
+    projected_header = sunpy.map.make_fitswcs_header(
+        suvi_map.data.shape,
+        projected_coord,
+        scale=u.Quantity(suvi_map.scale),
+        instrument=suvi_map.instrument,
+        wavelength=suvi_map.wavelength,
+    )
+    with SphericalScreen(meermap.observer_coordinate):
+        meer_reprojected = meermap.reproject_to(projected_header)
+    with SphericalScreen(suvi_map.observer_coordinate):
+        suvi_reprojected = suvi_map.reproject_to(projected_header)
+    meertime = meermap.meta["date-obs"].split(".")[0]
+    suvitime = suvi_map.meta["date-obs"].split(".")[0]
+    if plot_meer_colormap and len(contour_levels) > 0:
+        matplotlib.rcParams.update({"font.size": 18})
+        fig = plt.figure(figsize=(16, 8))
+        ax_colormap = fig.add_subplot(1, 2, 1, projection=suvi_reprojected)
+        ax_contour = fig.add_subplot(1, 2, 2, projection=suvi_reprojected)
+    elif plot_meer_colormap:
+        matplotlib.rcParams.update({"font.size": 14})
+        fig = plt.figure(figsize=(10, 8))
+        ax_colormap = fig.add_subplot(projection=suvi_reprojected)
+    elif len(contour_levels) > 0:
+        matplotlib.rcParams.update({"font.size": 14})
+        fig = plt.figure(figsize=(10, 8))
+        ax_contour = fig.add_subplot(projection=suvi_reprojected)
+    else:
+        print("No overlay is plotting.")
+        return
+
+    title = f"SUVI time: {suvitime}\n MeerKAT time: {meertime}"
+    if "transparent_inferno" not in plt.colormaps():
+        cmap = cm.get_cmap("inferno", 256)
+        colors = cmap(np.linspace(0, 1, 256))
+        x = np.linspace(0, 1, 256)
+        alpha = 0.8 * (1 - np.exp(-3 * x))
+        colors[:, -1] = alpha  # Update the alpha channel
+        transparent_inferno = ListedColormap(colors)
+        plt.colormaps.register(name="transparent_inferno", cmap=transparent_inferno)
+    if plot_meer_colormap and len(contour_levels) > 0:
+        suptitle = title.replace("\n", ",")
+        title = ""
+        fig.suptitle(suptitle)
+    if plot_meer_colormap:
+        z = 0
+        suvi_reprojected.plot(
+            axes=ax_colormap,
+            title=title,
+            autoalign=True,
+            clip_interval=(3, 99.9) *u.percent,
+            zorder=z,
+        )
+        z += 1
+        meer_reprojected.plot(
+            axes=ax_colormap,
+            title=title,
+            clip_interval=(3, 99.9) * u.percent,
+            cmap="transparent_inferno",
+            zorder=z,
+        )
+    if len(contour_levels) > 0:
+        z = 0
+        suvi_reprojected.plot(
+            axes=ax_contour,
+            title=title,
+            autoalign=True,
+            clip_interval=(3, 99.9) * u.percent,
+            zorder=z,
+        )
+        z += 1
+        contour_levels = np.array(contour_levels) * np.nanmax(meer_reprojected.data)
+        meer_reprojected.draw_contours(
+            contour_levels, axes=ax_contour, cmap="YlGnBu", zorder=z
+        )
+        ax_contour.set_facecolor("black")
+
+    if len(xlim) > 0:
+        x_pix_limits = []
+        for x in xlim:
+            sky = SkyCoord(
+                x * u.arcsec, 0 * u.arcsec, frame=suvi_reprojected.coordinate_frame
+            )
+            x_pix = suvi_reprojected.world_to_pixel(sky)[0].value
+            x_pix_limits.append(x_pix)
+        if plot_meer_colormap and len(contour_levels) > 0:
+            ax_colormap.set_xlim(x_pix_limits)
+            ax_contour.set_xlim(x_pix_limits)
+        elif plot_meer_colormap:
+            ax_colormap.set_xlim(x_pix_limits)
+        elif len(contour_levels) > 0:
+            ax_contour.set_xlim(x_pix_limits)
+    if len(ylim) > 0:
+        y_pix_limits = []
+        for y in ylim:
+            sky = SkyCoord(
+                0 * u.arcsec, y * u.arcsec, frame=suvi_reprojected.coordinate_frame
+            )
+            y_pix = suvi_reprojected.world_to_pixel(sky)[1].value
+            y_pix_limits.append(y_pix)
+        if plot_meer_colormap and len(contour_levels) > 0:
+            ax_colormap.set_ylim(y_pix_limits)
+            ax_contour.set_ylim(y_pix_limits)
+        elif plot_meer_colormap:
+            ax_colormap.set_ylim(y_pix_limits)
+        elif len(contour_levels) > 0:
+            ax_contour.set_ylim(y_pix_limits)
+    if plot_meer_colormap and len(contour_levels) > 0:
+        ax_colormap.coords.grid(False)
+        ax_contour.coords.grid(False)
+    elif plot_meer_colormap:
+        ax_colormap.coords.grid(False)
+    elif len(contour_levels) > 0:
+        ax_contour.coords.grid(False)
+    fig.tight_layout()
+    if plot_file_prefix:
+        plot_file = f"{workdir}/{plot_file_prefix}.{extension}"
+        plt.savefig(plot_file, bbox_inches="tight")
+        print("#######################")
+        print(f"Plot saved: {plot_file}")
+        print("#######################\n")
+    else:
+        plot_file = None
+    if showgui:
+        plt.show()
+        plt.close(fig)
+        plt.close("all")
+    else:
+        plt.close(fig)
+    return plot_file
 
 
 def split_noise_diode_scans(
@@ -70,6 +1036,7 @@ def split_noise_diode_scans(
 ):
     """
     Split noise diode on and off timestamps into two seperate measurement sets
+
     Parameters
     ----------
     msname : str
@@ -86,6 +1053,7 @@ def split_noise_diode_scans(
         Data column to split
     n_threads : int, optional
         Number of OpenMP threads
+
     Returns
     -------
     tuple
@@ -164,10 +1132,12 @@ def split_noise_diode_scans(
 def get_band_name(msname):
     """
     Get band name
+
     Parameters
     ----------
     msname : str
         Name of the ms
+
     Returns
     -------
     str
@@ -189,10 +1159,12 @@ def get_band_name(msname):
 def get_bad_chans(msname):
     """
     Get bad channels to flag
+
     Parameters
     ----------
     msname : str
         Name of the ms
+
     Returns
     -------
     str
@@ -244,10 +1216,12 @@ def get_bad_chans(msname):
 def get_good_chans(msname):
     """
     Get good channel range to perform gaincal
+
     Parameters
     ----------
     msname : str
         Name of the ms
+
     Returns
     -------
     str
@@ -280,6 +1254,7 @@ def get_good_chans(msname):
 def get_bad_ants(msname="", fieldnames=[], n_threads=-1, dry_run=False):
     """
     Get bad antennas
+
     Parameters
     ----------
     msname : str
@@ -288,6 +1263,7 @@ def get_bad_ants(msname="", fieldnames=[], n_threads=-1, dry_run=False):
         Fluxcal field names
     n_threads : int, optional
         Number of OpenMP threads
+
     Returns
     -------
     list
@@ -346,12 +1322,14 @@ def get_bad_ants(msname="", fieldnames=[], n_threads=-1, dry_run=False):
 def get_common_spw(spw1, spw2):
     """
     Return common spectral windows in merged CASA string format.
+
     Parameters
     ----------
     spw1 : str
         First spectral window
     spw2 : str
         Second spectral window
+
     Returns
     -------
     str
@@ -391,12 +1369,14 @@ def get_common_spw(spw1, spw2):
 def scans_in_timerange(msname="", timerange="", dry_run=False):
     """
     Get scans in the given timerange
+
     Parameters
     ----------
     msname : str
         Measurement set
     timerange : str
         Time range with date and time
+
     Returns
     -------
     dict
@@ -458,12 +1438,14 @@ def scans_in_timerange(msname="", timerange="", dry_run=False):
 def get_refant(msname="", n_threads=-1, dry_run=False):
     """
     Get reference antenna
+
     Parameters
     ----------
     msname : str
         Name of the measurement set
     n_threads : int, optional
         Number of OpenMP threads
+
     Returns
     -------
     str
@@ -524,10 +1506,12 @@ def get_refant(msname="", n_threads=-1, dry_run=False):
 def get_submsname_scans(msname):
     """
     Get sub-MS names for each scans of an multi-MS
+
     Parameters
     ----------
     msname : str
         Name of the measurement set
+
     Returns
     -------
     list
@@ -543,7 +1527,9 @@ def get_submsname_scans(msname):
     mslist = []
     for i in range(len(partitionlist)):
         subms = partitionlist[i]
-        mslist.append(msname + "/SUBMSS/" + subms["MS"])
+        subms_name = msname + "/SUBMSS/" + subms["MS"]
+        mslist.append(subms_name)
+        os.system(f"rm -rf {subms_name}/.flagversions")
         scan_number = list(subms["scanId"].keys())[0]
         scans.append(scan_number)
     return mslist, scans
@@ -552,6 +1538,7 @@ def get_submsname_scans(msname):
 def get_chans_flag(msname="", field="", n_threads=-1, dry_run=False):
     """
     Get flag/unflag channel list
+
     Parameters
     ----------
     msname : str
@@ -560,6 +1547,7 @@ def get_chans_flag(msname="", field="", n_threads=-1, dry_run=False):
         Field name or ID
     n_threads : int, optional
         Number of OpenMP threads
+
     Returns
     -------
     list
@@ -603,6 +1591,7 @@ def get_optimal_image_interval(
 ):
     """
     Get optimal image spectral temporal interval such that total flux max-median in each chunk is within tolerance limit
+
     Parameters
     ----------
     msname : str
@@ -619,6 +1608,7 @@ def get_optimal_image_interval(
         Maxmium number of spectral chunk
     max_ntime : int, optional
         Maximum number of temporal chunk
+
     Returns
     -------
     int
@@ -703,6 +1693,7 @@ def reset_weights_and_flags(
 ):
     """
     Reset weights and flags for the ms
+
     Parameters
     ----------
     msname : str
@@ -762,6 +1753,7 @@ def reset_weights_and_flags(
 def correct_missing_col_subms(msname):
     """
     Correct for missing colurmns in sub-MSs
+
     Parameters
     ----------
     msname : str
@@ -793,6 +1785,7 @@ def correct_missing_col_subms(msname):
 def get_unflagged_antennas(msname="", scan="", n_threads=-1, dry_run=False):
     """
     Get unflagged antennas of a scan
+
     Parameters
     ----------
     msname : str
@@ -801,6 +1794,7 @@ def get_unflagged_antennas(msname="", scan="", n_threads=-1, dry_run=False):
         Scans
     n_threads : int, optional
         Number of OpenMP threads
+
     Returns
     -------
     numpy.array
@@ -836,6 +1830,7 @@ def calc_flag_fraction(msname="", field="", scan="", n_threads=-1, dry_run=False
     """
     Function to calculate the fraction of total data flagged.
 
+
     Parameters
     ----------
     msname : str
@@ -846,6 +1841,7 @@ def calc_flag_fraction(msname="", field="", scan="", n_threads=-1, dry_run=False
         Scan names
     n_threads : int, optional
         Number of OpenMP threads
+
     Returns
     -------
     float
@@ -869,10 +1865,12 @@ def calc_flag_fraction(msname="", field="", scan="", n_threads=-1, dry_run=False
 def get_fluxcals(msname):
     """
     Get fluxcal field names and scans
+
     Parameters
     ----------
     msname : str
         Name of the ms
+
     Returns
     -------
     list
@@ -908,10 +1906,12 @@ def get_fluxcals(msname):
 def get_polcals(msname):
     """
     Get polarization calibrator field names and scans
+
     Parameters
     ----------
     msname : str
         Name of the ms
+
     Returns
     -------
     list
@@ -936,7 +1936,7 @@ def get_polcals(msname):
                 "0521+166",
                 "J0521+1638",
             ]:
-                if field not in polal_fields:
+                if field not in polcal_fields:
                     polcal_fields.append(field)
                 scans = msmd.scansforfield(field).tolist()
                 if field in polcal_scans:
@@ -946,16 +1946,19 @@ def get_polcals(msname):
                     polcal_scans[field] = scans
     msmd.close()
     msmd.done()
+    del msmd
     return polcal_fields, polcal_scans
 
 
 def get_phasecals(msname):
     """
     Get phasecal field names and scans
+
     Parameters
     ----------
     msname : str
         Name of the ms
+
     Returns
     -------
     list
@@ -1000,16 +2003,19 @@ def get_phasecals(msname):
                 phasecal_flux_list[field] = flux
     msmd.close()
     msmd.done()
+    del msmd
     return phasecal_fields, phasecal_scans, phasecal_flux_list
 
 
 def get_target_fields(msname):
     """
     Get target fields
+
     Parameters
     ----------
     msname : str
         Name of the measurement set
+
     Returns
     -------
     list
@@ -1034,16 +2040,19 @@ def get_target_fields(msname):
         target_scans[field] = scans
     msmd.close()
     msmd.done()
+    del msmd
     return target_fields, target_scans
 
 
 def get_caltable_fields(caltable):
     """
     Get caltable field names
+
     Parameters
     ----------
     caltable : str
         Caltable name
+
     Returns
     -------
     list
@@ -1067,10 +2076,12 @@ def get_caltable_fields(caltable):
 def get_cal_target_scans(msname):
     """
     Get calibrator and target scans
+
     Parameters
     ----------
     msname : str
         Name of the measurement set
+
     Returns
     -------
     list
@@ -1109,10 +2120,12 @@ def get_cal_target_scans(msname):
 def get_solar_elevation_MeerKAT(date_time=""):
     """
     Get solar elevation at MeerKAT at a time
+
     Parameters
     ----------
     date_time : str
         Date and time in 'yyyy-mm-ddTHH:MM:SS' format (default: current time)
+
     Returns
     -------
     float
@@ -1144,6 +2157,7 @@ def timestamp_to_mjdsec(timestamp, date_format=0):
     """
     Convert timestamp to mjd second.
 
+
     Parameters
     ----------
     timestamp : str
@@ -1152,11 +2166,12 @@ def timestamp_to_mjdsec(timestamp, date_format=0):
         Datetime string format
             0: 'YYYY/MM/DD/hh:mm:ss'
 
-            1: 'YYYY - MM - DDThh:mm:ss'
+            1: 'YYYY-MM-DDThh:mm:ss'
 
-            2: 'YYYY - MM - DD hh:mm:ss'
+            2: 'YYYY-MM-DD hh:mm:ss'
 
             3: 'YYYY_MM_DD_hh_mm_ss'
+
     Returns
     -------
     float
@@ -1198,12 +2213,14 @@ def timestamp_to_mjdsec(timestamp, date_format=0):
 def mjdsec_to_timestamp(mjdsec, str_format=0):
     """
     Convert CASA MJD seceonds to CASA timestamp
+
     Parameters
     ----------
     mjdsec : float
             CASA MJD seconds
     str_format : int
-        Time stamp format (0: yyyy-mm-ddTHH:MM:SS.ff, 1: yyyy/mm/dd/HH:MM:SS.ff)
+        Time stamp format (0: yyyy-mm-ddTHH:MM:SS.ff, 1: yyyy/mm/dd/HH:MM:SS.ff, 2: yyyy-mm-dd HH:MM:SS)
+
     Returns
     -------
     str
@@ -1226,8 +2243,15 @@ def mjdsec_to_timestamp(mjdsec, str_format=0):
             date["monthday"],
             hhmmss,
         )
-    else:
+    elif str_format == 1:
         utcstring = "%s/%02d/%02d/%s" % (
+            date["year"],
+            date["month"],
+            date["monthday"],
+            hhmmss,
+        )
+    else:
+        utcstring = "%s-%02d-%02d %s" % (
             date["year"],
             date["month"],
             date["monthday"],
@@ -1236,9 +2260,12 @@ def mjdsec_to_timestamp(mjdsec, str_format=0):
     return utcstring
 
 
-def get_timeranges_for_scan(msname, scan, time_interval, time_window):
+def get_timeranges_for_scan(
+    msname, scan, time_interval, time_window, quack_timestamps=-1
+):
     """
     Get time ranges for a scan with certain time intervals
+
     Parameters
     ----------
     msname : str
@@ -1249,6 +2276,9 @@ def get_timeranges_for_scan(msname, scan, time_interval, time_window):
         Time interval in seconds
     time_window : float
         Time window in seconds
+    quack_timestamps : int, optional
+        Number of timestamps ignored at the start and end of each scan
+
     Returns
     -------
     list
@@ -1263,6 +2293,10 @@ def get_timeranges_for_scan(msname, scan, time_interval, time_window):
     msmd.close()
     msmd.done()
     time_ranges = []
+    if quack_timestamps > 0:
+        times = times[quack_timestamps:-quack_timestamps]
+    else:
+        times = times[1:-1]
     start_time = times[0]
     end_time = times[-1]
     if time_interval < 0 or time_window < 0:
@@ -1273,27 +2307,29 @@ def get_timeranges_for_scan(msname, scan, time_interval, time_window):
         )
         time_ranges.append(t)
         return time_ranges
-    total_time=(end_time-start_time)
-    timeres=total_time/len(times)
-    ntime_chunk=int(total_time/time_interval)
-    ntime=int(time_window/timeres)
-    start_time=times[:-ntime]
-    indices = np.linspace(
-        0, len(start_time) - 1, num=ntime_chunk, dtype=int
-    )
+    total_time = end_time - start_time
+    timeres = total_time / len(times)
+    ntime_chunk = int(total_time / time_interval)
+    ntime = int(time_window / timeres)
+    start_time = times[:-ntime]
+    indices = np.linspace(0, len(start_time) - 1, num=ntime_chunk, dtype=int)
     timelist = [start_time[i] for i in indices]
     for t in timelist:
-        time_ranges.append(f"{mjdsec_to_timestamp(t, str_format=1)}~{mjdsec_to_timestamp(t+time_window, str_format=1)}")
+        time_ranges.append(
+            f"{mjdsec_to_timestamp(t, str_format=1)}~{mjdsec_to_timestamp(t+time_window, str_format=1)}"
+        )
     return time_ranges
 
 
 def radec_sun(msname):
     """
     RA DEC of the Sun at the start of the scan
+
     Parameters
     ----------
     msname : str
         Name of the measurement set
+
     Returns
     -------
     str
@@ -1343,10 +2379,12 @@ def radec_sun(msname):
 def get_phasecenter(msname, field):
     """
     Get phasecenter of the measurement set
+
     Parameters
     ----------
     msname : str
         Name of the measurement set
+
     Returns
     -------
     float
@@ -1369,6 +2407,7 @@ def get_phasecenter(msname, field):
 def angular_separation_equatorial(ra1, dec1, ra2, dec2):
     """
     Calculate angular seperation between two equatorial coordinates
+
     Parameters
     ----------
     ra1 : float
@@ -1379,6 +2418,7 @@ def angular_separation_equatorial(ra1, dec1, ra2, dec2):
         RA of the second coordinate in degree
     dec2 : float
         DEC of the second coordinate in degree
+
     Returns
     -------
     float
@@ -1403,10 +2443,12 @@ def angular_separation_equatorial(ra1, dec1, ra2, dec2):
 def move_to_sun(msname):
     """
     Move the phasecenter of the measurement set at the center of the Sun (Assuming ms has one scan)
+
     Parameters
     ----------
     msname : str
         Name of the measurement set
+
     Returns
     -------
     int
@@ -1422,10 +2464,12 @@ def move_to_sun(msname):
 def correct_solar_sidereal_motion(msname="", verbose=False, dry_run=False):
     """
     Correct sodereal motion of the Sun
+
     Parameters
     ----------
     msname : str
         Name of the measurement set
+
     Returns
     -------
     int
@@ -1452,12 +2496,14 @@ def correct_solar_sidereal_motion(msname="", verbose=False, dry_run=False):
 def check_scan_in_caltable(caltable, scan):
     """
     Check scan number available in caltable or not
+
     Parameters
     ----------
     caltable : str
         Name of the caltable
     scan : int
         Scan number
+
     Returns
     -------
     bool
@@ -1476,59 +2522,65 @@ def check_scan_in_caltable(caltable, scan):
 def determine_noise_diode_cal_scan(msname, scan):
     """
     Determine whether a calibrator scan is a noise-diode cal scan or not
+
     Parameters
     ----------
     msname : str
         Name of the measurement set
     scan : int
         Scan number
+
     Returns
     -------
     bool
         Whether it is noise-diode cal scan or not
     """
+    def is_noisescan(msname,chan,scan):
+        mstool = casamstool()
+        mstool.open(msname)
+        mstool.select({"antenna1": 1, "antenna2": 1, "scan_number": scan})
+        mstool.selectchannel(nchan=1, width=1, start=chan)
+        data = mstool.getdata("DATA", ifraxis=True)["data"][:, 0, 0, :]
+        mstool.close()
+        xx = np.abs(data[0, ...])
+        yy = np.abs(data[-1, ...])
+        even_xx = xx[1::2]
+        odd_xx = xx[::2]
+        minlen = min(len(even_xx), len(odd_xx))
+        d_xx = even_xx[:minlen] - odd_xx[:minlen]
+        even_yy = yy[1::2]
+        odd_yy = yy[::2]
+        d_yy = even_yy[:minlen] - odd_yy[:minlen]
+        mean_d_xx = np.abs(np.nanmedian(d_xx))
+        mean_d_yy = np.abs(np.nanmedian(d_yy))
+        if mean_d_xx > 10 and mean_d_yy > 10:
+            return True
+        else:
+            return False
     print(f"Check noise-diode cal for scan : {scan}")
     good_spw = get_good_chans(msname)
     chan = int(good_spw.split(";")[0].split(":")[-1].split("~")[0])
-    mstool = casamstool()
-    mstool.open(msname)
-    mstool.select({"antenna1": 1, "antenna2": 1, "scan_number": scan})
-    mstool.selectchannel(nchan=1, width=1, start=chan)
-    data = mstool.getdata("DATA", ifraxis=True)["data"][:, 0, 0, :]
-    mstool.close()
-    xx = np.abs(data[0, ...])
-    yy = np.abs(data[-1, ...])
-    even_xx = xx[1::2]
-    odd_xx = xx[::2]
-    minlen = min(len(even_xx), len(odd_xx))
-    d_xx = even_xx[:minlen] - odd_xx[:minlen]
-    even_yy = yy[1::2]
-    odd_yy = yy[::2]
-    d_yy = even_yy[:minlen] - odd_yy[:minlen]
-    d_xx = np.abs(d_xx)
-    d_yy = np.abs(d_yy)
-    mean_d_xx = np.nanmedian(d_xx)
-    mean_d_yy = np.nanmedian(d_yy)
-    if mean_d_xx > 10 and mean_d_yy > 10:
-        return True
-    else:
-        return False
+    return is_noisescan(msname,chan,scan)
 
 
-def get_valid_scans(msname, field="", min_scan_time=1):
+def get_valid_scans(msname, field="", min_scan_time=1, n_threads=-1):
     """
     Get valid list of scans
+
     Parameters
     ----------
     msname : str
         Measurement set name
     min_scan_time : float
         Minimum valid scan time in minute
+
     Returns
     -------
     list
         Valid scan list
     """
+    limit_threads(n_threads=n_threads)
+    from casatools import ms as casamstool
     mstool = casamstool()
     mstool.open(msname)
     scan_summary = mstool.getscansummary()
@@ -1549,6 +2601,7 @@ def get_valid_scans(msname, field="", min_scan_time=1):
             selected_field.append(field_id)
         msmd.close()
         msmd.done()
+        del msmd
     for scan in scans:
         scan_field = scan_summary[str(scan)]["0"]["FieldId"]
         if len(selected_field) == 0 or scan_field in selected_field:
@@ -1565,12 +2618,14 @@ def get_valid_scans(msname, field="", min_scan_time=1):
 def split_into_chunks(lst, target_chunk_size):
     """
     Split a list into equal number of elements
+
     Parameters
     ----------
     lst : list
         List of numbers
     target_chunk_size: int
         Number of elements per chunk
+
     Returns
     -------
     list
@@ -1594,12 +2649,14 @@ def split_into_chunks(lst, target_chunk_size):
 def calc_maxuv(msname, chan_number=-1):
     """
     Calculate maximum UV
+
     Parameters
     ----------
     msname : str
         Name of the measurement set
     chan_number : int, optional
         Channel number
+
     Returns
     -------
     float
@@ -1627,12 +2684,14 @@ def calc_maxuv(msname, chan_number=-1):
 def calc_minuv(msname, chan_number=-1):
     """
     Calculate minimum UV
+
     Parameters
     ----------
     msname : str
         Name of the measurement set
     chan_number : int, optional
         Channel number
+
     Returns
     -------
     float
@@ -1640,8 +2699,6 @@ def calc_minuv(msname, chan_number=-1):
     float
         Minimum UV in wavelength
     """
-    import matplotlib.pyplot as plt
-
     msmd = msmetadata()
     msmd.open(msname)
     freq = msmd.chanfreqs(0)[chan_number]
@@ -1662,12 +2719,14 @@ def calc_minuv(msname, chan_number=-1):
 def calc_field_of_view(msname, FWHM=True):
     """
     Calculate optimum field of view in arcsec.
+
     Parameters
     ----------
     msname : str
         Measurement set name
     FWHM : bool, optional
         Upto FWHM, otherwise upto first null
+
     Returns
     -------
     float
@@ -1693,12 +2752,14 @@ def calc_field_of_view(msname, FWHM=True):
 def ceil_to_multiple(n, base):
     """
     Round up to the next multiple
+
     Parameters
     ----------
     n : float
         The number
     base : float
         Whose multiple will be
+
     Returns
     -------
     float
@@ -1710,10 +2771,12 @@ def ceil_to_multiple(n, base):
 def calc_bw_smearing_freqwidth(msname):
     """
     Function to calculate spectral width to procude bandwidth smearing
+
     Parameters
     ----------
     msname : str
         Name of the measurement set
+
     Returns
     -------
     float
@@ -1737,10 +2800,12 @@ def calc_bw_smearing_freqwidth(msname):
 def calc_time_smearing_timewidth(msname):
     """
     Calculate maximum time averaging to avoid time smearing over full FoV.
+
     Parameters
     ----------
     msname : str
         Measurement set name
+
     Returns
     -------
     delta_t_max : float
@@ -1767,10 +2832,12 @@ def calc_time_smearing_timewidth(msname):
 def max_time_solar_smearing(msname):
     """
     Max allowable time averaging to avoid solar motion smearing.
+
     Parameters
     ----------
     msname : str
         Measurement set name
+
     Returns
     -------
     t_max : float
@@ -1785,12 +2852,14 @@ def max_time_solar_smearing(msname):
 def calc_psf(msname, chan_number=-1):
     """
     Function to calculate PSF size in arcsec
+
     Parameters
     ----------
     msname : str
         Name of the measurement set
     chan_number : int, optional
         Channel number
+
     Returns
     -------
     float
@@ -1801,15 +2870,43 @@ def calc_psf(msname, chan_number=-1):
     return psf
 
 
+def calc_npix_in_psf(weight, robust=0.0):
+    """
+    Calculate number of pixels in a PSF (could be in fraction)
+
+    Parameters
+    ----------
+    weight : str
+        Image weighting scheme
+    robust : float, optional
+        Briggs weighting robust parameter (-1,1)
+
+    Returns
+    -------
+    float
+        Number of pixels in a PSF
+    """
+    if weight.upper() == "NATURAL":
+        npix = 3
+    elif weight.upper() == "UNIFORM":
+        npix = 5
+    else:  # -1 to +1, uniform to natural
+        robust = np.clip(robust, -1.0, 1.0)
+        npix = 5.0 - ((robust + 1.0) / 2.0) * (5.0 - 3.0)
+    return round(npix, 1)
+
+
 def calc_cellsize(msname, num_pixel_in_psf):
     """
     Calculate pixel size in arcsec
+
     Parameters
     ----------
     msname : str
         Name of the measurement set
-    num_pixel_in_psf : int
+    num_pixel_in_psf : float
             Number of pixels in one PSF
+
     Returns
     -------
     int
@@ -1823,14 +2920,16 @@ def calc_cellsize(msname, num_pixel_in_psf):
 def calc_multiscale_scales(msname, num_pixel_in_psf, chan_number=-1, max_scale=16):
     """
     Calculate multiscale scales
+
     Parameters
     ----------
     msname : str
         Name of the measurement set
-    num_pixel_in_psf : int
+    num_pixel_in_psf : float
             Number of pixels in one PSF
     max_scale : float, optional
         Maximum scale in arcmin
+
     Returns
     -------
     list
@@ -1846,7 +2945,7 @@ def calc_multiscale_scales(msname, num_pixel_in_psf, chan_number=-1, max_scale=1
     multiscale_scales = [0]
     current_scale = num_pixel_in_psf
     while True:
-        current_scale = 2 * current_scale
+        current_scale = current_scale * 2
         if current_scale >= max_scale_pixel:
             break
         multiscale_scales.append(current_scale)
@@ -1856,6 +2955,7 @@ def calc_multiscale_scales(msname, num_pixel_in_psf, chan_number=-1, max_scale=1
 def get_multiscale_bias(freq, bias_min=0.6, bias_max=0.9):
     """
     Get frequency dependent multiscale bias
+
     Parameters
     ----------
     freq : float
@@ -1864,6 +2964,7 @@ def get_multiscale_bias(freq, bias_min=0.6, bias_max=0.9):
         Minimum bias at minimum L-band frequency
     bias_max : float, optional
         Maximum bias at maximum L-band frequency
+
     Returns
     -------
     float
@@ -1885,9 +2986,60 @@ def get_multiscale_bias(freq, bias_min=0.6, bias_max=0.9):
         )
 
 
+def cutout_image(fits_file, output_file, x_deg=2):
+    """
+    Cutout central part of the image
+
+    Parameters
+    ----------
+    fits_file : str
+        Input fits file
+    output_file : str
+        Output fits file name (If same as input, input image will be overwritten)
+    x_deg : float, optional
+        Size of the output image in degree
+
+    Returns
+    -------
+    str
+        Output image name
+    """
+    hdu = fits.open(fits_file)[0]
+    data = hdu.data  # shape: (nfreq, nstokes, ny, nx)
+    header = hdu.header
+    wcs = WCS(header)
+    _, _, ny, nx = data.shape
+    center_x, center_y = nx // 2, ny // 2
+    # Get pixel scale (deg/pixel)
+    pix_scale_deg = np.abs(header["CDELT1"])
+    x_pix = int((x_deg / pix_scale_deg) / 2)
+    # Adjust if cutout size exceeds image size
+    max_half_x = nx // 2
+    max_half_y = ny // 2
+    x_pix = min(x_pix, max_half_x)
+    y_pix = min(x_pix, max_half_y)  # Assume square pixels
+    # Define slice indices
+    x0 = center_x - x_pix
+    x1 = center_x + x_pix
+    y0 = center_y - y_pix
+    y1 = center_y + y_pix
+    # Slice data
+    cutout_data = data[:, :, y0:y1, x0:x1]
+    # Update header
+    new_header = header.copy()
+    new_header["NAXIS1"] = x1 - x0
+    new_header["NAXIS2"] = y1 - y0
+    new_header["CRPIX1"] -= x0
+    new_header["CRPIX2"] -= y0
+    # Save
+    fits.writeto(output_file, cutout_data, header=new_header, overwrite=True)
+    return output_file
+
+
 def delaycal(msname="", caltable="", refant="", solint="inf", dry_run=False):
     """
     General delay calibration using CASA, not assuming any point source
+
     Parameters
     ----------
     msname : str, optional
@@ -1898,6 +3050,7 @@ def delaycal(msname="", caltable="", refant="", solint="inf", dry_run=False):
         Reference antenna
     solint : str, optional
         Solution interval
+
     Returns
     -------
     str
@@ -1967,10 +3120,12 @@ def delaycal(msname="", caltable="", refant="", solint="inf", dry_run=False):
 def average_timestamp(timestamps):
     """
     Compute the average timestamp using astropy from a list of ISO 8601 strings.
+
     Parameters
     ----------
     timestamps : list
         timestamps (list of str): List of timestamp strings in 'YYYY-MM-DDTHH:MM:SS' format.
+
     Returns
     --------
     str
@@ -1984,6 +3139,7 @@ def average_timestamp(timestamps):
 def make_timeavg_image(wsclean_images, outfile_name, keep_wsclean_images=True):
     """
     Convert WSClean images into a time averaged image
+
     Parameters
     ----------
     wsclean_images : list
@@ -1992,6 +3148,7 @@ def make_timeavg_image(wsclean_images, outfile_name, keep_wsclean_images=True):
         Name of the output file.
     keep_wsclean_images : bool, optional
         Whether to retain the original WSClean images (default: True).
+
     Returns
     -------
     str
@@ -2019,6 +3176,7 @@ def make_timeavg_image(wsclean_images, outfile_name, keep_wsclean_images=True):
 def make_freqavg_image(wsclean_images, outfile_name, keep_wsclean_images=True):
     """
     Convert WSClean images into a frequency averaged image
+
     Parameters
     ----------
     wsclean_images : list
@@ -2027,6 +3185,7 @@ def make_freqavg_image(wsclean_images, outfile_name, keep_wsclean_images=True):
         Name of the output file.
     keep_wsclean_images : bool, optional
         Whether to retain the original WSClean images (default: True).
+
     Returns
     -------
     str
@@ -2064,38 +3223,27 @@ def make_freqavg_image(wsclean_images, outfile_name, keep_wsclean_images=True):
     return outfile_name
 
 
-def plot_in_hpc(
-    fits_image, draw_limb=False, extension="pdf", xlim=[-2000, 2000], ylim=[-2000, 2000]
-):
+def get_meermap(fits_image, band="", do_sharpen=False):
     """
-    Function to convert MeerKAT image into Helioprojective co-ordinate
+    Make MeerKAT sunpy map
+
     Parameters
     ----------
     fits_image : str
-        Name of the fits image
-    draw_limb : bool, optional
-        Draw solar limb or not
-    extension : str, optional
-        Output file extension
-    xlim : list
-        X axis limit in arcsecond
-    ylim : list
-        Y axis limit in arcsecond
+        MeerKAT fits image
+    band : str, optional
+        Band name
+    do_sharpen : bool, optional
+        Sharpen the image
+
     Returns
     -------
-    sunpy.Map
-        MeerKAT image in helioprojective co-ordinate
+    sunpy.map
+        Sunpy map
     """
-    from astropy.visualization import ImageNormalize, PowerStretch, PercentileInterval
-    from matplotlib.patches import Ellipse, Rectangle
-    import matplotlib, matplotlib.pyplot as plt
-
-    matplotlib.rcParams.update({"font.size": 12})
     MEERLAT = -30.7133
     MEERLON = 21.4429
     MEERALT = 1086.6
-    fits_image = fits_image.rstrip("/")
-    output_image = fits_image.split(".fits")[0] + f".{extension}"
     meer_hdu = fits.open(fits_image)  # Opening MeerKAT fits file
     meer_header = meer_hdu[0].header  # meer header
     meer_data = meer_hdu[0].data
@@ -2107,10 +3255,121 @@ def plot_in_hpc(
         frequency = meer_header["CRVAL4"] * u.Hz
     else:
         frequency = ""
+    if band == "":
+        try:
+            band = meer_header["BAND"]
+        except:
+            band = ""
     try:
-        band = meer_header["BAND"]
+        pixel_unit = meer_header["BUNIT"]
     except:
-        band = ""
+        pixel_nuit = ""
+    obstime = Time(meer_header["date-obs"])
+    meerpos = EarthLocation(
+        lat=MEERLAT * u.deg, lon=MEERLON * u.deg, height=MEERALT * u.m
+    )
+    meer_gcrs = SkyCoord(meerpos.get_gcrs(obstime))  # Converting into GCRS coordinate
+    reference_coord = SkyCoord(
+        meer_header["crval1"] * u.Unit(meer_header["cunit1"]),
+        meer_header["crval2"] * u.Unit(meer_header["cunit2"]),
+        frame="gcrs",
+        obstime=obstime,
+        obsgeoloc=meer_gcrs.cartesian,
+        obsgeovel=meer_gcrs.velocity.to_cartesian(),
+        distance=meer_gcrs.hcrs.distance,
+    )
+    reference_coord_arcsec = reference_coord.transform_to(
+        frames.Helioprojective(observer=meer_gcrs)
+    )
+    cdelt1 = (np.abs(meer_header["cdelt1"]) * u.deg).to(u.arcsec)
+    cdelt2 = (np.abs(meer_header["cdelt2"]) * u.deg).to(u.arcsec)
+    P1 = sun.P(obstime)  # Relative rotation angle
+    new_meer_header = sunpy.map.make_fitswcs_header(
+        meer_data,
+        reference_coord_arcsec,
+        reference_pixel=u.Quantity(
+            [meer_header["crpix1"] - 1, meer_header["crpix2"] - 1] * u.pixel
+        ),
+        scale=u.Quantity([cdelt1, cdelt2] * u.arcsec / u.pix),
+        rotation_angle=-P1,
+        wavelength=frequency.to(u.MHz).round(2),
+        observatory="MeerKAT",
+    )
+    if do_sharpen:
+        blurred = gaussian_filter(meer_data, sigma=10)
+        meer_data = meer_data + (meer_data - blurred)
+    meer_map = Map(meer_data, new_meer_header)
+    meer_map_rotate = meer_map.rotate()
+    return meer_map_rotate
+
+
+def plot_in_hpc(
+    fits_image,
+    draw_limb=False,
+    extension="png",
+    outdir="",
+    plot_range=[],
+    power=0.5,
+    xlim=[-1600, 1600],
+    ylim=[-1600, 1600],
+    contour_levels=[],
+    band="",
+    showgui=False,
+):
+    """
+    Function to convert MeerKAT image into Helioprojective co-ordinate
+
+    Parameters
+    ----------
+    fits_image : str
+        Name of the fits image
+    draw_limb : bool, optional
+        Draw solar limb or not
+    extension : str, optional
+        Output file extension
+    outdir : str, optional
+        Output directory
+    plot_range : list, optional
+        Plot range
+    power : float, optional
+        Power stretch
+    xlim : list
+        X axis limit in arcsecond
+    ylim : list
+        Y axis limit in arcsecond
+    contour_levels : list, optional
+        Contour levels in fraction of peak, both positive and negative values allowed
+    band : str, optional
+        Band name
+    showgui : bool, optional
+        Show GUI
+
+    Returns
+    -------
+    outfile
+        Saved plot name
+    sunpy.Map
+        MeerKAT image in helioprojective co-ordinate
+    """
+    MEERLAT = -30.7133
+    MEERLON = 21.4429
+    MEERALT = 1086.6
+    meer_hdu = fits.open(fits_image)  # Opening MeerKAT fits file
+    meer_header = meer_hdu[0].header  # meer header
+    meer_data = meer_hdu[0].data
+    if len(meer_data.shape) > 2:
+        meer_data = meer_data[0, 0, :, :]  # meer data
+    if meer_header["CTYPE3"] == "FREQ":
+        frequency = meer_header["CRVAL3"] * u.Hz
+    elif meer_header["CTYPE4"] == "FREQ":
+        frequency = meer_header["CRVAL4"] * u.Hz
+    else:
+        frequency = ""
+    if band == "":
+        try:
+            band = meer_header["BAND"]
+        except:
+            band = ""
     try:
         pixel_unit = meer_header["BUNIT"]
     except:
@@ -2148,6 +3407,30 @@ def plot_in_hpc(
     )
     meer_map = Map(meer_data, new_meer_header)
     meer_map_rotate = meer_map.rotate()
+    if showgui == False:
+        matplotlib.use("Agg")
+    else:
+        matplotlib.use("TkAgg")
+    if outdir == "":
+        outdir = os.getcwd()
+    matplotlib.rcParams.update({"font.size": 12})
+    fits_image = fits_image.rstrip("/")
+    os.makedirs(outdir, exist_ok=True)
+    if len(contour_levels) > 0:
+        output_image = (
+            outdir
+            + "/"
+            + os.path.basename(fits_image).split(".fits")[0]
+            + f"_contour.{extension}"
+        )
+    else:
+        output_image = (
+            outdir
+            + "/"
+            + os.path.basename(fits_image).split(".fits")[0]
+            + f".{extension}"
+        )
+    meer_map_rotate = get_meermap(fits_image, band=band)
     top_right = SkyCoord(
         xlim[1] * u.arcsec, ylim[1] * u.arcsec, frame=meer_map_rotate.coordinate_frame
     )
@@ -2155,21 +3438,65 @@ def plot_in_hpc(
         xlim[0] * u.arcsec, ylim[0] * u.arcsec, frame=meer_map_rotate.coordinate_frame
     )
     cropped_map = meer_map_rotate.submap(bottom_left, top_right=top_right)
-    norm = ImageNormalize(
-        meer_data,
-        vmin=max(np.nanmin(meer_data), -0.01 * np.nanmax(meer_data)),
-        stretch=PowerStretch(0.5),
-    )
+    meer_data = cropped_map.data
+    if len(plot_range) < 2:
+        norm = ImageNormalize(
+            meer_data,
+            vmin=0.03 * np.nanmax(meer_data),
+            vmax=0.99 * np.nanmax(meer_data),
+            stretch=PowerStretch(power),
+        )
+    else:
+        norm = ImageNormalize(
+            meer_data,
+            vmin=np.nanmin(plot_range),
+            vmax=np.nanmax(plot_range),
+            stretch=PowerStretch(power),
+        )
     if band == "U":
         cmap = "inferno"
+        pos_color = "white"
+        neg_color = "cyan"
     elif band == "L":
-        cmap = "YlGnBu_r"
+        pos_color = "hotpink"
+        neg_color = "yellow"
+        if "YlGnBu_inferno" not in plt.colormaps():
+            # Sample YlGnBu_r colormap with 256 colors
+            cmap_ylgnbu = cm.get_cmap("YlGnBu_r", 256)
+            colors = cmap_ylgnbu(np.linspace(0, 1, 256))
+            # Create perceptually linear spacing using inferno luminance
+            cmap_inferno = cm.get_cmap("inferno", 256)
+            # Sort YlGnBu colors by the inferred brightness from inferno
+            luminance_ranks = np.argsort(
+                np.mean(cmap_inferno(np.linspace(0, 1, 256))[:, :3], axis=1)
+            )
+            colors_uniform = colors[luminance_ranks]
+            # New perceptual-YlGnBu-inspired colormap
+            YlGnBu_inferno = ListedColormap(colors_uniform, name="YlGnBu_inferno")
+            plt.colormaps.register(name="YlGnBu_inferno", cmap=YlGnBu_inferno)
+        cmap = "YlGnBu_inferno"
     else:
         cmap = "cubehelix"
+        pos_color = "cyan"
+        neg_color = "gold"
     fig = plt.figure()
     ax = plt.subplot(projection=cropped_map)
     cropped_map.plot(norm=norm, cmap=cmap, axes=ax)
+    if len(contour_levels) > 0:
+        contour_levels = np.array(contour_levels)
+        pos_cont = contour_levels[contour_levels >= 0]
+        neg_cont = contour_levels[contour_levels < 0]
+        if len(pos_cont) > 0:
+            cropped_map.draw_contours(
+                np.sort(pos_cont) * np.nanmax(meer_data), colors=pos_color
+            )
+        if len(neg_cont) > 0:
+            cropped_map.draw_contours(
+                np.sort(neg_cont) * np.nanmax(meer_data), colors=neg_color
+            )
     ax.coords.grid(False)
+    rgba_vmin = plt.get_cmap(cmap)(norm(norm.vmin))
+    ax.set_facecolor(rgba_vmin)
     # Read synthesized beam from header
     try:
         bmaj = meer_header["BMAJ"] * u.deg.to(u.arcsec)  # in arcsec
@@ -2177,7 +3504,6 @@ def plot_in_hpc(
         bpa = meer_header["BPA"] - sun.P(obstime).deg  # in degrees
     except KeyError:
         bmaj = bmin = bpa = None
-
     # Plot PSF ellipse in bottom-left if all values are present
     if bmaj and bmin and bpa is not None:
         # Coordinates where to place the beam (e.g., 5% above bottom-left corner)
@@ -2214,18 +3540,24 @@ def plot_in_hpc(
             linestyle="solid",
         )
         ax.add_patch(rect)
-
     if draw_limb:
         cropped_map.draw_limb()
-    cbar = plt.colorbar()
+    formatter = ticker.FuncFormatter(lambda x, _: f"{int(x):.0e}")
+    cbar = plt.colorbar(format=formatter)
+    # Optional: set max 5 ticks to prevent clutter
+    cbar.locator = ticker.MaxNLocator(nbins=5)
+    cbar.update_ticks()
     if pixel_unit == "K":
         cbar.set_label("Brightness temperature (K)")
     elif pixel_unit == "JY/BEAM":
         cbar.set_label("Flux density (Jy/beam)")
     fig.tight_layout()
     fig.savefig(output_image)
+    if showgui:
+        plt.show()
     plt.close(fig)
-    return output_image
+    plt.close("all")
+    return output_image, cropped_map
 
 
 def make_stokes_wsclean_imagecube(
@@ -2233,6 +3565,7 @@ def make_stokes_wsclean_imagecube(
 ):
     """
     Convert WSClean images into a Stokes cube image.
+
 
     Parameters
     ----------
@@ -2242,6 +3575,7 @@ def make_stokes_wsclean_imagecube(
         Name of the output file.
     keep_wsclean_images : bool, optional
         Whether to retain the original WSClean images (default: True).
+
     Returns
     -------
     str
@@ -2288,6 +3622,7 @@ def make_stokes_wsclean_imagecube(
 def do_flag_backup(msname, flagtype="flagdata"):
     """
     Take a flag backup
+
     Parameters
     ----------
     msname : str
@@ -2321,6 +3656,7 @@ def do_flag_backup(msname, flagtype="flagdata"):
 def merge_caltables(caltables, merged_caltable, append=False, keepcopy=False):
     """
     Merge multiple same type of caltables
+
     Parameters
     ----------
     caltables : list
@@ -2331,6 +3667,7 @@ def merge_caltables(caltables, merged_caltable, append=False, keepcopy=False):
         Append with exisiting caltable
     keepcopy : bool, opitonal
         Keep input caltables or not
+
     Returns
     -------
     str
@@ -2361,15 +3698,21 @@ def merge_caltables(caltables, merged_caltable, append=False, keepcopy=False):
     return merged_caltable
 
 
-def get_nprocess_meersolar():
+def get_nprocess_meersolar(workdir):
     """
     Get numbers of MeerSOLAR processes currently running
+
+    Parameters
+    ----------
+    workdir : str
+        Work directory name
+
     Returns
     -------
     int
         Number of running processes
     """
-    pid_file = datadir + "/pids.txt"
+    pid_file = workdir + "/pids.txt"
     pids = np.loadtxt(pid_file, unpack=True)
     n_process = 0
     for pid in pids:
@@ -2381,6 +3724,7 @@ def get_nprocess_meersolar():
 def save_main_process_info(pid, cpu_frac, mem_frac):
     """
     Save MeerSOLAR main processes info
+
     Parameters
     ----------
     pid : int
@@ -2396,6 +3740,7 @@ def save_main_process_info(pid, cpu_frac, mem_frac):
 def create_batch_script_nonhpc(cmd, workdir, basename, write_logfile=True):
     """
     Function to make a batch script not non-HPC environment
+
     Parameters
     ----------
     cmd : str
@@ -2406,10 +3751,13 @@ def create_batch_script_nonhpc(cmd, workdir, basename, write_logfile=True):
             Base name of the batch files
     write_logfile : bool, optional
         Write log file or not
+
     Returns
     -------
     str
         Batch file name
+    str
+        Log file name
     """
     batch_file = workdir + "/" + basename + ".batch"
     cmd_batch = workdir + "/" + basename + "_cmd.batch"
@@ -2454,6 +3802,7 @@ def get_dask_client(
     Create a Dask client optimized for one-task-per-worker execution,
     where each worker is a separate process that can use multiple threads internally.
 
+
     Parameters
     ----------
     n_jobs : int
@@ -2472,6 +3821,7 @@ def get_dask_client(
         Minimum CPU threads per job
     only_cal : bool, optional
         Only calculate number of workers
+
     Returns
     -------
     client : dask.distributed.Client
@@ -2602,6 +3952,11 @@ def get_dask_client(
     if only_cal:
         final_mem_per_worker = round((mem_per_worker * spill_frac) / (1024.0**3), 2)
         return None, None, n_workers, threads_per_worker, final_mem_per_worker
+
+    soft, hard = resource.getrlimit(resource.RLIMIT_NOFILE)
+    new_soft = min(int(hard * 0.8), hard)  # safe cap
+    if soft < new_soft:
+        resource.setrlimit(resource.RLIMIT_NOFILE, (new_soft, hard))
     dask.config.set({"temporary-directory": dask_dir})
     cluster = LocalCluster(
         n_workers=n_workers,
@@ -2618,7 +3973,7 @@ def get_dask_client(
             "MALLOC_TRIM_THRESHOLD_": "0",
         },  # Explicitly set for workers
     )
-    client = Client(cluster)
+    client = Client(cluster, timeout="60s", heartbeat_interval="5s")
     dask.config.set(
         {
             "distributed.worker.memory.target": spill_frac,
@@ -2639,12 +3994,14 @@ def get_dask_client(
 def run_limited_memory_task(task, dask_dir="/tmp", timeout=30):
     """
     Run a task for a limited time, then kill and return memory usage.
+
     Parameters
     ----------
     task : dask.delayed
         Dask delayed task object
     timeout : int
         Time in seconds to let the task run
+
     Returns
     -------
     float
@@ -2696,10 +4053,12 @@ def run_limited_memory_task(task, dask_dir="/tmp", timeout=30):
 def baseline_names(msname):
     """
     Get baseline names
+
     Parameters
     ----------
     msname : str
         Measurement set name
+
     Returns
     -------
     list
@@ -2719,9 +4078,11 @@ def baseline_names(msname):
 def get_ms_size(msname):
     """
     Get measurement set total size
+
     Parameters
     ----------
     msname : str
+
     Returns
     -------
     float
@@ -2735,59 +4096,15 @@ def get_ms_size(msname):
     return total_size / (1024**3)  # in GB
 
 
-def get_chunk_size(msname, memory_limit=-1, ncol=3):
-    """
-    Get time chunk size for a memory limit
-    Parameters
-    ----------
-    msname : str
-        Measurement set
-    memory_limit : int, optional
-        Memory limit
-    ncol : int, optional
-        Number of columns
-    Returns
-    -------
-    int
-        Number of time chunk
-    int
-        Number of baseline chunk
-    """
-    if memory_limit == -1:
-        memory_limit = psutil.virtual_memory().available / 1024**3  # In GB
-    memory_limit = memory_limit / ncol
-    msmd = msmetadata()
-    msmd.open(msname)
-    nrow = int(msmd.nrows())
-    nchan = msmd.nchan(0)
-    npol = msmd.ncorrforpol(0)
-    nant = msmd.nantennas()
-    nbaselines = msmd.nbaselines()
-    msmd.close()
-    if nbaselines == 0 or nrow % nbaselines != 0:
-        nbaselines += nant
-    ntimes = int(nrow / nbaselines)
-    per_time_memory = float(npol * nchan * nbaselines * 16) / 1024**3
-    per_baseline_memory = float(npol * nchan * ntimes * 16) / 1024**3
-    time_chunk = int(memory_limit / per_time_memory)
-    baseline_chunk = int(memory_limit / per_baseline_memory)
-    if time_chunk == 0 or baseline_chunk == 0:
-        print("Too small memory limit.")
-        return None, None
-    if time_chunk > ntimes:
-        time_chunk = ntimes
-    if baseline_chunk > nbaselines:
-        baseline_chunk = nbaselines
-    return time_chunk, baseline_chunk
-
-
 def get_column_size(msname):
     """
     Get time chunk size for a memory limit
+
     Parameters
     ----------
     msname : str
         Measurement set
+
     Returns
     -------
     float
@@ -2803,15 +4120,42 @@ def get_column_size(msname):
     return datasize
 
 
+def get_chunk_size(msname, memory_limit=-1):
+    """
+    Get time chunk size for a memory limit
+
+    Parameters
+    ----------
+    msname : str
+        Measurement set
+    memory_limit : int, optional
+        Memory limit
+
+    Returns
+    -------
+    int
+        Number of chunks
+    """
+    if memory_limit == -1:
+        memory_limit = psutil.virtual_memory().available / 1024**3  # In GB
+    col_size = get_column_size(msname)
+    nchunk = int(col_size / memory_limit)
+    if nchunk < 1:
+        nchunk = 1
+    return nchunk
+
+
 def check_datacolumn_valid(msname, datacolumn="DATA"):
     """
     Check whether a data column exists and valid
+
     Parameters
     ----------
     msname : str
         Measurement set
     datacolumn : str, optional
         Data column string in table (e.g.,DATA, CORRECTED_DATA', MODEL_DATA, FLAG, WEIGHT, WEIGHT_SPECTRUM, SIGMA, SIGMA_SPECTRUM)
+
     Returns
     -------
     bool
@@ -2845,6 +4189,7 @@ def check_datacolumn_valid(msname, datacolumn="DATA"):
 def create_circular_mask(msname, cellsize, imsize, mask_radius=20):
     """
     Create fits solar mask
+
     Parameters
     ----------
     msname : str
@@ -2855,6 +4200,7 @@ def create_circular_mask(msname, cellsize, imsize, mask_radius=20):
         Imsize in number of pixels
     mask_radius : float
         Mask radius in arcmin
+
     Returns
     -------
     str
@@ -2917,10 +4263,12 @@ def create_circular_mask(msname, cellsize, imsize, mask_radius=20):
 def calc_fractional_bandwidth(msname):
     """
     Calculate fractional bandwidh
+
     Parameters
     ----------
     msname : str
         Name of measurement set
+
     Returns
     -------
     float
@@ -2939,6 +4287,7 @@ def calc_dyn_range(imagename, modelname, residualname, fits_mask=""):
     """
     Calculate dynamic ranges.
 
+
     Parameters
     ----------
     imagename : list or str
@@ -2949,6 +4298,7 @@ def calc_dyn_range(imagename, modelname, residualname, fits_mask=""):
         Residual FITS file(s)
     fits_mask : str, optional
         FITS file mask
+
     Returns
     -------
     model_flux : float
@@ -2994,57 +4344,17 @@ def calc_dyn_range(imagename, modelname, residualname, fits_mask=""):
     rmsvalue = rmsvalue / np.sqrt(len(residualname))
     return model_flux, round(dr1, 2), round(rmsvalue, 2)
 
-
-def init_logger_console(logname, logfile, verbose=False):
-    """
-    Initial logger.
-
-    Parameters
-    ----------
-    logname : str
-        Name of the log
-    workdir : str, optional
-        Name of the working directory
-    verbose : bool, optional
-        Verbose output or not
-    logfile : str, optional
-        Log file name
-    Returns
-    -------
-    logger
-        Python logging object
-    str
-        Log file name
-    """
-    if os.path.exists(logfile):
-        os.system("rm -rf " + logfile)
-    formatter = logging.Formatter(
-        "%(asctime)s %(levelname)-8s%(message)s",
-        datefmt="%Y-%m-%d %H:%M:%S",
-    )
-    logger = logging.getLogger(logname)
-    logger.setLevel(logging.DEBUG)
-    if verbose == True:
-        console = logging.StreamHandler(sys.stdout)
-        console.setFormatter(formatter)
-        logger.addHandler(console)
-    filehandle = logging.FileHandler(logfile)
-    filehandle.setFormatter(formatter)
-    logger.addHandler(filehandle)
-    logger.propagate = False
-    logger.info("Log file : " + logfile + "\n")
-    return logger, logfile
-
-
 def generate_tb_map(imagename, outfile=""):
     """
     Function to generate brightness temperature map
+
     Parameters
     ----------
     imagename : str
         Name of the flux calibrated image
     outfile : str, optional
         Output brightess temperature image name
+
     Returns
     -------
     str
@@ -3077,10 +4387,12 @@ def generate_tb_map(imagename, outfile=""):
 def check_udocker_container(name):
     """
     Check whether a docker container is present or not
+
     Parameters
     ----------
     name : str
         Container name
+
     Returns
     -------
     bool
@@ -3100,37 +4412,51 @@ def check_udocker_container(name):
         return True
 
 
-def initialize_wsclean_container(name):
+def initialize_wsclean_container(name="meerwsclean"):
     """
     Initialize WSClean container
+
     Parameters
     ----------
     name : str
         Name of the container
+
     Returns
     -------
     bool
         Whether initialized successfully or not
     """
-    a = os.system("udocker pull devojyoti96/wsclean-solar:latest")
+    image_name = "devojyoti96/wsclean-solar:latest"
+    check_cmd = f"udocker images | grep -q '{image_name}'"
+    image_exists = os.system(check_cmd) == 0
+    if not image_exists:
+        a = os.system(f"udocker pull {image_name}")
+    else:
+        print(f"Image '{image_name}' already present.")
+        a=0
     if a == 0:
-        a = os.system(f"udocker create --name={name} devojyoti96/wsclean-solar:latest")
+        a = os.system(f"udocker create --name={name} {image_name}")
         print(f"Container started with name : {name}")
         return name
     else:
         print(f"Container could not be created with name : {name}")
         return
-
-
-def run_wsclean(wsclean_cmd, container_name, verbose=False, dry_run=False):
+           
+def run_wsclean(wsclean_cmd, container_name="meerwsclean", check_container=False, verbose=False, dry_run=False):
     """
     Run WSClean inside a udocker container (no root permission required).
+
     Parameters
     ----------
     wsclean_cmd : str
         Full WSClean command as a string.
-    container_name : str
+    container_name : str, optional
         Container name
+    check_container : bool, optional
+        Check container presence or not
+    verbose : bool, optional
+        Verbose output or not
+
     Returns
     -------
     int
@@ -3146,15 +4472,16 @@ def run_wsclean(wsclean_cmd, container_name, verbose=False, dry_run=False):
             print(open(path).read())
         except Exception as e:
             print(f"Error: {e}")
-
-    container_present = check_udocker_container(container_name)
-    if container_present == False:
-        container_name = initialize_wsclean_container(container_name)
-        if container_name == None:
-            print(
-                "Container {container_name} is not initiated. First initiate container and then run."
-            )
-            return 1
+    if check_container:
+        container_present = check_udocker_container(container_name)
+        if container_present == False:
+            container_name = initialize_wsclean_container(name=container_name)
+            if container_name == None:
+                print(
+                    "Container {container_name} is not initiated. First initiate container and then run."
+                )
+                return 1
+            
     if dry_run:
         cmd = f"chgenter >> {tmp1} >> {tmp2}"
         cwd = os.getcwd()
@@ -3166,6 +4493,7 @@ def run_wsclean(wsclean_cmd, container_name, verbose=False, dry_run=False):
         mem = round(process.memory_info().rss / 1024**3, 2)  # in GB
         os.system(f"rm -rf {tmp1} {tmp2}")
         return mem
+        
     msname = wsclean_cmd.split(" ")[-1]
     msname = os.path.abspath(msname)
     mspath = os.path.dirname(msname)
@@ -3228,6 +4556,7 @@ def run_solar_sidereal_cor(
 ):
     """
     Run chgcenter inside a udocker container to correct solar sidereal motion (no root permission required).
+
     Parameters
     ----------
     msname : str
@@ -3236,6 +4565,7 @@ def run_solar_sidereal_cor(
         Container name
     verbose : bool, optional
         Verbose output or not
+
     Returns
     -------
     int
@@ -3247,7 +4577,7 @@ def run_solar_sidereal_cor(
     tmp2 = f"tmp2_{pid}_{timestamp}.txt"
     container_present = check_udocker_container(container_name)
     if container_present == False:
-        container_name = initialize_wsclean_container(container_name)
+        container_name = initialize_wsclean_container(name=container_name)
         if container_name == None:
             print(
                 "Container {container_name} is not initiated. First initiate container and then run."
@@ -3290,6 +4620,7 @@ def run_chgcenter(
 ):
     """
     Run chgcenter inside a udocker container (no root permission required).
+
     Parameters
     ----------
     msname : str
@@ -3302,6 +4633,7 @@ def run_chgcenter(
         Container name
     verbose : bool, optional
         Verbose output
+
     Returns
     -------
     int
@@ -3313,7 +4645,7 @@ def run_chgcenter(
     tmp2 = f"tmp2_{pid}_{timestamp}.txt"
     container_present = check_udocker_container(container_name)
     if container_present == False:
-        container_name = initialize_wsclean_container(container_name)
+        container_name = initialize_wsclean_container(name=container_name)
         if container_name == None:
             print(
                 "Container {container_name} is not initiated. First initiate container and then run."

@@ -13,6 +13,7 @@ def cor_sidereal_motion(
 ):
     """
     Perform sidereal motion correction
+
     Parameters
     ----------
     mslist : list
@@ -27,6 +28,7 @@ def cor_sidereal_motion(
         Maximum CPU fraction to use
     max_mem_frac : float, optional
         Maximum memory fraction to use
+
     Returns
     -------
     int
@@ -34,6 +36,7 @@ def cor_sidereal_motion(
     list
         List of sidereal motion corrected measurement sets
     """
+    start_time=time.time()
     #############################################
     # Memory limit
     #############################################
@@ -62,9 +65,16 @@ def cor_sidereal_motion(
             if os.path.exists(ms + "/.sidereal_cor"):
                 splited_ms_list_phaserotated.append(ms)
     if len(splited_ms_list_phaserotated) == 0:
+        print("##################")
         print("Sidereal motion correction is not successful for any measurement set.")
+        print("Total time taken : ", time.time() - start_time)
+        print("##################\n")
         return 1, []
     else:
+        print("##################")
+        print("Sidereal motion corrections are done successfully.")
+        print("Total time taken : ", time.time() - start_time)
+        print("##################\n")
         return 0, splited_ms_list_phaserotated
 
 
@@ -113,28 +123,52 @@ def main():
         help="Maximum memory fraction to use",
         metavar="Float",
     )
+    parser.add_option(
+        "--logfile",
+        dest="logfile",
+        default=None,
+        help="Log file",
+        metavar="String",
+    )
     (options, args) = parser.parse_args()
-    if options.mslist == "":
-        print("Please provide a list of measurement sets.")
-        return 1
     if options.workdir == "" or os.path.exists(options.workdir) == False:
-        print("Please provide a valid work directory.")
-        return 1
+        workdir = os.path.dirname(os.path.abspath(options.msname)) + "/workdir"
+        if os.path.exists(workdir) == False:
+            os.makedirs(workdir)
+    else:
+        workdir = options.workdir
+    logfile=options.logfile
+    observer=None
+    if os.path.exists(f"{workdir}/jobname_password.npy") and logfile!=None: 
+        time.sleep(5)
+        jobname,password=np.load(f"{workdir}/jobname_password.npy",allow_pickle=True)
+        if os.path.exists(logfile):
+            print (f"Starting remote logger. Remote logger password: {password}")
+            observer=init_logger("do_sidereal_cor",logfile,jobname=jobname,password=password)
     try:
-        mslist = options.mslist.split(",")
-        msg, final_target_mslist = cor_sidereal_motion(
-            mslist,
-            options.workdir,
-            cpu_frac=float(options.cpu_frac),
-            mem_frac=float(options.mem_frac),
-            max_cpu_frac=float(options.max_cpu_frac),
-            max_mem_frac=float(options.max_mem_frac),
-        )
-        return msg
+        if options.mslist == "":
+            print("Please provide a list of measurement sets.")
+            msg=1
+        elif options.workdir == "" or os.path.exists(options.workdir) == False:
+            print("Please provide a valid work directory.")
+            msg=1
+        else:
+            mslist = options.mslist.split(",")
+            msg, final_target_mslist = cor_sidereal_motion(
+                mslist,
+                options.workdir,
+                cpu_frac=float(options.cpu_frac),
+                mem_frac=float(options.mem_frac),
+                max_cpu_frac=float(options.max_cpu_frac),
+                max_mem_frac=float(options.max_mem_frac),
+            )
     except Exception as e:
         traceback.print_exc()
-        return 1
-
+        msg=1
+    finally:
+        time.sleep(5)
+        clean_shutdown(observer)
+    return msg  
 
 if __name__ == "__main__":
     result = main()

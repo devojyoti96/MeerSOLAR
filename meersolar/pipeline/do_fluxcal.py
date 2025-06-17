@@ -39,6 +39,7 @@ def split_autocorr(
 ):
     """
     Split auto-correlations
+
     Parameters
     ----------
     msname : str
@@ -53,6 +54,7 @@ def split_autocorr(
         CPU fraction to use
     mem_frac : float, optional
         Memory fraction to use
+
     Returns
     -------
     list
@@ -110,12 +112,14 @@ def split_autocorr(
 def get_on_off_power(msname="", scale_factor="", ant_list=[], dry_run=False):
     """
     Get noise diode on and off power averaged over antennas
+
     Parameters
     ----------
     msname : str
         Measurement set name
     ant_list : list
         Antenna id list
+
     Returns
     -------
     numpy.array
@@ -163,6 +167,7 @@ def get_on_off_power(msname="", scale_factor="", ant_list=[], dry_run=False):
 def get_att_per_ant(cal_msname, source_msname, scale_factor, ant_list=[]):
     """
     Get per antenna attenuatioin array
+
     Parameters
     ----------
     cal_msname : str
@@ -173,6 +178,7 @@ def get_att_per_ant(cal_msname, source_msname, scale_factor, ant_list=[]):
         Scaling factor for on-off gain offset in fluxcal scan
     ant_list : list, optional
         Antenna list, default: all antennas
+
     Returns
     -------
     numpy.array
@@ -208,6 +214,7 @@ def get_power_diff(
     """
     Estimate power level difference between alternative correlator dumps.
 
+
     Parameters
     ----------
     cal_msname : str
@@ -222,6 +229,7 @@ def get_power_diff(
         Number of OpenMP threads
     memory_limit : float, optional
         Memory limit in GB
+
     Returns
     -------
     numpy.array
@@ -333,6 +341,7 @@ def estimate_att(
 ):
     """
     Estimate attenaution scaling
+
     Parameters
     ----------
     msname : str
@@ -353,6 +362,7 @@ def estimate_att(
         CPU fraction to use
     mem_frac : float, optional
         Memory fraction to use
+
     Returns
     -------
     int
@@ -495,7 +505,10 @@ def estimate_att(
                         if pos[i] not in flag_ants:
                             flag_ants.append(pos[i])
             np.save(
-                filename, np.array([scan, freqs, att_value, flag_ants, att_ant_array], dtype="object")
+                filename,
+                np.array(
+                    [scan, freqs, att_value, flag_ants, att_ant_array], dtype="object"
+                ),
             )
             all_scaling_files.append(filename + ".npy")
         return 0, att_level, all_scaling_files
@@ -513,6 +526,7 @@ def run_noise_cal(
 ):
     """
     Perform flux calibration using noise diode
+
     Parameters
     ----------
     msname : str
@@ -525,6 +539,7 @@ def run_noise_cal(
         CPU fraction to use
     mem_frac : float, optional
         Memory fraction to use
+
     Returns
     -------
     int
@@ -535,6 +550,9 @@ def run_noise_cal(
         File list saved attenuation values for different scans
     """
     start_time = time.time()
+    ncpus = int(psutil.cpu_count() * (1 - cpu_frac))
+    limit_threads(n_threads=ncpus)
+    from casatasks import split, bandpass
     try:
         os.chdir(workdir)
         msname = msname.rstrip("/")
@@ -545,12 +563,13 @@ def run_noise_cal(
         ###################################
         # Determining noise diode cal scans
         ###################################
+        fluxcal_fields, fluxcal_scans = get_fluxcals(msname)
         target_scans, cal_scans, f_scans, g_scans, p_scans = get_cal_target_scans(
             msname
         )
         valid_scans = get_valid_scans(msname)
         noise_diode_cal_scan = ""
-        for scan in cal_scans:
+        for scan in f_scans:
             if scan in valid_scans:
                 noise_cal = determine_noise_diode_cal_scan(msname, scan)
                 if noise_cal:
@@ -576,8 +595,7 @@ def run_noise_cal(
             os.system("rm -rf " + noisecal_ms)
         if os.path.exists(noisecal_ms + ".flagversions"):
             os.system("rm -rf " + noisecal_ms + ".flagversions")
-        from casatasks import split
-
+        
         split(
             vis=msname,
             outputvis=noisecal_ms,
@@ -607,8 +625,7 @@ def run_noise_cal(
         # Import models
         ##################################
         print("Importing calibrator models ....")
-        ncpus = int(psutil.cpu_count() * (1 - cpu_frac))
-        import_fluxcal_models(noisecal_ms, ncpus=ncpus, mem_frac=1 - cpu_frac)
+        fluxcal_result = import_fluxcal_models([noisecal_ms], f_scans, fluxcal_fields, fluxcal_scans, ncpus=ncpus, mem_frac=1 - cpu_frac)
 
         ##################################
         # Bandpass calibration
@@ -643,8 +660,7 @@ def run_noise_cal(
             off_timerange = even_timerange
         oncal = noisecal_ms.split(".ms")[0] + "_on.bcal"
         offcal = noisecal_ms.split(".ms")[0] + "_off.bcal"
-        from casatasks import bandpass
-
+        
         bandpass(
             vis=noisecal_ms,
             caltable=oncal,
@@ -711,17 +727,6 @@ def run_noise_cal(
         return msg, att_level, all_scaling_files
     except Exception as e:
         traceback.print_exc()
-        """os.system(
-            "rm -rf "
-            + noisecal_ms
-            + " "
-            + oncal
-            + " "
-            + offcal
-            + " "
-            + workdir
-            + "/autocorr_scan_*.ms*"
-        )"""
         print("##################")
         print("Total time taken : ", time.time() - start_time)
         print("##################\n")
@@ -753,13 +758,6 @@ def main():
         metavar="Boolean",
     )
     parser.add_option(
-        "--print_casalog",
-        dest="print_casalog",
-        default=False,
-        help="Print CASA log",
-        metavar="Boolean",
-    )
-    parser.add_option(
         "--cpu_frac",
         dest="cpu_frac",
         default=0.8,
@@ -773,20 +771,33 @@ def main():
         help="Memory fraction to use",
         metavar="Float",
     )
+    parser.add_option(
+        "--logfile",
+        dest="logfile",
+        default=None,
+        help="Log file",
+        metavar="String",
+    )
     (options, args) = parser.parse_args()
-    if eval(str(options.print_casalog)) == True:
-        casalog.showconsole(True)
-    if options.msname != "" and os.path.exists(options.msname):
-        print("\n###################################")
-        print("Starting flux calibration using noise-diode.")
-        print("###################################\n")
-        try:
-            if options.workdir == "" or os.path.exists(options.workdir) == False:
-                workdir = os.path.dirname(os.path.abspath(options.msname)) + "/workdir"
-                if os.path.exists(workdir) == False:
-                    os.makedirs(workdir)
-            else:
-                workdir = options.workdir
+    if options.workdir == "" or os.path.exists(options.workdir) == False:
+        workdir = os.path.dirname(os.path.abspath(options.msname)) + "/workdir"
+        if os.path.exists(workdir) == False:
+            os.makedirs(workdir)
+    else:
+        workdir = options.workdir
+    logfile=options.logfile
+    observer=None
+    if os.path.exists(f"{workdir}/jobname_password.npy") and logfile!=None: 
+        time.sleep(5)
+        jobname,password=np.load(f"{workdir}/jobname_password.npy",allow_pickle=True)
+        if os.path.exists(logfile):
+            print (f"Starting remote logger. Remote logger password: {password}")
+            observer=init_logger("do_fluxcal",logfile,jobname=jobname,password=password)
+    try:
+        if options.msname != "" and os.path.exists(options.msname):
+            print("\n###################################")
+            print("Starting flux calibration using noise-diode.")
+            print("###################################\n")
             caldir = workdir + "/caltables"
             if os.path.exists(caldir) == False:
                 os.makedirs(caldir)
@@ -800,15 +811,17 @@ def main():
             if msg == 0 and all_scaling_files != None:
                 for att_file in all_scaling_files:
                     os.system("mv " + att_file + " " + caldir)
-            return msg
-        except Exception as e:
-            traceback.print_exc()
-            return 1
-    else:
-        print("Please provide correct measurement set.\n")
-        return 1
-
-
+        else:
+            print("Please provide correct measurement set.\n")
+            msg=1
+    except Exception as e:
+        traceback.print_exc()
+        msg=1
+    finally:
+        time.sleep(5)
+        clean_shutdown(observer)
+    return msg  
+    
 if __name__ == "__main__":
     result = main()
     print(

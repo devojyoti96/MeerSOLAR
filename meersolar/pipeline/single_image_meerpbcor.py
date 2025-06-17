@@ -23,14 +23,16 @@ datadir = get_datadir()
 def get_IQUV(filename):
     """
     Get IQUV from a fits
+
     Parameters
     ----------
     filename : str
         Fits image name
+
     Returns
     -------
     dict
-        Stokes parameters
+        Stokes
     """
     data = fits.getdata(filename).astype("float32")
     header = fits.getheader(filename)
@@ -64,16 +66,20 @@ def get_IQUV(filename):
 def put_IQUV(filename, stokes, header):
     """
     Put IQUV into a fits
+
     Parameters
     ----------
     filename : str
         Fits image name
     stokes : dict
-        Stokes parameters
+        Stokes
+    header : dict
+        Image header
+
     Returns
     -------
     dict
-        Stokes parameters
+        Stokes
     """
     if header["CTYPE3"] == "STOKES":
         stokesaxis = 3
@@ -103,6 +109,7 @@ def put_IQUV(filename, stokes, header):
 
 def get_brightness(stokes):
     """
+
     Returns brightness matrix from stokes dictionary (X and Y are in opposite convention of IAU in MeerKAT)
     """
     I = stokes["I"].astype("float32")
@@ -138,12 +145,14 @@ def make_stokes(b):
 def load_beam(image_file, band=""):
     """
     Load MeerKAT beam
+
     Parameters
     ----------
     image_file : str
         Image name (Assuming single spectral image)
     band : str, optional
         Band name (If not provided, check from header or frequency)
+
     Returns
     -------
     numpy.array
@@ -196,10 +205,12 @@ def load_beam(image_file, band=""):
 def get_radec_grid(image_file):
     """
     Get RA and Dec arrays for all pixels in an image.
+
     Parameters
     ----------
     image_file : str
         FITS image file name
+
     Returns
     -------
     ra : 2D numpy.ndarray
@@ -220,10 +231,12 @@ def get_radec_grid(image_file):
 def get_pointingcenter_radec(image_file):
     """
     Get image pointing center RA DEC
+
     Parameters
     ----------
     image_file : str
         Image file name
+
     Returns
     -------
     float
@@ -242,12 +255,14 @@ def get_pointingcenter_radec(image_file):
 def radec_to_lm(ra_deg, dec_deg, ra0_deg, dec0_deg):
     """
     Convert RA/Dec to l,m direction cosines relative to a phase center.
+
     Parameters
     ----------
     ra_deg, dec_deg : 2D arrays
         RA and Dec in degrees
     ra0_deg, dec0_deg : float
         Phase center RA and Dec in degrees
+
     Returns
     -------
     l, m : 2D arrays
@@ -268,6 +283,7 @@ def get_parallactic_angle(
 ):
     """
     Get parallactic angle
+
     Parameters
     ----------
     obs_time : str
@@ -276,6 +292,7 @@ def get_parallactic_angle(
         RA in degree
     dec : float
         DEC in degree
+
     Returns
     -------
     float
@@ -298,12 +315,14 @@ def get_parallactic_angle(
 def get_beam_interpolator(jones, coords):
     """
     Get beam interpolator
+
     Parameters
     ----------
     jones : numpy.array
         Jones array (shape, npol, l_npix, m_npix)
     coords : numpy.array
         l,m coordinates
+
     Returns
     -------
     interpolator
@@ -340,6 +359,7 @@ def apply_parallactic_rotation(jones, p_angle):
     """
     Apply left-side parallactic rotation: J' = J.R(p_angle)
     as needed in the RIME context (sky-frame transformation).
+
     Parameters
     ----------
     jones : ndarray
@@ -347,17 +367,16 @@ def apply_parallactic_rotation(jones, p_angle):
         [0] = J_00, [1] = J_01, [2] = J_10, [3] = J_11
     chi : float
         Parallactic angle in degree
+
     Returns
     -------
     jones_rot : ndarray
         Rotated Jones matrix, shape (4, H, W)
     """
-    print (p_angle)
     p_angle = np.deg2rad(p_angle)
     c = np.cos(p_angle)
     s = -np.sin(p_angle)
     j00, j01, j10, j11 = jones
-    # J · R(chi)
     jj00 = j00 * c - j01 * s
     jj01 = j00 * s + j01 * c
     jj10 = j10 * c - j11 * s
@@ -365,9 +384,18 @@ def apply_parallactic_rotation(jones, p_angle):
     return np.stack([jj00, jj01, jj10, jj11], axis=0).astype("complex64")
 
 
-def get_image_beam(image_file, pbdir, save_beam=True, band="", n_cpu=8, verbose=False):
+def get_image_beam(
+    image_file,
+    pbdir,
+    save_beam=True,
+    band="",
+    apply_parang=True,
+    n_cpu=8,
+    verbose=False,
+):
     """
     Get image beam
+
     Parameters
     ----------
     image_file : str
@@ -378,10 +406,13 @@ def get_image_beam(image_file, pbdir, save_beam=True, band="", n_cpu=8, verbose=
         Save beam of the image
     band : str, optional
         Band name
+    apply_parang : bool, optional
+        Apply parallactic angle correction
     n_cpu : int, optinal
         Number of CPU threads to use
     verbose : bool, optional
         Verbose output
+
     Returns
     -------
     numpy.array
@@ -409,11 +440,20 @@ def get_image_beam(image_file, pbdir, save_beam=True, band="", n_cpu=8, verbose=
     #######################################
     # If beam file exists
     #######################################
+    fresh_run = True
     if os.path.exists(pbfile):
         if verbose:
             print(f"Loading beam from: {pbfile}")
-        jones_array = np.load(pbfile, allow_pickle=True)
-    else:
+        try:
+            jones_array = np.load(pbfile, allow_pickle=True)
+            fresh_run = False
+        except:
+            fresh_run = True
+            os.system(f"rm -rf {pbfile}")
+    #################################
+    # Fresh run
+    #################################
+    if fresh_run:
         ra_grid, dec_grid = get_radec_grid(image_file)  # RA DEC grid
         l_grid, m_grid = radec_to_lm(ra_grid, dec_grid, ra0, dec0)
         ############################
@@ -483,12 +523,13 @@ def get_image_beam(image_file, pbdir, save_beam=True, band="", n_cpu=8, verbose=
         )
         gc.collect()
         if save_beam and os.path.exists(pbfile) == False:
-            np.save(pbfile, jones_array)
+            np.save(pbfile, np.array(jones_array, dtype="object"))
             if verbose:
                 print(f"Beam saved in: {pbfile}")
-    jones_array = apply_parallactic_rotation(
-        jones_array, p_angle
-    ).T  # This is to account B'=P(X)BP(-X) parallactic trasnform on brightness matrix
+    if apply_parang:
+        jones_array = apply_parallactic_rotation(
+            jones_array, p_angle
+        ).T  # This is to account B'=P(X)BP(-X) parallactic trasnform on brightness matrix
     jones_array = jones_array.reshape(jones_array.shape[0], jones_array.shape[1], 2, 2)
     gc.collect()
     if verbose:
@@ -497,10 +538,18 @@ def get_image_beam(image_file, pbdir, save_beam=True, band="", n_cpu=8, verbose=
 
 
 def get_pbcor_image(
-    image_file, pbdir, pbcor_dir, save_beam=True, band="", n_cpu=8, verbose=False
+    image_file,
+    pbdir,
+    pbcor_dir,
+    save_beam=True,
+    band="",
+    apply_parang=True,
+    n_cpu=8,
+    verbose=False,
 ):
     """
     Get primary beam corrected image
+
     Parameters
     ----------
     image_file : str
@@ -513,10 +562,13 @@ def get_pbcor_image(
         Save the beam for the image
     band : str, optional
         Band name
+    apply_parang : bool, optional
+        Apply parallactic correction
     n_cpu : int, optional
         Number of CPU threads to use
     verbose : bool, optional
         Verbose output
+
     Returns
     -------
     str
@@ -530,6 +582,7 @@ def get_pbcor_image(
             pbdir,
             save_beam=save_beam,
             band=band,
+            apply_parang=apply_parang,
             n_cpu=n_cpu,
             verbose=verbose,
         )
@@ -625,6 +678,13 @@ def main():
         metavar="String",
     )
     parser.add_option(
+        "--apply_parang",
+        dest="apply_parang",
+        default=True,
+        help="Apply parallactic angle correction",
+        metavar="Boolean",
+    )
+    parser.add_option(
         "--verbose",
         dest="verbose",
         default=False,
@@ -639,41 +699,42 @@ def main():
         metavar="Integer",
     )
     (options, args) = parser.parse_args()
-    if options.imagename != "" and os.path.exists(options.imagename):
-        try:
+    try:
+        if options.imagename != "" and os.path.exists(options.imagename):
             if options.pbdir == "":
                 print("Provide an existing directory name in pbdir.")
-                return 1
-            os.makedirs(options.pbdir, exist_ok=True)
-            if options.pbcor_dir == "":
-                pbcor_dir = options.pbdir
+                msg=1
             else:
-                pbcor_dir = options.pbcor_dir
-            os.makedirs(pbcor_dir, exist_ok=True)
-            pbcor_image = get_pbcor_image(
-                options.imagename,
-                options.pbdir,
-                pbcor_dir,
-                band=options.band,
-                save_beam=eval(str(options.save_beam)),
-                n_cpu=int(options.ncpu),
-                verbose=eval(str(options.verbose)),
-            )
-            if pbcor_image == None or os.path.exists(pbcor_image) == False:
-                msg = 1
-                print(f"Primary beam correction is not successful")
-            else:
-                msg = 0
-                print(f"Primary beam corrected image: {pbcor_image}")
-            return msg
-        except Exception as e:
-            traceback.print_exc()
-            return 1
-    else:
-        print("Please provide correct image name.\n")
-        return 1
-
-
+                os.makedirs(options.pbdir, exist_ok=True)
+                if options.pbcor_dir == "":
+                    pbcor_dir = options.pbdir
+                else:
+                    pbcor_dir = options.pbcor_dir
+                os.makedirs(pbcor_dir, exist_ok=True)
+                pbcor_image = get_pbcor_image(
+                    options.imagename,
+                    options.pbdir,
+                    pbcor_dir,
+                    band=options.band,
+                    apply_parang=eval(str(options.apply_parang)),
+                    save_beam=eval(str(options.save_beam)),
+                    n_cpu=int(options.ncpu),
+                    verbose=eval(str(options.verbose)),
+                )
+                if pbcor_image == None or os.path.exists(pbcor_image) == False:
+                    msg = 1
+                    print(f"Primary beam correction is not successful")
+                else:
+                    msg = 0
+                    print(f"Primary beam corrected image: {pbcor_image}")
+        else:
+            print("Please provide correct image name.\n")
+            msg=1
+    except Exception as e:
+        traceback.print_exc()
+        msg=1
+    return msg
+    
 if __name__ == "__main__":
     result = main()
     os._exit(result)
