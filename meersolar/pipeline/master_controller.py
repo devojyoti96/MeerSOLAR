@@ -6,7 +6,7 @@ logfile = casalog.logfile()
 os.system("rm -rf " + logfile)
 
 
-def run_flag(msname, workdir, flag_calibrators=True, cpu_frac=0.8, mem_frac=0.8):
+def run_flag(msname, workdir, flag_calibrators=True, jobid=0, cpu_frac=0.8, mem_frac=0.8):
     """
     Run flagging jobs
 
@@ -18,6 +18,8 @@ def run_flag(msname, workdir, flag_calibrators=True, cpu_frac=0.8, mem_frac=0.8)
         Working directory
     flag_calibrators : bool, optional
         Flag calibrator fields
+    jobid : int, optional
+        Job ID
     cpu_frac : float, optional
         CPU fraction to use
     mem_frac : float, optional
@@ -66,7 +68,7 @@ def run_flag(msname, workdir, flag_calibrators=True, cpu_frac=0.8, mem_frac=0.8)
     flagging_cmd+=f" --logfile {logfile}"
     if os.path.isdir(workdir + "/logs") == False:
         os.makedirs(workdir + "/logs")
-    batch_file = create_batch_script_nonhpc(flagging_cmd, workdir, flag_basename)
+    batch_file = create_batch_script_nonhpc(flagging_cmd, workdir, flag_basename, jobid)
     print(flagging_cmd + "\n")
     os.system("bash " + batch_file)
     print("Waiting to finish flagging...\n")
@@ -85,7 +87,7 @@ def run_flag(msname, workdir, flag_calibrators=True, cpu_frac=0.8, mem_frac=0.8)
         return 1
 
 
-def run_import_model(msname, workdir, cpu_frac=0.8, mem_frac=0.8):
+def run_import_model(msname, workdir, jobid=0, cpu_frac=0.8, mem_frac=0.8):
     """
     Importing calibrator models
 
@@ -124,7 +126,7 @@ def run_import_model(msname, workdir, cpu_frac=0.8, mem_frac=0.8):
     import_model_cmd+=f" --logfile {logfile}"
     if os.path.isdir(workdir + "/logs") == False:
         os.makedirs(workdir + "/logs")
-    batch_file = create_batch_script_nonhpc(import_model_cmd, workdir, model_basename)
+    batch_file = create_batch_script_nonhpc(import_model_cmd, workdir, model_basename, jobid)
     print(import_model_cmd + "\n")
     os.system("bash " + batch_file)
     print("Waiting to finish visibility simulation for calibrators...\n")
@@ -146,7 +148,7 @@ def run_import_model(msname, workdir, cpu_frac=0.8, mem_frac=0.8):
 
 
 def run_basic_cal_jobs(
-    msname, workdir, perform_polcal=False, cpu_frac=0.8, mem_frac=0.8, keep_backup=False
+    msname, workdir, perform_polcal=False, jobid=0, cpu_frac=0.8, mem_frac=0.8, keep_backup=False
 ):
     """
     Perform basic calibration
@@ -194,7 +196,7 @@ def run_basic_cal_jobs(
     basic_cal_cmd+=f" --logfile {logfile}"
     if os.path.isdir(workdir + "/logs") == False:
         os.makedirs(workdir + "/logs")
-    batch_file = create_batch_script_nonhpc(basic_cal_cmd, workdir, cal_basename)
+    batch_file = create_batch_script_nonhpc(basic_cal_cmd, workdir, cal_basename, jobid)
     print(basic_cal_cmd + "\n")
     os.system("bash " + batch_file)
     print("Waiting to finish calibration...\n")
@@ -212,7 +214,7 @@ def run_basic_cal_jobs(
     return success_index_cal
 
 
-def run_noise_diode_cal(msname, workdir, cpu_frac=0.8, mem_frac=0.8):
+def run_noise_diode_cal(msname, workdir, jobid=0, cpu_frac=0.8, mem_frac=0.8):
     """
     Perform noise diode based flux calibration
 
@@ -253,7 +255,7 @@ def run_noise_diode_cal(msname, workdir, cpu_frac=0.8, mem_frac=0.8):
         if os.path.isdir(workdir + "/logs") == False:
             os.makedirs(workdir + "/logs")
         batch_file = create_batch_script_nonhpc(
-            noise_cal_cmd, workdir, noisecal_basename
+            noise_cal_cmd, workdir, noisecal_basename, jobid
         )
         print(noise_cal_cmd + "\n")
         os.system("bash " + batch_file)
@@ -275,7 +277,7 @@ def run_noise_diode_cal(msname, workdir, cpu_frac=0.8, mem_frac=0.8):
         return 1
 
 
-def run_partion(msname, workdir, split_fullpol=False, cpu_frac=0.8, mem_frac=0.8):
+def run_partion(msname, workdir, split_fullpol=False, jobid=0, cpu_frac=0.8, mem_frac=0.8):
     """
     Perform basic calibration
 
@@ -340,7 +342,7 @@ def run_partion(msname, workdir, split_fullpol=False, cpu_frac=0.8, mem_frac=0.8
     split_cmd+=f" --logfile {logfile}"
     if os.path.isdir(workdir + "/logs") == False:
         os.makedirs(workdir + "/logs")
-    batch_file = create_batch_script_nonhpc(split_cmd, workdir, partition_basename)
+    batch_file = create_batch_script_nonhpc(split_cmd, workdir, partition_basename, jobid)
     print(split_cmd + "\n")
     os.system("bash " + batch_file)
     print("Waiting to finish partitioning...\n")
@@ -374,6 +376,7 @@ def run_target_split_jobs(
     merge_spws=False,
     time_window=-1,
     time_interval=-1,
+    jobid=0,
     cpu_frac=0.8,
     mem_frac=0.8,
     max_cpu_frac=0.8,
@@ -472,7 +475,7 @@ def run_target_split_jobs(
         split_cmd+=f" --logfile {logfile}"
         if os.path.isdir(workdir + "/logs") == False:
             os.makedirs(workdir + "/logs")
-        batch_file = create_batch_script_nonhpc(split_cmd, workdir, split_basename)
+        batch_file = create_batch_script_nonhpc(split_cmd, workdir, split_basename, jobid)
         print(split_cmd + "\n")
         os.system("bash " + batch_file)
         return 0
@@ -485,6 +488,7 @@ def run_sidereal_cor_jobs(
     mslist,
     workdir,
     prefix="targets",
+    jobid=0,
     cpu_frac=0.8,
     mem_frac=0.8,
     max_cpu_frac=0.8,
@@ -540,7 +544,7 @@ def run_sidereal_cor_jobs(
         logfile = workdir + "/logs/" + sidereal_basename + ".log"
         sidereal_cor_cmd+=f" --logfile {logfile}"
         batch_file = create_batch_script_nonhpc(
-            sidereal_cor_cmd, workdir, sidereal_basename
+            sidereal_cor_cmd, workdir, sidereal_basename, jobid
         )
         print(sidereal_cor_cmd + "\n")
         os.system("bash " + batch_file)
@@ -566,6 +570,7 @@ def run_apply_pbcor(
     imagedir,
     workdir,
     apply_parang=True,
+    jobid=0,
     cpu_frac=0.8,
     mem_frac=0.8,
 ):
@@ -612,7 +617,7 @@ def run_apply_pbcor(
         logfile = workdir + "/logs/" + applypbcor_basename + ".log"
         applypbcor_cmd+=f" --logfile {logfile}"
         batch_file = create_batch_script_nonhpc(
-            applypbcor_cmd, workdir, applypbcor_basename
+            applypbcor_cmd, workdir, applypbcor_basename, jobid
         )
         print(applypbcor_cmd + "\n")
         os.system("bash " + batch_file)
@@ -643,6 +648,7 @@ def run_apply_basiccal_sol(
     use_only_bandpass=False,
     overwrite_datacolumn=True,
     applymode="calflag",
+    jobid=0,
     cpu_frac=0.8,
     mem_frac=0.8,
 ):
@@ -702,7 +708,7 @@ def run_apply_basiccal_sol(
         logfile = workdir + "/logs/" + applycal_basename + ".log"
         applycal_cmd+=f" --logfile {logfile}"
         batch_file = create_batch_script_nonhpc(
-            applycal_cmd, workdir, applycal_basename
+            applycal_cmd, workdir, applycal_basename, jobid
         )
         print(applycal_cmd + "\n")
         os.system("bash " + batch_file)
@@ -730,6 +736,7 @@ def run_apply_selfcal_sol(
     caldir,
     overwrite_datacolumn=True,
     applymode="calflag",
+    jobid=0,
     cpu_frac=0.8,
     mem_frac=0.8,
 ):
@@ -786,7 +793,7 @@ def run_apply_selfcal_sol(
         logfile = workdir + "/logs/" + applycal_basename + ".log"
         applycal_cmd+=f" --logfile {logfile}"
         batch_file = create_batch_script_nonhpc(
-            applycal_cmd, workdir, applycal_basename
+            applycal_cmd, workdir, applycal_basename, jobid
         )
         print(applycal_cmd + "\n")
         os.system("bash " + batch_file)
@@ -811,8 +818,6 @@ def run_apply_selfcal_sol(
 def run_selfcal_jobs(
     mslist,
     workdir,
-    cpu_frac=0.8,
-    mem_frac=0.8,
     start_thresh=5.0,
     stop_thresh=3.0,
     max_iter=100,
@@ -829,6 +834,9 @@ def run_selfcal_jobs(
     robust=0.0,
     applymode="calonly",
     min_tol_factor=10.0,
+    jobid=0,
+    cpu_frac=0.8,
+    mem_frac=0.8,
 ):
     """
     Self-calibration on target scans
@@ -928,7 +936,7 @@ def run_selfcal_jobs(
             selfcal_cmd += " --robust " + str(robust)
         if os.path.isdir(workdir + "/logs") == False:
             os.makedirs(workdir + "/logs")
-        batch_file = create_batch_script_nonhpc(selfcal_cmd, workdir, selfcal_basename)
+        batch_file = create_batch_script_nonhpc(selfcal_cmd, workdir, selfcal_basename, jobid)
         print(selfcal_cmd + "\n")
         os.system("bash " + batch_file)
         print("Waiting to finish self-calibration...\n")
@@ -954,8 +962,6 @@ def run_imaging_jobs(
     workdir,
     freqrange="",
     timerange="",
-    cpu_frac=0.8,
-    mem_frac=0.8,
     minuv=-1,
     weight="briggs",
     robust=0.0,
@@ -970,6 +976,9 @@ def run_imaging_jobs(
     make_overlay=True,
     savemodel=False,
     saveres=False,
+    jobid=0,
+    cpu_frac=0.8,
+    mem_frac=0.8,
 ):
     """
     Self-calibration on target scans
@@ -1073,7 +1082,7 @@ def run_imaging_jobs(
             imaging_cmd += " --band " + str(band)
         if os.path.isdir(workdir + "/logs") == False:
             os.makedirs(workdir + "/logs")
-        batch_file = create_batch_script_nonhpc(imaging_cmd, workdir, imaging_basename)
+        batch_file = create_batch_script_nonhpc(imaging_cmd, workdir, imaging_basename, jobid)
         print(imaging_cmd + "\n")
         os.system("bash " + batch_file)
         print("Waiting to finish imaging...\n")
@@ -1268,6 +1277,9 @@ def master_control(
     int
         Success message
     """
+    pid=os.getpid()
+    jobid=get_jobid()
+    main_job_file = save_main_process_info(pid, jobid, workdir, cpu_frac, mem_frac)
     start_time = time.time()
     print("###########################")
     print("Starting the pipeline .....")
@@ -1417,6 +1429,7 @@ def master_control(
         msg = run_noise_diode_cal(
             msname,
             workdir,
+            jobid=jobid,
             cpu_frac=round(cpu_frac, 2),
             mem_frac=round(mem_frac, 2),
         )  # Run noise diode based flux calibration
@@ -1434,6 +1447,7 @@ def master_control(
             msname,
             workdir,
             split_fullpol=do_polcal,
+            jobid=jobid,
             cpu_frac=round(cpu_frac, 2),
             mem_frac=round(mem_frac, 2),
         )
@@ -1456,6 +1470,7 @@ def master_control(
             calibrator_msname,
             workdir,
             flag_calibrators=True,
+            jobid=jobid,
             cpu_frac=round(cpu_frac, 2),
             mem_frac=round(mem_frac, 2),
         )
@@ -1481,6 +1496,7 @@ def master_control(
         msg = run_import_model(
             calibrator_msname,
             workdir,
+            jobid=jobid,
             cpu_frac=round(cpu_frac, 2),
             mem_frac=round(mem_frac, 2),
         )  # Run model import
@@ -1506,6 +1522,7 @@ def master_control(
             calibrator_msname,
             workdir,
             perform_polcal=do_polcal,
+            jobid=jobid,
             cpu_frac=round(cpu_frac, 2),
             mem_frac=round(mem_frac, 2),
             keep_backup=keep_backup,
@@ -1568,6 +1585,7 @@ def master_control(
             time_window=min(60, time_interval),
             time_interval=time_interval,
             split_fullpol=do_polcal,
+            jobid=jobid,
             cpu_frac=round(cpu_frac, 2),
             mem_frac=round(mem_frac, 2),
             max_cpu_frac=round(cpu_frac, 2),
@@ -1631,6 +1649,7 @@ def master_control(
             use_only_bandpass=use_only_bandpass,
             overwrite_datacolumn=False,
             applymode="calflag",
+            jobid=jobid,
             cpu_frac=round(cpu_frac, 2),
             mem_frac=round(mem_frac, 2),
         )
@@ -1649,6 +1668,7 @@ def master_control(
             selfcal_mslist,
             workdir,
             prefix="selfcals",
+            jobid=jobid,
             cpu_frac=round(cpu_frac, 2),
             mem_frac=round(mem_frac, 2),
             max_cpu_frac=round(cpu_frac, 2),
@@ -1659,8 +1679,6 @@ def master_control(
         msg = run_selfcal_jobs(
             selfcal_mslist,
             workdir,
-            cpu_frac=round(cpu_frac, 2),
-            mem_frac=round(mem_frac, 2),
             solint=solint,
             do_apcal=do_ap_selfcal,
             solar_selfcal=solar_selfcal,
@@ -1668,6 +1686,9 @@ def master_control(
             uvrange=uvrange,
             weight="briggs",
             robust=0.0,
+            jobid=jobid,
+            cpu_frac=round(cpu_frac, 2),
+            mem_frac=round(mem_frac, 2),
         )
         if msg != 0:
             print(
@@ -1702,6 +1723,7 @@ def master_control(
             target_scans=target_scans,
             prefix=prefix,
             split_fullpol=do_polcal,
+            jobid=jobid,
             cpu_frac=round(cpu_frac, 2),
             mem_frac=round(mem_frac, 2),
             max_cpu_frac=round(cpu_frac, 2),
@@ -1770,6 +1792,7 @@ def master_control(
                 use_only_bandpass=use_only_bandpass,
                 overwrite_datacolumn=True,
                 applymode="calflag",
+                jobid=jobid,
                 cpu_frac=round(cpu_frac, 2),
                 mem_frac=round(mem_frac, 2),
             )
@@ -1791,6 +1814,7 @@ def master_control(
             target_mslist,
             workdir,
             prefix="targets",
+            jobid=jobid,
             cpu_frac=round(cpu_frac, 2),
             mem_frac=round(mem_frac, 2),
             max_cpu_frac=round(cpu_frac, 2),
@@ -1809,6 +1833,7 @@ def master_control(
             caldir,
             overwrite_datacolumn=False,
             applymode="calonly",
+            jobid=jobid,
             cpu_frac=round(cpu_frac, 2),
             mem_frac=round(mem_frac, 2),
         )
@@ -1830,8 +1855,6 @@ def master_control(
             workdir,
             freqrange=freqrange,
             timerange=timerange,
-            cpu_frac=round(cpu_frac, 2),
-            mem_frac=round(mem_frac, 2),
             minuv=minuv,
             weight=weight,
             robust=float(robust),
@@ -1846,6 +1869,9 @@ def master_control(
             make_overlay=make_overlay,
             savemodel=keep_backup,
             saveres=keep_backup,
+            jobid=jobid,
+            cpu_frac=round(cpu_frac, 2),
+            mem_frac=round(mem_frac, 2),
         )
         if msg != 0:
             print(
@@ -1889,6 +1915,7 @@ def master_control(
                 imagedir,
                 workdir,
                 apply_parang=apply_parang,
+                jobid=jobid,
                 cpu_frac=round(cpu_frac, 2),
                 mem_frac=round(mem_frac, 2),
             )

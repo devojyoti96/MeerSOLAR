@@ -46,6 +46,7 @@ def get_datadir():
     from importlib.resources import files
 
     datadir_path = str(files("meersolar").joinpath("data"))
+    os.makedirs(datadir_path,exist_ok=True)
     return datadir_path
 
 
@@ -3698,7 +3699,7 @@ def merge_caltables(caltables, merged_caltable, append=False, keepcopy=False):
     return merged_caltable
 
 
-def get_nprocess_meersolar(workdir):
+def get_nprocess_meersolar(jobid):
     """
     Get numbers of MeerSOLAR processes currently running
 
@@ -3706,13 +3707,16 @@ def get_nprocess_meersolar(workdir):
     ----------
     workdir : str
         Work directory name
+    jobid : int
+        MeerSOLAR Job ID
 
     Returns
     -------
     int
         Number of running processes
     """
-    pid_file = workdir + "/pids.txt"
+    datadir = get_datadir()
+    pid_file = datadir + f"/pids_{jobid}.txt"
     pids = np.loadtxt(pid_file, unpack=True)
     n_process = 0
     for pid in pids:
@@ -3720,8 +3724,38 @@ def get_nprocess_meersolar(workdir):
             n_process += 1
     return n_process
 
-
-def save_main_process_info(pid, cpu_frac, mem_frac):
+def get_jobid():
+    """
+    Get MeerSOLAR Job ID
+    
+    Returns
+    -------
+    int
+        Job ID
+    """
+    datadir = get_datadir()
+    jobid_file=datadir+f"/jobids.txt"
+    if os.path.exists(jobid_file):
+        prev_jobids=np.loadtxt(jobid_file,unpack=True)
+    else:
+        prev_jobids=[]
+    if len(prev_jobids)>0:
+        FORMAT = "%Y%m%d%H%M%S"
+        CUTOFF = datetime.utcnow() - timedelta(days=30)
+        filtered_prev_jobids=[]
+        for job_id in prev_jobids:
+            job_path = os.path.join(JOB_DIR, job_id)
+            job_time = datetime.strptime(job_id, FORMAT)
+            if job_time >= CUTOFF:
+                filtered_prev_jobids.append(job_id)    
+        prev_jobids=filtered_prev_jobids
+    cur_jobid = dt.utcnow().strftime("%Y%m%d%H%M%S")
+    prev_jobids.append(cur_jobid)
+    job_ids_int = np.array(prev_jobids, dtype=np.int64)
+    np.savetxt(jobid_file, job_ids_int, fmt="%d")
+    return int(cur_jobid)
+    
+def save_main_process_info(pid, jobid, basedir, cpu_frac, mem_frac):
     """
     Save MeerSOLAR main processes info
 
@@ -3729,26 +3763,41 @@ def save_main_process_info(pid, cpu_frac, mem_frac):
     ----------
     pid : int
         Main job process id
+    jobid : int
+        MeerSOLAR Job ID
+    basedir : str
+        Base directory
     cpu_frac : float
         CPU fraction of the job
     mem_frac : float
         Mempry fraction of the job
+        
+    Returns
+    -------
+    str
+        Job info file name
     """
-    main_job_file = datadir + "/main_pids.txt"
+    datadir = get_datadir()
+    main_job_file = datadir + f"/main_pids_{jobid}.txt"
+    main_str=f"{jobid} {pid} {basedir} {cpu_frac} {mem_frac}"
+    with open(main_job_file, "w") as f:
+        f.write(main_str)
+    return main_job_file
 
-
-def create_batch_script_nonhpc(cmd, workdir, basename, write_logfile=True):
+def create_batch_script_nonhpc(cmd, workdir, basename, jobid, write_logfile=True):
     """
     Function to make a batch script not non-HPC environment
 
     Parameters
     ----------
     cmd : str
-            Command to run
+        Command to run
     workdir : str
-            Work directory of the measurement set
+        Work directory of the measurement set
     basename : str
-            Base name of the batch files
+        Base name of the batch files
+    jobid : int
+        MeerSOLAR Job ID
     write_logfile : bool, optional
         Write log file or not
 
@@ -3759,9 +3808,10 @@ def create_batch_script_nonhpc(cmd, workdir, basename, write_logfile=True):
     str
         Log file name
     """
+    datadir = get_datadir()
     batch_file = workdir + "/" + basename + ".batch"
     cmd_batch = workdir + "/" + basename + "_cmd.batch"
-    pid_file = datadir + "/pids.txt"
+    pid_file = datadir + f"/pids_{jobid}.txt"
     finished_touch_file = workdir + "/.Finished_" + basename
     os.system("rm -rf " + finished_touch_file + "*")
     finished_touch_file_error = finished_touch_file + "_1"
