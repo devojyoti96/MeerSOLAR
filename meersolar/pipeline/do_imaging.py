@@ -6,8 +6,11 @@ from optparse import OptionParser
 from dask import delayed, compute
 from casatasks import casalog
 
-logfile = casalog.logfile()
-os.system("rm -rf " + logfile)
+try:
+    logfile = casalog.logfile()
+    os.system("rm -rf " + logfile)
+except:
+    pass
 
 
 def rename_image(

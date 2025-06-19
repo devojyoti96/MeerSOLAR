@@ -4,9 +4,11 @@ from dask import delayed, compute, config
 from optparse import OptionParser
 from casatasks import casalog
 
-logfile = casalog.logfile()
-os.system("rm -rf " + logfile)
-
+try:
+    logfile = casalog.logfile()
+    os.system("rm -rf " + logfile)
+except:
+    pass
 
 def run_delaycal(
     msname="",

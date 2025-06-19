@@ -3,8 +3,11 @@ from meersolar.pipeline.basic_func import *
 from meersolar.pipeline.init_data import init_meersolar_data
 from casatasks import casalog
 
-logfile = casalog.logfile()
-os.system("rm -rf " + logfile)
+try:
+    logfile = casalog.logfile()
+    os.system("rm -rf " + logfile)
+except:
+    pass
 
 
 def run_flag(msname, workdir, flag_calibrators=True, jobid=0, cpu_frac=0.8, mem_frac=0.8):

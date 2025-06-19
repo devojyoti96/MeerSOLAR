@@ -9,9 +9,11 @@ from dask import delayed, compute
 from optparse import OptionParser
 from casatasks import casalog
 
-logfile = casalog.logfile()
-os.system("rm -rf " + logfile)
-
+try:
+    logfile = casalog.logfile()
+    os.system("rm -rf " + logfile)
+except:
+    pass
 
 def run_all_applysol(
     mslist,

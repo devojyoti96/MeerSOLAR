@@ -6,8 +6,11 @@ from casatasks import casalog
 from casatools import msmetadata
 from dask import delayed, compute
 
-logfile = casalog.logfile()
-os.system("rm -rf " + logfile)
+try:
+    logfile = casalog.logfile()
+    os.system("rm -rf " + logfile)
+except:
+    pass
 
 datadir = get_datadir()
 

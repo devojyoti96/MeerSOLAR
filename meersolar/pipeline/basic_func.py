@@ -36,9 +36,11 @@ from sunpy.time import parse_time
 from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
 
-
-logfile = casalog.logfile()
-os.system("rm -rf " + logfile)
+try:
+    logfile = casalog.logfile()
+    os.system("rm -rf " + logfile)
+except:
+    pass
 
 
 def get_datadir():

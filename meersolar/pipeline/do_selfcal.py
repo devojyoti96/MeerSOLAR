@@ -6,9 +6,11 @@ from optparse import OptionParser
 from functools import partial
 from casatasks import casalog
 
-casalogfile = casalog.logfile()
-os.system("rm -rf " + casalogfile)
-
+try:
+    casalogfile = casalog.logfile()
+    os.system("rm -rf " + casalogfile)
+except:
+    pass
 
 def single_selfcal_iteration(
     msname,
