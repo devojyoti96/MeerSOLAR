@@ -698,7 +698,16 @@ def main():
         help="Number of CPU threads to use",
         metavar="Integer",
     )
+    parser.add_option(
+        "--jobid",
+        dest="jobid",
+        default=0,
+        help="Job ID",
+        metavar="Integer",
+    )
     (options, args) = parser.parse_args()
+    pid=os.getpid()
+    save_pid(pid,datadir + f"/pids/pids_{options.jobid}.txt")
     try:
         if options.imagename != "" and os.path.exists(options.imagename):
             if options.pbdir == "":

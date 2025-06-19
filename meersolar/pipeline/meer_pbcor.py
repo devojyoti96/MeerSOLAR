@@ -18,8 +18,8 @@ def get_fits_freq(image_file):
         return
 
 
-def run_pbcor(imagename, pbdir, pbcor_dir, apply_parang, ncpu=8):
-    cmd = f"run_single_meerpbcor --imagename {imagename} --pbdir {pbdir} --pbcor_dir {pbcor_dir} --ncpu {ncpu} --apply_parang {apply_parang}"
+def run_pbcor(imagename, pbdir, pbcor_dir, apply_parang, jobid=0, ncpu=8):
+    cmd = f"run_single_meerpbcor --imagename {imagename} --pbdir {pbdir} --pbcor_dir {pbcor_dir} --ncpu {ncpu} --apply_parang {apply_parang} --jobid {jobid}"
     a = os.system(f"{cmd} > {imagename}.tmp")
     os.system(f"rm -rf {imagename}.tmp")
     return a
@@ -30,6 +30,7 @@ def pbcor_all_images(
     make_TB=True,
     make_plots=True,
     apply_parang=True,
+    jobid=0,
     cpu_frac=0.8,
     mem_frac=0.8,
 ):
@@ -46,6 +47,8 @@ def pbcor_all_images(
         Make plots
     apply_parang : bool, optional
         Apply parallactic angle correction
+    jobid : int, optional
+        Job ID
     cpu_frac : float, optional
         CPU fraction to use
     mem_frac : float, optional
@@ -92,7 +95,7 @@ def pbcor_all_images(
             tasks = []
             for image in first_set:
                 task = delayed(run_pbcor)(
-                    image, pbdir, pbcor_dir, apply_parang, ncpu=n_threads
+                    image, pbdir, pbcor_dir, apply_parang, jobid=jobid, ncpu=n_threads
                 )
                 tasks.append(task)
             results = compute(*tasks)
@@ -113,7 +116,7 @@ def pbcor_all_images(
             )
             tasks = []
             for image in remaining_set:
-                task = delayed(run_pbcor)(image, pbdir, pbcor_dir, apply_parang, ncpu=n_threads)
+                task = delayed(run_pbcor)(image, pbdir, pbcor_dir, apply_parang, jobid=jobid, ncpu=n_threads)
                 tasks.append(task)
             results = compute(*tasks)
             dask_client.close()
@@ -239,7 +242,16 @@ def main():
         help="Log file",
         metavar="String",
     )
+    parser.add_option(
+        "--jobid",
+        dest="jobid",
+        default=0,
+        help="Job ID",
+        metavar="Integer",
+    )
     (options, args) = parser.parse_args()
+    pid=os.getpid()
+    save_pid(pid,datadir + f"/pids/pids_{options.jobid}.txt")
     if options.workdir == "":
         print ("Please provide a valid work directory name.")
         return 1
@@ -263,6 +275,7 @@ def main():
                 make_TB=eval(str(options.make_TB)),
                 make_plots=eval(str(options.make_plots)),
                 apply_parang=eval(str(options.apply_parang)),
+                jobid=int(options.jobid),
                 cpu_frac=float(options.cpu_frac),
                 mem_frac=float(options.mem_frac),
             )

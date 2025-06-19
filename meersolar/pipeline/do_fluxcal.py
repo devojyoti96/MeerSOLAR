@@ -308,7 +308,6 @@ def get_power_diff(
         for i in range(0, nant, nant_per_chunk)
     ]
     for i, ant_block in enumerate(ant_blocks):
-        print(f"{os.path.basename(source_msname)} -- Antenna block: {ant_block}")
         if i == 0:
             att_ant_array = get_att_per_ant(
                 cal_msname, source_msname, scale_factor, ant_list=ant_block
@@ -778,7 +777,16 @@ def main():
         help="Log file",
         metavar="String",
     )
+    parser.add_option(
+        "--jobid",
+        dest="jobid",
+        default=0,
+        help="Job ID",
+        metavar="Integer",
+    )
     (options, args) = parser.parse_args()
+    pid=os.getpid()
+    save_pid(pid,datadir + f"/pids/pids_{options.jobid}.txt")
     if options.workdir == "" or os.path.exists(options.workdir) == False:
         workdir = os.path.dirname(os.path.abspath(options.msname)) + "/workdir"
         if os.path.exists(workdir) == False:
@@ -791,7 +799,6 @@ def main():
         time.sleep(5)
         jobname,password=np.load(f"{workdir}/jobname_password.npy",allow_pickle=True)
         if os.path.exists(logfile):
-            print (f"Starting remote logger. Remote logger password: {password}")
             observer=init_logger("do_fluxcal",logfile,jobname=jobname,password=password)
     try:
         if options.msname != "" and os.path.exists(options.msname):

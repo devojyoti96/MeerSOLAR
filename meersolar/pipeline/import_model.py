@@ -172,6 +172,7 @@ def import_fluxcal_models(
         for fluxcal in fluxcal_fields:
             f_scan = fluxcal_scans[fluxcal]
             for s in f_scan:
+                scans=np.array(scans)
                 pos = np.argmin(np.abs(scans - s))
                 sub_msname = mslist[pos]
                 modelname = datadir + "/" + fluxcal + "_" + bandname + "_model.txt"
@@ -243,6 +244,7 @@ def import_phasecal_models(
         for phasecal in phasecal_fields:
             ph_scan = phasecal_scans[phasecal]
             for s in ph_scan:
+                scans=np.array(scans)
                 pos = np.argmin(np.abs(scans - s))
                 sub_msname = mslist[pos]
                 tasks.append(
@@ -307,6 +309,7 @@ def import_polcal_model(
         for polcal_field in polcal_fields:
             p_scan = polcal_scans[polcal_field]
             for s in p_scan:
+                scans=np.array(scans)
                 pos = np.argmin(np.abs(scans - s))
                 sub_msname = mslist[pos]
                 tasks.append(
@@ -446,7 +449,16 @@ def main():
         help="Log file",
         metavar="String",
     )
+    parser.add_option(
+        "--jobid",
+        dest="jobid",
+        default=0,
+        help="Job ID",
+        metavar="Integer",
+    )
     (options, args) = parser.parse_args()
+    pid=os.getpid()
+    save_pid(pid,datadir + f"/pids/pids_{options.jobid}.txt")
     if options.workdir == "" or os.path.exists(options.workdir) == False:
         workdir = os.path.dirname(os.path.abspath(options.msname)) + "/workdir"
         if os.path.exists(workdir) == False:
@@ -459,7 +471,6 @@ def main():
         time.sleep(5)
         jobname,password=np.load(f"{workdir}/jobname_password.npy",allow_pickle=True)
         if os.path.exists(logfile):
-            print (f"Starting remote logger. Remote logger password: {password}")
             observer=init_logger("import_model",logfile,jobname=jobname,password=password)
     try:
         if options.msname != None and os.path.exists(options.msname):

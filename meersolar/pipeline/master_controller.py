@@ -1,5 +1,6 @@
 import os, glob, psutil, copy, time, traceback, argparse, socket, threading
 from meersolar.pipeline.basic_func import *
+from meersolar.pipeline.init_data import init_meersolar_data
 from casatasks import casalog
 
 logfile = casalog.logfile()
@@ -49,6 +50,8 @@ def run_flag(msname, workdir, flag_calibrators=True, jobid=0, cpu_frac=0.8, mem_
             + str(mem_frac)
             + " --workdir "
             + str(workdir)
+            + " --jobid "
+            + str(jobid)
         )
     else:
         flagfield_type = "target"
@@ -62,6 +65,8 @@ def run_flag(msname, workdir, flag_calibrators=True, jobid=0, cpu_frac=0.8, mem_
             + str(mem_frac)
             + " --workdir "
             + str(workdir)
+            + " --jobid "
+            + str(jobid)
         )
     flag_basename = f"flagging_{flagfield_type}_" + os.path.basename(msname).split(".ms")[0]
     logfile = workdir + "/logs/" + flag_basename + ".log"
@@ -120,6 +125,8 @@ def run_import_model(msname, workdir, jobid=0, cpu_frac=0.8, mem_frac=0.8):
         + str(cpu_frac)
         + " --mem_frac "
         + str(mem_frac)
+        + " --jobid "
+        + str(jobid)
     )
     model_basename = "modeling_" + os.path.basename(msname).split(".ms")[0]
     logfile = workdir + "/logs/" + model_basename + ".log"
@@ -191,6 +198,8 @@ def run_basic_cal_jobs(
         + str(mem_frac)
         + " --keep_backup "
         + str(keep_backup)
+        + " --jobid "
+        + str(jobid)
     )
     logfile = workdir + "/logs/" + cal_basename + ".log"
     basic_cal_cmd+=f" --logfile {logfile}"
@@ -249,6 +258,8 @@ def run_noise_diode_cal(msname, workdir, jobid=0, cpu_frac=0.8, mem_frac=0.8):
             + str(cpu_frac)
             + " --mem_frac "
             + str(mem_frac)
+            + " --jobid "
+            + str(jobid)
         )
         logfile = workdir + "/logs/" + noisecal_basename + ".log"
         noise_cal_cmd+=f" --logfile {logfile}"
@@ -332,7 +343,7 @@ def run_partion(msname, workdir, split_fullpol=False, jobid=0, cpu_frac=0.8, mem
     cal_scans = copy.deepcopy(cal_scans_copy)
     cal_scans = ",".join([str(s) for s in cal_scans])
     calibrator_ms = workdir + "/calibrator.ms"
-    split_cmd = f"run_partition --msname {msname} --outputms {calibrator_ms} --scans {cal_scans} --timebin {timebin} --width {width} --cpu_frac {cpu_frac} --mem_frac {mem_frac} --split_fullpol {split_fullpol} --workdir {workdir}"
+    split_cmd = f"run_partition --msname {msname} --outputms {calibrator_ms} --scans {cal_scans} --timebin {timebin} --width {width} --cpu_frac {cpu_frac} --mem_frac {mem_frac} --split_fullpol {split_fullpol} --workdir {workdir} --jobid {jobid}"
     ####################################
     # Partition fields
     ####################################
@@ -464,6 +475,8 @@ def run_target_split_jobs(
             + str(time_interval)
             + " --merge_spws "
             + str(merge_spws)
+            + " --jobid "
+            + str(jobid)
         )
         if spw != "":
             split_cmd = split_cmd + " --spw " + str(spw)
@@ -538,6 +551,8 @@ def run_sidereal_cor_jobs(
             + str(max_cpu_frac)
             + " --max_mem_frac "
             + str(max_mem_frac)
+            + " --jobid "
+            + str(jobid)
         )
         if os.path.isdir(workdir + "/logs") == False:
             os.makedirs(workdir + "/logs")
@@ -611,6 +626,8 @@ def run_apply_pbcor(
             + str(mem_frac)
             + " --apply_parang "
             + str(apply_parang)
+            + " --jobid "
+            + str(jobid)
         )
         if os.path.isdir(workdir + "/logs") == False:
             os.makedirs(workdir + "/logs")
@@ -701,7 +718,9 @@ def run_apply_basiccal_sol(
             + str(overwrite_datacolumn)
             + " --applymode "
             + str(applymode)
-            + " --do_post_flag False"
+            + " --do_post_flag False "
+            + " --jobid "
+            + str(jobid)
         )
         if os.path.isdir(workdir + "/logs") == False:
             os.makedirs(workdir + "/logs")
@@ -787,6 +806,8 @@ def run_apply_selfcal_sol(
             + str(overwrite_datacolumn)
             + " --applymode "
             + str(applymode)
+            + " --jobid "
+            + str(jobid)
         )
         if os.path.isdir(workdir + "/logs") == False:
             os.makedirs(workdir + "/logs")
@@ -901,6 +922,8 @@ def run_selfcal_jobs(
             + str(cpu_frac)
             + " --mem_frac "
             + str(mem_frac)
+            + " --jobid "
+            + str(jobid)
         )
         if start_thresh > 0:
             selfcal_cmd += " --start_thresh " + str(start_thresh)
@@ -1072,7 +1095,9 @@ def run_imaging_jobs(
             + str(make_overlay)
             + " --cutout_rsun "
             + str(cutout_rsun)
-            + " --make_plots True"
+            + " --make_plots True "
+            + " --jobid "
+            + str(jobid)
         )
         if freqrange != "":
             imaging_cmd += " --freqrange " + str(freqrange)
@@ -1182,6 +1207,8 @@ def master_control(
     mem_frac=0.8,
     n_nodes=1,
     keep_backup=False,
+    remote_logger=False,
+    remote_logger_waittime=2,
 ):
     """
     Master controller of the entire pipeline
@@ -1277,12 +1304,14 @@ def master_control(
     int
         Success message
     """
+    init_meersolar_data()
     pid=os.getpid()
     jobid=get_jobid()
     main_job_file = save_main_process_info(pid, jobid, workdir, cpu_frac, mem_frac)
     start_time = time.time()
     print("###########################")
     print("Starting the pipeline .....")
+    print (f"MeerSOLAR Job ID: {jobid}")
     print("###########################\n")
     msname = os.path.abspath(msname.rstrip("/"))
     if os.path.exists(msname) == False:
@@ -1308,24 +1337,28 @@ def master_control(
     caldir = workdir + "/caltables"
     cpu_frac_bkp = copy.deepcopy(cpu_frac)
     mem_frac_bkp = copy.deepcopy(mem_frac)
+    if remote_logger:
+        remote_link=get_remote_logger_link()    
+        if remote_link=="":
+            print ("Please provide a valid remote link.")
+            remote_logger=False    
 
-    ####################################
-    # Job name and logging password
-    ####################################
-    hostname = socket.gethostname()
-    timestamp = dt.utcnow().strftime("%Y-%m-%dT%H:%M:%S")
-    job_name = f"{hostname} :: {timestamp} :: {os.path.basename(msname).split('.ms')[0]}"
-    timestamp1 = dt.utcnow().strftime("%Y%m%dT%H%M%S")
-    job_id = f"{hostname}_{timestamp1}_{os.path.basename(msname).split('.ms')[0]}"
-    password=generate_password()
-    np.save(f"{workdir}/jobname_password.npy",np.array([job_name,password],dtype="object"))
-    print ("############################################################################")
-    print ("https://meersolar-logger.onrender.com")
-    print (f"Job ID: {job_name}")
-    print (f"Remote access password: {password}")
-    stop_event = threading.Event()
-    threading.Thread(target=ping_logger, args=(job_id, stop_event), daemon=False).start()
-    print ("#############################################################################")
+    if remote_logger:
+        ####################################
+        # Job name and logging password
+        ####################################
+        hostname = socket.gethostname()
+        timestamp = dt.utcnow().strftime("%Y-%m-%dT%H:%M:%S")
+        job_name = f"{hostname} :: {timestamp} :: {os.path.basename(msname).split('.ms')[0]}"
+        timestamp1 = dt.utcnow().strftime("%Y%m%dT%H%M%S")
+        job_id = f"{hostname}_{timestamp1}_{os.path.basename(msname).split('.ms')[0]}"
+        password=generate_password()
+        np.save(f"{workdir}/jobname_password.npy",np.array([job_name,password],dtype="object"))
+        print ("############################################################################")
+        print (remote_link)
+        print (f"Job ID: {job_name}")
+        print (f"Remote access password: {password}")
+        print ("#############################################################################")
     
     #####################################
     # Settings for solar data
@@ -1454,7 +1487,10 @@ def master_control(
         if msg != 0:
             print("!!!! WARNING: Error in partitioning calibrator fields. !!!!")
             exit_job(start_time, mspath, workdir)
-            threading.Timer(10000, stop_event.set).start()
+            if remote_logger:
+                stop_event = threading.Event()
+                threading.Thread(target=ping_logger, args=(job_id, stop_event), daemon=True).start()
+                threading.Timer((remote_logger_waittime*3600), stop_event.set).start()
             return 1
 
     ##################################
@@ -1464,7 +1500,10 @@ def master_control(
         if os.path.exists(calibrator_msname) == False:
             print(f"Calibrator ms: {calibrator_ms} is not present.")
             exit_job(start_time, mspath, workdir)
-            threading.Timer(10000, stop_event.set).start()
+            if remote_logger:
+                stop_event = threading.Event()
+                threading.Thread(target=ping_logger, args=(job_id, stop_event), daemon=True).start()
+                threading.Timer((remote_logger_waittime*3600), stop_event.set).start()
             return 1
         msg = run_flag(
             calibrator_msname,
@@ -1476,9 +1515,7 @@ def master_control(
         )
         if msg != 0:
             print("!!!! WARNING: Flagging error. Examine calibration solutions with caution. !!!!")
-            exit_job(start_time, mspath, workdir)
-            threading.Timer(10000, stop_event.set).start()
-
+            
     #################################
     # Import model
     #################################
@@ -1486,7 +1523,10 @@ def master_control(
         if os.path.exists(calibrator_msname) == False:
             print(f"Calibrator ms: {calibrator_ms} is not present.")
             exit_job(start_time, mspath, workdir)
-            threading.Timer(10000, stop_event.set).start()
+            if remote_logger:
+                stop_event = threading.Event()
+                threading.Thread(target=ping_logger, args=(job_id, stop_event), daemon=True).start()
+                threading.Timer((remote_logger_waittime*3600), stop_event.set).start()
             return 1
         fluxcal_fields, fluxcal_scans = get_fluxcals(calibrator_msname)
         phasecal_fields, phasecal_scans, phasecal_fluxes = get_phasecals(
@@ -1505,7 +1545,10 @@ def master_control(
                 "!!!! WARNING: Error in importing calibrator models. Not continuing calibration. !!!!"
             )
             exit_job(start_time, mspath, workdir)
-            threading.Timer(10000, stop_event.set).start()
+            if remote_logger:
+                stop_event = threading.Event()
+                threading.Thread(target=ping_logger, args=(job_id, stop_event), daemon=True).start()
+                threading.Timer((remote_logger_waittime*3600), stop_event.set).start()
             return 1
 
     ###############################
@@ -1516,7 +1559,10 @@ def master_control(
         if os.path.exists(calibrator_msname) == False:
             print(f"Calibrator ms: {calibrator_ms} is not present.")
             exit_job(start_time, mspath, workdir)
-            threading.Timer(10000, stop_event.set).start()
+            if remote_logger:
+                stop_event = threading.Event()
+                threading.Thread(target=ping_logger, args=(job_id, stop_event), daemon=True).start()
+                threading.Timer((remote_logger_waittime*3600), stop_event.set).start()
             return 1
         msg = run_basic_cal_jobs(
             calibrator_msname,
@@ -1532,7 +1578,10 @@ def master_control(
                 "!!!! WARNING: Error in basic calibration. Not continuing further. !!!!"
             )
             exit_job(start_time, mspath, workdir)
-            threading.Timer(10000, stop_event.set).start()
+            if remote_logger:
+                stop_event = threading.Event()
+                threading.Thread(target=ping_logger, args=(job_id, stop_event), daemon=True).start()
+                threading.Timer((remote_logger_waittime*3600), stop_event.set).start()
             return 1
 
     ##########################################
@@ -1541,7 +1590,10 @@ def master_control(
     if len(glob.glob(caldir + "/*.bcal")) == 0:
         print(f"No bandpass table is present in calibration directory : {caldir}.")
         exit_job(start_time, mspath, workdir)
-        threading.Timer(10000, stop_event.set).start()
+        if remote_logger:
+            stop_event = threading.Event()
+            threading.Thread(target=ping_logger, args=(job_id, stop_event), daemon=True).start()
+            threading.Timer((remote_logger_waittime*3600), stop_event.set).start()
         return 1
     if len(glob.glob(caldir + "/*.gcal")) == 0:
         print(
@@ -1732,7 +1784,10 @@ def master_control(
         if msg != 0:
             print("!!!! WARNING: Error in running spliting target scans. !!!!")
             exit_job(start_time, mspath, workdir)
-            threading.Timer(10000, stop_event.set).start()
+            if remote_logger:
+                stop_event = threading.Event()
+                threading.Thread(target=ping_logger, args=(job_id, stop_event), daemon=True).start()
+                threading.Timer((remote_logger_waittime*3600), stop_event.set).start()
             return 1
 
     print("Waiting to finish spliting of target scans...\n")
@@ -1751,7 +1806,10 @@ def master_control(
             "!!!! WARNING: Error in spliting target scans. Not continuing further. !!!!"
         )
         exit_job(start_time, mspath, workdir)
-        threading.Timer(10000, stop_event.set).start()
+        if remote_logger:
+            stop_event = threading.Event()
+            threading.Thread(target=ping_logger, args=(job_id, stop_event), daemon=True).start()
+            threading.Timer((remote_logger_waittime*3600), stop_event.set).start()
         return 1
 
     cpu_frac = copy.deepcopy(cpu_frac_bkp)
@@ -1773,7 +1831,10 @@ def master_control(
     if len(target_mslist) == 0:
         print("No splited target scan ms are available in work directory.")
         exit_job(start_time, mspath, workdir)
-        threading.Timer(10000, stop_event.set).start()
+        if remote_logger:
+            stop_event = threading.Event()
+            threading.Thread(target=ping_logger, args=(job_id, stop_event), daemon=True).start()
+            threading.Timer((remote_logger_waittime*3600), stop_event.set).start()
         return 1
 
     if do_applycal or do_imaging:
@@ -1801,14 +1862,20 @@ def master_control(
                     "!!!! WARNING: Error in applying basic calibration solutions on target scans. Not continuing further.!!!!"
                 )
                 exit_job(start_time, mspath, workdir)
-                threading.Timer(10000, stop_event.set).start()
+                if remote_logger:
+                    stop_event = threading.Event()
+                    threading.Thread(target=ping_logger, args=(job_id, stop_event), daemon=True).start()
+                    threading.Timer((remote_logger_waittime*3600), stop_event.set).start()
                 return 1
         else:
             print(
                 "!!!! WARNING: No measurement set is present for basic calibration applying solutions. Not continuing further. !!!!"
             )
             exit_job(start_time, mspath, workdir)
-            threading.Timer(10000, stop_event.set).start()
+            if remote_logger:
+                stop_event = threading.Event()
+                threading.Thread(target=ping_logger, args=(job_id, stop_event), daemon=True).start()
+                threading.Timer((remote_logger_waittime*3600), stop_event.set).start()
             return 1
         msg = run_sidereal_cor_jobs(
             target_mslist,
@@ -1878,7 +1945,10 @@ def master_control(
                 "!!!! WARNING: Final imaging on all measurement sets is not successful. Check the image directory. !!!!"
             )
             exit_job(start_time, mspath, workdir)
-            threading.Timer(10000, stop_event.set).start()
+            if remote_logger:
+                stop_event = threading.Event()
+                threading.Thread(target=ping_logger, args=(job_id, stop_event), daemon=True).start()
+                threading.Timer((remote_logger_waittime*3600), stop_event.set).start()
             return 1
 
     ###########################
@@ -1924,7 +1994,10 @@ def master_control(
                     "!!!! WARNING: Primary beam corrections of the final images are not successful. !!!!"
                 )
                 exit_job(start_time, mspath, workdir)
-                threading.Timer(10000, stop_event.set).start()
+                if remote_logger:
+                    stop_event = threading.Event()
+                    threading.Thread(target=ping_logger, args=(job_id, stop_event), daemon=True).start()
+                    threading.Timer((remote_logger_waittime*3600), stop_event.set).start()
                 return 1
             print(f"Final image directory: {os.path.dirname(imagedir)}\n")
     ###########################################
@@ -1934,7 +2007,10 @@ def master_control(
         f"Calibration and imaging pipeline is successfully run on measurement set : {msname}\n"
     )
     exit_job(start_time, mspath, workdir)
-    threading.Timer(10000, stop_event.set).start()
+    if remote_logger:
+        stop_event = threading.Event()
+        threading.Thread(target=ping_logger, args=(job_id, stop_event), daemon=True).start()
+        threading.Timer((remote_logger_waittime*3600), stop_event.set).start()
     return 0
     
 def main():

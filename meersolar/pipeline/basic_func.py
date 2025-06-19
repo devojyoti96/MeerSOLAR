@@ -1,6 +1,8 @@
-import sys, glob, time, gc, tempfile, copy, traceback, resource, requests, threading, socket
+import os, sys, glob, time, gc, tempfile, copy, traceback, resource, requests, threading, socket
+os.environ["QT_OPENGL"] = "software"
+os.environ["QT_QPA_PLATFORM"] = "offscreen"
 import matplotlib.ticker as ticker, matplotlib.pyplot as plt, matplotlib, subprocess
-import os, numpy as np, dask, psutil, logging, sunpy
+import numpy as np, dask, psutil, logging, sunpy
 import astropy.units as u, string, secrets
 from astropy.coordinates import EarthLocation, SkyCoord
 from sunpy.map import Map
@@ -47,6 +49,7 @@ def get_datadir():
 
     datadir_path = str(files("meersolar").joinpath("data"))
     os.makedirs(datadir_path,exist_ok=True)
+    os.makedirs(f"{datadir_path}/pids",exist_ok=True)
     return datadir_path
 
 
@@ -85,21 +88,42 @@ def generate_password(length=6):
     chars = string.ascii_letters + string.digits + "@#$&*"
     return ''.join(secrets.choice(chars) for _ in range(length))
        
+def get_remote_logger_link():
+    datadir=get_datadir()
+    link_file = os.path.join(datadir, "remotelink.txt")
+    try:
+        with open(link_file, "r") as f:
+            lines = [line.strip() for line in f if line.strip()]
+    except FileNotFoundError:
+        return ""
+    if not lines:
+        return ""
+    remote_link = lines[0]
+    try:
+        res = requests.get(remote_link, timeout=2)
+        if res.status_code == 200:
+            return remote_link
+        else:
+            return ""
+    except Exception:
+        return ""
+    
 class RemoteLogger(logging.Handler):
     """
     Remote logging handler for posting log messages to a web endpoint.
     """
-    def __init__(self, job_id="default", log_id="run_default", password=""):
+    def __init__(self, job_id="default", log_id="run_default", remote_link="", password=""):
         super().__init__()
         self.job_id = job_id
         self.log_id = log_id
         self.password = password
+        self.remote_link=remote_link
 
     def emit(self, record):
         msg = self.format(record)
         try:
             requests.post(
-                "https://meersolar-logger.onrender.com/api/log",
+                f"{self.remote_link}/api/log",
                 json={
                     "job_id": self.job_id,
                     "log_id": self.log_id,
@@ -133,15 +157,20 @@ class LogTailHandler(FileSystemEventHandler):
             except Exception:
                 pass  
 
-def ping_logger(jobid, stop_event, interval=10):
+def ping_logger(jobid, stop_event, remote_link=""):
     """Ping a job-specific keep-alive endpoint periodically until stop_event is set."""
-    url = f"https://meersolar-logger.onrender.com/api/ping/{jobid}"
-    while not stop_event.is_set():
-        try:
-            res = requests.post(url, timeout=2)
-        except Exception as e:
-            pass
-        stop_event.wait(interval)
+    pid=os.getpid()
+    datadir=get_datadir()
+    save_pid(pid,datadir + f"/pids/pids_{jobid}.txt")
+    interval=10*60 # 10 min interval
+    if remote_link!="":
+        url = f"{remote_link}/api/ping/{jobid}"
+        while not stop_event.is_set():
+            try:
+                res = requests.post(url, timeout=2)
+            except Exception as e:
+                pass
+            stop_event.wait(interval)
 
 def create_logger(logname, logfile, verbose=False):
     """
@@ -256,33 +285,37 @@ def init_logger(logname, logfile, jobname="", password=""):
     if logger.hasHandlers():
         logger.handlers.clear()
     formatter = logging.Formatter('%(asctime)s %(levelname)s-%(message)s', "%Y-%m-%dT%H:%M:%S")
-    if jobname:
-        job_id = jobname
-        log_id=get_logid(logfile)
-        remote_handler = RemoteLogger(job_id=job_id, log_id=log_id, password=password)
-        remote_handler.setFormatter(formatter)
-        logger.addHandler(remote_handler)
+    remote_link=get_remote_logger_link()
+    if remote_link!="":
+        if jobname:
+            job_id = jobname
+            log_id=get_logid(logfile)
+            remote_handler = RemoteLogger(job_id=job_id, log_id=log_id, remote_link=remote_link, password=password)
+            remote_handler.setFormatter(formatter)
+            logger.addHandler(remote_handler)
 
-        try:
-            requests.post(
-                "https://meersolar-logger.onrender.com/api/log",
-                json={
-                    "job_id": job_id,
-                    "log_id": log_id,
-                    "message": "Job starting...",
-                    "password": password,
-                    "first": True,
-                },
-                timeout=2
-            )
-        except Exception:
-            pass
-    if os.path.exists(logfile):
-        event_handler = LogTailHandler(logfile, logger)
-        observer = Observer()
-        observer.schedule(event_handler, path=os.path.dirname(logfile), recursive=False)
-        observer.start()
-        return observer  
+            try:
+                requests.post(
+                    f"{remote_link}/api/log",
+                    json={
+                        "job_id": job_id,
+                        "log_id": log_id,
+                        "message": "Job starting...",
+                        "password": password,
+                        "first": True,
+                    },
+                    timeout=2
+                )
+            except Exception:
+                pass
+        if os.path.exists(logfile):
+            event_handler = LogTailHandler(logfile, logger)
+            observer = Observer()
+            observer.schedule(event_handler, path=os.path.dirname(logfile), recursive=False)
+            observer.start()
+            return observer  
+        else:
+            return
     else:
         return
             
@@ -3698,7 +3731,48 @@ def merge_caltables(caltables, merged_caltable, append=False, keepcopy=False):
                     os.system("rm -rf " + caltable)
     return merged_caltable
 
-
+def kill_job():
+    """
+    Kill MeerSOLAR Job
+    """
+    import signal
+    from optparse import OptionParser
+    usage = "Kill MeerSOLAR Job"
+    parser = OptionParser(usage=usage)
+    parser.add_option(
+        "--jobid",
+        dest="jobid",
+        default=None,
+        help="MeerSOLAR Job ID",
+        metavar="Integer",
+    )
+    (options, args) = parser.parse_args()
+    datadir=get_datadir()
+    jobfile_name=datadir + f"/main_pids_{options.jobid}.txt"
+    results=np.loadtxt(jobfile_name,dtype="str",unpack=True)
+    basedir=results[2]
+    main_pid=results[1]
+    pid_file = datadir + f"/pids_{options.jobid}.txt"
+    try:
+        os.kill(int(main_pid),signal.SIGKILL)
+    except:
+        pass
+    if os.path.exists(pid_file):
+        pids=np.loadtxt(pid_file,unpack=True,dtype="int")
+        if pids.size==0:
+            pass
+        elif pids.size==1:
+            try:
+                os.kill(int(pids), signal.SIGKILL)
+            except:
+                pass
+        else:
+            for pid in pids:
+                try:
+                    os.kill(int(pid), signal.SIGKILL)
+                except:
+                    pass
+    
 def get_nprocess_meersolar(jobid):
     """
     Get numbers of MeerSOLAR processes currently running
@@ -3716,7 +3790,7 @@ def get_nprocess_meersolar(jobid):
         Number of running processes
     """
     datadir = get_datadir()
-    pid_file = datadir + f"/pids_{jobid}.txt"
+    pid_file = datadir + f"/pids/pids_{jobid}.txt"
     pids = np.loadtxt(pid_file, unpack=True)
     n_process = 0
     for pid in pids:
@@ -3724,6 +3798,24 @@ def get_nprocess_meersolar(jobid):
             n_process += 1
     return n_process
 
+def save_pid(pid,pid_file):
+    """
+    Save PID
+    
+    Parameters
+    ----------
+    pid : int
+        Process ID
+    pid_file : str
+        File to save
+    """ 
+    if os.path.exists(pid_file):
+        pids = np.loadtxt(pid_file, unpack=True, dtype="int")
+        pids=np.append(pids,pid)
+    else:
+        pids=np.array([pid],dtype="int")
+    np.savetxt(pid_file, pids, fmt="%d")
+    
 def get_jobid():
     """
     Get MeerSOLAR Job ID
@@ -3736,16 +3828,19 @@ def get_jobid():
     datadir = get_datadir()
     jobid_file=datadir+f"/jobids.txt"
     if os.path.exists(jobid_file):
-        prev_jobids=np.loadtxt(jobid_file,unpack=True)
+        prev_jobids=np.loadtxt(jobid_file,unpack=True,dtype="int")
+        if prev_jobids.size==0:
+            prev_jobids=[]
+        elif prev_jobids.size==1:
+            prev_jobids=[int(prev_jobids)]
     else:
         prev_jobids=[]
     if len(prev_jobids)>0:
         FORMAT = "%Y%m%d%H%M%S"
-        CUTOFF = datetime.utcnow() - timedelta(days=30)
+        CUTOFF = dt.utcnow() - timedelta(days=30)
         filtered_prev_jobids=[]
         for job_id in prev_jobids:
-            job_path = os.path.join(JOB_DIR, job_id)
-            job_time = datetime.strptime(job_id, FORMAT)
+            job_time = dt.strptime(str(job_id), FORMAT)
             if job_time >= CUTOFF:
                 filtered_prev_jobids.append(job_id)    
         prev_jobids=filtered_prev_jobids
@@ -3811,7 +3906,7 @@ def create_batch_script_nonhpc(cmd, workdir, basename, jobid, write_logfile=True
     datadir = get_datadir()
     batch_file = workdir + "/" + basename + ".batch"
     cmd_batch = workdir + "/" + basename + "_cmd.batch"
-    pid_file = datadir + f"/pids_{jobid}.txt"
+    pid_file = datadir + f"/pids/pids_{jobid}.txt"
     finished_touch_file = workdir + "/.Finished_" + basename
     os.system("rm -rf " + finished_touch_file + "*")
     finished_touch_file_error = finished_touch_file + "_1"
@@ -3987,6 +4082,7 @@ def get_dask_client(
         print(
             f"Dask workers: {n_workers}, Threads per worker: {threads_per_worker}, Mem/worker: {round(mem_per_worker/(1024.0**3),2)} GB"
         )
+        print("\n#################################")
     # Memory control settings
     swap = psutil.swap_memory()
     swap_gb = swap.total / 1024.0**3
@@ -4014,7 +4110,7 @@ def get_dask_client(
         memory_limit=f"{round(mem_per_worker/(1024.0**3),2)}GB",
         local_directory=dask_dir,
         processes=True,  # one process per worker
-        dashboard_address=":0",
+        dashboard_address=None,
         env={
             "TMPDIR": dask_dir_tmp,
             "TMP": dask_dir_tmp,
@@ -4034,9 +4130,6 @@ def get_dask_client(
     )
 
     client.run_on_scheduler(gc.collect)
-    if only_cal == False:
-        print(f"Dask Dashboard: {client.dashboard_link}")
-        print("#################################\n")
     final_mem_per_worker = round((mem_per_worker * spill_frac) / (1024.0**3), 2)
     return client, cluster, n_workers, threads_per_worker, final_mem_per_worker
 

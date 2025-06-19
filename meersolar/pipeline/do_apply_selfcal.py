@@ -221,7 +221,16 @@ def main():
         help="Log file",
         metavar="String",
     )
+    parser.add_option(
+        "--jobid",
+        dest="jobid",
+        default=0,
+        help="Job ID",
+        metavar="Integer",
+    )
     (options, args) = parser.parse_args()
+    pid=os.getpid()
+    save_pid(pid,datadir + f"/pids/pids_{options.jobid}.txt")
     if options.workdir == "" or os.path.exists(options.workdir) == False:
         workdir = os.path.dirname(os.path.abspath(options.msname)) + "/workdir"
         if os.path.exists(workdir) == False:
@@ -234,7 +243,6 @@ def main():
         time.sleep(5)
         jobname,password=np.load(f"{workdir}/jobname_password.npy",allow_pickle=True)
         if os.path.exists(logfile):
-            print (f"Starting remote logger. Remote logger password: {password}")
             observer=init_logger("apply_selfcal",logfile,jobname=jobname,password=password)
     try:
         if options.mslist != "":
