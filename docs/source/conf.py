@@ -22,17 +22,27 @@ extensions = [
     "sphinx.ext.viewcode",          # Add [source] links to functions
     "sphinx_autodoc_typehints",     # Show type hints in docs
     "sphinx_copybutton",            # Optional: copy-paste button for code blocks
+    "sphinx.ext.autosummary",
+    "sphinx.ext.doctest",
 ]
 
 templates_path = ['_templates']
 exclude_patterns = []
-
 
 # -- Options for HTML output -------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
 
 html_theme = "furo"
 html_static_path = ['_static']
+html_title = "MeerSOLAR"
+
+html_theme_options = {
+    "light_logo": "yourlogo-light.png",
+    "dark_logo": "yourlogo-dark.png",
+    "sidebar_hide_name": False,
+    "navigation_with_keys": True,
+}
+
 
 napoleon_google_docstring = True
 napoleon_numpy_docstring = True

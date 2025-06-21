@@ -3,10 +3,10 @@
   <head><meta charset="utf-8"/>
     <meta name="viewport" content="width=device-width,initial-scale=1"/>
     <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
-<link rel="index" title="Index" href="genindex.html" /><link rel="search" title="Search" href="search.html" />
+<link rel="index" title="Index" href="genindex.html" /><link rel="search" title="Search" href="search.html" /><link rel="next" title="Crystalball Module" href="meersolar.crystalball.html" /><link rel="prev" title="API Reference" href="meersolar.html" />
 
     <!-- Generated with Sphinx 7.4.7 and Furo 2024.01.29 -->
-        <title>meersolar.pipeline package - MeerSOLAR 1.0.0 documentation</title>
+        <title>Meersolar Pipeline Module - MeerSOLAR</title>
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=a746c00c" />
     <link rel="stylesheet" type="text/css" href="_static/styles/furo.css?v=135e06be" />
     <link rel="stylesheet" type="text/css" href="_static/copybutton.css?v=76b2166b" />
@@ -124,7 +124,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="index.html"><div class="brand">MeerSOLAR 1.0.0 documentation</div></a>
+      <a href="index.html"><div class="brand">MeerSOLAR</div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -146,8 +146,12 @@
       
       <div class="sidebar-sticky"><a class="sidebar-brand" href="index.html">
   
+  <div class="sidebar-logo-container">
+    <img class="sidebar-logo only-light" src="_static/yourlogo-light.png" alt="Light Logo"/>
+    <img class="sidebar-logo only-dark" src="_static/yourlogo-dark.png" alt="Dark Logo"/>
+  </div>
   
-  <span class="sidebar-brand-text">MeerSOLAR 1.0.0 documentation</span>
+  <span class="sidebar-brand-text">MeerSOLAR</span>
   
 </a><form class="sidebar-search-container" method="get" action="search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
@@ -155,7 +159,21 @@
   <input type="hidden" name="area" value="default">
 </form>
 <div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
-  
+  <ul class="current">
+<li class="toctree-l1 has-children"><a class="reference internal" href="install.html">Installation and Initial Setup</a><input class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><div class="visually-hidden">Toggle navigation of Installation and Initial Setup</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="install_conda.html">Installing Conda: Anaconda or Miniconda</a></li>
+<li class="toctree-l2"><a class="reference internal" href="activate_conda.html">Creating and Activating Conda Environment</a></li>
+<li class="toctree-l2"><a class="reference internal" href="install_meersolar.html">Install MeerSOLAR</a></li>
+<li class="toctree-l2"><a class="reference internal" href="initial_setup.html">Initial setup</a></li>
+</ul>
+</li>
+<li class="toctree-l1 current has-children"><a class="reference internal" href="meersolar.html">API Reference</a><input checked="" class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" role="switch" type="checkbox"/><label for="toctree-checkbox-2"><div class="visually-hidden">Toggle navigation of API Reference</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="current">
+<li class="toctree-l2 current current-page"><a class="current reference internal" href="#">Meersolar Pipeline Module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="meersolar.crystalball.html">Crystalball Module</a></li>
+</ul>
+</li>
+</ul>
+
 </div>
 </div>
 
@@ -188,11 +206,9 @@
           </label>
         </div>
         <article role="main">
-          <section id="meersolar-pipeline-package">
-<h1>meersolar.pipeline package<a class="headerlink" href="#meersolar-pipeline-package" title="Link to this heading">¶</a></h1>
-<section id="submodules">
-<h2>Submodules<a class="headerlink" href="#submodules" title="Link to this heading">¶</a></h2>
-</section>
+          <section id="meersolar-pipeline-module">
+<h1>Meersolar Pipeline Module<a class="headerlink" href="#meersolar-pipeline-module" title="Link to this heading">¶</a></h1>
+<p>This is main module of the pipeline handling all calibration and imaging jobs.</p>
 <section id="module-meersolar.pipeline.basic_cal">
 <span id="meersolar-pipeline-basic-cal-module"></span><h2>meersolar.pipeline.basic_cal module<a class="headerlink" href="#module-meersolar.pipeline.basic_cal" title="Link to this heading">¶</a></h2>
 <dl class="py function">
@@ -1800,11 +1816,15 @@ where each worker is a separate process that can use multiple threads internally
 
 <dl class="py function">
 <dt class="sig sig-object py" id="meersolar.pipeline.basic_func.move_to_sun">
-<span class="sig-prename descclassname"><span class="pre">meersolar.pipeline.basic_func.</span></span><span class="sig-name descname"><span class="pre">move_to_sun</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">msname</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/meersolar/pipeline/basic_func.html#move_to_sun"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#meersolar.pipeline.basic_func.move_to_sun" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">meersolar.pipeline.basic_func.</span></span><span class="sig-name descname"><span class="pre">move_to_sun</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">msname</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">only_uvw</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/meersolar/pipeline/basic_func.html#move_to_sun"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#meersolar.pipeline.basic_func.move_to_sun" title="Link to this definition">¶</a></dt>
 <dd><p>Move the phasecenter of the measurement set at the center of the Sun (Assuming ms has one scan)</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>msname</strong> (<em>str</em>) – Name of the measurement set</p>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>msname</strong> (<em>str</em>) – Name of the measurement set</p></li>
+<li><p><strong>only_uvw</strong> (<em>bool</em><em>, </em><em>optional</em>) – Note: This is required when visibilities are properly phase rotated in correlator to track the Sun,
+but while creating the MS, UVW values are estimated using a wrong phase center at the start of solar center at the start.</p></li>
+</ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p>Success message</p>
@@ -1913,7 +1933,7 @@ where each worker is a separate process that can use multiple threads internally
 
 <dl class="py function">
 <dt class="sig sig-object py" id="meersolar.pipeline.basic_func.run_chgcenter">
-<span class="sig-prename descclassname"><span class="pre">meersolar.pipeline.basic_func.</span></span><span class="sig-name descname"><span class="pre">run_chgcenter</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">msname</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ra</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dec</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">container_name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'meerwsclean'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dry_run</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/meersolar/pipeline/basic_func.html#run_chgcenter"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#meersolar.pipeline.basic_func.run_chgcenter" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">meersolar.pipeline.basic_func.</span></span><span class="sig-name descname"><span class="pre">run_chgcenter</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">msname</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ra</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dec</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">only_uvw</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">container_name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'meerwsclean'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dry_run</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/meersolar/pipeline/basic_func.html#run_chgcenter"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#meersolar.pipeline.basic_func.run_chgcenter" title="Link to this definition">¶</a></dt>
 <dd><p>Run chgcenter inside a udocker container (no root permission required).</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -1921,6 +1941,9 @@ where each worker is a separate process that can use multiple threads internally
 <li><p><strong>msname</strong> (<em>str</em>) – Name of the measurement set</p></li>
 <li><p><strong>ra</strong> (<em>str</em>) – RA can either be 00h00m00.0s or 00:00:00.0</p></li>
 <li><p><strong>dec</strong> (<em>str</em>) – Dec can either be 00d00m00.0s or 00.00.00.0</p></li>
+<li><p><strong>only_uvw</strong> (<em>bool</em><em>, </em><em>optional</em>) – Update only UVW values
+Note: This is required when visibilities are properly phase rotated in correlator,
+but while creating the MS, UVW values are estimated using a wrong phase center.</p></li>
 <li><p><strong>container_name</strong> (<em>str</em><em>, </em><em>optional</em>) – Container name</p></li>
 <li><p><strong>verbose</strong> (<em>bool</em><em>, </em><em>optional</em>) – Verbose output</p></li>
 </ul>
@@ -1956,12 +1979,15 @@ where each worker is a separate process that can use multiple threads internally
 
 <dl class="py function">
 <dt class="sig sig-object py" id="meersolar.pipeline.basic_func.run_solar_sidereal_cor">
-<span class="sig-prename descclassname"><span class="pre">meersolar.pipeline.basic_func.</span></span><span class="sig-name descname"><span class="pre">run_solar_sidereal_cor</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">msname</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">container_name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'meerwsclean'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dry_run</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/meersolar/pipeline/basic_func.html#run_solar_sidereal_cor"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#meersolar.pipeline.basic_func.run_solar_sidereal_cor" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">meersolar.pipeline.basic_func.</span></span><span class="sig-name descname"><span class="pre">run_solar_sidereal_cor</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">msname</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">only_uvw</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">container_name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'meerwsclean'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dry_run</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/meersolar/pipeline/basic_func.html#run_solar_sidereal_cor"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#meersolar.pipeline.basic_func.run_solar_sidereal_cor" title="Link to this definition">¶</a></dt>
 <dd><p>Run chgcenter inside a udocker container to correct solar sidereal motion (no root permission required).</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>msname</strong> (<em>str</em>) – Name of the measurement set</p></li>
+<li><p><strong>only_uvw</strong> (<em>bool</em><em>, </em><em>optional</em>) – Update only UVW values
+Note: This is required when visibilities are properly phase rotated in correlator to track the Sun,
+but while creating the MS, UVW values are estimated using the first phasecenter of the Sun.</p></li>
 <li><p><strong>container_name</strong> (<em>str</em><em>, </em><em>optional</em>) – Container name</p></li>
 <li><p><strong>verbose</strong> (<em>bool</em><em>, </em><em>optional</em>) – Verbose output or not</p></li>
 </ul>
@@ -2100,6 +2126,11 @@ where each worker is a separate process that can use multiple threads internally
 </dd></dl>
 
 <dl class="py function">
+<dt class="sig sig-object py" id="meersolar.pipeline.basic_func.suppress_casa_output">
+<span class="sig-prename descclassname"><span class="pre">meersolar.pipeline.basic_func.</span></span><span class="sig-name descname"><span class="pre">suppress_casa_output</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/meersolar/pipeline/basic_func.html#suppress_casa_output"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#meersolar.pipeline.basic_func.suppress_casa_output" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
 <dt class="sig sig-object py" id="meersolar.pipeline.basic_func.timestamp_to_mjdsec">
 <span class="sig-prename descclassname"><span class="pre">meersolar.pipeline.basic_func.</span></span><span class="sig-name descname"><span class="pre">timestamp_to_mjdsec</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">timestamp</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">date_format</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/meersolar/pipeline/basic_func.html#timestamp_to_mjdsec"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#meersolar.pipeline.basic_func.timestamp_to_mjdsec" title="Link to this definition">¶</a></dt>
 <dd><p>Convert timestamp to mjd second.</p>
@@ -2221,14 +2252,14 @@ where each worker is a separate process that can use multiple threads internally
 
 <dl class="py function">
 <dt class="sig sig-object py" id="meersolar.pipeline.do_apply_basiccal.scale_bandpass">
-<span class="sig-prename descclassname"><span class="pre">meersolar.pipeline.do_apply_basiccal.</span></span><span class="sig-name descname"><span class="pre">scale_bandpass</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">bandpass_table</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">att_table</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">15</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/meersolar/pipeline/do_apply_basiccal.html#scale_bandpass"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#meersolar.pipeline.do_apply_basiccal.scale_bandpass" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">meersolar.pipeline.do_apply_basiccal.</span></span><span class="sig-name descname"><span class="pre">scale_bandpass</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">bandpass_table</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">att_table</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">freqavg</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">10</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/meersolar/pipeline/do_apply_basiccal.html#scale_bandpass"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#meersolar.pipeline.do_apply_basiccal.scale_bandpass" title="Link to this definition">¶</a></dt>
 <dd><p>Scale a bandpass calibration table using attenuation data.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>bandpass_table</strong> (<em>str</em>) – Input bandpass calibration table.</p></li>
 <li><p><strong>att_table</strong> (<em>str</em>) – NumPy .npy file containing attenuation frequency and values.</p></li>
-<li><p><strong>n</strong> (<em>int</em><em>, </em><em>optional</em>) – Number of channels to average over for polynomial fitting (default is 15). Final table has same number pf channels as input.</p></li>
+<li><p><strong>freqavg</strong> (<em>float</em><em>, </em><em>optional</em>) – Frequency average in MHz for polynomial fitting (default is 10 MHz). Final table has same number of channels as input.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
@@ -2494,8 +2525,7 @@ where each worker is a separate process that can use multiple threads internally
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>imagename</strong> (<em>str</em>) – Image name</p></li>
 <li><p><strong>imagedir</strong> (<em>str</em><em>, </em><em>optional</em>) – Image directory (default given image directory)</p></li>
-<li><p><strong>pol</strong> (<em>str</em><em>, </em><em>optional</em>) – Stokes</p></li>
-<li><p><strong>Parameters</strong></p></li>
+<li><p><strong>pol</strong> (<em>str</em><em>, </em><em>optional</em>) – Stokes parameters</p></li>
 <li><p><strong>band</strong> (<em>str</em><em>, </em><em>optional</em>) – Observing band</p></li>
 <li><p><strong>cutout_rsun</strong> (<em>float</em><em>, </em><em>optional</em>) – Cutout in solar radii from center (default: 2.5 solar radii)</p></li>
 <li><p><strong>make_overlay</strong> (<em>bool</em><em>, </em><em>optional</em>) – Make overlay on SUVI</p></li>
@@ -3047,7 +3077,21 @@ where each worker is a separate process that can use multiple threads internally
 
 <dl class="py function">
 <dt class="sig sig-object py" id="meersolar.pipeline.init_data.init_meersolar_data">
-<span class="sig-prename descclassname"><span class="pre">meersolar.pipeline.init_data.</span></span><span class="sig-name descname"><span class="pre">init_meersolar_data</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/meersolar/pipeline/init_data.html#init_meersolar_data"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#meersolar.pipeline.init_data.init_meersolar_data" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">meersolar.pipeline.init_data.</span></span><span class="sig-name descname"><span class="pre">init_meersolar_data</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">update</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">remote_link</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/meersolar/pipeline/init_data.html#init_meersolar_data"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#meersolar.pipeline.init_data.init_meersolar_data" title="Link to this definition">¶</a></dt>
+<dd><p>Initiate MeerSOLAR data</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>update</strong> (<em>bool</em><em>, </em><em>optional</em>) – Update data, if already exists</p></li>
+<li><p><strong>remote_link</strong> (<em>str</em><em>, </em><em>optional</em>) – Remote logger link to save in database</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="meersolar.pipeline.init_data.main">
+<span class="sig-prename descclassname"><span class="pre">meersolar.pipeline.init_data.</span></span><span class="sig-name descname"><span class="pre">main</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/meersolar/pipeline/init_data.html#main"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#meersolar.pipeline.init_data.main" title="Link to this definition">¶</a></dt>
 <dd></dd></dl>
 
 </section>
@@ -3085,7 +3129,7 @@ where each worker is a separate process that can use multiple threads internally
 
 <dl class="py function">
 <dt class="sig sig-object py" id="meersolar.pipeline.master_controller.master_control">
-<span class="sig-prename descclassname"><span class="pre">meersolar.pipeline.master_controller.</span></span><span class="sig-name descname"><span class="pre">master_control</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">msname</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">workdir</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">solar_data</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">do_forcereset_weightflag</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">do_cal_partition</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">do_cal_flag</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">do_import_model</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">do_basic_cal</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">do_noise_cal</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">do_applycal</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">do_target_split</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">do_polcal</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">do_selfcal</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">do_selfcal_split</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">do_apply_selfcal</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">do_ap_selfcal</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">solar_selfcal</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">target_scans</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">[]</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">freqrange</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">timerange</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">uvrange</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">solint</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'5min'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">do_imaging</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">do_pbcor</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">weight</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'briggs'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">robust</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">minuv</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">freqavg</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">-1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">timeavg</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">-1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">image_freqres</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">-1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">image_timeres</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">-1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pol</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'I'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">apply_parang</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">clean_threshold</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">use_multiscale</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">use_solar_mask</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cutout_rsun</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">2.5</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">make_overlay</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cpu_frac</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.8</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mem_frac</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.8</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_nodes</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">keep_backup</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">remote_logger</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">remote_logger_waittime</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">2</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/meersolar/pipeline/master_controller.html#master_control"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#meersolar.pipeline.master_controller.master_control" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">meersolar.pipeline.master_controller.</span></span><span class="sig-name descname"><span class="pre">master_control</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">msname</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">workdir</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">solar_data</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">do_forcereset_weightflag</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">do_cal_partition</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">do_cal_flag</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">do_import_model</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">do_basic_cal</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">do_noise_cal</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">do_applycal</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">do_target_split</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">do_polcal</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">do_selfcal</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">do_selfcal_split</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">do_apply_selfcal</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">do_ap_selfcal</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">solar_selfcal</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">do_sidereal_cor</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">target_scans</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">[]</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">freqrange</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">timerange</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">uvrange</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">solint</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'5min'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">do_imaging</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">do_pbcor</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">weight</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'briggs'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">robust</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">minuv</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">image_freqres</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">-1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">image_timeres</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">-1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pol</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'I'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">apply_parang</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">clean_threshold</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">use_multiscale</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">use_solar_mask</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cutout_rsun</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">2.5</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">make_overlay</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cpu_frac</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.8</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mem_frac</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.8</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_nodes</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">keep_backup</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">remote_logger</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">remote_logger_waittime</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/meersolar/pipeline/master_controller.html#master_control"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#meersolar.pipeline.master_controller.master_control" title="Link to this definition">¶</a></dt>
 <dd><p>Master controller of the entire pipeline</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -3116,12 +3160,9 @@ where each worker is a separate process that can use multiple threads internally
 <li><p><strong>weight</strong> (<em>str</em><em>, </em><em>optional</em>) – Image weighting</p></li>
 <li><p><strong>robust</strong> (<em>float</em><em>, </em><em>optional</em>) – Robust parameter for briggs weighting (-1 to 1)</p></li>
 <li><p><strong>minuv</strong> (<em>float</em><em>, </em><em>optional</em>) – Minimum UV-lambda for final imaging</p></li>
-<li><p><strong>freqavg</strong> (<em>float</em><em>, </em><em>optional</em>) – Frequency averaging in MHz</p></li>
-<li><p><strong>timeavg</strong> (<em>float</em><em>, </em><em>optional</em>) – Time averaging in seconds</p></li>
 <li><p><strong>image_freqres</strong> (<em>float</em><em>, </em><em>optional</em>) – Image frequency resolution in MHz</p></li>
-<li><p><strong>image_timeres</strong> (<em>float</em><em>, </em><em>optional</em>) – Image temporal resolution</p></li>
-<li><p><strong>pol</strong> (<em>str</em><em>, </em><em>optional</em>) – Stokes</p></li>
-<li><p><strong>imaging</strong> (<em>Parameters</em><em> of </em><em>final</em>)</p></li>
+<li><p><strong>image_timeres</strong> (<em>float</em><em>, </em><em>optional</em>) – Image temporal resolution in seconds</p></li>
+<li><p><strong>pol</strong> (<em>str</em><em>, </em><em>optional</em>) – Stokes parameters of final imaging</p></li>
 <li><p><strong>apply_parang</strong> (<em>bool</em><em>, </em><em>optional</em>) – Apply parallactic angle correction</p></li>
 <li><p><strong>clean_threshold</strong> (<em>float</em><em>, </em><em>optional</em>) – CLEAN threshold of final imaging</p></li>
 <li><p><strong>use_multiscale</strong> (<em>bool</em><em>, </em><em>optional</em>) – Use multiscale scales or not</p></li>
@@ -3329,13 +3370,14 @@ where each worker is a separate process that can use multiple threads internally
 
 <dl class="py function">
 <dt class="sig sig-object py" id="meersolar.pipeline.master_controller.run_noise_diode_cal">
-<span class="sig-prename descclassname"><span class="pre">meersolar.pipeline.master_controller.</span></span><span class="sig-name descname"><span class="pre">run_noise_diode_cal</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">msname</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">workdir</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">jobid</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cpu_frac</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.8</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mem_frac</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.8</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/meersolar/pipeline/master_controller.html#run_noise_diode_cal"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#meersolar.pipeline.master_controller.run_noise_diode_cal" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">meersolar.pipeline.master_controller.</span></span><span class="sig-name descname"><span class="pre">run_noise_diode_cal</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">msname</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">workdir</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">keep_backup</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">jobid</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cpu_frac</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.8</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mem_frac</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.8</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/meersolar/pipeline/master_controller.html#run_noise_diode_cal"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#meersolar.pipeline.master_controller.run_noise_diode_cal" title="Link to this definition">¶</a></dt>
 <dd><p>Perform noise diode based flux calibration</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>msname</strong> (<em>str</em>) – Name of the measurement set</p></li>
 <li><p><strong>workdir</strong> (<em>str</em>) – Working directory</p></li>
+<li><p><strong>keep_backup</strong> (<em>bool</em><em>, </em><em>optional</em>) – Keep backup</p></li>
 <li><p><strong>cpu_frac</strong> (<em>float</em><em>, </em><em>optional</em>) – CPU fraction to use</p></li>
 <li><p><strong>mem_frac</strong> (<em>float</em><em>, </em><em>optional</em>) – Memory fraction to use</p></li>
 </ul>
@@ -3410,9 +3452,9 @@ where each worker is a separate process that can use multiple threads internally
 </dd></dl>
 
 <dl class="py function">
-<dt class="sig sig-object py" id="meersolar.pipeline.master_controller.run_sidereal_cor_jobs">
-<span class="sig-prename descclassname"><span class="pre">meersolar.pipeline.master_controller.</span></span><span class="sig-name descname"><span class="pre">run_sidereal_cor_jobs</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mslist</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">workdir</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">prefix</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'targets'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">jobid</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cpu_frac</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.8</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mem_frac</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.8</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_cpu_frac</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.8</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_mem_frac</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.8</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/meersolar/pipeline/master_controller.html#run_sidereal_cor_jobs"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#meersolar.pipeline.master_controller.run_sidereal_cor_jobs" title="Link to this definition">¶</a></dt>
-<dd><p>Apply sidereal motion correction</p>
+<dt class="sig sig-object py" id="meersolar.pipeline.master_controller.run_solar_siderealcor_jobs">
+<span class="sig-prename descclassname"><span class="pre">meersolar.pipeline.master_controller.</span></span><span class="sig-name descname"><span class="pre">run_solar_siderealcor_jobs</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mslist</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">workdir</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">prefix</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'targets'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">jobid</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cpu_frac</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.8</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mem_frac</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.8</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_cpu_frac</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.8</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_mem_frac</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.8</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/meersolar/pipeline/master_controller.html#run_solar_siderealcor_jobs"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#meersolar.pipeline.master_controller.run_solar_siderealcor_jobs" title="Link to this definition">¶</a></dt>
+<dd><p>Apply sidereal motion correction of the Sun</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
@@ -3461,6 +3503,27 @@ where each worker is a separate process that can use multiple threads internally
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p>Success message for spliting target scans</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>int</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="meersolar.pipeline.master_controller.start_ping_logger">
+<span class="sig-prename descclassname"><span class="pre">meersolar.pipeline.master_controller.</span></span><span class="sig-name descname"><span class="pre">start_ping_logger</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">jobid</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">waittime</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">remote_link</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/meersolar/pipeline/master_controller.html#start_ping_logger"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#meersolar.pipeline.master_controller.start_ping_logger" title="Link to this definition">¶</a></dt>
+<dd><p>Run ping remote logger in background</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>jobid</strong> (<em>int</em>) – Job ID</p></li>
+<li><p><strong>waittime</strong> (<em>float</em>) – Wait time before process ends in hour</p></li>
+<li><p><strong>remote_link</strong> (<em>str</em><em>, </em><em>optional</em>) – Remote logger link</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>PID of the background job</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>int</p>
@@ -3854,8 +3917,7 @@ arguments is the optional sequence of the names of the signal’s arguments.</p>
 <dl class="py function">
 <dt class="sig sig-object py" id="meersolar.pipeline.viewer.get_datadir">
 <span class="sig-prename descclassname"><span class="pre">meersolar.pipeline.viewer.</span></span><span class="sig-name descname"><span class="pre">get_datadir</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/meersolar/pipeline/viewer.html#get_datadir"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#meersolar.pipeline.viewer.get_datadir" title="Link to this definition">¶</a></dt>
-<dd><p>Get package data directory</p>
-</dd></dl>
+<dd></dd></dl>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="meersolar.pipeline.viewer.get_logid">
@@ -3878,8 +3940,26 @@ arguments is the optional sequence of the names of the signal’s arguments.</p>
       <footer>
         
         <div class="related-pages">
-          
-          
+          <a class="next-page" href="meersolar.crystalball.html">
+              <div class="page-info">
+                <div class="context">
+                  <span>Next</span>
+                </div>
+                <div class="title">Crystalball Module</div>
+              </div>
+              <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
+            </a>
+          <a class="prev-page" href="meersolar.html">
+              <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
+              <div class="page-info">
+                <div class="context">
+                  <span>Previous</span>
+                </div>
+                
+                <div class="title">API Reference</div>
+                
+              </div>
+            </a>
         </div>
         <div class="bottom-of-page">
           <div class="left-details">
@@ -3910,8 +3990,7 @@ arguments is the optional sequence of the names of the signal’s arguments.</p>
         <div class="toc-tree-container">
           <div class="toc-tree">
             <ul>
-<li><a class="reference internal" href="#">meersolar.pipeline package</a><ul>
-<li><a class="reference internal" href="#submodules">Submodules</a></li>
+<li><a class="reference internal" href="#">Meersolar Pipeline Module</a><ul>
 <li><a class="reference internal" href="#module-meersolar.pipeline.basic_cal">meersolar.pipeline.basic_cal module</a><ul>
 <li><a class="reference internal" href="#meersolar.pipeline.basic_cal.main"><code class="docutils literal notranslate"><span class="pre">main()</span></code></a></li>
 <li><a class="reference internal" href="#meersolar.pipeline.basic_cal.run_applycal"><code class="docutils literal notranslate"><span class="pre">run_applycal()</span></code></a></li>
@@ -4028,6 +4107,7 @@ arguments is the optional sequence of the names of the signal’s arguments.</p>
 <li><a class="reference internal" href="#meersolar.pipeline.basic_func.scans_in_timerange"><code class="docutils literal notranslate"><span class="pre">scans_in_timerange()</span></code></a></li>
 <li><a class="reference internal" href="#meersolar.pipeline.basic_func.split_into_chunks"><code class="docutils literal notranslate"><span class="pre">split_into_chunks()</span></code></a></li>
 <li><a class="reference internal" href="#meersolar.pipeline.basic_func.split_noise_diode_scans"><code class="docutils literal notranslate"><span class="pre">split_noise_diode_scans()</span></code></a></li>
+<li><a class="reference internal" href="#meersolar.pipeline.basic_func.suppress_casa_output"><code class="docutils literal notranslate"><span class="pre">suppress_casa_output()</span></code></a></li>
 <li><a class="reference internal" href="#meersolar.pipeline.basic_func.timestamp_to_mjdsec"><code class="docutils literal notranslate"><span class="pre">timestamp_to_mjdsec()</span></code></a></li>
 </ul>
 </li>
@@ -4108,6 +4188,7 @@ arguments is the optional sequence of the names of the signal’s arguments.</p>
 <li><a class="reference internal" href="#meersolar.pipeline.init_data.download_with_parfive"><code class="docutils literal notranslate"><span class="pre">download_with_parfive()</span></code></a></li>
 <li><a class="reference internal" href="#meersolar.pipeline.init_data.get_zenodo_file_urls"><code class="docutils literal notranslate"><span class="pre">get_zenodo_file_urls()</span></code></a></li>
 <li><a class="reference internal" href="#meersolar.pipeline.init_data.init_meersolar_data"><code class="docutils literal notranslate"><span class="pre">init_meersolar_data()</span></code></a></li>
+<li><a class="reference internal" href="#meersolar.pipeline.init_data.main"><code class="docutils literal notranslate"><span class="pre">main()</span></code></a></li>
 </ul>
 </li>
 <li><a class="reference internal" href="#module-meersolar.pipeline.master_controller">meersolar.pipeline.master_controller module</a><ul>
@@ -4125,8 +4206,9 @@ arguments is the optional sequence of the names of the signal’s arguments.</p>
 <li><a class="reference internal" href="#meersolar.pipeline.master_controller.run_noise_diode_cal"><code class="docutils literal notranslate"><span class="pre">run_noise_diode_cal()</span></code></a></li>
 <li><a class="reference internal" href="#meersolar.pipeline.master_controller.run_partion"><code class="docutils literal notranslate"><span class="pre">run_partion()</span></code></a></li>
 <li><a class="reference internal" href="#meersolar.pipeline.master_controller.run_selfcal_jobs"><code class="docutils literal notranslate"><span class="pre">run_selfcal_jobs()</span></code></a></li>
-<li><a class="reference internal" href="#meersolar.pipeline.master_controller.run_sidereal_cor_jobs"><code class="docutils literal notranslate"><span class="pre">run_sidereal_cor_jobs()</span></code></a></li>
+<li><a class="reference internal" href="#meersolar.pipeline.master_controller.run_solar_siderealcor_jobs"><code class="docutils literal notranslate"><span class="pre">run_solar_siderealcor_jobs()</span></code></a></li>
 <li><a class="reference internal" href="#meersolar.pipeline.master_controller.run_target_split_jobs"><code class="docutils literal notranslate"><span class="pre">run_target_split_jobs()</span></code></a></li>
+<li><a class="reference internal" href="#meersolar.pipeline.master_controller.start_ping_logger"><code class="docutils literal notranslate"><span class="pre">start_ping_logger()</span></code></a></li>
 </ul>
 </li>
 <li><a class="reference internal" href="#module-meersolar.pipeline.meer_pbcor">meersolar.pipeline.meer_pbcor module</a><ul>
@@ -4187,7 +4269,7 @@ arguments is the optional sequence of the names of the signal’s arguments.</p>
       
     </aside>
   </div>
-</div><script src="_static/documentation_options.js?v=8d563738"></script>
+</div><script src="_static/documentation_options.js?v=4ebf8126"></script>
     <script src="_static/doctools.js?v=9a2dae69"></script>
     <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="_static/scripts/furo.js?v=32e29ea5"></script>

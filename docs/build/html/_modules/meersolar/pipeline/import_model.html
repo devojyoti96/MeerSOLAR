@@ -5,7 +5,7 @@
     <meta name="color-scheme" content="light dark"><link rel="index" title="Index" href="../../../genindex.html" /><link rel="search" title="Search" href="../../../search.html" />
 
     <!-- Generated with Sphinx 7.4.7 and Furo 2024.01.29 -->
-        <title>meersolar.pipeline.import_model - MeerSOLAR 1.0.0 documentation</title>
+        <title>meersolar.pipeline.import_model - MeerSOLAR</title>
       <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=a746c00c" />
     <link rel="stylesheet" type="text/css" href="../../../_static/styles/furo.css?v=135e06be" />
     <link rel="stylesheet" type="text/css" href="../../../_static/copybutton.css?v=76b2166b" />
@@ -123,7 +123,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="../../../index.html"><div class="brand">MeerSOLAR 1.0.0 documentation</div></a>
+      <a href="../../../index.html"><div class="brand">MeerSOLAR</div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -145,8 +145,12 @@
       
       <div class="sidebar-sticky"><a class="sidebar-brand" href="../../../index.html">
   
+  <div class="sidebar-logo-container">
+    <img class="sidebar-logo only-light" src="../../../_static/yourlogo-light.png" alt="Light Logo"/>
+    <img class="sidebar-logo only-dark" src="../../../_static/yourlogo-dark.png" alt="Dark Logo"/>
+  </div>
   
-  <span class="sidebar-brand-text">MeerSOLAR 1.0.0 documentation</span>
+  <span class="sidebar-brand-text">MeerSOLAR</span>
   
 </a><form class="sidebar-search-container" method="get" action="../../../search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
@@ -154,7 +158,21 @@
   <input type="hidden" name="area" value="default">
 </form>
 <div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
-  
+  <ul>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../../../install.html">Installation and Initial Setup</a><input class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><div class="visually-hidden">Toggle navigation of Installation and Initial Setup</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../install_conda.html">Installing Conda: Anaconda or Miniconda</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../activate_conda.html">Creating and Activating Conda Environment</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../install_meersolar.html">Install MeerSOLAR</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../initial_setup.html">Initial setup</a></li>
+</ul>
+</li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../../../meersolar.html">API Reference</a><input class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" role="switch" type="checkbox"/><label for="toctree-checkbox-2"><div class="visually-hidden">Toggle navigation of API Reference</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../meersolar.pipeline.html">Meersolar Pipeline Module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../meersolar.crystalball.html">Crystalball Module</a></li>
+</ul>
+</li>
+</ul>
+
 </div>
 </div>
 
@@ -188,8 +206,7 @@
         <article role="main">
           <h1>Source code for meersolar.pipeline.import_model</h1><div class="highlight"><pre>
 <span></span><span class="kn">import</span> <span class="nn">sys</span><span class="o">,</span> <span class="nn">psutil</span><span class="o">,</span> <span class="nn">traceback</span>
-<span class="kn">import</span> <span class="nn">os</span><span class="o">,</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span><span class="o">,</span> <span class="nn">time</span><span class="o">,</span> <span class="nn">glob</span>
-<span class="kn">from</span> <span class="nn">optparse</span> <span class="kn">import</span> <span class="n">OptionParser</span>
+<span class="kn">import</span> <span class="nn">os</span><span class="o">,</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span><span class="o">,</span> <span class="nn">time</span><span class="o">,</span> <span class="nn">glob</span><span class="o">,</span> <span class="nn">argparse</span>
 <span class="kn">from</span> <span class="nn">meersolar.pipeline.basic_func</span> <span class="kn">import</span> <span class="o">*</span>
 <span class="kn">from</span> <span class="nn">casatasks</span> <span class="kn">import</span> <span class="n">casalog</span>
 <span class="kn">from</span> <span class="nn">casatools</span> <span class="kn">import</span> <span class="n">msmetadata</span>
@@ -274,19 +291,20 @@
             <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Field name is not either of the polcal, 3C286 or 3C138.&quot;</span><span class="p">)</span>
             <span class="k">return</span> <span class="mi">1</span>
         <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Reference frequency: </span><span class="si">{</span><span class="n">ref_freq</span><span class="si">}</span><span class="s2"> GHz.&quot;</span><span class="p">)</span>
-        <span class="n">setjy</span><span class="p">(</span>
-            <span class="n">vis</span><span class="o">=</span><span class="n">msname</span><span class="p">,</span>
-            <span class="n">field</span><span class="o">=</span><span class="n">field_name</span><span class="p">,</span>
-            <span class="n">scalebychan</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-            <span class="n">standard</span><span class="o">=</span><span class="s2">&quot;manual&quot;</span><span class="p">,</span>
-            <span class="n">fluxdensity</span><span class="o">=</span><span class="p">[</span><span class="n">I</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">],</span>
-            <span class="n">spix</span><span class="o">=</span><span class="n">polyI</span><span class="p">,</span>
-            <span class="n">reffreq</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">ref_freq</span><span class="si">}</span><span class="s2">GHz&quot;</span><span class="p">,</span>
-            <span class="n">polindex</span><span class="o">=</span><span class="n">poly_pfrac</span><span class="p">,</span>
-            <span class="n">polangle</span><span class="o">=</span><span class="n">poly_pangle</span><span class="p">,</span>
-            <span class="n">rotmeas</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
-            <span class="n">usescratch</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-        <span class="p">)</span>
+        <span class="k">with</span> <span class="n">suppress_casa_output</span><span class="p">():</span>
+            <span class="n">setjy</span><span class="p">(</span>
+                <span class="n">vis</span><span class="o">=</span><span class="n">msname</span><span class="p">,</span>
+                <span class="n">field</span><span class="o">=</span><span class="n">field_name</span><span class="p">,</span>
+                <span class="n">scalebychan</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                <span class="n">standard</span><span class="o">=</span><span class="s2">&quot;manual&quot;</span><span class="p">,</span>
+                <span class="n">fluxdensity</span><span class="o">=</span><span class="p">[</span><span class="n">I</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">],</span>
+                <span class="n">spix</span><span class="o">=</span><span class="n">polyI</span><span class="p">,</span>
+                <span class="n">reffreq</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">ref_freq</span><span class="si">}</span><span class="s2">GHz&quot;</span><span class="p">,</span>
+                <span class="n">polindex</span><span class="o">=</span><span class="n">poly_pfrac</span><span class="p">,</span>
+                <span class="n">polangle</span><span class="o">=</span><span class="n">poly_pangle</span><span class="p">,</span>
+                <span class="n">rotmeas</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+                <span class="n">usescratch</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+            <span class="p">)</span>
     <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
         <span class="n">traceback</span><span class="o">.</span><span class="n">print_exc</span><span class="p">()</span>
     <span class="k">return</span></div>
@@ -318,14 +336,15 @@
         <span class="n">mem</span> <span class="o">=</span> <span class="nb">round</span><span class="p">(</span><span class="n">process</span><span class="o">.</span><span class="n">memory_info</span><span class="p">()</span><span class="o">.</span><span class="n">rss</span> <span class="o">/</span> <span class="mi">1024</span><span class="o">**</span><span class="mi">3</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>  <span class="c1"># in GB</span>
         <span class="k">return</span> <span class="n">mem</span>
     <span class="k">try</span><span class="p">:</span>
-        <span class="n">setjy</span><span class="p">(</span>
-            <span class="n">vis</span><span class="o">=</span><span class="n">msname</span><span class="p">,</span>
-            <span class="n">field</span><span class="o">=</span><span class="n">field</span><span class="p">,</span>
-            <span class="n">standard</span><span class="o">=</span><span class="s2">&quot;manual&quot;</span><span class="p">,</span>
-            <span class="n">fluxdensity</span><span class="o">=</span><span class="p">[</span><span class="mf">1.0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span>
-            <span class="n">usescratch</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-            <span class="n">ismms</span><span class="o">=</span><span class="n">ismms</span><span class="p">,</span>
-        <span class="p">)</span>
+        <span class="k">with</span> <span class="n">suppress_casa_output</span><span class="p">():</span>
+            <span class="n">setjy</span><span class="p">(</span>
+                <span class="n">vis</span><span class="o">=</span><span class="n">msname</span><span class="p">,</span>
+                <span class="n">field</span><span class="o">=</span><span class="n">field</span><span class="p">,</span>
+                <span class="n">standard</span><span class="o">=</span><span class="s2">&quot;manual&quot;</span><span class="p">,</span>
+                <span class="n">fluxdensity</span><span class="o">=</span><span class="p">[</span><span class="mf">1.0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span>
+                <span class="n">usescratch</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                <span class="n">ismms</span><span class="o">=</span><span class="n">ismms</span><span class="p">,</span>
+            <span class="p">)</span>
     <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
         <span class="n">traceback</span><span class="o">.</span><span class="n">print_exc</span><span class="p">()</span>
     <span class="k">return</span></div>
@@ -375,7 +394,7 @@
         <span class="k">for</span> <span class="n">fluxcal</span> <span class="ow">in</span> <span class="n">fluxcal_fields</span><span class="p">:</span>
             <span class="n">f_scan</span> <span class="o">=</span> <span class="n">fluxcal_scans</span><span class="p">[</span><span class="n">fluxcal</span><span class="p">]</span>
             <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">f_scan</span><span class="p">:</span>
-                <span class="n">scans</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">scans</span><span class="p">)</span>
+                <span class="n">scans</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">scans</span><span class="p">)</span>
                 <span class="n">pos</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">argmin</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">scans</span> <span class="o">-</span> <span class="n">s</span><span class="p">))</span>
                 <span class="n">sub_msname</span> <span class="o">=</span> <span class="n">mslist</span><span class="p">[</span><span class="n">pos</span><span class="p">]</span>
                 <span class="n">modelname</span> <span class="o">=</span> <span class="n">datadir</span> <span class="o">+</span> <span class="s2">&quot;/&quot;</span> <span class="o">+</span> <span class="n">fluxcal</span> <span class="o">+</span> <span class="s2">&quot;_&quot;</span> <span class="o">+</span> <span class="n">bandname</span> <span class="o">+</span> <span class="s2">&quot;_model.txt&quot;</span>
@@ -389,7 +408,8 @@
                 <span class="n">crys_cmd</span> <span class="o">=</span> <span class="s2">&quot;crystalball &quot;</span> <span class="o">+</span> <span class="s2">&quot; &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">crys_cmd_args</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot; &quot;</span> <span class="o">+</span> <span class="n">sub_msname</span>
                 <span class="nb">print</span><span class="p">(</span><span class="n">crys_cmd</span><span class="p">)</span>
                 <span class="n">tmpfile</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;tmp_</span><span class="si">{</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">sub_msname</span><span class="p">)</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;.ms&#39;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span>
-                <span class="n">msg</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">system</span><span class="p">(</span><span class="n">crys_cmd</span> <span class="o">+</span> <span class="sa">f</span><span class="s2">&quot; &gt; </span><span class="si">{</span><span class="n">tmpfile</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="k">with</span> <span class="n">suppress_casa_output</span><span class="p">():</span>    
+                    <span class="n">msg</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">system</span><span class="p">(</span><span class="n">crys_cmd</span> <span class="o">+</span> <span class="sa">f</span><span class="s2">&quot; &gt; </span><span class="si">{</span><span class="n">tmpfile</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
                 <span class="n">os</span><span class="o">.</span><span class="n">system</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;rm -rf </span><span class="si">{</span><span class="n">tmpfile</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
                 <span class="k">if</span> <span class="n">msg</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
                     <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Fluxcal model is imported successfully for scan: </span><span class="si">{</span><span class="n">s</span><span class="si">}</span><span class="s2">.&quot;</span><span class="p">)</span>
@@ -450,7 +470,7 @@
         <span class="k">for</span> <span class="n">phasecal</span> <span class="ow">in</span> <span class="n">phasecal_fields</span><span class="p">:</span>
             <span class="n">ph_scan</span> <span class="o">=</span> <span class="n">phasecal_scans</span><span class="p">[</span><span class="n">phasecal</span><span class="p">]</span>
             <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">ph_scan</span><span class="p">:</span>
-                <span class="n">scans</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">scans</span><span class="p">)</span>
+                <span class="n">scans</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">scans</span><span class="p">)</span>
                 <span class="n">pos</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">argmin</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">scans</span> <span class="o">-</span> <span class="n">s</span><span class="p">))</span>
                 <span class="n">sub_msname</span> <span class="o">=</span> <span class="n">mslist</span><span class="p">[</span><span class="n">pos</span><span class="p">]</span>
                 <span class="n">tasks</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
@@ -518,7 +538,7 @@
         <span class="k">for</span> <span class="n">polcal_field</span> <span class="ow">in</span> <span class="n">polcal_fields</span><span class="p">:</span>
             <span class="n">p_scan</span> <span class="o">=</span> <span class="n">polcal_scans</span><span class="p">[</span><span class="n">polcal_field</span><span class="p">]</span>
             <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">p_scan</span><span class="p">:</span>
-                <span class="n">scans</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">scans</span><span class="p">)</span>
+                <span class="n">scans</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">scans</span><span class="p">)</span>
                 <span class="n">pos</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">argmin</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">scans</span> <span class="o">-</span> <span class="n">s</span><span class="p">))</span>
                 <span class="n">sub_msname</span> <span class="o">=</span> <span class="n">mslist</span><span class="p">[</span><span class="n">pos</span><span class="p">]</span>
                 <span class="n">tasks</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
@@ -628,72 +648,63 @@
 <a class="viewcode-back" href="../../../meersolar.pipeline.html#meersolar.pipeline.import_model.main">[docs]</a>
 <span class="k">def</span> <span class="nf">main</span><span class="p">():</span>
     <span class="n">usage</span> <span class="o">=</span> <span class="s2">&quot;Import calibrator models&quot;</span>
-    <span class="n">parser</span> <span class="o">=</span> <span class="n">OptionParser</span><span class="p">(</span><span class="n">usage</span><span class="o">=</span><span class="n">usage</span><span class="p">)</span>
-    <span class="n">parser</span><span class="o">.</span><span class="n">add_option</span><span class="p">(</span>
-        <span class="s2">&quot;--msname&quot;</span><span class="p">,</span>
-        <span class="n">dest</span><span class="o">=</span><span class="s2">&quot;msname&quot;</span><span class="p">,</span>
-        <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Name of measurement set&quot;</span><span class="p">,</span>
-        <span class="n">metavar</span><span class="o">=</span><span class="s2">&quot;Measurement Set&quot;</span><span class="p">,</span>
+    <span class="n">parser</span> <span class="o">=</span> <span class="n">argparse</span><span class="o">.</span><span class="n">ArgumentParser</span><span class="p">(</span><span class="n">description</span><span class="o">=</span><span class="n">usage</span><span class="p">,</span><span class="n">formatter_class</span><span class="o">=</span><span class="n">argparse</span><span class="o">.</span><span class="n">ArgumentDefaultsHelpFormatter</span><span class="p">)</span>
+    
+    <span class="c1">## Essential parameters</span>
+    <span class="n">basic_args</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">add_argument_group</span><span class="p">(</span>
+        <span class="s2">&quot;###################</span><span class="se">\n</span><span class="s2">Essential parameters</span><span class="se">\n</span><span class="s2">###################&quot;</span>
     <span class="p">)</span>
-    <span class="n">parser</span><span class="o">.</span><span class="n">add_option</span><span class="p">(</span>
-        <span class="s2">&quot;--workdir&quot;</span><span class="p">,</span>
-        <span class="n">dest</span><span class="o">=</span><span class="s2">&quot;workdir&quot;</span><span class="p">,</span>
-        <span class="n">default</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span>
-        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Name of work directory&quot;</span><span class="p">,</span>
-        <span class="n">metavar</span><span class="o">=</span><span class="s2">&quot;String&quot;</span><span class="p">,</span>
+    <span class="n">basic_args</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s2">&quot;msname&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Name of measurement set&quot;</span><span class="p">)</span>
+    <span class="n">basic_args</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;--workdir&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Name of work directory&quot;</span>
     <span class="p">)</span>
-    <span class="n">parser</span><span class="o">.</span><span class="n">add_option</span><span class="p">(</span>
-        <span class="s2">&quot;--cpu_frac&quot;</span><span class="p">,</span>
-        <span class="n">dest</span><span class="o">=</span><span class="s2">&quot;cpu_frac&quot;</span><span class="p">,</span>
-        <span class="n">default</span><span class="o">=</span><span class="mf">0.8</span><span class="p">,</span>
-        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;CPU fraction to use&quot;</span><span class="p">,</span>
-        <span class="n">metavar</span><span class="o">=</span><span class="s2">&quot;Float&quot;</span><span class="p">,</span>
+    
+    <span class="c1">## Resource management parameters</span>
+    <span class="n">hard_args</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">add_argument_group</span><span class="p">(</span>
+        <span class="s2">&quot;###################</span><span class="se">\n</span><span class="s2">Hardware resource management parameters</span><span class="se">\n</span><span class="s2">###################&quot;</span>
     <span class="p">)</span>
-    <span class="n">parser</span><span class="o">.</span><span class="n">add_option</span><span class="p">(</span>
-        <span class="s2">&quot;--mem_frac&quot;</span><span class="p">,</span>
-        <span class="n">dest</span><span class="o">=</span><span class="s2">&quot;mem_frac&quot;</span><span class="p">,</span>
-        <span class="n">default</span><span class="o">=</span><span class="mf">0.8</span><span class="p">,</span>
-        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Memory fraction to use&quot;</span><span class="p">,</span>
-        <span class="n">metavar</span><span class="o">=</span><span class="s2">&quot;Float&quot;</span><span class="p">,</span>
+    <span class="n">hard_args</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;--cpu_frac&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">float</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="mf">0.8</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s2">&quot;CPU fraction to use&quot;</span>
     <span class="p">)</span>
-    <span class="n">parser</span><span class="o">.</span><span class="n">add_option</span><span class="p">(</span>
-        <span class="s2">&quot;--logfile&quot;</span><span class="p">,</span>
-        <span class="n">dest</span><span class="o">=</span><span class="s2">&quot;logfile&quot;</span><span class="p">,</span>
-        <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Log file&quot;</span><span class="p">,</span>
-        <span class="n">metavar</span><span class="o">=</span><span class="s2">&quot;String&quot;</span><span class="p">,</span>
+    <span class="n">hard_args</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;--mem_frac&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">float</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="mf">0.8</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Memory fraction to use&quot;</span>
     <span class="p">)</span>
-    <span class="n">parser</span><span class="o">.</span><span class="n">add_option</span><span class="p">(</span>
-        <span class="s2">&quot;--jobid&quot;</span><span class="p">,</span>
-        <span class="n">dest</span><span class="o">=</span><span class="s2">&quot;jobid&quot;</span><span class="p">,</span>
-        <span class="n">default</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
-        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Job ID&quot;</span><span class="p">,</span>
-        <span class="n">metavar</span><span class="o">=</span><span class="s2">&quot;Integer&quot;</span><span class="p">,</span>
-    <span class="p">)</span>
-    <span class="p">(</span><span class="n">options</span><span class="p">,</span> <span class="n">args</span><span class="p">)</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">parse_args</span><span class="p">()</span>
-    <span class="n">pid</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">getpid</span><span class="p">()</span>
-    <span class="n">save_pid</span><span class="p">(</span><span class="n">pid</span><span class="p">,</span><span class="n">datadir</span> <span class="o">+</span> <span class="sa">f</span><span class="s2">&quot;/pids/pids_</span><span class="si">{</span><span class="n">options</span><span class="o">.</span><span class="n">jobid</span><span class="si">}</span><span class="s2">.txt&quot;</span><span class="p">)</span>
-    <span class="k">if</span> <span class="n">options</span><span class="o">.</span><span class="n">workdir</span> <span class="o">==</span> <span class="s2">&quot;&quot;</span> <span class="ow">or</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">options</span><span class="o">.</span><span class="n">workdir</span><span class="p">)</span> <span class="o">==</span> <span class="kc">False</span><span class="p">:</span>
-        <span class="n">workdir</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="n">options</span><span class="o">.</span><span class="n">msname</span><span class="p">))</span> <span class="o">+</span> <span class="s2">&quot;/workdir&quot;</span>
-        <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">workdir</span><span class="p">)</span> <span class="o">==</span> <span class="kc">False</span><span class="p">:</span>
-            <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">workdir</span><span class="p">)</span>
+    <span class="n">hard_args</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s2">&quot;--logfile&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Log file&quot;</span><span class="p">)</span>
+    <span class="n">hard_args</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s2">&quot;--jobid&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Job ID&quot;</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">sys</span><span class="o">.</span><span class="n">argv</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="n">parser</span><span class="o">.</span><span class="n">print_help</span><span class="p">(</span><span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="p">)</span>
+        <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+        
+    <span class="n">args</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">parse_args</span><span class="p">()</span>
+
+    <span class="n">pid</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">getpid</span><span class="p">()</span>
+    <span class="n">save_pid</span><span class="p">(</span><span class="n">pid</span><span class="p">,</span> <span class="n">datadir</span> <span class="o">+</span> <span class="sa">f</span><span class="s2">&quot;/pids/pids_</span><span class="si">{</span><span class="n">args</span><span class="o">.</span><span class="n">jobid</span><span class="si">}</span><span class="s2">.txt&quot;</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">workdir</span> <span class="o">==</span> <span class="s2">&quot;&quot;</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">workdir</span><span class="p">):</span>
+        <span class="n">workdir</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">msname</span><span class="p">))</span> <span class="o">+</span> <span class="s2">&quot;/workdir&quot;</span>
+        <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">workdir</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
-        <span class="n">workdir</span> <span class="o">=</span> <span class="n">options</span><span class="o">.</span><span class="n">workdir</span>
-    <span class="n">logfile</span><span class="o">=</span><span class="n">options</span><span class="o">.</span><span class="n">logfile</span>
-    <span class="n">observer</span><span class="o">=</span><span class="kc">None</span>
-    <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">workdir</span><span class="si">}</span><span class="s2">/jobname_password.npy&quot;</span><span class="p">)</span> <span class="ow">and</span> <span class="n">logfile</span><span class="o">!=</span><span class="kc">None</span><span class="p">:</span> 
+        <span class="n">workdir</span> <span class="o">=</span> <span class="n">args</span><span class="o">.</span><span class="n">workdir</span>
+
+    <span class="n">observer</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">workdir</span><span class="si">}</span><span class="s2">/jobname_password.npy&quot;</span><span class="p">)</span> <span class="ow">and</span> <span class="n">args</span><span class="o">.</span><span class="n">logfile</span><span class="p">:</span>
         <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mi">5</span><span class="p">)</span>
-        <span class="n">jobname</span><span class="p">,</span><span class="n">password</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">workdir</span><span class="si">}</span><span class="s2">/jobname_password.npy&quot;</span><span class="p">,</span><span class="n">allow_pickle</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-        <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">logfile</span><span class="p">):</span>
-            <span class="n">observer</span><span class="o">=</span><span class="n">init_logger</span><span class="p">(</span><span class="s2">&quot;import_model&quot;</span><span class="p">,</span><span class="n">logfile</span><span class="p">,</span><span class="n">jobname</span><span class="o">=</span><span class="n">jobname</span><span class="p">,</span><span class="n">password</span><span class="o">=</span><span class="n">password</span><span class="p">)</span>
+        <span class="n">jobname</span><span class="p">,</span> <span class="n">password</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">load</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">workdir</span><span class="si">}</span><span class="s2">/jobname_password.npy&quot;</span><span class="p">,</span> <span class="n">allow_pickle</span><span class="o">=</span><span class="kc">True</span>
+        <span class="p">)</span>
+        <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">logfile</span><span class="p">):</span>
+            <span class="n">observer</span> <span class="o">=</span> <span class="n">init_logger</span><span class="p">(</span>
+                <span class="s2">&quot;import_model&quot;</span><span class="p">,</span> <span class="n">args</span><span class="o">.</span><span class="n">logfile</span><span class="p">,</span> <span class="n">jobname</span><span class="o">=</span><span class="n">jobname</span><span class="p">,</span> <span class="n">password</span><span class="o">=</span><span class="n">password</span>
+            <span class="p">)</span>
+
     <span class="k">try</span><span class="p">:</span>
-        <span class="k">if</span> <span class="n">options</span><span class="o">.</span><span class="n">msname</span> <span class="o">!=</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">options</span><span class="o">.</span><span class="n">msname</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">msname</span> <span class="ow">and</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">msname</span><span class="p">):</span>
             <span class="n">fluxcal_result</span><span class="p">,</span> <span class="n">phasecal_result</span><span class="p">,</span> <span class="n">polcal_result</span> <span class="o">=</span> <span class="n">import_all_models</span><span class="p">(</span>
-                <span class="n">options</span><span class="o">.</span><span class="n">msname</span><span class="p">,</span>
-                <span class="n">options</span><span class="o">.</span><span class="n">workdir</span><span class="p">,</span>
-                <span class="n">cpu_frac</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">options</span><span class="o">.</span><span class="n">cpu_frac</span><span class="p">),</span>
-                <span class="n">mem_frac</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">options</span><span class="o">.</span><span class="n">mem_frac</span><span class="p">),</span>
+                <span class="n">args</span><span class="o">.</span><span class="n">msname</span><span class="p">,</span>
+                <span class="n">workdir</span><span class="p">,</span>
+                <span class="n">cpu_frac</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">cpu_frac</span><span class="p">,</span>
+                <span class="n">mem_frac</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">mem_frac</span><span class="p">,</span>
             <span class="p">)</span>
             <span class="n">os</span><span class="o">.</span><span class="n">system</span><span class="p">(</span><span class="s2">&quot;touch &quot;</span> <span class="o">+</span> <span class="n">workdir</span> <span class="o">+</span> <span class="s2">&quot;/.fluxcal_&quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">fluxcal_result</span><span class="p">))</span>
             <span class="n">os</span><span class="o">.</span><span class="n">system</span><span class="p">(</span><span class="s2">&quot;touch &quot;</span> <span class="o">+</span> <span class="n">workdir</span> <span class="o">+</span> <span class="s2">&quot;/.phasecal_&quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">phasecal_result</span><span class="p">))</span>
@@ -701,24 +712,26 @@
             <span class="k">if</span> <span class="n">fluxcal_result</span> <span class="o">==</span> <span class="mi">1</span> <span class="ow">or</span> <span class="p">(</span>
                 <span class="n">fluxcal_result</span> <span class="o">==</span> <span class="mi">1</span> <span class="ow">and</span> <span class="n">phasecal_result</span> <span class="o">==</span> <span class="mi">1</span> <span class="ow">and</span> <span class="n">polcal_result</span> <span class="o">==</span> <span class="mi">1</span>
             <span class="p">):</span>
-                <span class="n">msg</span><span class="o">=</span><span class="mi">1</span>
+                <span class="n">msg</span> <span class="o">=</span> <span class="mi">1</span>
             <span class="k">else</span><span class="p">:</span>
-                <span class="n">msg</span><span class="o">=</span><span class="mi">0</span>
+                <span class="n">msg</span> <span class="o">=</span> <span class="mi">0</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Please provide correct measurement set.</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
-            <span class="n">msg</span><span class="o">=</span><span class="mi">1</span>
+            <span class="n">msg</span> <span class="o">=</span> <span class="mi">1</span>
     <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
         <span class="n">traceback</span><span class="o">.</span><span class="n">print_exc</span><span class="p">()</span>
         <span class="n">os</span><span class="o">.</span><span class="n">system</span><span class="p">(</span><span class="s2">&quot;touch &quot;</span> <span class="o">+</span> <span class="n">workdir</span> <span class="o">+</span> <span class="s2">&quot;/.fluxcal_1&quot;</span><span class="p">)</span>
         <span class="n">os</span><span class="o">.</span><span class="n">system</span><span class="p">(</span><span class="s2">&quot;touch &quot;</span> <span class="o">+</span> <span class="n">workdir</span> <span class="o">+</span> <span class="s2">&quot;/.phasecal_1&quot;</span><span class="p">)</span>
         <span class="n">os</span><span class="o">.</span><span class="n">system</span><span class="p">(</span><span class="s2">&quot;touch &quot;</span> <span class="o">+</span> <span class="n">workdir</span> <span class="o">+</span> <span class="s2">&quot;/.polcal_1&quot;</span><span class="p">)</span>
-        <span class="n">msg</span><span class="o">=</span><span class="mi">1</span>
+        <span class="n">msg</span> <span class="o">=</span> <span class="mi">1</span>
     <span class="k">finally</span><span class="p">:</span>
         <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mi">5</span><span class="p">)</span>
         <span class="n">clean_shutdown</span><span class="p">(</span><span class="n">observer</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">msg</span>  </div>
 
-    
+    <span class="k">return</span> <span class="n">msg</span></div>
+
+
+
 <span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s2">&quot;__main__&quot;</span><span class="p">:</span>
     <span class="n">result</span> <span class="o">=</span> <span class="n">main</span><span class="p">()</span>
     <span class="nb">print</span><span class="p">(</span>
@@ -757,7 +770,7 @@
       
     </aside>
   </div>
-</div><script src="../../../_static/documentation_options.js?v=8d563738"></script>
+</div><script src="../../../_static/documentation_options.js?v=4ebf8126"></script>
     <script src="../../../_static/doctools.js?v=9a2dae69"></script>
     <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../../../_static/scripts/furo.js?v=32e29ea5"></script>

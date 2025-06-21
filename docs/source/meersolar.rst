@@ -1,19 +1,10 @@
-meersolar package
+API Reference
 =================
-
-Subpackages
------------
+This page provides details of API of different modules of MeerSOLAR pipeline.
 
 .. toctree::
-   :maxdepth: 4
-
-   meersolar.crystalball
+   :maxdepth: 2
+   
    meersolar.pipeline
-
-Module contents
----------------
-
-.. automodule:: meersolar
-   :members:
-   :undoc-members:
-   :show-inheritance:
+   meersolar.crystalball
+   

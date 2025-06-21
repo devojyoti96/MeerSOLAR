@@ -5,7 +5,7 @@
     <meta name="color-scheme" content="light dark"><link rel="index" title="Index" href="../../../genindex.html" /><link rel="search" title="Search" href="../../../search.html" />
 
     <!-- Generated with Sphinx 7.4.7 and Furo 2024.01.29 -->
-        <title>meersolar.pipeline.do_imaging - MeerSOLAR 1.0.0 documentation</title>
+        <title>meersolar.pipeline.do_imaging - MeerSOLAR</title>
       <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=a746c00c" />
     <link rel="stylesheet" type="text/css" href="../../../_static/styles/furo.css?v=135e06be" />
     <link rel="stylesheet" type="text/css" href="../../../_static/copybutton.css?v=76b2166b" />
@@ -123,7 +123,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="../../../index.html"><div class="brand">MeerSOLAR 1.0.0 documentation</div></a>
+      <a href="../../../index.html"><div class="brand">MeerSOLAR</div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -145,8 +145,12 @@
       
       <div class="sidebar-sticky"><a class="sidebar-brand" href="../../../index.html">
   
+  <div class="sidebar-logo-container">
+    <img class="sidebar-logo only-light" src="../../../_static/yourlogo-light.png" alt="Light Logo"/>
+    <img class="sidebar-logo only-dark" src="../../../_static/yourlogo-dark.png" alt="Dark Logo"/>
+  </div>
   
-  <span class="sidebar-brand-text">MeerSOLAR 1.0.0 documentation</span>
+  <span class="sidebar-brand-text">MeerSOLAR</span>
   
 </a><form class="sidebar-search-container" method="get" action="../../../search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
@@ -154,7 +158,21 @@
   <input type="hidden" name="area" value="default">
 </form>
 <div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
-  
+  <ul>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../../../install.html">Installation and Initial Setup</a><input class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><div class="visually-hidden">Toggle navigation of Installation and Initial Setup</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../install_conda.html">Installing Conda: Anaconda or Miniconda</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../activate_conda.html">Creating and Activating Conda Environment</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../install_meersolar.html">Install MeerSOLAR</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../initial_setup.html">Initial setup</a></li>
+</ul>
+</li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../../../meersolar.html">API Reference</a><input class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" role="switch" type="checkbox"/><label for="toctree-checkbox-2"><div class="visually-hidden">Toggle navigation of API Reference</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../meersolar.pipeline.html">Meersolar Pipeline Module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../meersolar.crystalball.html">Crystalball Module</a></li>
+</ul>
+</li>
+</ul>
+
 </div>
 </div>
 
@@ -187,11 +205,10 @@
         </div>
         <article role="main">
           <h1>Source code for meersolar.pipeline.do_imaging</h1><div class="highlight"><pre>
-<span></span><span class="kn">import</span> <span class="nn">os</span><span class="o">,</span> <span class="nn">glob</span><span class="o">,</span> <span class="nn">resource</span><span class="o">,</span> <span class="nn">traceback</span><span class="o">,</span> <span class="nn">psutil</span><span class="o">,</span> <span class="nn">time</span><span class="o">,</span> <span class="nn">copy</span><span class="o">,</span> <span class="nn">math</span>
+<span></span><span class="kn">import</span> <span class="nn">os</span><span class="o">,</span> <span class="nn">glob</span><span class="o">,</span> <span class="nn">resource</span><span class="o">,</span> <span class="nn">traceback</span><span class="o">,</span> <span class="nn">psutil</span><span class="o">,</span> <span class="nn">time</span><span class="o">,</span> <span class="nn">copy</span><span class="o">,</span> <span class="nn">math</span><span class="o">,</span> <span class="nn">argparse</span>
 <span class="kn">from</span> <span class="nn">astropy.io</span> <span class="kn">import</span> <span class="n">fits</span>
 <span class="kn">from</span> <span class="nn">casatools</span> <span class="kn">import</span> <span class="n">msmetadata</span>
 <span class="kn">from</span> <span class="nn">meersolar.pipeline.basic_func</span> <span class="kn">import</span> <span class="o">*</span>
-<span class="kn">from</span> <span class="nn">optparse</span> <span class="kn">import</span> <span class="n">OptionParser</span>
 <span class="kn">from</span> <span class="nn">dask</span> <span class="kn">import</span> <span class="n">delayed</span><span class="p">,</span> <span class="n">compute</span>
 <span class="kn">from</span> <span class="nn">casatasks</span> <span class="kn">import</span> <span class="n">casalog</span>
 
@@ -223,8 +240,7 @@
 <span class="sd">    imagedir : str, optional</span>
 <span class="sd">        Image directory (default given image directory)</span>
 <span class="sd">    pol : str, optional</span>
-<span class="sd">        Stokes</span>
-<span class="sd">    Parameters</span>
+<span class="sd">        Stokes parameters</span>
 <span class="sd">    band : str, optional</span>
 <span class="sd">        Observing band</span>
 <span class="sd">    cutout_rsun : float, optional</span>
@@ -246,6 +262,7 @@
     <span class="n">header</span> <span class="o">=</span> <span class="n">fits</span><span class="o">.</span><span class="n">getheader</span><span class="p">(</span><span class="n">imagename</span><span class="p">)</span>
     <span class="n">time</span> <span class="o">=</span> <span class="n">header</span><span class="p">[</span><span class="s2">&quot;DATE-OBS&quot;</span><span class="p">]</span>
     <span class="n">sun_coords</span> <span class="o">=</span> <span class="n">get_sun</span><span class="p">(</span><span class="n">Time</span><span class="p">(</span><span class="n">time</span><span class="p">))</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Solar center: </span><span class="si">{</span><span class="n">sun_coords</span><span class="o">.</span><span class="n">to_string</span><span class="p">(</span><span class="s1">&#39;hmsdms&#39;</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
     <span class="k">with</span> <span class="n">fits</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">imagename</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;update&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">hdul</span><span class="p">:</span>
         <span class="n">hdr</span> <span class="o">=</span> <span class="n">hdul</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">header</span>
         <span class="n">hdr</span><span class="p">[</span><span class="s2">&quot;AUTHOR&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;DevojyotiKansabanik,DeepanPatra&quot;</span>
@@ -295,13 +312,15 @@
             <span class="n">make_meer_overlay</span><span class="p">(</span>
                 <span class="n">new_name</span><span class="p">,</span>
                 <span class="n">overlay_pngdir</span><span class="p">,</span>
-                <span class="n">plot_file_prefix</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">new_name</span><span class="p">)</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;.fits&quot;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span><span class="o">+</span> <span class="s2">&quot;_suvi_meerkat_overlay&quot;</span><span class="p">,</span>
+                <span class="n">plot_file_prefix</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">new_name</span><span class="p">)</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;.fits&quot;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+                <span class="o">+</span> <span class="s2">&quot;_suvi_meerkat_overlay&quot;</span><span class="p">,</span>
                 <span class="n">extension</span><span class="o">=</span><span class="s2">&quot;png&quot;</span><span class="p">,</span>
             <span class="p">)</span>
             <span class="n">make_meer_overlay</span><span class="p">(</span>
                 <span class="n">new_name</span><span class="p">,</span>
                 <span class="n">overlay_pdfdir</span><span class="p">,</span>
-                <span class="n">plot_file_prefix</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">new_name</span><span class="p">)</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;.fits&quot;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span><span class="o">+</span> <span class="s2">&quot;_suvi_meerkat_overlay&quot;</span><span class="p">,</span>
+                <span class="n">plot_file_prefix</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">new_name</span><span class="p">)</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;.fits&quot;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+                <span class="o">+</span> <span class="s2">&quot;_suvi_meerkat_overlay&quot;</span><span class="p">,</span>
                 <span class="n">extension</span><span class="o">=</span><span class="s2">&quot;pdf&quot;</span><span class="p">,</span>
             <span class="p">)</span>
         <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
@@ -417,13 +436,20 @@
     <span class="n">logger</span><span class="p">,</span> <span class="n">logfile</span> <span class="o">=</span> <span class="n">create_logger</span><span class="p">(</span>
         <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">logfile</span><span class="p">)</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;.log&quot;</span><span class="p">)[</span><span class="mi">0</span><span class="p">],</span> <span class="n">logfile</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span>
     <span class="p">)</span>
-    <span class="n">sub_observer</span><span class="o">=</span><span class="kc">None</span>
-    <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">workdir</span><span class="si">}</span><span class="s2">/jobname_password.npy&quot;</span><span class="p">)</span> <span class="ow">and</span> <span class="n">logfile</span><span class="o">!=</span><span class="kc">None</span><span class="p">:</span> 
+    <span class="n">sub_observer</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">workdir</span><span class="si">}</span><span class="s2">/jobname_password.npy&quot;</span><span class="p">)</span> <span class="ow">and</span> <span class="n">logfile</span> <span class="o">!=</span> <span class="kc">None</span><span class="p">:</span>
         <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mi">5</span><span class="p">)</span>
-        <span class="n">jobname</span><span class="p">,</span><span class="n">password</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">workdir</span><span class="si">}</span><span class="s2">/jobname_password.npy&quot;</span><span class="p">,</span><span class="n">allow_pickle</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="n">jobname</span><span class="p">,</span> <span class="n">password</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">load</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">workdir</span><span class="si">}</span><span class="s2">/jobname_password.npy&quot;</span><span class="p">,</span> <span class="n">allow_pickle</span><span class="o">=</span><span class="kc">True</span>
+        <span class="p">)</span>
         <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">logfile</span><span class="p">):</span>
-            <span class="nb">print</span> <span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Starting remote logger. Remote logger password: </span><span class="si">{</span><span class="n">password</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-            <span class="n">sub_observer</span><span class="o">=</span><span class="n">init_logger</span><span class="p">(</span><span class="s2">&quot;remotelogger_imaging_{os.path.basename(msname).split(&#39;.ms&#39;)[0]}&quot;</span><span class="p">,</span><span class="n">logfile</span><span class="p">,</span><span class="n">jobname</span><span class="o">=</span><span class="n">jobname</span><span class="p">,</span><span class="n">password</span><span class="o">=</span><span class="n">password</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Starting remote logger. Remote logger password: </span><span class="si">{</span><span class="n">password</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="n">sub_observer</span> <span class="o">=</span> <span class="n">init_logger</span><span class="p">(</span>
+                <span class="s2">&quot;remotelogger_imaging_{os.path.basename(msname).split(&#39;.ms&#39;)[0]}&quot;</span><span class="p">,</span>
+                <span class="n">logfile</span><span class="p">,</span>
+                <span class="n">jobname</span><span class="o">=</span><span class="n">jobname</span><span class="p">,</span>
+                <span class="n">password</span><span class="o">=</span><span class="n">password</span><span class="p">,</span>
+            <span class="p">)</span>
     <span class="k">try</span><span class="p">:</span>
         <span class="n">msname</span> <span class="o">=</span> <span class="n">msname</span><span class="o">.</span><span class="n">rstrip</span><span class="p">(</span><span class="s2">&quot;/&quot;</span><span class="p">)</span>
         <span class="n">msname</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="n">msname</span><span class="p">)</span>
@@ -855,23 +881,29 @@
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">start_time</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
     <span class="n">mslist</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">mslist</span><span class="p">)</span>
-    <span class="n">observer</span><span class="o">=</span><span class="kc">None</span>
-    <span class="k">if</span> <span class="n">mainlogger</span><span class="o">==</span><span class="kc">None</span><span class="p">:</span>
+    <span class="n">observer</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="k">if</span> <span class="n">mainlogger</span> <span class="o">==</span> <span class="kc">None</span><span class="p">:</span>
         <span class="n">mainlog_file</span> <span class="o">=</span> <span class="n">workdir</span> <span class="o">+</span> <span class="s2">&quot;/logs/imaging_targets.mainlog&quot;</span>
         <span class="n">mainlogger</span><span class="p">,</span> <span class="n">mainlog_file</span> <span class="o">=</span> <span class="n">create_logger</span><span class="p">(</span>
-            <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">mainlog_file</span><span class="p">)</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;.mainlog&quot;</span><span class="p">)[</span><span class="mi">0</span><span class="p">],</span> <span class="n">mainlog_file</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span>
+            <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">mainlog_file</span><span class="p">)</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;.mainlog&quot;</span><span class="p">)[</span><span class="mi">0</span><span class="p">],</span>
+            <span class="n">mainlog_file</span><span class="p">,</span>
+            <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
         <span class="p">)</span>
-        <span class="n">observer</span><span class="o">=</span><span class="kc">None</span>
-        <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">workdir</span><span class="si">}</span><span class="s2">/jobname_password.npy&quot;</span><span class="p">)</span> <span class="ow">and</span> <span class="n">mainlog_file</span><span class="o">!=</span><span class="kc">None</span><span class="p">:</span> 
+        <span class="n">observer</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">workdir</span><span class="si">}</span><span class="s2">/jobname_password.npy&quot;</span><span class="p">)</span> <span class="ow">and</span> <span class="n">mainlog_file</span> <span class="o">!=</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mi">5</span><span class="p">)</span>
-            <span class="n">jobname</span><span class="p">,</span><span class="n">password</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">workdir</span><span class="si">}</span><span class="s2">/jobname_password.npy&quot;</span><span class="p">,</span><span class="n">allow_pickle</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="n">jobname</span><span class="p">,</span> <span class="n">password</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">load</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">workdir</span><span class="si">}</span><span class="s2">/jobname_password.npy&quot;</span><span class="p">,</span> <span class="n">allow_pickle</span><span class="o">=</span><span class="kc">True</span>
+            <span class="p">)</span>
             <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">mainlog_file</span><span class="p">):</span>
-                <span class="nb">print</span> <span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Starting remote logger. Remote logger password: </span><span class="si">{</span><span class="n">password</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-                <span class="n">observer</span><span class="o">=</span><span class="n">init_logger</span><span class="p">(</span><span class="s2">&quot;all_imaging&quot;</span><span class="p">,</span><span class="n">mainlog_file</span><span class="p">,</span><span class="n">jobname</span><span class="o">=</span><span class="n">jobname</span><span class="p">,</span><span class="n">password</span><span class="o">=</span><span class="n">password</span><span class="p">)</span>
+                <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Starting remote logger. Remote logger password: </span><span class="si">{</span><span class="n">password</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="n">observer</span> <span class="o">=</span> <span class="n">init_logger</span><span class="p">(</span>
+                    <span class="s2">&quot;all_imaging&quot;</span><span class="p">,</span> <span class="n">mainlog_file</span><span class="p">,</span> <span class="n">jobname</span><span class="o">=</span><span class="n">jobname</span><span class="p">,</span> <span class="n">password</span><span class="o">=</span><span class="n">password</span>
+                <span class="p">)</span>
     <span class="c1">###########################</span>
     <span class="c1"># WSClean container</span>
     <span class="c1">###########################</span>
-    <span class="n">container_name</span><span class="o">=</span><span class="s2">&quot;meerwsclean&quot;</span>
+    <span class="n">container_name</span> <span class="o">=</span> <span class="s2">&quot;meerwsclean&quot;</span>
     <span class="n">container_present</span> <span class="o">=</span> <span class="n">check_udocker_container</span><span class="p">(</span><span class="n">container_name</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">container_present</span> <span class="o">==</span> <span class="kc">False</span><span class="p">:</span>
         <span class="n">container_name</span> <span class="o">=</span> <span class="n">initialize_wsclean_container</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="n">container_name</span><span class="p">)</span>
@@ -1082,231 +1114,232 @@
 <div class="viewcode-block" id="main">
 <a class="viewcode-back" href="../../../meersolar.pipeline.html#meersolar.pipeline.do_imaging.main">[docs]</a>
 <span class="k">def</span> <span class="nf">main</span><span class="p">():</span>
-    <span class="n">usage</span> <span class="o">=</span> <span class="s2">&quot;Perform spectropolarimetric snapshot imaging&quot;</span>
-    <span class="n">parser</span> <span class="o">=</span> <span class="n">OptionParser</span><span class="p">(</span><span class="n">usage</span><span class="o">=</span><span class="n">usage</span><span class="p">)</span>
-    <span class="n">parser</span><span class="o">.</span><span class="n">add_option</span><span class="p">(</span>
-        <span class="s2">&quot;--mslist&quot;</span><span class="p">,</span>
-        <span class="n">dest</span><span class="o">=</span><span class="s2">&quot;mslist&quot;</span><span class="p">,</span>
-        <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Measurement set list&quot;</span><span class="p">,</span>
-        <span class="n">metavar</span><span class="o">=</span><span class="s2">&quot;List&quot;</span><span class="p">,</span>
+    <span class="n">parser</span> <span class="o">=</span> <span class="n">argparse</span><span class="o">.</span><span class="n">ArgumentParser</span><span class="p">(</span>
+        <span class="n">description</span><span class="o">=</span><span class="s2">&quot;Perform spectropolarimetric snapshot imaging&quot;</span><span class="p">,</span><span class="n">formatter_class</span><span class="o">=</span><span class="n">argparse</span><span class="o">.</span><span class="n">ArgumentDefaultsHelpFormatter</span>
     <span class="p">)</span>
-    <span class="n">parser</span><span class="o">.</span><span class="n">add_option</span><span class="p">(</span>
+
+    <span class="c1">## Essential parameters</span>
+    <span class="n">basic_args</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">add_argument_group</span><span class="p">(</span>
+        <span class="s2">&quot;###################</span><span class="se">\n</span><span class="s2">Essential parameters</span><span class="se">\n</span><span class="s2">###################&quot;</span>
+    <span class="p">)</span>
+    <span class="n">basic_args</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;mslist&quot;</span><span class="p">,</span>
+        <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Comma-separated list of measurement sets (required)&quot;</span><span class="p">,</span>
+        <span class="n">metavar</span><span class="o">=</span><span class="s2">&quot;MSLIST&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">basic_args</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
         <span class="s2">&quot;--workdir&quot;</span><span class="p">,</span>
-        <span class="n">dest</span><span class="o">=</span><span class="s2">&quot;workdir&quot;</span><span class="p">,</span>
-        <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Work directory&quot;</span><span class="p">,</span>
-        <span class="n">metavar</span><span class="o">=</span><span class="s2">&quot;String&quot;</span><span class="p">,</span>
+        <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span>
+        <span class="n">default</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Work directory for imaging outputs&quot;</span><span class="p">,</span>
     <span class="p">)</span>
-    <span class="n">parser</span><span class="o">.</span><span class="n">add_option</span><span class="p">(</span>
+
+    <span class="c1">## Advanced parameters</span>
+    <span class="n">adv_args</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">add_argument_group</span><span class="p">(</span>
+        <span class="s2">&quot;###################</span><span class="se">\n</span><span class="s2">Advanced imaging parameters</span><span class="se">\n</span><span class="s2">###################&quot;</span>
+    <span class="p">)</span>
+    <span class="n">adv_args</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
         <span class="s2">&quot;--freqrange&quot;</span><span class="p">,</span>
-        <span class="n">dest</span><span class="o">=</span><span class="s2">&quot;freqrange&quot;</span><span class="p">,</span>
+        <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span>
         <span class="n">default</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span>
         <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Frequency range to image&quot;</span><span class="p">,</span>
-        <span class="n">metavar</span><span class="o">=</span><span class="s2">&quot;String&quot;</span><span class="p">,</span>
     <span class="p">)</span>
-    <span class="n">parser</span><span class="o">.</span><span class="n">add_option</span><span class="p">(</span>
+    <span class="n">adv_args</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
         <span class="s2">&quot;--timerange&quot;</span><span class="p">,</span>
-        <span class="n">dest</span><span class="o">=</span><span class="s2">&quot;timerange&quot;</span><span class="p">,</span>
+        <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span>
         <span class="n">default</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span>
-        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Time range&quot;</span><span class="p">,</span>
-        <span class="n">metavar</span><span class="o">=</span><span class="s2">&quot;String&quot;</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Time range to image&quot;</span><span class="p">,</span>
     <span class="p">)</span>
-    <span class="n">parser</span><span class="o">.</span><span class="n">add_option</span><span class="p">(</span>
+    <span class="n">adv_args</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
         <span class="s2">&quot;--datacolumn&quot;</span><span class="p">,</span>
-        <span class="n">dest</span><span class="o">=</span><span class="s2">&quot;datacolumn&quot;</span><span class="p">,</span>
+        <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span>
         <span class="n">default</span><span class="o">=</span><span class="s2">&quot;CORRECTED_DATA&quot;</span><span class="p">,</span>
-        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Data column&quot;</span><span class="p">,</span>
-        <span class="n">metavar</span><span class="o">=</span><span class="s2">&quot;String&quot;</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Data column to use for imaging&quot;</span><span class="p">,</span>
     <span class="p">)</span>
-    <span class="n">parser</span><span class="o">.</span><span class="n">add_option</span><span class="p">(</span>
+    <span class="n">adv_args</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
         <span class="s2">&quot;--pol&quot;</span><span class="p">,</span>
-        <span class="n">dest</span><span class="o">=</span><span class="s2">&quot;pol&quot;</span><span class="p">,</span>
+        <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span>
         <span class="n">default</span><span class="o">=</span><span class="s2">&quot;I&quot;</span><span class="p">,</span>
-        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Stokes parameters&quot;</span><span class="p">,</span>
-        <span class="n">metavar</span><span class="o">=</span><span class="s2">&quot;String&quot;</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Stokes parameters to image&quot;</span><span class="p">,</span>
     <span class="p">)</span>
-    <span class="n">parser</span><span class="o">.</span><span class="n">add_option</span><span class="p">(</span>
+    <span class="n">adv_args</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
         <span class="s2">&quot;--freqres&quot;</span><span class="p">,</span>
-        <span class="n">dest</span><span class="o">=</span><span class="s2">&quot;freqres&quot;</span><span class="p">,</span>
+        <span class="nb">type</span><span class="o">=</span><span class="nb">float</span><span class="p">,</span>
         <span class="n">default</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span>
-        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Frequency resolution of spectral chunk in MHz&quot;</span><span class="p">,</span>
-        <span class="n">metavar</span><span class="o">=</span><span class="s2">&quot;Float&quot;</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Frequency resolution per chunk in MHz (-1 for full)&quot;</span><span class="p">,</span>
     <span class="p">)</span>
-    <span class="n">parser</span><span class="o">.</span><span class="n">add_option</span><span class="p">(</span>
+    <span class="n">adv_args</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
         <span class="s2">&quot;--timeres&quot;</span><span class="p">,</span>
-        <span class="n">dest</span><span class="o">=</span><span class="s2">&quot;timeres&quot;</span><span class="p">,</span>
+        <span class="nb">type</span><span class="o">=</span><span class="nb">float</span><span class="p">,</span>
         <span class="n">default</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span>
-        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Time resolution of temporal chunk in seconds&quot;</span><span class="p">,</span>
-        <span class="n">metavar</span><span class="o">=</span><span class="s2">&quot;Float&quot;</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Time resolution per chunk in seconds (-1 for full)&quot;</span><span class="p">,</span>
     <span class="p">)</span>
-    <span class="n">parser</span><span class="o">.</span><span class="n">add_option</span><span class="p">(</span>
+    <span class="n">adv_args</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
         <span class="s2">&quot;--weight&quot;</span><span class="p">,</span>
-        <span class="n">dest</span><span class="o">=</span><span class="s2">&quot;weight&quot;</span><span class="p">,</span>
+        <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span>
         <span class="n">default</span><span class="o">=</span><span class="s2">&quot;briggs&quot;</span><span class="p">,</span>
-        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Image weighting&quot;</span><span class="p">,</span>
-        <span class="n">metavar</span><span class="o">=</span><span class="s2">&quot;String&quot;</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Imaging weighting scheme&quot;</span><span class="p">,</span>
     <span class="p">)</span>
-    <span class="n">parser</span><span class="o">.</span><span class="n">add_option</span><span class="p">(</span>
+    <span class="n">adv_args</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
         <span class="s2">&quot;--robust&quot;</span><span class="p">,</span>
-        <span class="n">dest</span><span class="o">=</span><span class="s2">&quot;robust&quot;</span><span class="p">,</span>
+        <span class="nb">type</span><span class="o">=</span><span class="nb">float</span><span class="p">,</span>
         <span class="n">default</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
-        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Robust parameter for briggs weighting&quot;</span><span class="p">,</span>
-        <span class="n">metavar</span><span class="o">=</span><span class="s2">&quot;Float&quot;</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Briggs robust parameter&quot;</span><span class="p">,</span>
     <span class="p">)</span>
-    <span class="n">parser</span><span class="o">.</span><span class="n">add_option</span><span class="p">(</span>
+    <span class="n">adv_args</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
         <span class="s2">&quot;--minuv_l&quot;</span><span class="p">,</span>
         <span class="n">dest</span><span class="o">=</span><span class="s2">&quot;minuv&quot;</span><span class="p">,</span>
+        <span class="nb">type</span><span class="o">=</span><span class="nb">float</span><span class="p">,</span>
         <span class="n">default</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
-        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Minimum UV in lambda&quot;</span><span class="p">,</span>
-        <span class="n">metavar</span><span class="o">=</span><span class="s2">&quot;Float&quot;</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Minimum UV distance in wavelengths&quot;</span><span class="p">,</span>
     <span class="p">)</span>
-    <span class="n">parser</span><span class="o">.</span><span class="n">add_option</span><span class="p">(</span>
+    <span class="n">adv_args</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
         <span class="s2">&quot;--threshold&quot;</span><span class="p">,</span>
-        <span class="n">dest</span><span class="o">=</span><span class="s2">&quot;threshold&quot;</span><span class="p">,</span>
+        <span class="nb">type</span><span class="o">=</span><span class="nb">float</span><span class="p">,</span>
         <span class="n">default</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span>
-        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;CLEAN threshold&quot;</span><span class="p">,</span>
-        <span class="n">metavar</span><span class="o">=</span><span class="s2">&quot;Float&quot;</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;CLEAN threshold in Jy&quot;</span><span class="p">,</span>
     <span class="p">)</span>
-    <span class="n">parser</span><span class="o">.</span><span class="n">add_option</span><span class="p">(</span>
-        <span class="s2">&quot;--use_multiscale&quot;</span><span class="p">,</span>
-        <span class="n">dest</span><span class="o">=</span><span class="s2">&quot;use_multiscale&quot;</span><span class="p">,</span>
-        <span class="n">default</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Use multiscale or not&quot;</span><span class="p">,</span>
-        <span class="n">metavar</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-    <span class="p">)</span>
-    <span class="n">parser</span><span class="o">.</span><span class="n">add_option</span><span class="p">(</span>
-        <span class="s2">&quot;--use_solar_mask&quot;</span><span class="p">,</span>
-        <span class="n">dest</span><span class="o">=</span><span class="s2">&quot;use_solar_mask&quot;</span><span class="p">,</span>
-        <span class="n">default</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Use solar mask or not&quot;</span><span class="p">,</span>
-        <span class="n">metavar</span><span class="o">=</span><span class="s2">&quot;Boolean&quot;</span><span class="p">,</span>
-    <span class="p">)</span>
-    <span class="n">parser</span><span class="o">.</span><span class="n">add_option</span><span class="p">(</span>
-        <span class="s2">&quot;--savemodel&quot;</span><span class="p">,</span>
-        <span class="n">dest</span><span class="o">=</span><span class="s2">&quot;savemodel&quot;</span><span class="p">,</span>
-        <span class="n">default</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Save model images or not&quot;</span><span class="p">,</span>
-        <span class="n">metavar</span><span class="o">=</span><span class="s2">&quot;Boolean&quot;</span><span class="p">,</span>
-    <span class="p">)</span>
-    <span class="n">parser</span><span class="o">.</span><span class="n">add_option</span><span class="p">(</span>
-        <span class="s2">&quot;--saveres&quot;</span><span class="p">,</span>
-        <span class="n">dest</span><span class="o">=</span><span class="s2">&quot;saveres&quot;</span><span class="p">,</span>
-        <span class="n">default</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Save residual images or not&quot;</span><span class="p">,</span>
-        <span class="n">metavar</span><span class="o">=</span><span class="s2">&quot;Boolean&quot;</span><span class="p">,</span>
-    <span class="p">)</span>
-    <span class="n">parser</span><span class="o">.</span><span class="n">add_option</span><span class="p">(</span>
+    <span class="n">adv_args</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
         <span class="s2">&quot;--band&quot;</span><span class="p">,</span>
-        <span class="n">dest</span><span class="o">=</span><span class="s2">&quot;band&quot;</span><span class="p">,</span>
+        <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span>
         <span class="n">default</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span>
-        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Band name&quot;</span><span class="p">,</span>
-        <span class="n">metavar</span><span class="o">=</span><span class="s2">&quot;String&quot;</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Band name label for output&quot;</span><span class="p">,</span>
     <span class="p">)</span>
-    <span class="n">parser</span><span class="o">.</span><span class="n">add_option</span><span class="p">(</span>
+    <span class="n">adv_args</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
         <span class="s2">&quot;--cutout_rsun&quot;</span><span class="p">,</span>
-        <span class="n">dest</span><span class="o">=</span><span class="s2">&quot;cutout_rsun&quot;</span><span class="p">,</span>
+        <span class="nb">type</span><span class="o">=</span><span class="nb">float</span><span class="p">,</span>
         <span class="n">default</span><span class="o">=</span><span class="mf">2.5</span><span class="p">,</span>
-        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Cutout image size in solar radii&quot;</span><span class="p">,</span>
-        <span class="n">metavar</span><span class="o">=</span><span class="s2">&quot;Float&quot;</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Cutout radius for images (solar radii)&quot;</span><span class="p">,</span>
     <span class="p">)</span>
-    <span class="n">parser</span><span class="o">.</span><span class="n">add_option</span><span class="p">(</span>
-        <span class="s2">&quot;--make_overlay&quot;</span><span class="p">,</span>
+    <span class="n">adv_args</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;--no_multiscale&quot;</span><span class="p">,</span>
+        <span class="n">action</span><span class="o">=</span><span class="s2">&quot;store_false&quot;</span><span class="p">,</span>
+        <span class="n">dest</span><span class="o">=</span><span class="s2">&quot;use_multiscale&quot;</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Do not use multiscale CLEAN&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">adv_args</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;--no_solar_mask&quot;</span><span class="p">,</span>
+        <span class="n">action</span><span class="o">=</span><span class="s2">&quot;store_false&quot;</span><span class="p">,</span>
+        <span class="n">dest</span><span class="o">=</span><span class="s2">&quot;use_solar_mask&quot;</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Do not use solar disk mask for CLEANing&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">adv_args</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;--no_savemodel&quot;</span><span class="p">,</span> <span class="n">action</span><span class="o">=</span><span class="s2">&quot;store_false&quot;</span><span class="p">,</span> <span class="n">dest</span><span class="o">=</span><span class="s2">&quot;savemodel&quot;</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Do no save model images&quot;</span>
+    <span class="p">)</span>
+    <span class="n">adv_args</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;--no_saveres&quot;</span><span class="p">,</span> <span class="n">action</span><span class="o">=</span><span class="s2">&quot;store_false&quot;</span><span class="p">,</span> <span class="n">dest</span><span class="o">=</span><span class="s2">&quot;saveres&quot;</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Do not save residual images&quot;</span>
+    <span class="p">)</span>
+    <span class="n">adv_args</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;--no_make_overlay&quot;</span><span class="p">,</span>
+        <span class="n">action</span><span class="o">=</span><span class="s2">&quot;store_false&quot;</span><span class="p">,</span>
         <span class="n">dest</span><span class="o">=</span><span class="s2">&quot;make_overlay&quot;</span><span class="p">,</span>
-        <span class="n">default</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Make SUVI MeerKAT overlay&quot;</span><span class="p">,</span>
-        <span class="n">metavar</span><span class="o">=</span><span class="s2">&quot;Boolean&quot;</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Do not generate overlay with SUVI images&quot;</span><span class="p">,</span>
     <span class="p">)</span>
-    <span class="n">parser</span><span class="o">.</span><span class="n">add_option</span><span class="p">(</span>
-        <span class="s2">&quot;--make_plots&quot;</span><span class="p">,</span>
+    <span class="n">adv_args</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;--no_make_plots&quot;</span><span class="p">,</span>
+        <span class="n">action</span><span class="o">=</span><span class="s2">&quot;store_false&quot;</span><span class="p">,</span>
         <span class="n">dest</span><span class="o">=</span><span class="s2">&quot;make_plots&quot;</span><span class="p">,</span>
-        <span class="n">default</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Make radio map helioprojective plots&quot;</span><span class="p">,</span>
-        <span class="n">metavar</span><span class="o">=</span><span class="s2">&quot;Boolean&quot;</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Do not make generate helioprojective plots&quot;</span><span class="p">,</span>
     <span class="p">)</span>
-    <span class="n">parser</span><span class="o">.</span><span class="n">add_option</span><span class="p">(</span>
+    
+    <span class="c1">## Resource management parameters</span>
+    <span class="n">hard_args</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">add_argument_group</span><span class="p">(</span>
+        <span class="s2">&quot;###################</span><span class="se">\n</span><span class="s2">Hardware resource management parameters</span><span class="se">\n</span><span class="s2">###################&quot;</span>
+    <span class="p">)</span>
+    <span class="n">hard_args</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
         <span class="s2">&quot;--cpu_frac&quot;</span><span class="p">,</span>
-        <span class="n">dest</span><span class="o">=</span><span class="s2">&quot;cpu_frac&quot;</span><span class="p">,</span>
+        <span class="nb">type</span><span class="o">=</span><span class="nb">float</span><span class="p">,</span>
         <span class="n">default</span><span class="o">=</span><span class="mf">0.8</span><span class="p">,</span>
-        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;CPU fraction to use&quot;</span><span class="p">,</span>
-        <span class="n">metavar</span><span class="o">=</span><span class="s2">&quot;Float&quot;</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Fraction of available CPU to use&quot;</span><span class="p">,</span>
     <span class="p">)</span>
-    <span class="n">parser</span><span class="o">.</span><span class="n">add_option</span><span class="p">(</span>
+    <span class="n">hard_args</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
         <span class="s2">&quot;--mem_frac&quot;</span><span class="p">,</span>
-        <span class="n">dest</span><span class="o">=</span><span class="s2">&quot;mem_frac&quot;</span><span class="p">,</span>
+        <span class="nb">type</span><span class="o">=</span><span class="nb">float</span><span class="p">,</span>
         <span class="n">default</span><span class="o">=</span><span class="mf">0.8</span><span class="p">,</span>
-        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Memory fraction to use&quot;</span><span class="p">,</span>
-        <span class="n">metavar</span><span class="o">=</span><span class="s2">&quot;Float&quot;</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Fraction of available memory to use&quot;</span><span class="p">,</span>
     <span class="p">)</span>
-    <span class="n">parser</span><span class="o">.</span><span class="n">add_option</span><span class="p">(</span>
+    <span class="n">hard_args</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
         <span class="s2">&quot;--jobid&quot;</span><span class="p">,</span>
-        <span class="n">dest</span><span class="o">=</span><span class="s2">&quot;jobid&quot;</span><span class="p">,</span>
-        <span class="n">default</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
-        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Job ID&quot;</span><span class="p">,</span>
-        <span class="n">metavar</span><span class="o">=</span><span class="s2">&quot;Integer&quot;</span><span class="p">,</span>
+        <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span>
+        <span class="n">default</span><span class="o">=</span><span class="s2">&quot;0&quot;</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Job ID for process tracking and logging&quot;</span><span class="p">,</span>
     <span class="p">)</span>
-    <span class="p">(</span><span class="n">options</span><span class="p">,</span> <span class="n">args</span><span class="p">)</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">parse_args</span><span class="p">()</span>
-    <span class="n">pid</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">getpid</span><span class="p">()</span>
-    <span class="n">save_pid</span><span class="p">(</span><span class="n">pid</span><span class="p">,</span><span class="n">datadir</span> <span class="o">+</span> <span class="sa">f</span><span class="s2">&quot;/pids/pids_</span><span class="si">{</span><span class="n">options</span><span class="o">.</span><span class="n">jobid</span><span class="si">}</span><span class="s2">.txt&quot;</span><span class="p">)</span>
-    <span class="k">if</span> <span class="n">options</span><span class="o">.</span><span class="n">workdir</span> <span class="o">==</span> <span class="s2">&quot;&quot;</span> <span class="ow">or</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">options</span><span class="o">.</span><span class="n">workdir</span><span class="p">)</span> <span class="o">==</span> <span class="kc">False</span><span class="p">:</span>
-        <span class="n">workdir</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="n">options</span><span class="o">.</span><span class="n">msname</span><span class="p">))</span> <span class="o">+</span> <span class="s2">&quot;/workdir&quot;</span>
-        <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">workdir</span><span class="p">)</span> <span class="o">==</span> <span class="kc">False</span><span class="p">:</span>
+
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">sys</span><span class="o">.</span><span class="n">argv</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="n">parser</span><span class="o">.</span><span class="n">print_help</span><span class="p">(</span><span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="p">)</span>
+        <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+
+    <span class="n">args</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">parse_args</span><span class="p">()</span>
+
+    <span class="n">pid</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">getpid</span><span class="p">()</span>
+    <span class="n">save_pid</span><span class="p">(</span><span class="n">pid</span><span class="p">,</span> <span class="n">datadir</span> <span class="o">+</span> <span class="sa">f</span><span class="s2">&quot;/pids/pids_</span><span class="si">{</span><span class="n">args</span><span class="o">.</span><span class="n">jobid</span><span class="si">}</span><span class="s2">.txt&quot;</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">workdir</span> <span class="o">==</span> <span class="s2">&quot;&quot;</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">workdir</span><span class="p">):</span>
+        <span class="n">first_ms</span> <span class="o">=</span> <span class="n">args</span><span class="o">.</span><span class="n">mslist</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;,&quot;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">workdir</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="n">first_ms</span><span class="p">))</span> <span class="o">+</span> <span class="s2">&quot;/workdir&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">workdir</span><span class="p">):</span>
             <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">workdir</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
-        <span class="n">workdir</span> <span class="o">=</span> <span class="n">options</span><span class="o">.</span><span class="n">workdir</span>
-    <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">options</span><span class="o">.</span><span class="n">workdir</span> <span class="o">+</span> <span class="s2">&quot;/logs/&quot;</span><span class="p">)</span> <span class="o">==</span> <span class="kc">False</span><span class="p">:</span>
-        <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">options</span><span class="o">.</span><span class="n">workdir</span> <span class="o">+</span> <span class="s2">&quot;/logs/&quot;</span><span class="p">)</span>
-    <span class="n">mainlog_file</span> <span class="o">=</span> <span class="n">options</span><span class="o">.</span><span class="n">workdir</span> <span class="o">+</span> <span class="s2">&quot;/logs/imaging_targets.mainlog&quot;</span>
+        <span class="n">workdir</span> <span class="o">=</span> <span class="n">args</span><span class="o">.</span><span class="n">workdir</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">workdir</span> <span class="o">+</span> <span class="s2">&quot;/logs/&quot;</span><span class="p">):</span>
+        <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">workdir</span> <span class="o">+</span> <span class="s2">&quot;/logs/&quot;</span><span class="p">)</span>
+
+    <span class="n">mainlog_file</span> <span class="o">=</span> <span class="n">workdir</span> <span class="o">+</span> <span class="s2">&quot;/logs/imaging_targets.mainlog&quot;</span>
     <span class="n">mainlogger</span><span class="p">,</span> <span class="n">mainlog_file</span> <span class="o">=</span> <span class="n">create_logger</span><span class="p">(</span>
         <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">mainlog_file</span><span class="p">)</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;.mainlog&quot;</span><span class="p">)[</span><span class="mi">0</span><span class="p">],</span> <span class="n">mainlog_file</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span>
     <span class="p">)</span>
-    <span class="n">observer</span><span class="o">=</span><span class="kc">None</span>
-    <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">workdir</span><span class="si">}</span><span class="s2">/jobname_password.npy&quot;</span><span class="p">)</span> <span class="ow">and</span> <span class="n">mainlog_file</span><span class="o">!=</span><span class="kc">None</span><span class="p">:</span> 
+
+    <span class="n">observer</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">workdir</span><span class="si">}</span><span class="s2">/jobname_password.npy&quot;</span><span class="p">)</span> <span class="ow">and</span> <span class="n">mainlog_file</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
         <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mi">5</span><span class="p">)</span>
-        <span class="n">jobname</span><span class="p">,</span><span class="n">password</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">workdir</span><span class="si">}</span><span class="s2">/jobname_password.npy&quot;</span><span class="p">,</span><span class="n">allow_pickle</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="n">jobname</span><span class="p">,</span> <span class="n">password</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">load</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">workdir</span><span class="si">}</span><span class="s2">/jobname_password.npy&quot;</span><span class="p">,</span> <span class="n">allow_pickle</span><span class="o">=</span><span class="kc">True</span>
+        <span class="p">)</span>
         <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">mainlog_file</span><span class="p">):</span>
-            <span class="n">observer</span><span class="o">=</span><span class="n">init_logger</span><span class="p">(</span><span class="s2">&quot;all_imaging&quot;</span><span class="p">,</span><span class="n">mainlog_file</span><span class="p">,</span><span class="n">jobname</span><span class="o">=</span><span class="n">jobname</span><span class="p">,</span><span class="n">password</span><span class="o">=</span><span class="n">password</span><span class="p">)</span>
-    <span class="k">try</span><span class="p">:</span>    
-        <span class="k">if</span> <span class="n">options</span><span class="o">.</span><span class="n">mslist</span> <span class="o">==</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="n">mainlogger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Please provide correct measurement set list.&quot;</span><span class="p">)</span>
-            <span class="n">msg</span><span class="o">=</span><span class="mi">1</span>
+            <span class="n">observer</span> <span class="o">=</span> <span class="n">init_logger</span><span class="p">(</span>
+                <span class="s2">&quot;all_imaging&quot;</span><span class="p">,</span> <span class="n">mainlog_file</span><span class="p">,</span> <span class="n">jobname</span><span class="o">=</span><span class="n">jobname</span><span class="p">,</span> <span class="n">password</span><span class="o">=</span><span class="n">password</span>
+            <span class="p">)</span>
+
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">mslist</span> <span class="o">=</span> <span class="n">args</span><span class="o">.</span><span class="n">mslist</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;,&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">mslist</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">mainlogger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Please provide a valid measurement set list.&quot;</span><span class="p">)</span>
+            <span class="n">msg</span> <span class="o">=</span> <span class="mi">1</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="n">mslist</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">options</span><span class="o">.</span><span class="n">mslist</span><span class="p">)</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;,&quot;</span><span class="p">)</span>
-            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">mslist</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
-                <span class="n">mainlogger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Please provide correct measurement set list.&quot;</span><span class="p">)</span>
-                <span class="n">msg</span><span class="o">=</span><span class="mi">1</span>
-            <span class="k">else</span><span class="p">:</span>
-                <span class="n">msg</span> <span class="o">=</span> <span class="n">run_all_imaging</span><span class="p">(</span>
-                    <span class="n">mslist</span><span class="o">=</span><span class="n">mslist</span><span class="p">,</span>
-                    <span class="n">mainlogger</span><span class="o">=</span><span class="n">mainlogger</span><span class="p">,</span>
-                    <span class="n">workdir</span><span class="o">=</span><span class="n">options</span><span class="o">.</span><span class="n">workdir</span><span class="p">,</span>
-                    <span class="n">freqrange</span><span class="o">=</span><span class="n">options</span><span class="o">.</span><span class="n">freqrange</span><span class="p">,</span>
-                    <span class="n">timerange</span><span class="o">=</span><span class="n">options</span><span class="o">.</span><span class="n">timerange</span><span class="p">,</span>
-                    <span class="n">datacolumn</span><span class="o">=</span><span class="n">options</span><span class="o">.</span><span class="n">datacolumn</span><span class="p">,</span>
-                    <span class="n">freqres</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">options</span><span class="o">.</span><span class="n">freqres</span><span class="p">),</span>
-                    <span class="n">timeres</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">options</span><span class="o">.</span><span class="n">timeres</span><span class="p">),</span>
-                    <span class="n">weight</span><span class="o">=</span><span class="n">options</span><span class="o">.</span><span class="n">weight</span><span class="p">,</span>
-                    <span class="n">robust</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">options</span><span class="o">.</span><span class="n">robust</span><span class="p">),</span>
-                    <span class="n">minuv</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">options</span><span class="o">.</span><span class="n">minuv</span><span class="p">),</span>
-                    <span class="n">threshold</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">options</span><span class="o">.</span><span class="n">threshold</span><span class="p">),</span>
-                    <span class="n">use_multiscale</span><span class="o">=</span><span class="nb">eval</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">options</span><span class="o">.</span><span class="n">use_multiscale</span><span class="p">)),</span>
-                    <span class="n">use_solar_mask</span><span class="o">=</span><span class="nb">eval</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">options</span><span class="o">.</span><span class="n">use_solar_mask</span><span class="p">)),</span>
-                    <span class="n">pol</span><span class="o">=</span><span class="n">options</span><span class="o">.</span><span class="n">pol</span><span class="p">,</span>
-                    <span class="n">band</span><span class="o">=</span><span class="n">options</span><span class="o">.</span><span class="n">band</span><span class="p">,</span>
-                    <span class="n">make_plots</span><span class="o">=</span><span class="nb">eval</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">options</span><span class="o">.</span><span class="n">make_plots</span><span class="p">)),</span>
-                    <span class="n">cutout_rsun</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">options</span><span class="o">.</span><span class="n">cutout_rsun</span><span class="p">),</span>
-                    <span class="n">make_overlay</span><span class="o">=</span><span class="nb">eval</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">options</span><span class="o">.</span><span class="n">make_overlay</span><span class="p">)),</span>
-                    <span class="n">savemodel</span><span class="o">=</span><span class="nb">eval</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">options</span><span class="o">.</span><span class="n">savemodel</span><span class="p">)),</span>
-                    <span class="n">saveres</span><span class="o">=</span><span class="nb">eval</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">options</span><span class="o">.</span><span class="n">saveres</span><span class="p">)),</span>
-                    <span class="n">cpu_frac</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">options</span><span class="o">.</span><span class="n">cpu_frac</span><span class="p">),</span>
-                    <span class="n">mem_frac</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">options</span><span class="o">.</span><span class="n">mem_frac</span><span class="p">),</span>
-                <span class="p">)</span>
-    <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="n">msg</span> <span class="o">=</span> <span class="n">run_all_imaging</span><span class="p">(</span>
+                <span class="n">mslist</span><span class="o">=</span><span class="n">mslist</span><span class="p">,</span>
+                <span class="n">mainlogger</span><span class="o">=</span><span class="n">mainlogger</span><span class="p">,</span>
+                <span class="n">workdir</span><span class="o">=</span><span class="n">workdir</span><span class="p">,</span>
+                <span class="n">freqrange</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">freqrange</span><span class="p">,</span>
+                <span class="n">timerange</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">timerange</span><span class="p">,</span>
+                <span class="n">datacolumn</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">datacolumn</span><span class="p">,</span>
+                <span class="n">freqres</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">freqres</span><span class="p">,</span>
+                <span class="n">timeres</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">timeres</span><span class="p">,</span>
+                <span class="n">weight</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">weight</span><span class="p">,</span>
+                <span class="n">robust</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">robust</span><span class="p">,</span>
+                <span class="n">minuv</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">minuv</span><span class="p">,</span>
+                <span class="n">threshold</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">threshold</span><span class="p">,</span>
+                <span class="n">use_multiscale</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">use_multiscale</span><span class="p">,</span>
+                <span class="n">use_solar_mask</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">use_solar_mask</span><span class="p">,</span>
+                <span class="n">pol</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">pol</span><span class="p">,</span>
+                <span class="n">band</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">band</span><span class="p">,</span>
+                <span class="n">make_plots</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">make_plots</span><span class="p">,</span>
+                <span class="n">cutout_rsun</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">cutout_rsun</span><span class="p">,</span>
+                <span class="n">make_overlay</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">make_overlay</span><span class="p">,</span>
+                <span class="n">savemodel</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">savemodel</span><span class="p">,</span>
+                <span class="n">saveres</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">saveres</span><span class="p">,</span>
+                <span class="n">cpu_frac</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">cpu_frac</span><span class="p">,</span>
+                <span class="n">mem_frac</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">mem_frac</span><span class="p">,</span>
+            <span class="p">)</span>
+    <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
         <span class="n">traceback</span><span class="o">.</span><span class="n">print_exc</span><span class="p">()</span>
-        <span class="n">msg</span><span class="o">=</span><span class="mi">1</span>
+        <span class="n">msg</span> <span class="o">=</span> <span class="mi">1</span>
     <span class="k">finally</span><span class="p">:</span>
         <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mi">5</span><span class="p">)</span>
         <span class="n">clean_shutdown</span><span class="p">(</span><span class="n">observer</span><span class="p">)</span>
+
     <span class="k">return</span> <span class="n">msg</span></div>
 
 
@@ -1349,7 +1382,7 @@
       
     </aside>
   </div>
-</div><script src="../../../_static/documentation_options.js?v=8d563738"></script>
+</div><script src="../../../_static/documentation_options.js?v=4ebf8126"></script>
     <script src="../../../_static/doctools.js?v=9a2dae69"></script>
     <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../../../_static/scripts/furo.js?v=32e29ea5"></script>

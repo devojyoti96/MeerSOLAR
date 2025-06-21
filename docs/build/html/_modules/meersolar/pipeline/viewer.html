@@ -5,7 +5,7 @@
     <meta name="color-scheme" content="light dark"><link rel="index" title="Index" href="../../../genindex.html" /><link rel="search" title="Search" href="../../../search.html" />
 
     <!-- Generated with Sphinx 7.4.7 and Furo 2024.01.29 -->
-        <title>meersolar.pipeline.viewer - MeerSOLAR 1.0.0 documentation</title>
+        <title>meersolar.pipeline.viewer - MeerSOLAR</title>
       <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=a746c00c" />
     <link rel="stylesheet" type="text/css" href="../../../_static/styles/furo.css?v=135e06be" />
     <link rel="stylesheet" type="text/css" href="../../../_static/copybutton.css?v=76b2166b" />
@@ -123,7 +123,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="../../../index.html"><div class="brand">MeerSOLAR 1.0.0 documentation</div></a>
+      <a href="../../../index.html"><div class="brand">MeerSOLAR</div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -145,8 +145,12 @@
       
       <div class="sidebar-sticky"><a class="sidebar-brand" href="../../../index.html">
   
+  <div class="sidebar-logo-container">
+    <img class="sidebar-logo only-light" src="../../../_static/yourlogo-light.png" alt="Light Logo"/>
+    <img class="sidebar-logo only-dark" src="../../../_static/yourlogo-dark.png" alt="Dark Logo"/>
+  </div>
   
-  <span class="sidebar-brand-text">MeerSOLAR 1.0.0 documentation</span>
+  <span class="sidebar-brand-text">MeerSOLAR</span>
   
 </a><form class="sidebar-search-container" method="get" action="../../../search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
@@ -154,7 +158,21 @@
   <input type="hidden" name="area" value="default">
 </form>
 <div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
-  
+  <ul>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../../../install.html">Installation and Initial Setup</a><input class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><div class="visually-hidden">Toggle navigation of Installation and Initial Setup</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../install_conda.html">Installing Conda: Anaconda or Miniconda</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../activate_conda.html">Creating and Activating Conda Environment</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../install_meersolar.html">Install MeerSOLAR</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../initial_setup.html">Initial setup</a></li>
+</ul>
+</li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../../../meersolar.html">API Reference</a><input class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" role="switch" type="checkbox"/><label for="toctree-checkbox-2"><div class="visually-hidden">Toggle navigation of API Reference</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../meersolar.pipeline.html">Meersolar Pipeline Module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../meersolar.crystalball.html">Crystalball Module</a></li>
+</ul>
+</li>
+</ul>
+
 </div>
 </div>
 
@@ -189,21 +207,27 @@
           <h1>Source code for meersolar.pipeline.viewer</h1><div class="highlight"><pre>
 <span></span><span class="kn">import</span> <span class="nn">os</span>
 <span class="kn">import</span> <span class="nn">sys</span><span class="o">,</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
-<span class="kn">import</span> <span class="nn">traceback</span>
-<span class="kn">from</span> <span class="nn">optparse</span> <span class="kn">import</span> <span class="n">OptionParser</span>
+<span class="kn">import</span> <span class="nn">traceback</span><span class="o">,</span> <span class="nn">argparse</span>
 <span class="kn">from</span> <span class="nn">collections</span> <span class="kn">import</span> <span class="n">deque</span>
 <span class="kn">from</span> <span class="nn">threading</span> <span class="kn">import</span> <span class="n">Thread</span>
 <span class="kn">from</span> <span class="nn">PyQt5.QtWidgets</span> <span class="kn">import</span> <span class="p">(</span>
-    <span class="n">QApplication</span><span class="p">,</span> <span class="n">QWidget</span><span class="p">,</span> <span class="n">QVBoxLayout</span><span class="p">,</span> <span class="n">QHBoxLayout</span><span class="p">,</span> <span class="n">QListWidget</span><span class="p">,</span>
-    <span class="n">QListWidgetItem</span><span class="p">,</span> <span class="n">QPlainTextEdit</span><span class="p">,</span> <span class="n">QSplitter</span><span class="p">,</span> <span class="n">QSizeGrip</span><span class="p">,</span> <span class="n">QGridLayout</span>
+    <span class="n">QApplication</span><span class="p">,</span>
+    <span class="n">QWidget</span><span class="p">,</span>
+    <span class="n">QVBoxLayout</span><span class="p">,</span>
+    <span class="n">QHBoxLayout</span><span class="p">,</span>
+    <span class="n">QListWidget</span><span class="p">,</span>
+    <span class="n">QListWidgetItem</span><span class="p">,</span>
+    <span class="n">QPlainTextEdit</span><span class="p">,</span>
+    <span class="n">QSplitter</span><span class="p">,</span>
+    <span class="n">QSizeGrip</span><span class="p">,</span>
+    <span class="n">QGridLayout</span><span class="p">,</span>
 <span class="p">)</span>
 <span class="kn">from</span> <span class="nn">PyQt5.QtCore</span> <span class="kn">import</span> <span class="n">Qt</span><span class="p">,</span> <span class="n">QTimer</span><span class="p">,</span> <span class="n">pyqtSignal</span><span class="p">,</span> <span class="n">QObject</span>
 <span class="kn">from</span> <span class="nn">PyQt5.QtGui</span> <span class="kn">import</span> <span class="n">QTextCursor</span>
 <span class="kn">from</span> <span class="nn">watchdog.observers</span> <span class="kn">import</span> <span class="n">Observer</span>
 <span class="kn">from</span> <span class="nn">watchdog.events</span> <span class="kn">import</span> <span class="n">FileSystemEventHandler</span>
 
-<span class="n">LOG_DIR</span> <span class="o">=</span> <span class="kc">None</span>  <span class="c1"># Will be set in `main()`</span>
-
+<span class="n">LOG_DIR</span> <span class="o">=</span> <span class="kc">None</span>
 
 <div class="viewcode-block" id="get_logid">
 <a class="viewcode-back" href="../../../meersolar.pipeline.html#meersolar.pipeline.viewer.get_logid">[docs]</a>
@@ -225,7 +249,7 @@
         <span class="s2">&quot;selfcal_targets.log&quot;</span><span class="p">:</span> <span class="s2">&quot;All self-calibrations&quot;</span><span class="p">,</span>
         <span class="s2">&quot;imaging_targets.log&quot;</span><span class="p">:</span> <span class="s2">&quot;All imaging&quot;</span><span class="p">,</span>
         <span class="s2">&quot;noise_cal.log&quot;</span><span class="p">:</span> <span class="s2">&quot;Flux calibration using noise-diode&quot;</span><span class="p">,</span>
-        <span class="s2">&quot;partition_cal.log&quot;</span><span class="p">:</span> <span class="s2">&quot;Partitioning for basic calibration&quot;</span>
+        <span class="s2">&quot;partition_cal.log&quot;</span><span class="p">:</span> <span class="s2">&quot;Partitioning for basic calibration&quot;</span><span class="p">,</span>
     <span class="p">}</span>
     <span class="k">if</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">logmap</span><span class="p">:</span>
         <span class="k">return</span> <span class="n">logmap</span><span class="p">[</span><span class="n">name</span><span class="p">]</span>
@@ -243,12 +267,10 @@
         <span class="k">return</span> <span class="n">name</span></div>
 
 
-
 <div class="viewcode-block" id="TailWatcher">
 <a class="viewcode-back" href="../../../meersolar.pipeline.html#meersolar.pipeline.viewer.TailWatcher">[docs]</a>
 <span class="k">class</span> <span class="nc">TailWatcher</span><span class="p">(</span><span class="n">FileSystemEventHandler</span><span class="p">,</span> <span class="n">QObject</span><span class="p">):</span>
     <span class="n">new_line</span> <span class="o">=</span> <span class="n">pyqtSignal</span><span class="p">(</span><span class="nb">str</span><span class="p">)</span>
-
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">file_path</span><span class="p">):</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">file_path</span> <span class="o">=</span> <span class="n">file_path</span>
@@ -260,9 +282,9 @@
 <a class="viewcode-back" href="../../../meersolar.pipeline.html#meersolar.pipeline.viewer.TailWatcher.start">[docs]</a>
     <span class="k">def</span> <span class="nf">start</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">observer</span><span class="o">.</span><span class="n">schedule</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">path</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">file_path</span><span class="p">),</span> <span class="n">recursive</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">observer</span><span class="o">.</span><span class="n">start</span><span class="p">()</span>
-        <span class="n">Thread</span><span class="p">(</span><span class="n">target</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_emit_existing_lines</span><span class="p">,</span> <span class="n">daemon</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span><span class="o">.</span><span class="n">start</span><span class="p">()</span></div>
+        <span class="bp">self</span><span class="o">.</span><span class="n">observer</span><span class="o">.</span><span class="n">start</span><span class="p">()</span></div>
 
+        <span class="c1"># Do not emit initial content to avoid duplication</span>
 
 <div class="viewcode-block" id="TailWatcher.stop">
 <a class="viewcode-back" href="../../../meersolar.pipeline.html#meersolar.pipeline.viewer.TailWatcher.stop">[docs]</a>
@@ -282,20 +304,15 @@
                     <span class="n">new_data</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">read</span><span class="p">()</span>
                     <span class="bp">self</span><span class="o">.</span><span class="n">_position</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">tell</span><span class="p">()</span>
                     <span class="k">if</span> <span class="n">new_data</span><span class="p">:</span>
-                        <span class="bp">self</span><span class="o">.</span><span class="n">new_line</span><span class="o">.</span><span class="n">emit</span><span class="p">(</span><span class="n">new_data</span><span class="p">)</span>
+                        <span class="c1"># Remove blank/whitespace-only lines</span>
+                        <span class="n">filtered_lines</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+                            <span class="n">line</span> <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">new_data</span><span class="o">.</span><span class="n">splitlines</span><span class="p">()</span> <span class="k">if</span> <span class="n">line</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+                        <span class="p">)</span>
+                        <span class="k">if</span> <span class="n">filtered_lines</span><span class="p">:</span>
+                            <span class="bp">self</span><span class="o">.</span><span class="n">new_line</span><span class="o">.</span><span class="n">emit</span><span class="p">(</span><span class="n">filtered_lines</span> <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
             <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">new_line</span><span class="o">.</span><span class="n">emit</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">[watcher error] </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span></div>
-
-
-    <span class="k">def</span> <span class="nf">_emit_existing_lines</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="k">try</span><span class="p">:</span>
-            <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">file_path</span><span class="p">,</span> <span class="s2">&quot;r&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
-                <span class="n">f</span><span class="o">.</span><span class="n">seek</span><span class="p">(</span><span class="nb">max</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">getsize</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">file_path</span><span class="p">)</span> <span class="o">-</span> <span class="mi">2048</span><span class="p">))</span>
-                <span class="n">lines</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">read</span><span class="p">()</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">new_line</span><span class="o">.</span><span class="n">emit</span><span class="p">(</span><span class="n">lines</span><span class="p">)</span>
-        <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
-            <span class="k">pass</span></div>
-
+</div>
 
 
 <div class="viewcode-block" id="LogViewer">
@@ -305,7 +322,7 @@
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">setWindowTitle</span><span class="p">(</span><span class="s2">&quot;MeerLogger (Live Log)&quot;</span><span class="p">)</span>
         <span class="n">screen</span> <span class="o">=</span> <span class="n">QApplication</span><span class="o">.</span><span class="n">primaryScreen</span><span class="p">()</span><span class="o">.</span><span class="n">availableGeometry</span><span class="p">()</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">setGeometry</span><span class="p">(</span><span class="n">screen</span><span class="o">.</span><span class="n">x</span><span class="p">()</span> <span class="o">+</span> <span class="n">screen</span><span class="o">.</span><span class="n">width</span><span class="p">()</span><span class="o">//</span><span class="mi">10</span><span class="p">,</span> <span class="n">screen</span><span class="o">.</span><span class="n">y</span><span class="p">()</span> <span class="o">+</span> <span class="n">screen</span><span class="o">.</span><span class="n">height</span><span class="p">()</span><span class="o">//</span><span class="mi">10</span><span class="p">,</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">setGeometry</span><span class="p">(</span><span class="n">screen</span><span class="o">.</span><span class="n">x</span><span class="p">()</span> <span class="o">+</span> <span class="n">screen</span><span class="o">.</span><span class="n">width</span><span class="p">()</span> <span class="o">//</span> <span class="mi">10</span><span class="p">,</span> <span class="n">screen</span><span class="o">.</span><span class="n">y</span><span class="p">()</span> <span class="o">+</span> <span class="n">screen</span><span class="o">.</span><span class="n">height</span><span class="p">()</span> <span class="o">//</span> <span class="mi">10</span><span class="p">,</span>
                          <span class="nb">int</span><span class="p">(</span><span class="n">screen</span><span class="o">.</span><span class="n">width</span><span class="p">()</span> <span class="o">*</span> <span class="mf">0.8</span><span class="p">),</span> <span class="nb">int</span><span class="p">(</span><span class="n">screen</span><span class="o">.</span><span class="n">height</span><span class="p">()</span> <span class="o">*</span> <span class="mf">0.8</span><span class="p">))</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">max_lines</span> <span class="o">=</span> <span class="n">max_lines</span>
@@ -372,16 +389,13 @@
 <a class="viewcode-back" href="../../../meersolar.pipeline.html#meersolar.pipeline.viewer.LogViewer.refresh_logs">[docs]</a>
     <span class="k">def</span> <span class="nf">refresh_logs</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="n">existing_paths</span> <span class="o">=</span> <span class="p">{</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">log_list</span><span class="o">.</span><span class="n">item</span><span class="p">(</span><span class="n">i</span><span class="p">)</span><span class="o">.</span><span class="n">data</span><span class="p">(</span><span class="n">Qt</span><span class="o">.</span><span class="n">UserRole</span><span class="p">)</span>
-            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">log_list</span><span class="o">.</span><span class="n">count</span><span class="p">())</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">log_list</span><span class="o">.</span><span class="n">item</span><span class="p">(</span><span class="n">i</span><span class="p">)</span><span class="o">.</span><span class="n">data</span><span class="p">(</span><span class="n">Qt</span><span class="o">.</span><span class="n">UserRole</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">log_list</span><span class="o">.</span><span class="n">count</span><span class="p">())</span>
         <span class="p">}</span>
-
         <span class="n">new_items_added</span> <span class="o">=</span> <span class="kc">False</span>
+
         <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isdir</span><span class="p">(</span><span class="n">LOG_DIR</span><span class="p">):</span>
-            <span class="n">log_files</span> <span class="o">=</span> <span class="p">[</span>
-                <span class="n">fname</span> <span class="k">for</span> <span class="n">fname</span> <span class="ow">in</span> <span class="n">os</span><span class="o">.</span><span class="n">listdir</span><span class="p">(</span><span class="n">LOG_DIR</span><span class="p">)</span>
-                <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isfile</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">LOG_DIR</span><span class="p">,</span> <span class="n">fname</span><span class="p">))</span> <span class="ow">and</span> <span class="n">fname</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">&quot;.log&quot;</span><span class="p">)</span>
-            <span class="p">]</span>
+            <span class="n">log_files</span> <span class="o">=</span> <span class="p">[</span><span class="n">fname</span> <span class="k">for</span> <span class="n">fname</span> <span class="ow">in</span> <span class="n">os</span><span class="o">.</span><span class="n">listdir</span><span class="p">(</span><span class="n">LOG_DIR</span><span class="p">)</span>
+                         <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isfile</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">LOG_DIR</span><span class="p">,</span> <span class="n">fname</span><span class="p">))</span> <span class="ow">and</span> <span class="n">fname</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">&quot;.log&quot;</span><span class="p">)]</span>
             <span class="n">log_files</span><span class="o">.</span><span class="n">sort</span><span class="p">(</span><span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">f</span><span class="p">:</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">getctime</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">LOG_DIR</span><span class="p">,</span> <span class="n">f</span><span class="p">)))</span>
 
             <span class="k">for</span> <span class="n">fname</span> <span class="ow">in</span> <span class="n">log_files</span><span class="p">:</span>
@@ -395,10 +409,8 @@
 
         <span class="k">if</span> <span class="n">new_items_added</span><span class="p">:</span>
             <span class="n">QTimer</span><span class="o">.</span><span class="n">singleShot</span><span class="p">(</span><span class="mi">100</span><span class="p">,</span> <span class="k">lambda</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">splitter</span><span class="o">.</span><span class="n">setSizes</span><span class="p">([</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">calc_list_width</span><span class="p">(),</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">width</span><span class="p">()</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">calc_list_width</span><span class="p">()</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">calc_list_width</span><span class="p">(),</span> <span class="bp">self</span><span class="o">.</span><span class="n">width</span><span class="p">()</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">calc_list_width</span><span class="p">()</span>
             <span class="p">]))</span></div>
-
 
 
 <div class="viewcode-block" id="LogViewer.load_log_content">
@@ -414,18 +426,19 @@
         <span class="k">try</span><span class="p">:</span>
             <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">new_log_path</span><span class="p">,</span> <span class="s2">&quot;r&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
                 <span class="n">full_data</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">read</span><span class="p">()</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">buffer</span> <span class="o">=</span> <span class="n">full_data</span><span class="o">.</span><span class="n">splitlines</span><span class="p">(</span><span class="n">keepends</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">log_view</span><span class="o">.</span><span class="n">setPlainText</span><span class="p">(</span><span class="n">full_data</span><span class="p">)</span>
+                <span class="c1"># Split, filter blank lines, and rejoin with original line endings</span>
+                <span class="n">lines</span> <span class="o">=</span> <span class="p">[</span><span class="n">line</span> <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">full_data</span><span class="o">.</span><span class="n">splitlines</span><span class="p">(</span><span class="n">keepends</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span> <span class="k">if</span> <span class="n">line</span><span class="o">.</span><span class="n">strip</span><span class="p">()]</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">buffer</span> <span class="o">=</span> <span class="n">lines</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">log_view</span><span class="o">.</span><span class="n">setPlainText</span><span class="p">(</span><span class="s2">&quot;&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">lines</span><span class="p">))</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">log_view</span><span class="o">.</span><span class="n">moveCursor</span><span class="p">(</span><span class="n">QTextCursor</span><span class="o">.</span><span class="n">End</span><span class="p">)</span>
         <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">buffer</span> <span class="o">=</span> <span class="p">[</span><span class="sa">f</span><span class="s2">&quot;[Error reading file: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">]</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">]</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">log_view</span><span class="o">.</span><span class="n">setPlainText</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">buffer</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
 
-        <span class="c1"># Then start tailing</span>
+
         <span class="bp">self</span><span class="o">.</span><span class="n">tail_watcher</span> <span class="o">=</span> <span class="n">TailWatcher</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">current_log_path</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">tail_watcher</span><span class="o">.</span><span class="n">new_line</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">append_log_line</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">tail_watcher</span><span class="o">.</span><span class="n">start</span><span class="p">()</span></div>
-
 
 
 <div class="viewcode-block" id="LogViewer.append_log_line">
@@ -433,6 +446,8 @@
     <span class="k">def</span> <span class="nf">append_log_line</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">text</span><span class="p">):</span>
         <span class="n">lines</span> <span class="o">=</span> <span class="n">text</span><span class="o">.</span><span class="n">splitlines</span><span class="p">(</span><span class="n">keepends</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">buffer</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">lines</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">buffer</span><span class="p">)</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_lines</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">buffer</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">buffer</span><span class="p">[</span><span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">max_lines</span><span class="p">:]</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">log_view</span><span class="o">.</span><span class="n">setPlainText</span><span class="p">(</span><span class="s2">&quot;&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">buffer</span><span class="p">))</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">log_view</span><span class="o">.</span><span class="n">moveCursor</span><span class="p">(</span><span class="n">QTextCursor</span><span class="o">.</span><span class="n">End</span><span class="p">)</span></div>
 
@@ -449,61 +464,46 @@
 <div class="viewcode-block" id="get_datadir">
 <a class="viewcode-back" href="../../../meersolar.pipeline.html#meersolar.pipeline.viewer.get_datadir">[docs]</a>
 <span class="k">def</span> <span class="nf">get_datadir</span><span class="p">():</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Get package data directory</span>
-<span class="sd">    &quot;&quot;&quot;</span>
     <span class="kn">from</span> <span class="nn">importlib.resources</span> <span class="kn">import</span> <span class="n">files</span>
     <span class="n">datadir_path</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">files</span><span class="p">(</span><span class="s2">&quot;meersolar&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">joinpath</span><span class="p">(</span><span class="s2">&quot;data&quot;</span><span class="p">))</span>
-    <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">datadir_path</span><span class="p">,</span><span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-    <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">datadir_path</span><span class="si">}</span><span class="s2">/pids&quot;</span><span class="p">,</span><span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">datadir_path</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">datadir_path</span><span class="si">}</span><span class="s2">/pids&quot;</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">datadir_path</span></div>
 
-    
+
 <div class="viewcode-block" id="main">
 <a class="viewcode-back" href="../../../meersolar.pipeline.html#meersolar.pipeline.viewer.main">[docs]</a>
 <span class="k">def</span> <span class="nf">main</span><span class="p">():</span>
     <span class="k">global</span> <span class="n">LOG_DIR</span>
-    <span class="n">usage</span> <span class="o">=</span> <span class="s2">&quot;MeerSOLAR Logger&quot;</span>
-    <span class="n">parser</span> <span class="o">=</span> <span class="n">OptionParser</span><span class="p">(</span><span class="n">usage</span><span class="o">=</span><span class="n">usage</span><span class="p">)</span>
-    <span class="n">parser</span><span class="o">.</span><span class="n">add_option</span><span class="p">(</span>
-        <span class="s2">&quot;--jobid&quot;</span><span class="p">,</span>
-        <span class="n">dest</span><span class="o">=</span><span class="s2">&quot;jobid&quot;</span><span class="p">,</span>
-        <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;MeerSOLAR Job ID&quot;</span><span class="p">,</span>
-        <span class="n">metavar</span><span class="o">=</span><span class="s2">&quot;Integer&quot;</span><span class="p">,</span>
-    <span class="p">)</span>
-    <span class="n">parser</span><span class="o">.</span><span class="n">add_option</span><span class="p">(</span>
-        <span class="s2">&quot;--logdir&quot;</span><span class="p">,</span>
-        <span class="n">dest</span><span class="o">=</span><span class="s2">&quot;logdir&quot;</span><span class="p">,</span>
-        <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Name of log directory&quot;</span><span class="p">,</span>
-        <span class="n">metavar</span><span class="o">=</span><span class="s2">&quot;String&quot;</span><span class="p">,</span>
-    <span class="p">)</span>
-    <span class="p">(</span><span class="n">options</span><span class="p">,</span> <span class="n">args</span><span class="p">)</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">parse_args</span><span class="p">()</span>
-    <span class="k">if</span> <span class="n">options</span><span class="o">.</span><span class="n">jobid</span><span class="o">==</span><span class="kc">None</span> <span class="ow">and</span> <span class="n">options</span><span class="o">.</span><span class="n">logdir</span><span class="o">==</span><span class="kc">None</span><span class="p">:</span>
-        <span class="nb">print</span> <span class="p">(</span><span class="s2">&quot;Please provide either job ID or log directory.&quot;</span><span class="p">)</span>
+    <span class="n">parser</span> <span class="o">=</span> <span class="n">argparse</span><span class="o">.</span><span class="n">ArgumentParser</span><span class="p">(</span><span class="n">description</span><span class="o">=</span><span class="s2">&quot;MeerSOLAR Logger&quot;</span><span class="p">,</span>
+                                     <span class="n">formatter_class</span><span class="o">=</span><span class="n">argparse</span><span class="o">.</span><span class="n">ArgumentDefaultsHelpFormatter</span><span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s2">&quot;--jobid&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s2">&quot;MeerSOLAR Job ID&quot;</span><span class="p">,</span> <span class="n">metavar</span><span class="o">=</span><span class="s2">&quot;Integer&quot;</span><span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s2">&quot;--logdir&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Name of log directory&quot;</span><span class="p">,</span> <span class="n">metavar</span><span class="o">=</span><span class="s2">&quot;String&quot;</span><span class="p">)</span>
+    <span class="n">args</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">parse_args</span><span class="p">()</span>
+
+    <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">jobid</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">args</span><span class="o">.</span><span class="n">logdir</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Please provide either job ID or log directory.&quot;</span><span class="p">)</span>
         <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
-    <span class="k">else</span><span class="p">:</span>   
-        <span class="n">datadir</span><span class="o">=</span><span class="n">get_datadir</span><span class="p">()</span>
-        <span class="k">if</span> <span class="n">options</span><span class="o">.</span><span class="n">jobid</span><span class="o">!=</span><span class="kc">None</span><span class="p">:</span>
-            <span class="n">jobfile_name</span><span class="o">=</span><span class="n">datadir</span> <span class="o">+</span> <span class="sa">f</span><span class="s2">&quot;/main_pids_</span><span class="si">{</span><span class="n">options</span><span class="o">.</span><span class="n">jobid</span><span class="si">}</span><span class="s2">.txt&quot;</span>
-            <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">jobfile_name</span><span class="p">)</span><span class="o">==</span><span class="kc">False</span><span class="p">:</span>
-                <span class="nb">print</span> <span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Job ID: </span><span class="si">{</span><span class="n">options</span><span class="o">.</span><span class="n">jobid</span><span class="si">}</span><span class="s2"> is not available. Provide log directory name.&quot;</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">datadir</span> <span class="o">=</span> <span class="n">get_datadir</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">jobid</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">jobfile_name</span> <span class="o">=</span> <span class="n">datadir</span> <span class="o">+</span> <span class="sa">f</span><span class="s2">&quot;/main_pids_</span><span class="si">{</span><span class="n">args</span><span class="o">.</span><span class="n">jobid</span><span class="si">}</span><span class="s2">.txt&quot;</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">jobfile_name</span><span class="p">):</span>
+                <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Job ID: </span><span class="si">{</span><span class="n">args</span><span class="o">.</span><span class="n">jobid</span><span class="si">}</span><span class="s2"> is not available. Provide log directory name.&quot;</span><span class="p">)</span>
                 <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
             <span class="k">else</span><span class="p">:</span>
-                <span class="n">results</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">loadtxt</span><span class="p">(</span><span class="n">jobfile_name</span><span class="p">,</span><span class="n">dtype</span><span class="o">=</span><span class="s2">&quot;str&quot;</span><span class="p">,</span><span class="n">unpack</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-                <span class="n">basedir</span><span class="o">=</span><span class="n">results</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span>
-                <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">basedir</span><span class="p">)</span><span class="o">==</span><span class="kc">False</span><span class="p">:</span>
-                    <span class="nb">print</span> <span class="p">(</span><span class="s2">&quot;Base directory : </span><span class="si">{basedir}</span><span class="s2"> is not present.&quot;</span><span class="p">)</span>
+                <span class="n">results</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">loadtxt</span><span class="p">(</span><span class="n">jobfile_name</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="s2">&quot;str&quot;</span><span class="p">,</span> <span class="n">unpack</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+                <span class="n">basedir</span> <span class="o">=</span> <span class="n">results</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">basedir</span><span class="p">):</span>
+                    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Base directory : </span><span class="si">{</span><span class="n">basedir</span><span class="si">}</span><span class="s2"> is not present.&quot;</span><span class="p">)</span>
                     <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
-                <span class="n">LOG_DIR</span><span class="o">=</span><span class="n">basedir</span><span class="o">.</span><span class="n">rstrip</span><span class="p">(</span><span class="s2">&quot;/&quot;</span><span class="p">)</span><span class="o">+</span><span class="s2">&quot;/logs&quot;</span>
+                <span class="n">LOG_DIR</span> <span class="o">=</span> <span class="n">basedir</span><span class="o">.</span><span class="n">rstrip</span><span class="p">(</span><span class="s2">&quot;/&quot;</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot;/logs&quot;</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">options</span><span class="o">.</span><span class="n">logdir</span><span class="p">)</span><span class="o">==</span><span class="kc">False</span><span class="p">:</span>
-                <span class="nb">print</span> <span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Log diretory: </span><span class="si">{</span><span class="n">options</span><span class="o">.</span><span class="n">logdir</span><span class="si">}</span><span class="s2"> is not present. Please provide a valid log directory.&quot;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">logdir</span><span class="p">):</span>
+                <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Log directory: </span><span class="si">{</span><span class="n">args</span><span class="o">.</span><span class="n">logdir</span><span class="si">}</span><span class="s2"> is not present. Please provide a valid log directory.&quot;</span><span class="p">)</span>
                 <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
-            <span class="n">LOG_DIR</span><span class="o">=</span><span class="n">options</span><span class="o">.</span><span class="n">logdir</span>
+            <span class="n">LOG_DIR</span> <span class="o">=</span> <span class="n">args</span><span class="o">.</span><span class="n">logdir</span>
 
-    <span class="c1"># Environment fixes (must be set before QApplication loads Qt backend)</span>
     <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s2">&quot;QT_OPENGL&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;software&quot;</span>
     <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s2">&quot;QT_XCB_GL_INTEGRATION&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;none&quot;</span>
     <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s2">&quot;QT_STYLE_OVERRIDE&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;Fusion&quot;</span>
@@ -511,21 +511,21 @@
     <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">LOG_DIR</span><span class="si">}</span><span class="s2">/xdgtmp&quot;</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
     <span class="n">os</span><span class="o">.</span><span class="n">chmod</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">LOG_DIR</span><span class="si">}</span><span class="s2">/xdgtmp&quot;</span><span class="p">,</span> <span class="mo">0o700</span><span class="p">)</span>
     <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s2">&quot;XDG_RUNTIME_DIR&quot;</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">LOG_DIR</span><span class="si">}</span><span class="s2">/xdgtmp&quot;</span><span class="p">)</span>
-    <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s2">&quot;XDG_RUNTIME_DIR&quot;</span><span class="p">]</span><span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">LOG_DIR</span><span class="si">}</span><span class="s2">/xdgtmp&quot;</span>
-    <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s2">&quot;TMPDIR&quot;</span><span class="p">]</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">LOG_DIR</span><span class="si">}</span><span class="s2">/xdgtmp&quot;</span>
+    <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s2">&quot;XDG_RUNTIME_DIR&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">LOG_DIR</span><span class="si">}</span><span class="s2">/xdgtmp&quot;</span>
+    <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s2">&quot;TMPDIR&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">LOG_DIR</span><span class="si">}</span><span class="s2">/xdgtmp&quot;</span>
 
     <span class="n">app</span> <span class="o">=</span> <span class="n">QApplication</span><span class="p">(</span><span class="n">sys</span><span class="o">.</span><span class="n">argv</span><span class="p">)</span>
     <span class="n">app</span><span class="o">.</span><span class="n">setStyleSheet</span><span class="p">(</span><span class="s2">&quot;&quot;&quot;</span>
-<span class="s2">    * {</span>
-<span class="s2">        font-family: &quot;Segoe UI&quot;, &quot;Noto Sans&quot;, &quot;Sans Serif&quot;;</span>
-<span class="s2">        font-size: 15px;</span>
-<span class="s2">    }</span>
-<span class="s2">    QListWidget, QPlainTextEdit, QPushButton {</span>
-<span class="s2">        font-size: 15px;</span>
-<span class="s2">    }</span>
-<span class="s2">    QPushButton {</span>
-<span class="s2">        padding: 4px 14px;</span>
-<span class="s2">    }</span>
+<span class="s2">        * {</span>
+<span class="s2">            font-family: </span><span class="se">\&quot;</span><span class="s2">Segoe UI</span><span class="se">\&quot;</span><span class="s2">, </span><span class="se">\&quot;</span><span class="s2">Noto Sans</span><span class="se">\&quot;</span><span class="s2">, </span><span class="se">\&quot;</span><span class="s2">Sans Serif</span><span class="se">\&quot;</span><span class="s2">;</span>
+<span class="s2">            font-size: 15px;</span>
+<span class="s2">        }</span>
+<span class="s2">        QListWidget, QPlainTextEdit, QPushButton {</span>
+<span class="s2">            font-size: 15px;</span>
+<span class="s2">        }</span>
+<span class="s2">        QPushButton {</span>
+<span class="s2">            padding: 4px 14px;</span>
+<span class="s2">        }</span>
 <span class="s2">    &quot;&quot;&quot;</span><span class="p">)</span>
     <span class="n">viewer</span> <span class="o">=</span> <span class="n">LogViewer</span><span class="p">()</span>
     <span class="n">viewer</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
@@ -564,7 +564,7 @@
       
     </aside>
   </div>
-</div><script src="../../../_static/documentation_options.js?v=8d563738"></script>
+</div><script src="../../../_static/documentation_options.js?v=4ebf8126"></script>
     <script src="../../../_static/doctools.js?v=9a2dae69"></script>
     <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../../../_static/scripts/furo.js?v=32e29ea5"></script>

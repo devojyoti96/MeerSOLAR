@@ -1,8 +1,7 @@
-meersolar.pipeline package
+Meersolar Pipeline Module
 ==========================
+This is main module of the pipeline handling all calibration and imaging jobs.
 
-Submodules
-----------
 
 meersolar.pipeline.basic\_cal module
 ------------------------------------

@@ -1,8 +1,6 @@
-meersolar.crystalball package
+Crystalball Module
 =============================
-
-Submodules
-----------
+This is a customized version of crystalball packagge, https://github.com/caracal-pipeline/crystalball.git, for MeerSOLAR pipeline
 
 meersolar.crystalball.budget module
 -----------------------------------

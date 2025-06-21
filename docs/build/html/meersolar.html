@@ -3,10 +3,10 @@
   <head><meta charset="utf-8"/>
     <meta name="viewport" content="width=device-width,initial-scale=1"/>
     <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
-<link rel="index" title="Index" href="genindex.html" /><link rel="search" title="Search" href="search.html" />
+<link rel="index" title="Index" href="genindex.html" /><link rel="search" title="Search" href="search.html" /><link rel="next" title="Meersolar Pipeline Module" href="meersolar.pipeline.html" /><link rel="prev" title="Initial setup" href="initial_setup.html" />
 
     <!-- Generated with Sphinx 7.4.7 and Furo 2024.01.29 -->
-        <title>meersolar package - MeerSOLAR 1.0.0 documentation</title>
+        <title>API Reference - MeerSOLAR</title>
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=a746c00c" />
     <link rel="stylesheet" type="text/css" href="_static/styles/furo.css?v=135e06be" />
     <link rel="stylesheet" type="text/css" href="_static/copybutton.css?v=76b2166b" />
@@ -124,7 +124,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="index.html"><div class="brand">MeerSOLAR 1.0.0 documentation</div></a>
+      <a href="index.html"><div class="brand">MeerSOLAR</div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -135,7 +135,7 @@
           <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
         </button>
       </div>
-      <label class="toc-overlay-icon toc-header-icon" for="__toc">
+      <label class="toc-overlay-icon toc-header-icon no-toc" for="__toc">
         <div class="visually-hidden">Toggle table of contents sidebar</div>
         <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
       </label>
@@ -146,8 +146,12 @@
       
       <div class="sidebar-sticky"><a class="sidebar-brand" href="index.html">
   
+  <div class="sidebar-logo-container">
+    <img class="sidebar-logo only-light" src="_static/yourlogo-light.png" alt="Light Logo"/>
+    <img class="sidebar-logo only-dark" src="_static/yourlogo-dark.png" alt="Dark Logo"/>
+  </div>
   
-  <span class="sidebar-brand-text">MeerSOLAR 1.0.0 documentation</span>
+  <span class="sidebar-brand-text">MeerSOLAR</span>
   
 </a><form class="sidebar-search-container" method="get" action="search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
@@ -155,7 +159,21 @@
   <input type="hidden" name="area" value="default">
 </form>
 <div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
-  
+  <ul class="current">
+<li class="toctree-l1 has-children"><a class="reference internal" href="install.html">Installation and Initial Setup</a><input class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><div class="visually-hidden">Toggle navigation of Installation and Initial Setup</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="install_conda.html">Installing Conda: Anaconda or Miniconda</a></li>
+<li class="toctree-l2"><a class="reference internal" href="activate_conda.html">Creating and Activating Conda Environment</a></li>
+<li class="toctree-l2"><a class="reference internal" href="install_meersolar.html">Install MeerSOLAR</a></li>
+<li class="toctree-l2"><a class="reference internal" href="initial_setup.html">Initial setup</a></li>
+</ul>
+</li>
+<li class="toctree-l1 current has-children current-page"><a class="current reference internal" href="#">API Reference</a><input checked="" class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" role="switch" type="checkbox"/><label for="toctree-checkbox-2"><div class="visually-hidden">Toggle navigation of API Reference</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="meersolar.pipeline.html">Meersolar Pipeline Module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="meersolar.crystalball.html">Crystalball Module</a></li>
+</ul>
+</li>
+</ul>
+
 </div>
 </div>
 
@@ -182,343 +200,51 @@
               <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
             </button>
           </div>
-          <label class="toc-overlay-icon toc-content-icon" for="__toc">
+          <label class="toc-overlay-icon toc-content-icon no-toc" for="__toc">
             <div class="visually-hidden">Toggle table of contents sidebar</div>
             <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
           </label>
         </div>
         <article role="main">
-          <section id="meersolar-package">
-<h1>meersolar package<a class="headerlink" href="#meersolar-package" title="Link to this heading">¶</a></h1>
-<section id="subpackages">
-<h2>Subpackages<a class="headerlink" href="#subpackages" title="Link to this heading">¶</a></h2>
+          <section id="api-reference">
+<h1>API Reference<a class="headerlink" href="#api-reference" title="Link to this heading">¶</a></h1>
+<p>This page provides details of API of different modules of MeerSOLAR pipeline.</p>
 <div class="toctree-wrapper compound">
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="meersolar.crystalball.html">meersolar.crystalball package</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="meersolar.crystalball.html#submodules">Submodules</a></li>
-<li class="toctree-l2"><a class="reference internal" href="meersolar.crystalball.html#module-meersolar.crystalball.budget">meersolar.crystalball.budget module</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="meersolar.crystalball.html#meersolar.crystalball.budget.get_budget"><code class="docutils literal notranslate"><span class="pre">get_budget()</span></code></a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="meersolar.crystalball.html#module-meersolar.crystalball.crystalball">meersolar.crystalball.crystalball module</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="meersolar.crystalball.html#meersolar.crystalball.crystalball.create_parser"><code class="docutils literal notranslate"><span class="pre">create_parser()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="meersolar.crystalball.html#meersolar.crystalball.crystalball.fill_correlations"><code class="docutils literal notranslate"><span class="pre">fill_correlations()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="meersolar.crystalball.html#meersolar.crystalball.crystalball.predict"><code class="docutils literal notranslate"><span class="pre">predict()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="meersolar.crystalball.html#meersolar.crystalball.crystalball.source_model_to_dask"><code class="docutils literal notranslate"><span class="pre">source_model_to_dask()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="meersolar.crystalball.html#meersolar.crystalball.crystalball.support_tables"><code class="docutils literal notranslate"><span class="pre">support_tables()</span></code></a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="meersolar.crystalball.html#module-meersolar.crystalball.filtering">meersolar.crystalball.filtering module</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="meersolar.crystalball.html#meersolar.crystalball.filtering.filter_datasets"><code class="docutils literal notranslate"><span class="pre">filter_datasets()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="meersolar.crystalball.html#meersolar.crystalball.filtering.select_field_id"><code class="docutils literal notranslate"><span class="pre">select_field_id()</span></code></a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="meersolar.crystalball.html#module-meersolar.crystalball.logger_init">meersolar.crystalball.logger_init module</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="meersolar.crystalball.html#meersolar.crystalball.logger_init.InterceptHandler"><code class="docutils literal notranslate"><span class="pre">InterceptHandler</span></code></a><ul>
-<li class="toctree-l4"><a class="reference internal" href="meersolar.crystalball.html#meersolar.crystalball.logger_init.InterceptHandler.emit"><code class="docutils literal notranslate"><span class="pre">InterceptHandler.emit()</span></code></a></li>
-</ul>
-</li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="meersolar.crystalball.html#module-meersolar.crystalball.ms">meersolar.crystalball.ms module</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="meersolar.crystalball.html#meersolar.crystalball.ms.ms_preprocess"><code class="docutils literal notranslate"><span class="pre">ms_preprocess()</span></code></a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="meersolar.crystalball.html#module-meersolar.crystalball.region">meersolar.crystalball.region module</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="meersolar.crystalball.html#meersolar.crystalball.region.load_regions"><code class="docutils literal notranslate"><span class="pre">load_regions()</span></code></a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="meersolar.crystalball.html#module-meersolar.crystalball.wsclean">meersolar.crystalball.wsclean module</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="meersolar.crystalball.html#meersolar.crystalball.wsclean.WSCleanModel"><code class="docutils literal notranslate"><span class="pre">WSCleanModel</span></code></a><ul>
-<li class="toctree-l4"><a class="reference internal" href="meersolar.crystalball.html#meersolar.crystalball.wsclean.WSCleanModel.flux"><code class="docutils literal notranslate"><span class="pre">WSCleanModel.flux</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="meersolar.crystalball.html#meersolar.crystalball.wsclean.WSCleanModel.gauss_shape"><code class="docutils literal notranslate"><span class="pre">WSCleanModel.gauss_shape</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="meersolar.crystalball.html#meersolar.crystalball.wsclean.WSCleanModel.log_poly"><code class="docutils literal notranslate"><span class="pre">WSCleanModel.log_poly</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="meersolar.crystalball.html#meersolar.crystalball.wsclean.WSCleanModel.radec"><code class="docutils literal notranslate"><span class="pre">WSCleanModel.radec</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="meersolar.crystalball.html#meersolar.crystalball.wsclean.WSCleanModel.ref_freq"><code class="docutils literal notranslate"><span class="pre">WSCleanModel.ref_freq</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="meersolar.crystalball.html#meersolar.crystalball.wsclean.WSCleanModel.source_type"><code class="docutils literal notranslate"><span class="pre">WSCleanModel.source_type</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="meersolar.crystalball.html#meersolar.crystalball.wsclean.WSCleanModel.spi"><code class="docutils literal notranslate"><span class="pre">WSCleanModel.spi</span></code></a></li>
-</ul>
-</li>
-<li class="toctree-l3"><a class="reference internal" href="meersolar.crystalball.html#meersolar.crystalball.wsclean.import_from_wsclean"><code class="docutils literal notranslate"><span class="pre">import_from_wsclean()</span></code></a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="meersolar.crystalball.html#module-meersolar.crystalball">Module contents</a></li>
-</ul>
-</li>
-<li class="toctree-l1"><a class="reference internal" href="meersolar.pipeline.html">meersolar.pipeline package</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="meersolar.pipeline.html#submodules">Submodules</a></li>
-<li class="toctree-l2"><a class="reference internal" href="meersolar.pipeline.html#module-meersolar.pipeline.basic_cal">meersolar.pipeline.basic_cal module</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="meersolar.pipeline.html#meersolar.pipeline.basic_cal.main"><code class="docutils literal notranslate"><span class="pre">main()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="meersolar.pipeline.html#meersolar.pipeline.basic_cal.run_applycal"><code class="docutils literal notranslate"><span class="pre">run_applycal()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="meersolar.pipeline.html#meersolar.pipeline.basic_cal.run_bandpass"><code class="docutils literal notranslate"><span class="pre">run_bandpass()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="meersolar.pipeline.html#meersolar.pipeline.basic_cal.run_basic_cal_rounds"><code class="docutils literal notranslate"><span class="pre">run_basic_cal_rounds()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="meersolar.pipeline.html#meersolar.pipeline.basic_cal.run_delaycal"><code class="docutils literal notranslate"><span class="pre">run_delaycal()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="meersolar.pipeline.html#meersolar.pipeline.basic_cal.run_gaincal"><code class="docutils literal notranslate"><span class="pre">run_gaincal()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="meersolar.pipeline.html#meersolar.pipeline.basic_cal.run_leakagecal"><code class="docutils literal notranslate"><span class="pre">run_leakagecal()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="meersolar.pipeline.html#meersolar.pipeline.basic_cal.run_polcal"><code class="docutils literal notranslate"><span class="pre">run_polcal()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="meersolar.pipeline.html#meersolar.pipeline.basic_cal.run_postcal_flag"><code class="docutils literal notranslate"><span class="pre">run_postcal_flag()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="meersolar.pipeline.html#meersolar.pipeline.basic_cal.single_round_cal_and_flag"><code class="docutils literal notranslate"><span class="pre">single_round_cal_and_flag()</span></code></a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="meersolar.pipeline.html#module-meersolar.pipeline.basic_func">meersolar.pipeline.basic_func module</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="meersolar.pipeline.html#meersolar.pipeline.basic_func.LogTailHandler"><code class="docutils literal notranslate"><span class="pre">LogTailHandler</span></code></a><ul>
-<li class="toctree-l4"><a class="reference internal" href="meersolar.pipeline.html#meersolar.pipeline.basic_func.LogTailHandler.on_modified"><code class="docutils literal notranslate"><span class="pre">LogTailHandler.on_modified()</span></code></a></li>
-</ul>
-</li>
-<li class="toctree-l3"><a class="reference internal" href="meersolar.pipeline.html#meersolar.pipeline.basic_func.RemoteLogger"><code class="docutils literal notranslate"><span class="pre">RemoteLogger</span></code></a><ul>
-<li class="toctree-l4"><a class="reference internal" href="meersolar.pipeline.html#meersolar.pipeline.basic_func.RemoteLogger.emit"><code class="docutils literal notranslate"><span class="pre">RemoteLogger.emit()</span></code></a></li>
-</ul>
-</li>
-<li class="toctree-l3"><a class="reference internal" href="meersolar.pipeline.html#meersolar.pipeline.basic_func.angular_separation_equatorial"><code class="docutils literal notranslate"><span class="pre">angular_separation_equatorial()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="meersolar.pipeline.html#meersolar.pipeline.basic_func.average_timestamp"><code class="docutils literal notranslate"><span class="pre">average_timestamp()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="meersolar.pipeline.html#meersolar.pipeline.basic_func.baseline_names"><code class="docutils literal notranslate"><span class="pre">baseline_names()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="meersolar.pipeline.html#meersolar.pipeline.basic_func.calc_bw_smearing_freqwidth"><code class="docutils literal notranslate"><span class="pre">calc_bw_smearing_freqwidth()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="meersolar.pipeline.html#meersolar.pipeline.basic_func.calc_cellsize"><code class="docutils literal notranslate"><span class="pre">calc_cellsize()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="meersolar.pipeline.html#meersolar.pipeline.basic_func.calc_dyn_range"><code class="docutils literal notranslate"><span class="pre">calc_dyn_range()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="meersolar.pipeline.html#meersolar.pipeline.basic_func.calc_field_of_view"><code class="docutils literal notranslate"><span class="pre">calc_field_of_view()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="meersolar.pipeline.html#meersolar.pipeline.basic_func.calc_flag_fraction"><code class="docutils literal notranslate"><span class="pre">calc_flag_fraction()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="meersolar.pipeline.html#meersolar.pipeline.basic_func.calc_fractional_bandwidth"><code class="docutils literal notranslate"><span class="pre">calc_fractional_bandwidth()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="meersolar.pipeline.html#meersolar.pipeline.basic_func.calc_maxuv"><code class="docutils literal notranslate"><span class="pre">calc_maxuv()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="meersolar.pipeline.html#meersolar.pipeline.basic_func.calc_minuv"><code class="docutils literal notranslate"><span class="pre">calc_minuv()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="meersolar.pipeline.html#meersolar.pipeline.basic_func.calc_multiscale_scales"><code class="docutils literal notranslate"><span class="pre">calc_multiscale_scales()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="meersolar.pipeline.html#meersolar.pipeline.basic_func.calc_npix_in_psf"><code class="docutils literal notranslate"><span class="pre">calc_npix_in_psf()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="meersolar.pipeline.html#meersolar.pipeline.basic_func.calc_psf"><code class="docutils literal notranslate"><span class="pre">calc_psf()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="meersolar.pipeline.html#meersolar.pipeline.basic_func.calc_time_smearing_timewidth"><code class="docutils literal notranslate"><span class="pre">calc_time_smearing_timewidth()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="meersolar.pipeline.html#meersolar.pipeline.basic_func.ceil_to_multiple"><code class="docutils literal notranslate"><span class="pre">ceil_to_multiple()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="meersolar.pipeline.html#meersolar.pipeline.basic_func.check_datacolumn_valid"><code class="docutils literal notranslate"><span class="pre">check_datacolumn_valid()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="meersolar.pipeline.html#meersolar.pipeline.basic_func.check_scan_in_caltable"><code class="docutils literal notranslate"><span class="pre">check_scan_in_caltable()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="meersolar.pipeline.html#meersolar.pipeline.basic_func.check_udocker_container"><code class="docutils literal notranslate"><span class="pre">check_udocker_container()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="meersolar.pipeline.html#meersolar.pipeline.basic_func.clean_shutdown"><code class="docutils literal notranslate"><span class="pre">clean_shutdown()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="meersolar.pipeline.html#meersolar.pipeline.basic_func.correct_missing_col_subms"><code class="docutils literal notranslate"><span class="pre">correct_missing_col_subms()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="meersolar.pipeline.html#meersolar.pipeline.basic_func.correct_solar_sidereal_motion"><code class="docutils literal notranslate"><span class="pre">correct_solar_sidereal_motion()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="meersolar.pipeline.html#meersolar.pipeline.basic_func.create_batch_script_nonhpc"><code class="docutils literal notranslate"><span class="pre">create_batch_script_nonhpc()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="meersolar.pipeline.html#meersolar.pipeline.basic_func.create_circular_mask"><code class="docutils literal notranslate"><span class="pre">create_circular_mask()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="meersolar.pipeline.html#meersolar.pipeline.basic_func.create_logger"><code class="docutils literal notranslate"><span class="pre">create_logger()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="meersolar.pipeline.html#meersolar.pipeline.basic_func.cutout_image"><code class="docutils literal notranslate"><span class="pre">cutout_image()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="meersolar.pipeline.html#meersolar.pipeline.basic_func.delaycal"><code class="docutils literal notranslate"><span class="pre">delaycal()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="meersolar.pipeline.html#meersolar.pipeline.basic_func.determine_noise_diode_cal_scan"><code class="docutils literal notranslate"><span class="pre">determine_noise_diode_cal_scan()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="meersolar.pipeline.html#meersolar.pipeline.basic_func.do_flag_backup"><code class="docutils literal notranslate"><span class="pre">do_flag_backup()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="meersolar.pipeline.html#meersolar.pipeline.basic_func.enhance_offlimb"><code class="docutils literal notranslate"><span class="pre">enhance_offlimb()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="meersolar.pipeline.html#meersolar.pipeline.basic_func.flag_outside_uvrange"><code class="docutils literal notranslate"><span class="pre">flag_outside_uvrange()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="meersolar.pipeline.html#meersolar.pipeline.basic_func.generate_password"><code class="docutils literal notranslate"><span class="pre">generate_password()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="meersolar.pipeline.html#meersolar.pipeline.basic_func.generate_tb_map"><code class="docutils literal notranslate"><span class="pre">generate_tb_map()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="meersolar.pipeline.html#meersolar.pipeline.basic_func.get_bad_ants"><code class="docutils literal notranslate"><span class="pre">get_bad_ants()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="meersolar.pipeline.html#meersolar.pipeline.basic_func.get_bad_chans"><code class="docutils literal notranslate"><span class="pre">get_bad_chans()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="meersolar.pipeline.html#meersolar.pipeline.basic_func.get_band_name"><code class="docutils literal notranslate"><span class="pre">get_band_name()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="meersolar.pipeline.html#meersolar.pipeline.basic_func.get_cal_target_scans"><code class="docutils literal notranslate"><span class="pre">get_cal_target_scans()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="meersolar.pipeline.html#meersolar.pipeline.basic_func.get_caltable_fields"><code class="docutils literal notranslate"><span class="pre">get_caltable_fields()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="meersolar.pipeline.html#meersolar.pipeline.basic_func.get_chans_flag"><code class="docutils literal notranslate"><span class="pre">get_chans_flag()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="meersolar.pipeline.html#meersolar.pipeline.basic_func.get_chunk_size"><code class="docutils literal notranslate"><span class="pre">get_chunk_size()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="meersolar.pipeline.html#meersolar.pipeline.basic_func.get_column_size"><code class="docutils literal notranslate"><span class="pre">get_column_size()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="meersolar.pipeline.html#meersolar.pipeline.basic_func.get_common_spw"><code class="docutils literal notranslate"><span class="pre">get_common_spw()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="meersolar.pipeline.html#meersolar.pipeline.basic_func.get_dask_client"><code class="docutils literal notranslate"><span class="pre">get_dask_client()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="meersolar.pipeline.html#meersolar.pipeline.basic_func.get_datadir"><code class="docutils literal notranslate"><span class="pre">get_datadir()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="meersolar.pipeline.html#meersolar.pipeline.basic_func.get_fluxcals"><code class="docutils literal notranslate"><span class="pre">get_fluxcals()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="meersolar.pipeline.html#meersolar.pipeline.basic_func.get_good_chans"><code class="docutils literal notranslate"><span class="pre">get_good_chans()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="meersolar.pipeline.html#meersolar.pipeline.basic_func.get_jobid"><code class="docutils literal notranslate"><span class="pre">get_jobid()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="meersolar.pipeline.html#meersolar.pipeline.basic_func.get_logid"><code class="docutils literal notranslate"><span class="pre">get_logid()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="meersolar.pipeline.html#meersolar.pipeline.basic_func.get_meermap"><code class="docutils literal notranslate"><span class="pre">get_meermap()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="meersolar.pipeline.html#meersolar.pipeline.basic_func.get_ms_size"><code class="docutils literal notranslate"><span class="pre">get_ms_size()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="meersolar.pipeline.html#meersolar.pipeline.basic_func.get_multiscale_bias"><code class="docutils literal notranslate"><span class="pre">get_multiscale_bias()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="meersolar.pipeline.html#meersolar.pipeline.basic_func.get_nprocess_meersolar"><code class="docutils literal notranslate"><span class="pre">get_nprocess_meersolar()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="meersolar.pipeline.html#meersolar.pipeline.basic_func.get_optimal_image_interval"><code class="docutils literal notranslate"><span class="pre">get_optimal_image_interval()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="meersolar.pipeline.html#meersolar.pipeline.basic_func.get_phasecals"><code class="docutils literal notranslate"><span class="pre">get_phasecals()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="meersolar.pipeline.html#meersolar.pipeline.basic_func.get_phasecenter"><code class="docutils literal notranslate"><span class="pre">get_phasecenter()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="meersolar.pipeline.html#meersolar.pipeline.basic_func.get_polcals"><code class="docutils literal notranslate"><span class="pre">get_polcals()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="meersolar.pipeline.html#meersolar.pipeline.basic_func.get_refant"><code class="docutils literal notranslate"><span class="pre">get_refant()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="meersolar.pipeline.html#meersolar.pipeline.basic_func.get_remote_logger_link"><code class="docutils literal notranslate"><span class="pre">get_remote_logger_link()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="meersolar.pipeline.html#meersolar.pipeline.basic_func.get_solar_elevation_MeerKAT"><code class="docutils literal notranslate"><span class="pre">get_solar_elevation_MeerKAT()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="meersolar.pipeline.html#meersolar.pipeline.basic_func.get_submsname_scans"><code class="docutils literal notranslate"><span class="pre">get_submsname_scans()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="meersolar.pipeline.html#meersolar.pipeline.basic_func.get_suvi_map"><code class="docutils literal notranslate"><span class="pre">get_suvi_map()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="meersolar.pipeline.html#meersolar.pipeline.basic_func.get_target_fields"><code class="docutils literal notranslate"><span class="pre">get_target_fields()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="meersolar.pipeline.html#meersolar.pipeline.basic_func.get_timeranges_for_scan"><code class="docutils literal notranslate"><span class="pre">get_timeranges_for_scan()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="meersolar.pipeline.html#meersolar.pipeline.basic_func.get_unflagged_antennas"><code class="docutils literal notranslate"><span class="pre">get_unflagged_antennas()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="meersolar.pipeline.html#meersolar.pipeline.basic_func.get_valid_scans"><code class="docutils literal notranslate"><span class="pre">get_valid_scans()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="meersolar.pipeline.html#meersolar.pipeline.basic_func.init_logger"><code class="docutils literal notranslate"><span class="pre">init_logger()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="meersolar.pipeline.html#meersolar.pipeline.basic_func.init_udocker"><code class="docutils literal notranslate"><span class="pre">init_udocker()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="meersolar.pipeline.html#meersolar.pipeline.basic_func.initialize_wsclean_container"><code class="docutils literal notranslate"><span class="pre">initialize_wsclean_container()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="meersolar.pipeline.html#meersolar.pipeline.basic_func.kill_job"><code class="docutils literal notranslate"><span class="pre">kill_job()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="meersolar.pipeline.html#meersolar.pipeline.basic_func.limit_threads"><code class="docutils literal notranslate"><span class="pre">limit_threads()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="meersolar.pipeline.html#meersolar.pipeline.basic_func.make_ds_plot"><code class="docutils literal notranslate"><span class="pre">make_ds_plot()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="meersolar.pipeline.html#meersolar.pipeline.basic_func.make_freqavg_image"><code class="docutils literal notranslate"><span class="pre">make_freqavg_image()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="meersolar.pipeline.html#meersolar.pipeline.basic_func.make_meer_overlay"><code class="docutils literal notranslate"><span class="pre">make_meer_overlay()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="meersolar.pipeline.html#meersolar.pipeline.basic_func.make_solar_DS"><code class="docutils literal notranslate"><span class="pre">make_solar_DS()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="meersolar.pipeline.html#meersolar.pipeline.basic_func.make_stokes_wsclean_imagecube"><code class="docutils literal notranslate"><span class="pre">make_stokes_wsclean_imagecube()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="meersolar.pipeline.html#meersolar.pipeline.basic_func.make_timeavg_image"><code class="docutils literal notranslate"><span class="pre">make_timeavg_image()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="meersolar.pipeline.html#meersolar.pipeline.basic_func.max_time_solar_smearing"><code class="docutils literal notranslate"><span class="pre">max_time_solar_smearing()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="meersolar.pipeline.html#meersolar.pipeline.basic_func.merge_caltables"><code class="docutils literal notranslate"><span class="pre">merge_caltables()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="meersolar.pipeline.html#meersolar.pipeline.basic_func.mjdsec_to_timestamp"><code class="docutils literal notranslate"><span class="pre">mjdsec_to_timestamp()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="meersolar.pipeline.html#meersolar.pipeline.basic_func.move_to_sun"><code class="docutils literal notranslate"><span class="pre">move_to_sun()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="meersolar.pipeline.html#meersolar.pipeline.basic_func.ping_logger"><code class="docutils literal notranslate"><span class="pre">ping_logger()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="meersolar.pipeline.html#meersolar.pipeline.basic_func.plot_goes_full_timeseries"><code class="docutils literal notranslate"><span class="pre">plot_goes_full_timeseries()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="meersolar.pipeline.html#meersolar.pipeline.basic_func.plot_in_hpc"><code class="docutils literal notranslate"><span class="pre">plot_in_hpc()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="meersolar.pipeline.html#meersolar.pipeline.basic_func.radec_sun"><code class="docutils literal notranslate"><span class="pre">radec_sun()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="meersolar.pipeline.html#meersolar.pipeline.basic_func.reset_weights_and_flags"><code class="docutils literal notranslate"><span class="pre">reset_weights_and_flags()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="meersolar.pipeline.html#meersolar.pipeline.basic_func.run_chgcenter"><code class="docutils literal notranslate"><span class="pre">run_chgcenter()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="meersolar.pipeline.html#meersolar.pipeline.basic_func.run_limited_memory_task"><code class="docutils literal notranslate"><span class="pre">run_limited_memory_task()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="meersolar.pipeline.html#meersolar.pipeline.basic_func.run_solar_sidereal_cor"><code class="docutils literal notranslate"><span class="pre">run_solar_sidereal_cor()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="meersolar.pipeline.html#meersolar.pipeline.basic_func.run_wsclean"><code class="docutils literal notranslate"><span class="pre">run_wsclean()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="meersolar.pipeline.html#meersolar.pipeline.basic_func.save_main_process_info"><code class="docutils literal notranslate"><span class="pre">save_main_process_info()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="meersolar.pipeline.html#meersolar.pipeline.basic_func.save_pid"><code class="docutils literal notranslate"><span class="pre">save_pid()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="meersolar.pipeline.html#meersolar.pipeline.basic_func.scans_in_timerange"><code class="docutils literal notranslate"><span class="pre">scans_in_timerange()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="meersolar.pipeline.html#meersolar.pipeline.basic_func.split_into_chunks"><code class="docutils literal notranslate"><span class="pre">split_into_chunks()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="meersolar.pipeline.html#meersolar.pipeline.basic_func.split_noise_diode_scans"><code class="docutils literal notranslate"><span class="pre">split_noise_diode_scans()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="meersolar.pipeline.html#meersolar.pipeline.basic_func.timestamp_to_mjdsec"><code class="docutils literal notranslate"><span class="pre">timestamp_to_mjdsec()</span></code></a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="meersolar.pipeline.html#module-meersolar.pipeline.do_apply_basiccal">meersolar.pipeline.do_apply_basiccal module</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="meersolar.pipeline.html#meersolar.pipeline.do_apply_basiccal.applysol"><code class="docutils literal notranslate"><span class="pre">applysol()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="meersolar.pipeline.html#meersolar.pipeline.do_apply_basiccal.filter_outliers"><code class="docutils literal notranslate"><span class="pre">filter_outliers()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="meersolar.pipeline.html#meersolar.pipeline.do_apply_basiccal.interpolate_nans"><code class="docutils literal notranslate"><span class="pre">interpolate_nans()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="meersolar.pipeline.html#meersolar.pipeline.do_apply_basiccal.main"><code class="docutils literal notranslate"><span class="pre">main()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="meersolar.pipeline.html#meersolar.pipeline.do_apply_basiccal.run_all_applysol"><code class="docutils literal notranslate"><span class="pre">run_all_applysol()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="meersolar.pipeline.html#meersolar.pipeline.do_apply_basiccal.scale_bandpass"><code class="docutils literal notranslate"><span class="pre">scale_bandpass()</span></code></a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="meersolar.pipeline.html#module-meersolar.pipeline.do_apply_selfcal">meersolar.pipeline.do_apply_selfcal module</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="meersolar.pipeline.html#meersolar.pipeline.do_apply_selfcal.main"><code class="docutils literal notranslate"><span class="pre">main()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="meersolar.pipeline.html#meersolar.pipeline.do_apply_selfcal.run_all_applysol"><code class="docutils literal notranslate"><span class="pre">run_all_applysol()</span></code></a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="meersolar.pipeline.html#module-meersolar.pipeline.do_fluxcal">meersolar.pipeline.do_fluxcal module</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="meersolar.pipeline.html#meersolar.pipeline.do_fluxcal.estimate_att"><code class="docutils literal notranslate"><span class="pre">estimate_att()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="meersolar.pipeline.html#meersolar.pipeline.do_fluxcal.get_att_per_ant"><code class="docutils literal notranslate"><span class="pre">get_att_per_ant()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="meersolar.pipeline.html#meersolar.pipeline.do_fluxcal.get_on_off_power"><code class="docutils literal notranslate"><span class="pre">get_on_off_power()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="meersolar.pipeline.html#meersolar.pipeline.do_fluxcal.get_power_diff"><code class="docutils literal notranslate"><span class="pre">get_power_diff()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="meersolar.pipeline.html#meersolar.pipeline.do_fluxcal.main"><code class="docutils literal notranslate"><span class="pre">main()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="meersolar.pipeline.html#meersolar.pipeline.do_fluxcal.run_noise_cal"><code class="docutils literal notranslate"><span class="pre">run_noise_cal()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="meersolar.pipeline.html#meersolar.pipeline.do_fluxcal.split_autocorr"><code class="docutils literal notranslate"><span class="pre">split_autocorr()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="meersolar.pipeline.html#meersolar.pipeline.do_fluxcal.split_casatask"><code class="docutils literal notranslate"><span class="pre">split_casatask()</span></code></a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="meersolar.pipeline.html#module-meersolar.pipeline.do_imaging">meersolar.pipeline.do_imaging module</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="meersolar.pipeline.html#meersolar.pipeline.do_imaging.main"><code class="docutils literal notranslate"><span class="pre">main()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="meersolar.pipeline.html#meersolar.pipeline.do_imaging.perform_imaging"><code class="docutils literal notranslate"><span class="pre">perform_imaging()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="meersolar.pipeline.html#meersolar.pipeline.do_imaging.rename_image"><code class="docutils literal notranslate"><span class="pre">rename_image()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="meersolar.pipeline.html#meersolar.pipeline.do_imaging.run_all_imaging"><code class="docutils literal notranslate"><span class="pre">run_all_imaging()</span></code></a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="meersolar.pipeline.html#module-meersolar.pipeline.do_partition">meersolar.pipeline.do_partition module</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="meersolar.pipeline.html#meersolar.pipeline.do_partition.main"><code class="docutils literal notranslate"><span class="pre">main()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="meersolar.pipeline.html#meersolar.pipeline.do_partition.partion_ms"><code class="docutils literal notranslate"><span class="pre">partion_ms()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="meersolar.pipeline.html#meersolar.pipeline.do_partition.single_mstransform"><code class="docutils literal notranslate"><span class="pre">single_mstransform()</span></code></a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="meersolar.pipeline.html#module-meersolar.pipeline.do_selfcal">meersolar.pipeline.do_selfcal module</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="meersolar.pipeline.html#meersolar.pipeline.do_selfcal.do_selfcal"><code class="docutils literal notranslate"><span class="pre">do_selfcal()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="meersolar.pipeline.html#meersolar.pipeline.do_selfcal.main"><code class="docutils literal notranslate"><span class="pre">main()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="meersolar.pipeline.html#meersolar.pipeline.do_selfcal.single_selfcal_iteration"><code class="docutils literal notranslate"><span class="pre">single_selfcal_iteration()</span></code></a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="meersolar.pipeline.html#module-meersolar.pipeline.do_sidereal_cor">meersolar.pipeline.do_sidereal_cor module</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="meersolar.pipeline.html#meersolar.pipeline.do_sidereal_cor.cor_sidereal_motion"><code class="docutils literal notranslate"><span class="pre">cor_sidereal_motion()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="meersolar.pipeline.html#meersolar.pipeline.do_sidereal_cor.main"><code class="docutils literal notranslate"><span class="pre">main()</span></code></a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="meersolar.pipeline.html#module-meersolar.pipeline.do_target_split">meersolar.pipeline.do_target_split module</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="meersolar.pipeline.html#meersolar.pipeline.do_target_split.chanlist_to_str"><code class="docutils literal notranslate"><span class="pre">chanlist_to_str()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="meersolar.pipeline.html#meersolar.pipeline.do_target_split.main"><code class="docutils literal notranslate"><span class="pre">main()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="meersolar.pipeline.html#meersolar.pipeline.do_target_split.split_scan"><code class="docutils literal notranslate"><span class="pre">split_scan()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="meersolar.pipeline.html#meersolar.pipeline.do_target_split.split_target_scans"><code class="docutils literal notranslate"><span class="pre">split_target_scans()</span></code></a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="meersolar.pipeline.html#module-meersolar.pipeline.flagging">meersolar.pipeline.flagging module</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="meersolar.pipeline.html#meersolar.pipeline.flagging.do_flagging"><code class="docutils literal notranslate"><span class="pre">do_flagging()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="meersolar.pipeline.html#meersolar.pipeline.flagging.main"><code class="docutils literal notranslate"><span class="pre">main()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="meersolar.pipeline.html#meersolar.pipeline.flagging.single_ms_flag"><code class="docutils literal notranslate"><span class="pre">single_ms_flag()</span></code></a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="meersolar.pipeline.html#module-meersolar.pipeline.import_model">meersolar.pipeline.import_model module</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="meersolar.pipeline.html#meersolar.pipeline.import_model.get_polmodel_coeff"><code class="docutils literal notranslate"><span class="pre">get_polmodel_coeff()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="meersolar.pipeline.html#meersolar.pipeline.import_model.import_all_models"><code class="docutils literal notranslate"><span class="pre">import_all_models()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="meersolar.pipeline.html#meersolar.pipeline.import_model.import_fluxcal_models"><code class="docutils literal notranslate"><span class="pre">import_fluxcal_models()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="meersolar.pipeline.html#meersolar.pipeline.import_model.import_phasecal_models"><code class="docutils literal notranslate"><span class="pre">import_phasecal_models()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="meersolar.pipeline.html#meersolar.pipeline.import_model.import_polcal_model"><code class="docutils literal notranslate"><span class="pre">import_polcal_model()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="meersolar.pipeline.html#meersolar.pipeline.import_model.main"><code class="docutils literal notranslate"><span class="pre">main()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="meersolar.pipeline.html#meersolar.pipeline.import_model.phasecal_setjy"><code class="docutils literal notranslate"><span class="pre">phasecal_setjy()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="meersolar.pipeline.html#meersolar.pipeline.import_model.polcal_setjy"><code class="docutils literal notranslate"><span class="pre">polcal_setjy()</span></code></a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="meersolar.pipeline.html#module-meersolar.pipeline.init_data">meersolar.pipeline.init_data module</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="meersolar.pipeline.html#meersolar.pipeline.init_data.download_with_parfive"><code class="docutils literal notranslate"><span class="pre">download_with_parfive()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="meersolar.pipeline.html#meersolar.pipeline.init_data.get_zenodo_file_urls"><code class="docutils literal notranslate"><span class="pre">get_zenodo_file_urls()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="meersolar.pipeline.html#meersolar.pipeline.init_data.init_meersolar_data"><code class="docutils literal notranslate"><span class="pre">init_meersolar_data()</span></code></a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="meersolar.pipeline.html#module-meersolar.pipeline.master_controller">meersolar.pipeline.master_controller module</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="meersolar.pipeline.html#meersolar.pipeline.master_controller.check_status"><code class="docutils literal notranslate"><span class="pre">check_status()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="meersolar.pipeline.html#meersolar.pipeline.master_controller.exit_job"><code class="docutils literal notranslate"><span class="pre">exit_job()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="meersolar.pipeline.html#meersolar.pipeline.master_controller.main"><code class="docutils literal notranslate"><span class="pre">main()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="meersolar.pipeline.html#meersolar.pipeline.master_controller.master_control"><code class="docutils literal notranslate"><span class="pre">master_control()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="meersolar.pipeline.html#meersolar.pipeline.master_controller.run_apply_basiccal_sol"><code class="docutils literal notranslate"><span class="pre">run_apply_basiccal_sol()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="meersolar.pipeline.html#meersolar.pipeline.master_controller.run_apply_pbcor"><code class="docutils literal notranslate"><span class="pre">run_apply_pbcor()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="meersolar.pipeline.html#meersolar.pipeline.master_controller.run_apply_selfcal_sol"><code class="docutils literal notranslate"><span class="pre">run_apply_selfcal_sol()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="meersolar.pipeline.html#meersolar.pipeline.master_controller.run_basic_cal_jobs"><code class="docutils literal notranslate"><span class="pre">run_basic_cal_jobs()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="meersolar.pipeline.html#meersolar.pipeline.master_controller.run_flag"><code class="docutils literal notranslate"><span class="pre">run_flag()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="meersolar.pipeline.html#meersolar.pipeline.master_controller.run_imaging_jobs"><code class="docutils literal notranslate"><span class="pre">run_imaging_jobs()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="meersolar.pipeline.html#meersolar.pipeline.master_controller.run_import_model"><code class="docutils literal notranslate"><span class="pre">run_import_model()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="meersolar.pipeline.html#meersolar.pipeline.master_controller.run_noise_diode_cal"><code class="docutils literal notranslate"><span class="pre">run_noise_diode_cal()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="meersolar.pipeline.html#meersolar.pipeline.master_controller.run_partion"><code class="docutils literal notranslate"><span class="pre">run_partion()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="meersolar.pipeline.html#meersolar.pipeline.master_controller.run_selfcal_jobs"><code class="docutils literal notranslate"><span class="pre">run_selfcal_jobs()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="meersolar.pipeline.html#meersolar.pipeline.master_controller.run_sidereal_cor_jobs"><code class="docutils literal notranslate"><span class="pre">run_sidereal_cor_jobs()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="meersolar.pipeline.html#meersolar.pipeline.master_controller.run_target_split_jobs"><code class="docutils literal notranslate"><span class="pre">run_target_split_jobs()</span></code></a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="meersolar.pipeline.html#module-meersolar.pipeline.meer_pbcor">meersolar.pipeline.meer_pbcor module</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="meersolar.pipeline.html#meersolar.pipeline.meer_pbcor.get_fits_freq"><code class="docutils literal notranslate"><span class="pre">get_fits_freq()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="meersolar.pipeline.html#meersolar.pipeline.meer_pbcor.main"><code class="docutils literal notranslate"><span class="pre">main()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="meersolar.pipeline.html#meersolar.pipeline.meer_pbcor.pbcor_all_images"><code class="docutils literal notranslate"><span class="pre">pbcor_all_images()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="meersolar.pipeline.html#meersolar.pipeline.meer_pbcor.run_pbcor"><code class="docutils literal notranslate"><span class="pre">run_pbcor()</span></code></a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="meersolar.pipeline.html#module-meersolar.pipeline.single_image_meerpbcor">meersolar.pipeline.single_image_meerpbcor module</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="meersolar.pipeline.html#meersolar.pipeline.single_image_meerpbcor.apply_parallactic_rotation"><code class="docutils literal notranslate"><span class="pre">apply_parallactic_rotation()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="meersolar.pipeline.html#meersolar.pipeline.single_image_meerpbcor.get_IQUV"><code class="docutils literal notranslate"><span class="pre">get_IQUV()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="meersolar.pipeline.html#meersolar.pipeline.single_image_meerpbcor.get_beam_interpolator"><code class="docutils literal notranslate"><span class="pre">get_beam_interpolator()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="meersolar.pipeline.html#meersolar.pipeline.single_image_meerpbcor.get_brightness"><code class="docutils literal notranslate"><span class="pre">get_brightness()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="meersolar.pipeline.html#meersolar.pipeline.single_image_meerpbcor.get_image_beam"><code class="docutils literal notranslate"><span class="pre">get_image_beam()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="meersolar.pipeline.html#meersolar.pipeline.single_image_meerpbcor.get_parallactic_angle"><code class="docutils literal notranslate"><span class="pre">get_parallactic_angle()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="meersolar.pipeline.html#meersolar.pipeline.single_image_meerpbcor.get_pbcor_image"><code class="docutils literal notranslate"><span class="pre">get_pbcor_image()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="meersolar.pipeline.html#meersolar.pipeline.single_image_meerpbcor.get_pointingcenter_radec"><code class="docutils literal notranslate"><span class="pre">get_pointingcenter_radec()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="meersolar.pipeline.html#meersolar.pipeline.single_image_meerpbcor.get_radec_grid"><code class="docutils literal notranslate"><span class="pre">get_radec_grid()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="meersolar.pipeline.html#meersolar.pipeline.single_image_meerpbcor.load_beam"><code class="docutils literal notranslate"><span class="pre">load_beam()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="meersolar.pipeline.html#meersolar.pipeline.single_image_meerpbcor.main"><code class="docutils literal notranslate"><span class="pre">main()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="meersolar.pipeline.html#meersolar.pipeline.single_image_meerpbcor.make_stokes"><code class="docutils literal notranslate"><span class="pre">make_stokes()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="meersolar.pipeline.html#meersolar.pipeline.single_image_meerpbcor.put_IQUV"><code class="docutils literal notranslate"><span class="pre">put_IQUV()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="meersolar.pipeline.html#meersolar.pipeline.single_image_meerpbcor.radec_to_lm"><code class="docutils literal notranslate"><span class="pre">radec_to_lm()</span></code></a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="meersolar.pipeline.html#module-meersolar.pipeline.viewer">meersolar.pipeline.viewer module</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="meersolar.pipeline.html#meersolar.pipeline.viewer.LogViewer"><code class="docutils literal notranslate"><span class="pre">LogViewer</span></code></a><ul>
-<li class="toctree-l4"><a class="reference internal" href="meersolar.pipeline.html#meersolar.pipeline.viewer.LogViewer.append_log_line"><code class="docutils literal notranslate"><span class="pre">LogViewer.append_log_line()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="meersolar.pipeline.html#meersolar.pipeline.viewer.LogViewer.calc_list_width"><code class="docutils literal notranslate"><span class="pre">LogViewer.calc_list_width()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="meersolar.pipeline.html#meersolar.pipeline.viewer.LogViewer.closeEvent"><code class="docutils literal notranslate"><span class="pre">LogViewer.closeEvent()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="meersolar.pipeline.html#meersolar.pipeline.viewer.LogViewer.load_log_content"><code class="docutils literal notranslate"><span class="pre">LogViewer.load_log_content()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="meersolar.pipeline.html#meersolar.pipeline.viewer.LogViewer.refresh_logs"><code class="docutils literal notranslate"><span class="pre">LogViewer.refresh_logs()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="meersolar.pipeline.html#meersolar.pipeline.viewer.LogViewer.setup_ui"><code class="docutils literal notranslate"><span class="pre">LogViewer.setup_ui()</span></code></a></li>
-</ul>
-</li>
-<li class="toctree-l3"><a class="reference internal" href="meersolar.pipeline.html#meersolar.pipeline.viewer.TailWatcher"><code class="docutils literal notranslate"><span class="pre">TailWatcher</span></code></a><ul>
-<li class="toctree-l4"><a class="reference internal" href="meersolar.pipeline.html#meersolar.pipeline.viewer.TailWatcher.new_line"><code class="docutils literal notranslate"><span class="pre">TailWatcher.new_line</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="meersolar.pipeline.html#meersolar.pipeline.viewer.TailWatcher.on_modified"><code class="docutils literal notranslate"><span class="pre">TailWatcher.on_modified()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="meersolar.pipeline.html#meersolar.pipeline.viewer.TailWatcher.start"><code class="docutils literal notranslate"><span class="pre">TailWatcher.start()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="meersolar.pipeline.html#meersolar.pipeline.viewer.TailWatcher.stop"><code class="docutils literal notranslate"><span class="pre">TailWatcher.stop()</span></code></a></li>
-</ul>
-</li>
-<li class="toctree-l3"><a class="reference internal" href="meersolar.pipeline.html#meersolar.pipeline.viewer.get_datadir"><code class="docutils literal notranslate"><span class="pre">get_datadir()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="meersolar.pipeline.html#meersolar.pipeline.viewer.get_logid"><code class="docutils literal notranslate"><span class="pre">get_logid()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="meersolar.pipeline.html#meersolar.pipeline.viewer.main"><code class="docutils literal notranslate"><span class="pre">main()</span></code></a></li>
-</ul>
-</li>
+<li class="toctree-l1"><a class="reference internal" href="meersolar.pipeline.html">Meersolar Pipeline Module</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="meersolar.pipeline.html#module-meersolar.pipeline.basic_cal">meersolar.pipeline.basic_cal module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="meersolar.pipeline.html#module-meersolar.pipeline.basic_func">meersolar.pipeline.basic_func module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="meersolar.pipeline.html#module-meersolar.pipeline.do_apply_basiccal">meersolar.pipeline.do_apply_basiccal module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="meersolar.pipeline.html#module-meersolar.pipeline.do_apply_selfcal">meersolar.pipeline.do_apply_selfcal module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="meersolar.pipeline.html#module-meersolar.pipeline.do_fluxcal">meersolar.pipeline.do_fluxcal module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="meersolar.pipeline.html#module-meersolar.pipeline.do_imaging">meersolar.pipeline.do_imaging module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="meersolar.pipeline.html#module-meersolar.pipeline.do_partition">meersolar.pipeline.do_partition module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="meersolar.pipeline.html#module-meersolar.pipeline.do_selfcal">meersolar.pipeline.do_selfcal module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="meersolar.pipeline.html#module-meersolar.pipeline.do_sidereal_cor">meersolar.pipeline.do_sidereal_cor module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="meersolar.pipeline.html#module-meersolar.pipeline.do_target_split">meersolar.pipeline.do_target_split module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="meersolar.pipeline.html#module-meersolar.pipeline.flagging">meersolar.pipeline.flagging module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="meersolar.pipeline.html#module-meersolar.pipeline.import_model">meersolar.pipeline.import_model module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="meersolar.pipeline.html#module-meersolar.pipeline.init_data">meersolar.pipeline.init_data module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="meersolar.pipeline.html#module-meersolar.pipeline.master_controller">meersolar.pipeline.master_controller module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="meersolar.pipeline.html#module-meersolar.pipeline.meer_pbcor">meersolar.pipeline.meer_pbcor module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="meersolar.pipeline.html#module-meersolar.pipeline.single_image_meerpbcor">meersolar.pipeline.single_image_meerpbcor module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="meersolar.pipeline.html#module-meersolar.pipeline.viewer">meersolar.pipeline.viewer module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="meersolar.pipeline.html#module-meersolar.pipeline">Module contents</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="meersolar.crystalball.html">Crystalball Module</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="meersolar.crystalball.html#module-meersolar.crystalball.budget">meersolar.crystalball.budget module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="meersolar.crystalball.html#module-meersolar.crystalball.crystalball">meersolar.crystalball.crystalball module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="meersolar.crystalball.html#module-meersolar.crystalball.filtering">meersolar.crystalball.filtering module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="meersolar.crystalball.html#module-meersolar.crystalball.logger_init">meersolar.crystalball.logger_init module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="meersolar.crystalball.html#module-meersolar.crystalball.ms">meersolar.crystalball.ms module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="meersolar.crystalball.html#module-meersolar.crystalball.region">meersolar.crystalball.region module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="meersolar.crystalball.html#module-meersolar.crystalball.wsclean">meersolar.crystalball.wsclean module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="meersolar.crystalball.html#module-meersolar.crystalball">Module contents</a></li>
 </ul>
 </li>
 </ul>
 </div>
-</section>
-<section id="module-meersolar">
-<span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-meersolar" title="Link to this heading">¶</a></h2>
-</section>
 </section>
 
         </article>
@@ -526,8 +252,26 @@
       <footer>
         
         <div class="related-pages">
-          
-          
+          <a class="next-page" href="meersolar.pipeline.html">
+              <div class="page-info">
+                <div class="context">
+                  <span>Next</span>
+                </div>
+                <div class="title">Meersolar Pipeline Module</div>
+              </div>
+              <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
+            </a>
+          <a class="prev-page" href="initial_setup.html">
+              <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
+              <div class="page-info">
+                <div class="context">
+                  <span>Previous</span>
+                </div>
+                
+                <div class="title">Initial setup</div>
+                
+              </div>
+            </a>
         </div>
         <div class="bottom-of-page">
           <div class="left-details">
@@ -546,33 +290,13 @@
         
       </footer>
     </div>
-    <aside class="toc-drawer">
+    <aside class="toc-drawer no-toc">
       
-      
-      <div class="toc-sticky toc-scroll">
-        <div class="toc-title-container">
-          <span class="toc-title">
-            On this page
-          </span>
-        </div>
-        <div class="toc-tree-container">
-          <div class="toc-tree">
-            <ul>
-<li><a class="reference internal" href="#">meersolar package</a><ul>
-<li><a class="reference internal" href="#subpackages">Subpackages</a></li>
-<li><a class="reference internal" href="#module-meersolar">Module contents</a></li>
-</ul>
-</li>
-</ul>
-
-          </div>
-        </div>
-      </div>
       
       
     </aside>
   </div>
-</div><script src="_static/documentation_options.js?v=8d563738"></script>
+</div><script src="_static/documentation_options.js?v=4ebf8126"></script>
     <script src="_static/doctools.js?v=9a2dae69"></script>
     <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="_static/scripts/furo.js?v=32e29ea5"></script>

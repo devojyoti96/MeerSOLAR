@@ -5,7 +5,7 @@
     <meta name="color-scheme" content="light dark"><link rel="index" title="Index" href="../../../genindex.html" /><link rel="search" title="Search" href="../../../search.html" />
 
     <!-- Generated with Sphinx 7.4.7 and Furo 2024.01.29 -->
-        <title>meersolar.pipeline.do_selfcal - MeerSOLAR 1.0.0 documentation</title>
+        <title>meersolar.pipeline.do_selfcal - MeerSOLAR</title>
       <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=a746c00c" />
     <link rel="stylesheet" type="text/css" href="../../../_static/styles/furo.css?v=135e06be" />
     <link rel="stylesheet" type="text/css" href="../../../_static/copybutton.css?v=76b2166b" />
@@ -123,7 +123,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="../../../index.html"><div class="brand">MeerSOLAR 1.0.0 documentation</div></a>
+      <a href="../../../index.html"><div class="brand">MeerSOLAR</div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -145,8 +145,12 @@
       
       <div class="sidebar-sticky"><a class="sidebar-brand" href="../../../index.html">
   
+  <div class="sidebar-logo-container">
+    <img class="sidebar-logo only-light" src="../../../_static/yourlogo-light.png" alt="Light Logo"/>
+    <img class="sidebar-logo only-dark" src="../../../_static/yourlogo-dark.png" alt="Dark Logo"/>
+  </div>
   
-  <span class="sidebar-brand-text">MeerSOLAR 1.0.0 documentation</span>
+  <span class="sidebar-brand-text">MeerSOLAR</span>
   
 </a><form class="sidebar-search-container" method="get" action="../../../search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
@@ -154,7 +158,21 @@
   <input type="hidden" name="area" value="default">
 </form>
 <div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
-  
+  <ul>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../../../install.html">Installation and Initial Setup</a><input class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><div class="visually-hidden">Toggle navigation of Installation and Initial Setup</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../install_conda.html">Installing Conda: Anaconda or Miniconda</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../activate_conda.html">Creating and Activating Conda Environment</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../install_meersolar.html">Install MeerSOLAR</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../initial_setup.html">Initial setup</a></li>
+</ul>
+</li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../../../meersolar.html">API Reference</a><input class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" role="switch" type="checkbox"/><label for="toctree-checkbox-2"><div class="visually-hidden">Toggle navigation of API Reference</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../meersolar.pipeline.html">Meersolar Pipeline Module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../meersolar.crystalball.html">Crystalball Module</a></li>
+</ul>
+</li>
+</ul>
+
 </div>
 </div>
 
@@ -187,11 +205,10 @@
         </div>
         <article role="main">
           <h1>Source code for meersolar.pipeline.do_selfcal</h1><div class="highlight"><pre>
-<span></span><span class="kn">import</span> <span class="nn">os</span><span class="o">,</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span><span class="o">,</span> <span class="nn">copy</span><span class="o">,</span> <span class="nn">psutil</span><span class="o">,</span> <span class="nn">gc</span><span class="o">,</span> <span class="nn">traceback</span><span class="o">,</span> <span class="nn">resource</span><span class="o">,</span> <span class="nn">time</span>
+<span></span><span class="kn">import</span> <span class="nn">os</span><span class="o">,</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span><span class="o">,</span> <span class="nn">copy</span><span class="o">,</span> <span class="nn">psutil</span><span class="o">,</span> <span class="nn">gc</span><span class="o">,</span> <span class="nn">traceback</span><span class="o">,</span> <span class="nn">resource</span><span class="o">,</span> <span class="nn">time</span><span class="o">,</span> <span class="nn">argparse</span>
 <span class="kn">from</span> <span class="nn">astropy.io</span> <span class="kn">import</span> <span class="n">fits</span>
 <span class="kn">from</span> <span class="nn">meersolar.pipeline.basic_func</span> <span class="kn">import</span> <span class="o">*</span>
 <span class="kn">from</span> <span class="nn">dask</span> <span class="kn">import</span> <span class="n">delayed</span><span class="p">,</span> <span class="n">compute</span><span class="p">,</span> <span class="n">config</span>
-<span class="kn">from</span> <span class="nn">optparse</span> <span class="kn">import</span> <span class="n">OptionParser</span>
 <span class="kn">from</span> <span class="nn">functools</span> <span class="kn">import</span> <span class="n">partial</span>
 <span class="kn">from</span> <span class="nn">casatasks</span> <span class="kn">import</span> <span class="n">casalog</span>
 
@@ -200,6 +217,7 @@
     <span class="n">os</span><span class="o">.</span><span class="n">system</span><span class="p">(</span><span class="s2">&quot;rm -rf &quot;</span> <span class="o">+</span> <span class="n">casalogfile</span><span class="p">)</span>
 <span class="k">except</span><span class="p">:</span>
     <span class="k">pass</span>
+
 
 <div class="viewcode-block" id="single_selfcal_iteration">
 <a class="viewcode-back" href="../../../meersolar.pipeline.html#meersolar.pipeline.do_selfcal.single_selfcal_iteration">[docs]</a>
@@ -592,7 +610,8 @@
         <span class="c1"># Restoring flags if applymode is calflag</span>
         <span class="c1">#########################################</span>
         <span class="k">if</span> <span class="n">applymode</span> <span class="o">==</span> <span class="s2">&quot;calflag&quot;</span><span class="p">:</span>
-            <span class="n">flags</span> <span class="o">=</span> <span class="n">flagmanager</span><span class="p">(</span><span class="n">vis</span><span class="o">=</span><span class="n">msname</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;list&quot;</span><span class="p">)</span>
+            <span class="k">with</span> <span class="n">suppress_casa_output</span><span class="p">():</span>    
+                <span class="n">flags</span> <span class="o">=</span> <span class="n">flagmanager</span><span class="p">(</span><span class="n">vis</span><span class="o">=</span><span class="n">msname</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;list&quot;</span><span class="p">)</span>
             <span class="n">keys</span> <span class="o">=</span> <span class="n">flags</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span>
             <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">keys</span><span class="p">:</span>
                 <span class="k">if</span> <span class="n">k</span> <span class="o">==</span> <span class="s2">&quot;MS&quot;</span><span class="p">:</span>
@@ -601,8 +620,9 @@
                     <span class="n">version</span> <span class="o">=</span> <span class="n">flags</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s2">&quot;name&quot;</span><span class="p">]</span>
                     <span class="k">if</span> <span class="s2">&quot;applycal&quot;</span> <span class="ow">in</span> <span class="n">version</span><span class="p">:</span>
                         <span class="k">try</span><span class="p">:</span>
-                            <span class="n">flagmanager</span><span class="p">(</span><span class="n">vis</span><span class="o">=</span><span class="n">msname</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;restore&quot;</span><span class="p">,</span> <span class="n">versionname</span><span class="o">=</span><span class="n">version</span><span class="p">)</span>
-                            <span class="n">flagmanager</span><span class="p">(</span><span class="n">vis</span><span class="o">=</span><span class="n">msname</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;delete&quot;</span><span class="p">,</span> <span class="n">versionname</span><span class="o">=</span><span class="n">version</span><span class="p">)</span>
+                            <span class="k">with</span> <span class="n">suppress_casa_output</span><span class="p">():</span>
+                                <span class="n">flagmanager</span><span class="p">(</span><span class="n">vis</span><span class="o">=</span><span class="n">msname</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;restore&quot;</span><span class="p">,</span> <span class="n">versionname</span><span class="o">=</span><span class="n">version</span><span class="p">)</span>
+                                <span class="n">flagmanager</span><span class="p">(</span><span class="n">vis</span><span class="o">=</span><span class="n">msname</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;delete&quot;</span><span class="p">,</span> <span class="n">versionname</span><span class="o">=</span><span class="n">version</span><span class="p">)</span>
                         <span class="k">except</span><span class="p">:</span>
                             <span class="k">pass</span>
 
@@ -657,15 +677,16 @@
         <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
             <span class="sa">f</span><span class="s2">&quot;bandpass(vis=&#39;</span><span class="si">{</span><span class="n">msname</span><span class="si">}</span><span class="s2">&#39;,caltable=&#39;</span><span class="si">{</span><span class="n">bpass_caltable</span><span class="si">}</span><span class="s2">&#39;,uvrange=&#39;</span><span class="si">{</span><span class="n">uvrange</span><span class="si">}</span><span class="s2">&#39;,refant=&#39;</span><span class="si">{</span><span class="n">refant</span><span class="si">}</span><span class="s2">&#39;,solint=&#39;</span><span class="si">{</span><span class="n">solint</span><span class="si">}</span><span class="s2">,10MHz&#39;,minsnr=1,solnorm=True)</span><span class="se">\n</span><span class="s2">&quot;</span>
         <span class="p">)</span>
-        <span class="n">bandpass</span><span class="p">(</span>
-            <span class="n">vis</span><span class="o">=</span><span class="n">msname</span><span class="p">,</span>
-            <span class="n">caltable</span><span class="o">=</span><span class="n">bpass_caltable</span><span class="p">,</span>
-            <span class="n">uvrange</span><span class="o">=</span><span class="n">uvrange</span><span class="p">,</span>
-            <span class="n">refant</span><span class="o">=</span><span class="n">refant</span><span class="p">,</span>
-            <span class="n">minsnr</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
-            <span class="n">solint</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">solint</span><span class="si">}</span><span class="s2">,10MHz&quot;</span><span class="p">,</span>
-            <span class="n">solnorm</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-        <span class="p">)</span>
+        <span class="k">with</span> <span class="n">suppress_casa_output</span><span class="p">():</span>
+            <span class="n">bandpass</span><span class="p">(</span>
+                <span class="n">vis</span><span class="o">=</span><span class="n">msname</span><span class="p">,</span>
+                <span class="n">caltable</span><span class="o">=</span><span class="n">bpass_caltable</span><span class="p">,</span>
+                <span class="n">uvrange</span><span class="o">=</span><span class="n">uvrange</span><span class="p">,</span>
+                <span class="n">refant</span><span class="o">=</span><span class="n">refant</span><span class="p">,</span>
+                <span class="n">minsnr</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+                <span class="n">solint</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">solint</span><span class="si">}</span><span class="s2">,10MHz&quot;</span><span class="p">,</span>
+                <span class="n">solnorm</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+            <span class="p">)</span>
         <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">bpass_caltable</span><span class="p">)</span> <span class="o">==</span> <span class="kc">False</span><span class="p">:</span>
             <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;No gain solutions are found.</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
             <span class="n">gc</span><span class="o">.</span><span class="n">collect</span><span class="p">()</span>
@@ -674,9 +695,10 @@
         <span class="c1">#########################################</span>
         <span class="c1"># Flagging bad gains</span>
         <span class="c1">#########################################</span>
-        <span class="n">flagdata</span><span class="p">(</span>
-            <span class="n">vis</span><span class="o">=</span><span class="n">bpass_caltable</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;rflag&quot;</span><span class="p">,</span> <span class="n">datacolumn</span><span class="o">=</span><span class="s2">&quot;CPARAM&quot;</span><span class="p">,</span> <span class="n">flagbackup</span><span class="o">=</span><span class="kc">False</span>
-        <span class="p">)</span>
+        <span class="k">with</span> <span class="n">suppress_casa_output</span><span class="p">():</span>
+            <span class="n">flagdata</span><span class="p">(</span>
+                <span class="n">vis</span><span class="o">=</span><span class="n">bpass_caltable</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;rflag&quot;</span><span class="p">,</span> <span class="n">datacolumn</span><span class="o">=</span><span class="s2">&quot;CPARAM&quot;</span><span class="p">,</span> <span class="n">flagbackup</span><span class="o">=</span><span class="kc">False</span>
+            <span class="p">)</span>
         <span class="n">tb</span> <span class="o">=</span> <span class="n">table</span><span class="p">()</span>
         <span class="n">tb</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">bpass_caltable</span><span class="p">,</span> <span class="n">nomodify</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
         <span class="n">gain</span> <span class="o">=</span> <span class="n">tb</span><span class="o">.</span><span class="n">getcol</span><span class="p">(</span><span class="s2">&quot;CPARAM&quot;</span><span class="p">)</span>
@@ -695,24 +717,26 @@
         <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
             <span class="sa">f</span><span class="s2">&quot;applycal(vis=</span><span class="si">{</span><span class="n">msname</span><span class="si">}</span><span class="s2">,gaintable=[</span><span class="si">{</span><span class="n">bpass_caltable</span><span class="si">}</span><span class="s2">],interp=[&#39;linear,linearflag&#39;],applymode=&#39;</span><span class="si">{</span><span class="n">applymode</span><span class="si">}</span><span class="s2">&#39;,calwt=[False])</span><span class="se">\n</span><span class="s2">&quot;</span>
         <span class="p">)</span>
-        <span class="n">applycal</span><span class="p">(</span>
-            <span class="n">vis</span><span class="o">=</span><span class="n">msname</span><span class="p">,</span>
-            <span class="n">gaintable</span><span class="o">=</span><span class="p">[</span><span class="n">bpass_caltable</span><span class="p">],</span>
-            <span class="n">interp</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;linear,linearflag&quot;</span><span class="p">],</span>
-            <span class="n">applymode</span><span class="o">=</span><span class="n">applymode</span><span class="p">,</span>
-            <span class="n">calwt</span><span class="o">=</span><span class="p">[</span><span class="kc">False</span><span class="p">],</span>
-        <span class="p">)</span>
+        <span class="k">with</span> <span class="n">suppress_casa_output</span><span class="p">():</span>
+            <span class="n">applycal</span><span class="p">(</span>
+                <span class="n">vis</span><span class="o">=</span><span class="n">msname</span><span class="p">,</span>
+                <span class="n">gaintable</span><span class="o">=</span><span class="p">[</span><span class="n">bpass_caltable</span><span class="p">],</span>
+                <span class="n">interp</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;linear,linearflag&quot;</span><span class="p">],</span>
+                <span class="n">applymode</span><span class="o">=</span><span class="n">applymode</span><span class="p">,</span>
+                <span class="n">calwt</span><span class="o">=</span><span class="p">[</span><span class="kc">False</span><span class="p">],</span>
+            <span class="p">)</span>
 
         <span class="c1">#####################################</span>
         <span class="c1"># Flag zeros</span>
         <span class="c1">#####################################</span>
-        <span class="n">flagdata</span><span class="p">(</span>
-            <span class="n">vis</span><span class="o">=</span><span class="n">msname</span><span class="p">,</span>
-            <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;clip&quot;</span><span class="p">,</span>
-            <span class="n">clipzeros</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-            <span class="n">datacolumn</span><span class="o">=</span><span class="s2">&quot;corrected&quot;</span><span class="p">,</span>
-            <span class="n">flagbackup</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-        <span class="p">)</span>
+        <span class="k">with</span> <span class="n">suppress_casa_output</span><span class="p">():</span>
+            <span class="n">flagdata</span><span class="p">(</span>
+                <span class="n">vis</span><span class="o">=</span><span class="n">msname</span><span class="p">,</span>
+                <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;clip&quot;</span><span class="p">,</span>
+                <span class="n">clipzeros</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                <span class="n">datacolumn</span><span class="o">=</span><span class="s2">&quot;corrected&quot;</span><span class="p">,</span>
+                <span class="n">flagbackup</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+            <span class="p">)</span>
         <span class="n">gc</span><span class="o">.</span><span class="n">collect</span><span class="p">()</span>
         <span class="k">return</span> <span class="p">(</span>
             <span class="mi">0</span><span class="p">,</span>
@@ -813,20 +837,28 @@
     <span class="n">limit_threads</span><span class="p">(</span><span class="n">n_threads</span><span class="o">=</span><span class="n">ncpu</span><span class="p">)</span>
     <span class="kn">from</span> <span class="nn">casatasks</span> <span class="kn">import</span> <span class="n">split</span><span class="p">,</span> <span class="n">flagdata</span><span class="p">,</span> <span class="n">initweights</span><span class="p">,</span> <span class="n">flagmanager</span>
     <span class="kn">from</span> <span class="nn">casatools</span> <span class="kn">import</span> <span class="n">msmetadata</span>
+
     <span class="k">if</span> <span class="n">dry_run</span><span class="p">:</span>
         <span class="n">process</span> <span class="o">=</span> <span class="n">psutil</span><span class="o">.</span><span class="n">Process</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">getpid</span><span class="p">())</span>
         <span class="n">mem</span> <span class="o">=</span> <span class="nb">round</span><span class="p">(</span><span class="n">process</span><span class="o">.</span><span class="n">memory_info</span><span class="p">()</span><span class="o">.</span><span class="n">rss</span> <span class="o">/</span> <span class="mi">1024</span><span class="o">**</span><span class="mi">3</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>  <span class="c1"># in GB</span>
         <span class="k">return</span> <span class="n">mem</span>
-    <span class="n">sub_observer</span><span class="o">=</span><span class="kc">None</span>
+    <span class="n">sub_observer</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="n">logger</span><span class="p">,</span> <span class="n">logfile</span> <span class="o">=</span> <span class="n">create_logger</span><span class="p">(</span>
         <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">logfile</span><span class="p">)</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;.log&quot;</span><span class="p">)[</span><span class="mi">0</span><span class="p">],</span> <span class="n">logfile</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span>
     <span class="p">)</span>
-    <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">workdir</span><span class="si">}</span><span class="s2">/jobname_password.npy&quot;</span><span class="p">)</span> <span class="ow">and</span> <span class="n">logfile</span><span class="o">!=</span><span class="kc">None</span><span class="p">:</span> 
+    <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">workdir</span><span class="si">}</span><span class="s2">/jobname_password.npy&quot;</span><span class="p">)</span> <span class="ow">and</span> <span class="n">logfile</span> <span class="o">!=</span> <span class="kc">None</span><span class="p">:</span>
         <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mi">5</span><span class="p">)</span>
-        <span class="n">jobname</span><span class="p">,</span><span class="n">password</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">workdir</span><span class="si">}</span><span class="s2">/jobname_password.npy&quot;</span><span class="p">,</span><span class="n">allow_pickle</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="n">jobname</span><span class="p">,</span> <span class="n">password</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">load</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">workdir</span><span class="si">}</span><span class="s2">/jobname_password.npy&quot;</span><span class="p">,</span> <span class="n">allow_pickle</span><span class="o">=</span><span class="kc">True</span>
+        <span class="p">)</span>
         <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">logfile</span><span class="p">):</span>
-            <span class="nb">print</span> <span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Starting remote logger. Remote logger password: </span><span class="si">{</span><span class="n">password</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-            <span class="n">sub_observer</span><span class="o">=</span><span class="n">init_logger</span><span class="p">(</span><span class="s2">&quot;remotelogger_selfcal_{os.path.basename(msname).split(&#39;.ms&#39;)[0]}&quot;</span><span class="p">,</span><span class="n">logfile</span><span class="p">,</span><span class="n">jobname</span><span class="o">=</span><span class="n">jobname</span><span class="p">,</span><span class="n">password</span><span class="o">=</span><span class="n">password</span><span class="p">)</span>     
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Starting remote logger. Remote logger password: </span><span class="si">{</span><span class="n">password</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="n">sub_observer</span> <span class="o">=</span> <span class="n">init_logger</span><span class="p">(</span>
+                <span class="s2">&quot;remotelogger_selfcal_{os.path.basename(msname).split(&#39;.ms&#39;)[0]}&quot;</span><span class="p">,</span>
+                <span class="n">logfile</span><span class="p">,</span>
+                <span class="n">jobname</span><span class="o">=</span><span class="n">jobname</span><span class="p">,</span>
+                <span class="n">password</span><span class="o">=</span><span class="n">password</span><span class="p">,</span>
+            <span class="p">)</span>
     <span class="k">try</span><span class="p">:</span>
         <span class="n">msname</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="n">msname</span><span class="o">.</span><span class="n">rstrip</span><span class="p">(</span><span class="s2">&quot;/&quot;</span><span class="p">))</span>
         <span class="n">selfcaldir</span> <span class="o">=</span> <span class="n">selfcaldir</span><span class="o">.</span><span class="n">rstrip</span><span class="p">(</span><span class="s2">&quot;/&quot;</span><span class="p">)</span>
@@ -844,7 +876,8 @@
         <span class="c1">##############################</span>
         <span class="c1"># Restoring any previous flags</span>
         <span class="c1">##############################</span>
-        <span class="n">flags</span> <span class="o">=</span> <span class="n">flagmanager</span><span class="p">(</span><span class="n">vis</span><span class="o">=</span><span class="n">msname</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;list&quot;</span><span class="p">)</span>
+        <span class="k">with</span> <span class="n">suppress_casa_output</span><span class="p">():</span>
+            <span class="n">flags</span> <span class="o">=</span> <span class="n">flagmanager</span><span class="p">(</span><span class="n">vis</span><span class="o">=</span><span class="n">msname</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;list&quot;</span><span class="p">)</span>
         <span class="n">keys</span> <span class="o">=</span> <span class="n">flags</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span>
         <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">keys</span><span class="p">:</span>
             <span class="k">if</span> <span class="n">k</span> <span class="o">==</span> <span class="s2">&quot;MS&quot;</span><span class="p">:</span>
@@ -852,8 +885,9 @@
             <span class="k">else</span><span class="p">:</span>
                 <span class="n">version</span> <span class="o">=</span> <span class="n">flags</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s2">&quot;name&quot;</span><span class="p">]</span>
                 <span class="k">try</span><span class="p">:</span>
-                    <span class="n">flagmanager</span><span class="p">(</span><span class="n">vis</span><span class="o">=</span><span class="n">msname</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;restore&quot;</span><span class="p">,</span> <span class="n">versionname</span><span class="o">=</span><span class="n">version</span><span class="p">)</span>
-                    <span class="n">flagmanager</span><span class="p">(</span><span class="n">vis</span><span class="o">=</span><span class="n">msname</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;delete&quot;</span><span class="p">,</span> <span class="n">versionname</span><span class="o">=</span><span class="n">version</span><span class="p">)</span>
+                    <span class="k">with</span> <span class="n">suppress_casa_output</span><span class="p">():</span>
+                        <span class="n">flagmanager</span><span class="p">(</span><span class="n">vis</span><span class="o">=</span><span class="n">msname</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;restore&quot;</span><span class="p">,</span> <span class="n">versionname</span><span class="o">=</span><span class="n">version</span><span class="p">)</span>
+                        <span class="n">flagmanager</span><span class="p">(</span><span class="n">vis</span><span class="o">=</span><span class="n">msname</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;delete&quot;</span><span class="p">,</span> <span class="n">versionname</span><span class="o">=</span><span class="n">version</span><span class="p">)</span>
                 <span class="k">except</span><span class="p">:</span>
                     <span class="k">pass</span>
         <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">msname</span> <span class="o">+</span> <span class="s2">&quot;.flagversions&quot;</span><span class="p">):</span>
@@ -870,36 +904,40 @@
         <span class="n">msmd</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
         <span class="k">if</span> <span class="n">hascor</span><span class="p">:</span>
             <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Spliting corrected data to ms : </span><span class="si">{</span><span class="n">selfcalms</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-            <span class="n">split</span><span class="p">(</span>
-                <span class="n">vis</span><span class="o">=</span><span class="n">msname</span><span class="p">,</span>
-                <span class="n">field</span><span class="o">=</span><span class="nb">str</span><span class="p">(</span><span class="n">field</span><span class="p">),</span>
-                <span class="n">scan</span><span class="o">=</span><span class="nb">str</span><span class="p">(</span><span class="n">scan</span><span class="p">),</span>
-                <span class="n">outputvis</span><span class="o">=</span><span class="n">selfcalms</span><span class="p">,</span>
-                <span class="n">datacolumn</span><span class="o">=</span><span class="s2">&quot;corrected&quot;</span><span class="p">,</span>
-            <span class="p">)</span>
+            <span class="k">with</span> <span class="n">suppress_casa_output</span><span class="p">():</span>
+                <span class="n">split</span><span class="p">(</span>
+                    <span class="n">vis</span><span class="o">=</span><span class="n">msname</span><span class="p">,</span>
+                    <span class="n">field</span><span class="o">=</span><span class="nb">str</span><span class="p">(</span><span class="n">field</span><span class="p">),</span>
+                    <span class="n">scan</span><span class="o">=</span><span class="nb">str</span><span class="p">(</span><span class="n">scan</span><span class="p">),</span>
+                    <span class="n">outputvis</span><span class="o">=</span><span class="n">selfcalms</span><span class="p">,</span>
+                    <span class="n">datacolumn</span><span class="o">=</span><span class="s2">&quot;corrected&quot;</span><span class="p">,</span>
+                <span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Spliting data to ms : </span><span class="si">{</span><span class="n">selfcalms</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-            <span class="n">split</span><span class="p">(</span>
-                <span class="n">vis</span><span class="o">=</span><span class="n">msname</span><span class="p">,</span>
-                <span class="n">field</span><span class="o">=</span><span class="nb">str</span><span class="p">(</span><span class="n">field</span><span class="p">),</span>
-                <span class="n">scan</span><span class="o">=</span><span class="nb">str</span><span class="p">(</span><span class="n">scan</span><span class="p">),</span>
-                <span class="n">outputvis</span><span class="o">=</span><span class="n">selfcalms</span><span class="p">,</span>
-                <span class="n">datacolumn</span><span class="o">=</span><span class="s2">&quot;data&quot;</span><span class="p">,</span>
-            <span class="p">)</span>
+            <span class="k">with</span> <span class="n">suppress_casa_output</span><span class="p">():</span>
+                <span class="n">split</span><span class="p">(</span>
+                    <span class="n">vis</span><span class="o">=</span><span class="n">msname</span><span class="p">,</span>
+                    <span class="n">field</span><span class="o">=</span><span class="nb">str</span><span class="p">(</span><span class="n">field</span><span class="p">),</span>
+                    <span class="n">scan</span><span class="o">=</span><span class="nb">str</span><span class="p">(</span><span class="n">scan</span><span class="p">),</span>
+                    <span class="n">outputvis</span><span class="o">=</span><span class="n">selfcalms</span><span class="p">,</span>
+                    <span class="n">datacolumn</span><span class="o">=</span><span class="s2">&quot;data&quot;</span><span class="p">,</span>
+                <span class="p">)</span>
         <span class="n">msname</span> <span class="o">=</span> <span class="n">selfcalms</span>
 
         <span class="c1">##########################################</span>
         <span class="c1"># Initiate proper weighting</span>
         <span class="c1">##########################################</span>
-        <span class="n">flagdata</span><span class="p">(</span>
-            <span class="n">vis</span><span class="o">=</span><span class="n">msname</span><span class="p">,</span>
-            <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;clip&quot;</span><span class="p">,</span>
-            <span class="n">clipzeros</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-            <span class="n">datacolumn</span><span class="o">=</span><span class="s2">&quot;data&quot;</span><span class="p">,</span>
-            <span class="n">flagbackup</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-        <span class="p">)</span>
+        <span class="k">with</span> <span class="n">suppress_casa_output</span><span class="p">():</span>
+            <span class="n">flagdata</span><span class="p">(</span>
+                <span class="n">vis</span><span class="o">=</span><span class="n">msname</span><span class="p">,</span>
+                <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;clip&quot;</span><span class="p">,</span>
+                <span class="n">clipzeros</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                <span class="n">datacolumn</span><span class="o">=</span><span class="s2">&quot;data&quot;</span><span class="p">,</span>
+                <span class="n">flagbackup</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+            <span class="p">)</span>
         <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Initiating weights ....&quot;</span><span class="p">)</span>
-        <span class="n">initweights</span><span class="p">(</span><span class="n">vis</span><span class="o">=</span><span class="n">msname</span><span class="p">,</span> <span class="n">wtmode</span><span class="o">=</span><span class="s2">&quot;ones&quot;</span><span class="p">,</span> <span class="n">dowtsp</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="k">with</span> <span class="n">suppress_casa_output</span><span class="p">():</span>
+            <span class="n">initweights</span><span class="p">(</span><span class="n">vis</span><span class="o">=</span><span class="n">msname</span><span class="p">,</span> <span class="n">wtmode</span><span class="o">=</span><span class="s2">&quot;ones&quot;</span><span class="p">,</span> <span class="n">dowtsp</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 
         <span class="c1">############################################</span>
         <span class="c1"># Imaging and calibration parameters</span>
@@ -1218,180 +1256,174 @@
 <a class="viewcode-back" href="../../../meersolar.pipeline.html#meersolar.pipeline.do_selfcal.main">[docs]</a>
 <span class="k">def</span> <span class="nf">main</span><span class="p">():</span>
     <span class="n">starttime</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
-    <span class="n">usage</span> <span class="o">=</span> <span class="s2">&quot;Self-calibration&quot;</span>
-    <span class="n">parser</span> <span class="o">=</span> <span class="n">OptionParser</span><span class="p">(</span><span class="n">usage</span><span class="o">=</span><span class="n">usage</span><span class="p">)</span>
-    <span class="n">parser</span><span class="o">.</span><span class="n">add_option</span><span class="p">(</span>
-        <span class="s2">&quot;--mslist&quot;</span><span class="p">,</span>
-        <span class="n">dest</span><span class="o">=</span><span class="s2">&quot;mslist&quot;</span><span class="p">,</span>
-        <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Measurement set list&quot;</span><span class="p">,</span>
-        <span class="n">metavar</span><span class="o">=</span><span class="s2">&quot;List&quot;</span><span class="p">,</span>
+    <span class="n">parser</span> <span class="o">=</span> <span class="n">argparse</span><span class="o">.</span><span class="n">ArgumentParser</span><span class="p">(</span><span class="n">description</span><span class="o">=</span><span class="s2">&quot;Self-calibration&quot;</span><span class="p">,</span><span class="n">formatter_class</span><span class="o">=</span><span class="n">argparse</span><span class="o">.</span><span class="n">ArgumentDefaultsHelpFormatter</span><span class="p">)</span>
+    
+    <span class="c1">## Essential parameters</span>
+    <span class="n">basic_args</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">add_argument_group</span><span class="p">(</span>
+        <span class="s2">&quot;###################</span><span class="se">\n</span><span class="s2">Essential parameters</span><span class="se">\n</span><span class="s2">###################&quot;</span>
     <span class="p">)</span>
-    <span class="n">parser</span><span class="o">.</span><span class="n">add_option</span><span class="p">(</span>
-        <span class="s2">&quot;--workdir&quot;</span><span class="p">,</span>
-        <span class="n">dest</span><span class="o">=</span><span class="s2">&quot;workdir&quot;</span><span class="p">,</span>
-        <span class="n">default</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span>
-        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Working directory&quot;</span><span class="p">,</span>
-        <span class="n">metavar</span><span class="o">=</span><span class="s2">&quot;String&quot;</span><span class="p">,</span>
+    <span class="n">basic_args</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;mslist&quot;</span><span class="p">,</span>
+        <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Comma-separated list of measurement sets (required positional argument)&quot;</span><span class="p">,</span>
     <span class="p">)</span>
-    <span class="n">parser</span><span class="o">.</span><span class="n">add_option</span><span class="p">(</span>
+    <span class="n">basic_args</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;--workdir&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Working directory&quot;</span><span class="p">,</span> <span class="n">metavar</span><span class="o">=</span><span class="s2">&quot;String&quot;</span>
+    <span class="p">)</span>
+    
+    <span class="c1">## Advanced parameters</span>
+    <span class="n">adv_args</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">add_argument_group</span><span class="p">(</span>
+        <span class="s2">&quot;###################</span><span class="se">\n</span><span class="s2">Advanced calibration and imaging parameters</span><span class="se">\n</span><span class="s2">###################&quot;</span>
+    <span class="p">)</span>
+    <span class="n">adv_args</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
         <span class="s2">&quot;--start_thresh&quot;</span><span class="p">,</span>
-        <span class="n">dest</span><span class="o">=</span><span class="s2">&quot;start_thresh&quot;</span><span class="p">,</span>
+        <span class="nb">type</span><span class="o">=</span><span class="nb">float</span><span class="p">,</span>
         <span class="n">default</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span>
-        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Starting CLEANing threshold &quot;</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Starting CLEANing threshold&quot;</span><span class="p">,</span>
         <span class="n">metavar</span><span class="o">=</span><span class="s2">&quot;Float&quot;</span><span class="p">,</span>
     <span class="p">)</span>
-    <span class="n">parser</span><span class="o">.</span><span class="n">add_option</span><span class="p">(</span>
+    <span class="n">adv_args</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
         <span class="s2">&quot;--stop_thresh&quot;</span><span class="p">,</span>
-        <span class="n">dest</span><span class="o">=</span><span class="s2">&quot;stop_thresh&quot;</span><span class="p">,</span>
+        <span class="nb">type</span><span class="o">=</span><span class="nb">float</span><span class="p">,</span>
         <span class="n">default</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span>
         <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Stop CLEANing threshold&quot;</span><span class="p">,</span>
         <span class="n">metavar</span><span class="o">=</span><span class="s2">&quot;Float&quot;</span><span class="p">,</span>
     <span class="p">)</span>
-    <span class="n">parser</span><span class="o">.</span><span class="n">add_option</span><span class="p">(</span>
+    <span class="n">adv_args</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
         <span class="s2">&quot;--max_iter&quot;</span><span class="p">,</span>
-        <span class="n">dest</span><span class="o">=</span><span class="s2">&quot;max_iter&quot;</span><span class="p">,</span>
+        <span class="nb">type</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span>
         <span class="n">default</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span>
-        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Maximum numbers of selfcal iterations&quot;</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Maximum number of selfcal iterations&quot;</span><span class="p">,</span>
         <span class="n">metavar</span><span class="o">=</span><span class="s2">&quot;Integer&quot;</span><span class="p">,</span>
     <span class="p">)</span>
-    <span class="n">parser</span><span class="o">.</span><span class="n">add_option</span><span class="p">(</span>
+    <span class="n">adv_args</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
         <span class="s2">&quot;--max_DR&quot;</span><span class="p">,</span>
-        <span class="n">dest</span><span class="o">=</span><span class="s2">&quot;max_DR&quot;</span><span class="p">,</span>
+        <span class="nb">type</span><span class="o">=</span><span class="nb">float</span><span class="p">,</span>
         <span class="n">default</span><span class="o">=</span><span class="mi">1000</span><span class="p">,</span>
         <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Maximum dynamic range&quot;</span><span class="p">,</span>
-        <span class="n">metavar</span><span class="o">=</span><span class="s2">&quot;Integer&quot;</span><span class="p">,</span>
+        <span class="n">metavar</span><span class="o">=</span><span class="s2">&quot;Float&quot;</span><span class="p">,</span>
     <span class="p">)</span>
-    <span class="n">parser</span><span class="o">.</span><span class="n">add_option</span><span class="p">(</span>
+    <span class="n">adv_args</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
         <span class="s2">&quot;--min_iter&quot;</span><span class="p">,</span>
-        <span class="n">dest</span><span class="o">=</span><span class="s2">&quot;min_iter&quot;</span><span class="p">,</span>
+        <span class="nb">type</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span>
         <span class="n">default</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
-        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Minimum numbers of selfcal iterations&quot;</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Minimum number of selfcal iterations&quot;</span><span class="p">,</span>
         <span class="n">metavar</span><span class="o">=</span><span class="s2">&quot;Integer&quot;</span><span class="p">,</span>
     <span class="p">)</span>
-    <span class="n">parser</span><span class="o">.</span><span class="n">add_option</span><span class="p">(</span>
+    <span class="n">adv_args</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
         <span class="s2">&quot;--conv_frac&quot;</span><span class="p">,</span>
-        <span class="n">dest</span><span class="o">=</span><span class="s2">&quot;conv_frac&quot;</span><span class="p">,</span>
+        <span class="nb">type</span><span class="o">=</span><span class="nb">float</span><span class="p">,</span>
         <span class="n">default</span><span class="o">=</span><span class="mf">0.3</span><span class="p">,</span>
         <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Fractional change in DR to determine convergence&quot;</span><span class="p">,</span>
         <span class="n">metavar</span><span class="o">=</span><span class="s2">&quot;Float&quot;</span><span class="p">,</span>
     <span class="p">)</span>
-    <span class="n">parser</span><span class="o">.</span><span class="n">add_option</span><span class="p">(</span>
-        <span class="s2">&quot;--solint&quot;</span><span class="p">,</span>
-        <span class="n">dest</span><span class="o">=</span><span class="s2">&quot;solint&quot;</span><span class="p">,</span>
-        <span class="n">default</span><span class="o">=</span><span class="s2">&quot;60s&quot;</span><span class="p">,</span>
-        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Solution interval&quot;</span><span class="p">,</span>
-        <span class="n">metavar</span><span class="o">=</span><span class="s2">&quot;String&quot;</span><span class="p">,</span>
+    <span class="n">adv_args</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;--solint&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="s2">&quot;60s&quot;</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Solution interval&quot;</span><span class="p">,</span> <span class="n">metavar</span><span class="o">=</span><span class="s2">&quot;String&quot;</span>
     <span class="p">)</span>
-    <span class="n">parser</span><span class="o">.</span><span class="n">add_option</span><span class="p">(</span>
-        <span class="s2">&quot;--do_apcal&quot;</span><span class="p">,</span>
-        <span class="n">dest</span><span class="o">=</span><span class="s2">&quot;do_apcal&quot;</span><span class="p">,</span>
-        <span class="n">default</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Peform ap-selfcal or not&quot;</span><span class="p">,</span>
-        <span class="n">metavar</span><span class="o">=</span><span class="s2">&quot;Boolean&quot;</span><span class="p">,</span>
-    <span class="p">)</span>
-    <span class="n">parser</span><span class="o">.</span><span class="n">add_option</span><span class="p">(</span>
-        <span class="s2">&quot;--solar_selfcal&quot;</span><span class="p">,</span>
-        <span class="n">dest</span><span class="o">=</span><span class="s2">&quot;solar_selfcal&quot;</span><span class="p">,</span>
-        <span class="n">default</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Peforming solar self-calibration or not&quot;</span><span class="p">,</span>
-        <span class="n">metavar</span><span class="o">=</span><span class="s2">&quot;Boolean&quot;</span><span class="p">,</span>
-    <span class="p">)</span>
-    <span class="n">parser</span><span class="o">.</span><span class="n">add_option</span><span class="p">(</span>
-        <span class="s2">&quot;--cpu_frac&quot;</span><span class="p">,</span>
-        <span class="n">dest</span><span class="o">=</span><span class="s2">&quot;cpu_frac&quot;</span><span class="p">,</span>
-        <span class="n">default</span><span class="o">=</span><span class="mf">0.8</span><span class="p">,</span>
-        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;CPU fraction to use&quot;</span><span class="p">,</span>
-        <span class="n">metavar</span><span class="o">=</span><span class="s2">&quot;Float&quot;</span><span class="p">,</span>
-    <span class="p">)</span>
-    <span class="n">parser</span><span class="o">.</span><span class="n">add_option</span><span class="p">(</span>
-        <span class="s2">&quot;--mem_frac&quot;</span><span class="p">,</span>
-        <span class="n">dest</span><span class="o">=</span><span class="s2">&quot;mem_frac&quot;</span><span class="p">,</span>
-        <span class="n">default</span><span class="o">=</span><span class="mf">0.8</span><span class="p">,</span>
-        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Memory fraction to use&quot;</span><span class="p">,</span>
-        <span class="n">metavar</span><span class="o">=</span><span class="s2">&quot;Float&quot;</span><span class="p">,</span>
-    <span class="p">)</span>
-    <span class="n">parser</span><span class="o">.</span><span class="n">add_option</span><span class="p">(</span>
-        <span class="s2">&quot;--keep_backup&quot;</span><span class="p">,</span>
-        <span class="n">dest</span><span class="o">=</span><span class="s2">&quot;keep_backup&quot;</span><span class="p">,</span>
-        <span class="n">default</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Keep backup of self-calibration rounds&quot;</span><span class="p">,</span>
-        <span class="n">metavar</span><span class="o">=</span><span class="s2">&quot;Boolean&quot;</span><span class="p">,</span>
-    <span class="p">)</span>
-    <span class="n">parser</span><span class="o">.</span><span class="n">add_option</span><span class="p">(</span>
+    <span class="n">adv_args</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
         <span class="s2">&quot;--uvrange&quot;</span><span class="p">,</span>
-        <span class="n">dest</span><span class="o">=</span><span class="s2">&quot;uvrange&quot;</span><span class="p">,</span>
+        <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span>
         <span class="n">default</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span>
         <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Calibration UV-range (CASA format)&quot;</span><span class="p">,</span>
         <span class="n">metavar</span><span class="o">=</span><span class="s2">&quot;String&quot;</span><span class="p">,</span>
     <span class="p">)</span>
-    <span class="n">parser</span><span class="o">.</span><span class="n">add_option</span><span class="p">(</span>
+    <span class="n">adv_args</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
         <span class="s2">&quot;--minuv&quot;</span><span class="p">,</span>
-        <span class="n">dest</span><span class="o">=</span><span class="s2">&quot;minuv&quot;</span><span class="p">,</span>
+        <span class="nb">type</span><span class="o">=</span><span class="nb">float</span><span class="p">,</span>
         <span class="n">default</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
         <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Minimum UV-lambda used for imaging&quot;</span><span class="p">,</span>
         <span class="n">metavar</span><span class="o">=</span><span class="s2">&quot;Float&quot;</span><span class="p">,</span>
     <span class="p">)</span>
-    <span class="n">parser</span><span class="o">.</span><span class="n">add_option</span><span class="p">(</span>
-        <span class="s2">&quot;--weight&quot;</span><span class="p">,</span>
-        <span class="n">dest</span><span class="o">=</span><span class="s2">&quot;weight&quot;</span><span class="p">,</span>
-        <span class="n">default</span><span class="o">=</span><span class="s2">&quot;briggs&quot;</span><span class="p">,</span>
-        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Imaging weight&quot;</span><span class="p">,</span>
-        <span class="n">metavar</span><span class="o">=</span><span class="s2">&quot;String&quot;</span><span class="p">,</span>
+    <span class="n">adv_args</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;--weight&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="s2">&quot;briggs&quot;</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Imaging weight&quot;</span><span class="p">,</span> <span class="n">metavar</span><span class="o">=</span><span class="s2">&quot;String&quot;</span>
     <span class="p">)</span>
-    <span class="n">parser</span><span class="o">.</span><span class="n">add_option</span><span class="p">(</span>
+    <span class="n">adv_args</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
         <span class="s2">&quot;--robust&quot;</span><span class="p">,</span>
-        <span class="n">dest</span><span class="o">=</span><span class="s2">&quot;robust&quot;</span><span class="p">,</span>
+        <span class="nb">type</span><span class="o">=</span><span class="nb">float</span><span class="p">,</span>
         <span class="n">default</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
         <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Robust parameter for briggs weight&quot;</span><span class="p">,</span>
         <span class="n">metavar</span><span class="o">=</span><span class="s2">&quot;Float&quot;</span><span class="p">,</span>
     <span class="p">)</span>
-    <span class="n">parser</span><span class="o">.</span><span class="n">add_option</span><span class="p">(</span>
+    <span class="n">adv_args</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
         <span class="s2">&quot;--applymode&quot;</span><span class="p">,</span>
-        <span class="n">dest</span><span class="o">=</span><span class="s2">&quot;applymode&quot;</span><span class="p">,</span>
+        <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span>
         <span class="n">default</span><span class="o">=</span><span class="s2">&quot;calonly&quot;</span><span class="p">,</span>
         <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Solution apply mode&quot;</span><span class="p">,</span>
         <span class="n">metavar</span><span class="o">=</span><span class="s2">&quot;String&quot;</span><span class="p">,</span>
     <span class="p">)</span>
-    <span class="n">parser</span><span class="o">.</span><span class="n">add_option</span><span class="p">(</span>
+    <span class="n">adv_args</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
         <span class="s2">&quot;--min_tol_factor&quot;</span><span class="p">,</span>
-        <span class="n">dest</span><span class="o">=</span><span class="s2">&quot;min_tol_factor&quot;</span><span class="p">,</span>
+        <span class="nb">type</span><span class="o">=</span><span class="nb">float</span><span class="p">,</span>
         <span class="n">default</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span>
         <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Minimum tolerable variation in temporal direction in percentage&quot;</span><span class="p">,</span>
         <span class="n">metavar</span><span class="o">=</span><span class="s2">&quot;Float&quot;</span><span class="p">,</span>
     <span class="p">)</span>
-    <span class="n">parser</span><span class="o">.</span><span class="n">add_option</span><span class="p">(</span>
-        <span class="s2">&quot;--jobid&quot;</span><span class="p">,</span>
-        <span class="n">dest</span><span class="o">=</span><span class="s2">&quot;jobid&quot;</span><span class="p">,</span>
-        <span class="n">default</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
-        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Job ID&quot;</span><span class="p">,</span>
-        <span class="n">metavar</span><span class="o">=</span><span class="s2">&quot;Integer&quot;</span><span class="p">,</span>
+    <span class="n">adv_args</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s2">&quot;--no_apcal&quot;</span><span class="p">,</span> <span class="n">action</span><span class="o">=</span><span class="s2">&quot;store_false&quot;</span><span class="p">,</span> <span class="n">dest</span><span class="o">=</span><span class="s2">&quot;do_apcal&quot;</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Do not perform ap-selfcal&quot;</span><span class="p">)</span>
+    <span class="n">adv_args</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;--no_solar_selfcal&quot;</span><span class="p">,</span> <span class="n">action</span><span class="o">=</span><span class="s2">&quot;store_false&quot;</span><span class="p">,</span> <span class="n">dest</span><span class="o">=</span><span class="s2">&quot;solar_selfcal&quot;</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Do not perform solar self-calibration&quot;</span>
     <span class="p">)</span>
-    <span class="p">(</span><span class="n">options</span><span class="p">,</span> <span class="n">args</span><span class="p">)</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">parse_args</span><span class="p">()</span>
-    <span class="n">pid</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">getpid</span><span class="p">()</span>
-    <span class="n">save_pid</span><span class="p">(</span><span class="n">pid</span><span class="p">,</span><span class="n">datadir</span> <span class="o">+</span> <span class="sa">f</span><span class="s2">&quot;/pids/pids_</span><span class="si">{</span><span class="n">options</span><span class="o">.</span><span class="n">jobid</span><span class="si">}</span><span class="s2">.txt&quot;</span><span class="p">)</span>
-    <span class="k">if</span> <span class="n">options</span><span class="o">.</span><span class="n">workdir</span> <span class="o">==</span> <span class="s2">&quot;&quot;</span> <span class="ow">or</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">options</span><span class="o">.</span><span class="n">workdir</span><span class="p">)</span> <span class="o">==</span> <span class="kc">False</span><span class="p">:</span>
-        <span class="n">workdir</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="n">options</span><span class="o">.</span><span class="n">msname</span><span class="p">))</span> <span class="o">+</span> <span class="s2">&quot;/workdir&quot;</span>
+    <span class="n">adv_args</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;--keep_backup&quot;</span><span class="p">,</span>
+        <span class="n">action</span><span class="o">=</span><span class="s2">&quot;store_true&quot;</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Keep backup of self-calibration rounds&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    
+    <span class="c1">## Resource management parameters</span>
+    <span class="n">hard_args</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">add_argument_group</span><span class="p">(</span>
+        <span class="s2">&quot;###################</span><span class="se">\n</span><span class="s2">Hardware resource management parameters</span><span class="se">\n</span><span class="s2">###################&quot;</span>
+    <span class="p">)</span>
+    <span class="n">hard_args</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;--cpu_frac&quot;</span><span class="p">,</span>
+        <span class="nb">type</span><span class="o">=</span><span class="nb">float</span><span class="p">,</span>
+        <span class="n">default</span><span class="o">=</span><span class="mf">0.8</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;CPU fraction to use&quot;</span><span class="p">,</span>
+        <span class="n">metavar</span><span class="o">=</span><span class="s2">&quot;Float&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">hard_args</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;--mem_frac&quot;</span><span class="p">,</span>
+        <span class="nb">type</span><span class="o">=</span><span class="nb">float</span><span class="p">,</span>
+        <span class="n">default</span><span class="o">=</span><span class="mf">0.8</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Memory fraction to use&quot;</span><span class="p">,</span>
+        <span class="n">metavar</span><span class="o">=</span><span class="s2">&quot;Float&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">hard_args</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;--jobid&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Job ID&quot;</span><span class="p">,</span> <span class="n">metavar</span><span class="o">=</span><span class="s2">&quot;Integer&quot;</span>
+    <span class="p">)</span>
+
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">sys</span><span class="o">.</span><span class="n">argv</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="n">parser</span><span class="o">.</span><span class="n">print_help</span><span class="p">(</span><span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="p">)</span>
+        <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+
+    <span class="n">args</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">parse_args</span><span class="p">()</span>
+
+    <span class="n">pid</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">getpid</span><span class="p">()</span>
+    <span class="n">save_pid</span><span class="p">(</span><span class="n">pid</span><span class="p">,</span> <span class="n">datadir</span> <span class="o">+</span> <span class="sa">f</span><span class="s2">&quot;/pids/pids_</span><span class="si">{</span><span class="n">args</span><span class="o">.</span><span class="n">jobid</span><span class="si">}</span><span class="s2">.txt&quot;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">workdir</span> <span class="o">==</span> <span class="s2">&quot;&quot;</span> <span class="ow">or</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">workdir</span><span class="p">)</span> <span class="o">==</span> <span class="kc">False</span><span class="p">:</span>
+        <span class="n">workdir</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">msname</span><span class="p">))</span> <span class="o">+</span> <span class="s2">&quot;/workdir&quot;</span>
         <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">workdir</span><span class="p">)</span> <span class="o">==</span> <span class="kc">False</span><span class="p">:</span>
             <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">workdir</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
-        <span class="n">workdir</span> <span class="o">=</span> <span class="n">options</span><span class="o">.</span><span class="n">workdir</span>
-    <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">options</span><span class="o">.</span><span class="n">workdir</span> <span class="o">+</span> <span class="s2">&quot;/logs/&quot;</span><span class="p">)</span> <span class="o">==</span> <span class="kc">False</span><span class="p">:</span>
-        <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">options</span><span class="o">.</span><span class="n">workdir</span> <span class="o">+</span> <span class="s2">&quot;/logs/&quot;</span><span class="p">)</span>
-    <span class="n">mainlog_file</span> <span class="o">=</span> <span class="n">options</span><span class="o">.</span><span class="n">workdir</span> <span class="o">+</span> <span class="s2">&quot;/logs/selfcal_targets.mainlog&quot;</span>
+        <span class="n">workdir</span> <span class="o">=</span> <span class="n">args</span><span class="o">.</span><span class="n">workdir</span>
+    <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">workdir</span> <span class="o">+</span> <span class="s2">&quot;/logs/&quot;</span><span class="p">)</span> <span class="o">==</span> <span class="kc">False</span><span class="p">:</span>
+        <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">workdir</span> <span class="o">+</span> <span class="s2">&quot;/logs/&quot;</span><span class="p">)</span>
+    <span class="n">mainlog_file</span> <span class="o">=</span> <span class="n">args</span><span class="o">.</span><span class="n">workdir</span> <span class="o">+</span> <span class="s2">&quot;/logs/selfcal_targets.mainlog&quot;</span>
     <span class="n">mainlogger</span><span class="p">,</span> <span class="n">mainlog_file</span> <span class="o">=</span> <span class="n">create_logger</span><span class="p">(</span>
         <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">mainlog_file</span><span class="p">)</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;.mainlog&quot;</span><span class="p">)[</span><span class="mi">0</span><span class="p">],</span> <span class="n">mainlog_file</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span>
     <span class="p">)</span>
-    <span class="n">observer</span><span class="o">=</span><span class="kc">None</span>
-    <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">workdir</span><span class="si">}</span><span class="s2">/jobname_password.npy&quot;</span><span class="p">)</span> <span class="ow">and</span> <span class="n">mainlog_file</span><span class="o">!=</span><span class="kc">None</span><span class="p">:</span> 
+    <span class="n">observer</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">workdir</span><span class="si">}</span><span class="s2">/jobname_password.npy&quot;</span><span class="p">)</span> <span class="ow">and</span> <span class="n">mainlog_file</span> <span class="o">!=</span> <span class="kc">None</span><span class="p">:</span>
         <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mi">5</span><span class="p">)</span>
-        <span class="n">jobname</span><span class="p">,</span><span class="n">password</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">workdir</span><span class="si">}</span><span class="s2">/jobname_password.npy&quot;</span><span class="p">,</span><span class="n">allow_pickle</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="n">jobname</span><span class="p">,</span> <span class="n">password</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">load</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">workdir</span><span class="si">}</span><span class="s2">/jobname_password.npy&quot;</span><span class="p">,</span> <span class="n">allow_pickle</span><span class="o">=</span><span class="kc">True</span>
+        <span class="p">)</span>
         <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">mainlog_file</span><span class="p">):</span>
-            <span class="n">observer</span><span class="o">=</span><span class="n">init_logger</span><span class="p">(</span><span class="s2">&quot;all_selfcal&quot;</span><span class="p">,</span><span class="n">mainlog_file</span><span class="p">,</span><span class="n">jobname</span><span class="o">=</span><span class="n">jobname</span><span class="p">,</span><span class="n">password</span><span class="o">=</span><span class="n">password</span><span class="p">)</span>
+            <span class="n">observer</span> <span class="o">=</span> <span class="n">init_logger</span><span class="p">(</span>
+                <span class="s2">&quot;all_selfcal&quot;</span><span class="p">,</span> <span class="n">mainlog_file</span><span class="p">,</span> <span class="n">jobname</span><span class="o">=</span><span class="n">jobname</span><span class="p">,</span> <span class="n">password</span><span class="o">=</span><span class="n">password</span>
+            <span class="p">)</span>
     <span class="c1">###########################</span>
     <span class="c1"># WSClean container</span>
     <span class="c1">###########################</span>
-    <span class="n">container_name</span><span class="o">=</span><span class="s2">&quot;meerwsclean&quot;</span>
+    <span class="n">container_name</span> <span class="o">=</span> <span class="s2">&quot;meerwsclean&quot;</span>
     <span class="n">container_present</span> <span class="o">=</span> <span class="n">check_udocker_container</span><span class="p">(</span><span class="n">container_name</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">container_present</span> <span class="o">==</span> <span class="kc">False</span><span class="p">:</span>
         <span class="n">container_name</span> <span class="o">=</span> <span class="n">initialize_wsclean_container</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="n">container_name</span><span class="p">)</span>
@@ -1401,37 +1433,37 @@
             <span class="p">)</span>
             <span class="k">return</span> <span class="mi">1</span>
     <span class="k">try</span><span class="p">:</span>
-        <span class="k">if</span> <span class="n">options</span><span class="o">.</span><span class="n">mslist</span> <span class="o">==</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">mslist</span> <span class="o">==</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">mainlogger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Please provide a mslist.&quot;</span><span class="p">)</span>
-            <span class="n">msg</span><span class="o">=</span><span class="mi">1</span>
+            <span class="n">msg</span> <span class="o">=</span> <span class="mi">1</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="n">mslist</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">options</span><span class="o">.</span><span class="n">mslist</span><span class="p">)</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;,&quot;</span><span class="p">)</span>
+            <span class="n">mslist</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">mslist</span><span class="p">)</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;,&quot;</span><span class="p">)</span>
             <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">mslist</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
                 <span class="n">mainlogger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Please provide at-least one measurement set.&quot;</span><span class="p">)</span>
-                <span class="n">msg</span><span class="o">=</span><span class="mi">1</span>
+                <span class="n">msg</span> <span class="o">=</span> <span class="mi">1</span>
             <span class="k">else</span><span class="p">:</span>
-                <span class="n">caldir</span> <span class="o">=</span> <span class="n">options</span><span class="o">.</span><span class="n">workdir</span> <span class="o">+</span> <span class="s2">&quot;/caltables&quot;</span>
+                <span class="n">caldir</span> <span class="o">=</span> <span class="n">args</span><span class="o">.</span><span class="n">workdir</span> <span class="o">+</span> <span class="s2">&quot;/caltables&quot;</span>
                 <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">caldir</span><span class="p">)</span> <span class="o">==</span> <span class="kc">False</span><span class="p">:</span>
                     <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">caldir</span><span class="p">)</span>
                 <span class="n">task</span> <span class="o">=</span> <span class="n">delayed</span><span class="p">(</span><span class="n">do_selfcal</span><span class="p">)(</span><span class="n">dry_run</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-                <span class="n">mem_limit</span> <span class="o">=</span> <span class="n">run_limited_memory_task</span><span class="p">(</span><span class="n">task</span><span class="p">,</span> <span class="n">dask_dir</span><span class="o">=</span><span class="n">options</span><span class="o">.</span><span class="n">workdir</span><span class="p">)</span>
+                <span class="n">mem_limit</span> <span class="o">=</span> <span class="n">run_limited_memory_task</span><span class="p">(</span><span class="n">task</span><span class="p">,</span> <span class="n">dask_dir</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">workdir</span><span class="p">)</span>
                 <span class="n">partial_do_selfcal</span> <span class="o">=</span> <span class="n">partial</span><span class="p">(</span>
                     <span class="n">do_selfcal</span><span class="p">,</span>
-                    <span class="n">start_threshold</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">options</span><span class="o">.</span><span class="n">start_thresh</span><span class="p">),</span>
-                    <span class="n">end_threshold</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">options</span><span class="o">.</span><span class="n">stop_thresh</span><span class="p">),</span>
-                    <span class="n">max_iter</span><span class="o">=</span><span class="nb">int</span><span class="p">(</span><span class="n">options</span><span class="o">.</span><span class="n">max_iter</span><span class="p">),</span>
-                    <span class="n">max_DR</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">options</span><span class="o">.</span><span class="n">max_DR</span><span class="p">),</span>
-                    <span class="n">min_iter</span><span class="o">=</span><span class="nb">int</span><span class="p">(</span><span class="n">options</span><span class="o">.</span><span class="n">min_iter</span><span class="p">),</span>
-                    <span class="n">DR_convegerence_frac</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">options</span><span class="o">.</span><span class="n">conv_frac</span><span class="p">),</span>
-                    <span class="n">uvrange</span><span class="o">=</span><span class="nb">str</span><span class="p">(</span><span class="n">options</span><span class="o">.</span><span class="n">uvrange</span><span class="p">),</span>
-                    <span class="n">minuv</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">options</span><span class="o">.</span><span class="n">minuv</span><span class="p">),</span>
-                    <span class="n">solint</span><span class="o">=</span><span class="nb">str</span><span class="p">(</span><span class="n">options</span><span class="o">.</span><span class="n">solint</span><span class="p">),</span>
-                    <span class="n">weight</span><span class="o">=</span><span class="nb">str</span><span class="p">(</span><span class="n">options</span><span class="o">.</span><span class="n">weight</span><span class="p">),</span>
-                    <span class="n">robust</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">options</span><span class="o">.</span><span class="n">robust</span><span class="p">),</span>
-                    <span class="n">do_apcal</span><span class="o">=</span><span class="nb">eval</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">options</span><span class="o">.</span><span class="n">do_apcal</span><span class="p">)),</span>
-                    <span class="n">applymode</span><span class="o">=</span><span class="n">options</span><span class="o">.</span><span class="n">applymode</span><span class="p">,</span>
-                    <span class="n">min_tol_factor</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">options</span><span class="o">.</span><span class="n">min_tol_factor</span><span class="p">),</span>
-                    <span class="n">solar_selfcal</span><span class="o">=</span><span class="nb">eval</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">options</span><span class="o">.</span><span class="n">solar_selfcal</span><span class="p">)),</span>
+                    <span class="n">start_threshold</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">start_thresh</span><span class="p">),</span>
+                    <span class="n">end_threshold</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">stop_thresh</span><span class="p">),</span>
+                    <span class="n">max_iter</span><span class="o">=</span><span class="nb">int</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">max_iter</span><span class="p">),</span>
+                    <span class="n">max_DR</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">max_DR</span><span class="p">),</span>
+                    <span class="n">min_iter</span><span class="o">=</span><span class="nb">int</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">min_iter</span><span class="p">),</span>
+                    <span class="n">DR_convegerence_frac</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">conv_frac</span><span class="p">),</span>
+                    <span class="n">uvrange</span><span class="o">=</span><span class="nb">str</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">uvrange</span><span class="p">),</span>
+                    <span class="n">minuv</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">minuv</span><span class="p">),</span>
+                    <span class="n">solint</span><span class="o">=</span><span class="nb">str</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">solint</span><span class="p">),</span>
+                    <span class="n">weight</span><span class="o">=</span><span class="nb">str</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">weight</span><span class="p">),</span>
+                    <span class="n">robust</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">robust</span><span class="p">),</span>
+                    <span class="n">do_apcal</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">do_apcal</span><span class="p">,</span>
+                    <span class="n">applymode</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">applymode</span><span class="p">,</span>
+                    <span class="n">min_tol_factor</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">min_tol_factor</span><span class="p">),</span>
+                    <span class="n">solar_selfcal</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">solar_selfcal</span><span class="p">,</span>
                 <span class="p">)</span>
 
                 <span class="c1">####################################</span>
@@ -1450,7 +1482,10 @@
                 <span class="n">chanlist</span> <span class="o">=</span> <span class="p">[]</span>
                 <span class="k">for</span> <span class="n">ms</span> <span class="ow">in</span> <span class="n">mslist</span><span class="p">:</span>
                     <span class="n">channame</span> <span class="o">=</span> <span class="p">(</span>
-                        <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">ms</span><span class="p">)</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;.ms&quot;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;spw_&quot;</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;_time&quot;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+                        <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">ms</span><span class="p">)</span>
+                        <span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;.ms&quot;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+                        <span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;spw_&quot;</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+                        <span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;_time&quot;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
                     <span class="p">)</span>
                     <span class="k">if</span> <span class="n">channame</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">chanlist</span><span class="p">:</span>
                         <span class="n">chanlist</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">channame</span><span class="p">)</span>
@@ -1467,7 +1502,9 @@
                 <span class="n">soft_limit</span><span class="p">,</span> <span class="n">hard_limit</span> <span class="o">=</span> <span class="n">resource</span><span class="o">.</span><span class="n">getrlimit</span><span class="p">(</span><span class="n">resource</span><span class="o">.</span><span class="n">RLIMIT_NOFILE</span><span class="p">)</span>
                 <span class="n">new_soft_limit</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">soft_limit</span><span class="p">,</span> <span class="nb">int</span><span class="p">(</span><span class="mf">0.8</span> <span class="o">*</span> <span class="n">hard_limit</span><span class="p">))</span>
                 <span class="k">if</span> <span class="n">soft_limit</span> <span class="o">&lt;</span> <span class="n">new_soft_limit</span><span class="p">:</span>
-                    <span class="n">resource</span><span class="o">.</span><span class="n">setrlimit</span><span class="p">(</span><span class="n">resource</span><span class="o">.</span><span class="n">RLIMIT_NOFILE</span><span class="p">,</span> <span class="p">(</span><span class="n">new_soft_limit</span><span class="p">,</span> <span class="n">hard_limit</span><span class="p">))</span>
+                    <span class="n">resource</span><span class="o">.</span><span class="n">setrlimit</span><span class="p">(</span>
+                        <span class="n">resource</span><span class="o">.</span><span class="n">RLIMIT_NOFILE</span><span class="p">,</span> <span class="p">(</span><span class="n">new_soft_limit</span><span class="p">,</span> <span class="n">hard_limit</span><span class="p">)</span>
+                    <span class="p">)</span>
 
                 <span class="n">num_fd_list</span> <span class="o">=</span> <span class="p">[]</span>
                 <span class="k">for</span> <span class="n">ms</span> <span class="ow">in</span> <span class="n">mslist</span><span class="p">:</span>
@@ -1490,18 +1527,20 @@
                 <span class="n">n_jobs</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="nb">int</span><span class="p">(</span><span class="n">new_soft_limit</span> <span class="o">/</span> <span class="n">total_fd</span><span class="p">))</span>
                 <span class="n">n_jobs</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">mslist</span><span class="p">),</span> <span class="n">n_jobs</span><span class="p">)</span>
 
-                <span class="n">dask_client</span><span class="p">,</span> <span class="n">dask_cluster</span><span class="p">,</span> <span class="n">n_jobs</span><span class="p">,</span> <span class="n">n_threads</span><span class="p">,</span> <span class="n">mem_limit</span> <span class="o">=</span> <span class="n">get_dask_client</span><span class="p">(</span>
-                    <span class="n">n_jobs</span><span class="p">,</span>
-                    <span class="n">dask_dir</span><span class="o">=</span><span class="n">options</span><span class="o">.</span><span class="n">workdir</span><span class="p">,</span>
-                    <span class="n">cpu_frac</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">options</span><span class="o">.</span><span class="n">cpu_frac</span><span class="p">),</span>
-                    <span class="n">mem_frac</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">options</span><span class="o">.</span><span class="n">mem_frac</span><span class="p">),</span>
-                    <span class="n">min_cpu_per_job</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span>
-                    <span class="n">min_mem_per_job</span><span class="o">=</span><span class="n">min_mem_per_job</span><span class="p">,</span>
+                <span class="n">dask_client</span><span class="p">,</span> <span class="n">dask_cluster</span><span class="p">,</span> <span class="n">n_jobs</span><span class="p">,</span> <span class="n">n_threads</span><span class="p">,</span> <span class="n">mem_limit</span> <span class="o">=</span> <span class="p">(</span>
+                    <span class="n">get_dask_client</span><span class="p">(</span>
+                        <span class="n">n_jobs</span><span class="p">,</span>
+                        <span class="n">dask_dir</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">workdir</span><span class="p">,</span>
+                        <span class="n">cpu_frac</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">cpu_frac</span><span class="p">),</span>
+                        <span class="n">mem_frac</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">mem_frac</span><span class="p">),</span>
+                        <span class="n">min_cpu_per_job</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span>
+                        <span class="n">min_mem_per_job</span><span class="o">=</span><span class="n">min_mem_per_job</span><span class="p">,</span>
+                    <span class="p">)</span>
                 <span class="p">)</span>
                 <span class="n">tasks</span> <span class="o">=</span> <span class="p">[]</span>
                 <span class="k">for</span> <span class="n">ms</span> <span class="ow">in</span> <span class="n">mslist</span><span class="p">:</span>
                     <span class="n">logfile</span> <span class="o">=</span> <span class="p">(</span>
-                        <span class="n">options</span><span class="o">.</span><span class="n">workdir</span>
+                        <span class="n">args</span><span class="o">.</span><span class="n">workdir</span>
                         <span class="o">+</span> <span class="s2">&quot;/logs/&quot;</span>
                         <span class="o">+</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">ms</span><span class="p">)</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;.ms&quot;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
                         <span class="o">+</span> <span class="s2">&quot;_selfcal.log&quot;</span>
@@ -1510,8 +1549,8 @@
                     <span class="n">tasks</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
                         <span class="n">delayed</span><span class="p">(</span><span class="n">partial_do_selfcal</span><span class="p">)(</span>
                             <span class="n">ms</span><span class="p">,</span>
-                            <span class="n">options</span><span class="o">.</span><span class="n">workdir</span><span class="p">,</span>
-                            <span class="n">options</span><span class="o">.</span><span class="n">workdir</span>
+                            <span class="n">args</span><span class="o">.</span><span class="n">workdir</span><span class="p">,</span>
+                            <span class="n">args</span><span class="o">.</span><span class="n">workdir</span>
                             <span class="o">+</span> <span class="s2">&quot;/&quot;</span>
                             <span class="o">+</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">ms</span><span class="p">)</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;.ms&quot;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
                             <span class="o">+</span> <span class="s2">&quot;_selfcal&quot;</span><span class="p">,</span>
@@ -1528,7 +1567,9 @@
                     <span class="n">r</span> <span class="o">=</span> <span class="n">results</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
                     <span class="n">msg</span> <span class="o">=</span> <span class="n">r</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
                     <span class="k">if</span> <span class="n">msg</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
-                        <span class="n">mainlogger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Self-calibration was not successful for ms: </span><span class="si">{</span><span class="n">mslist</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="si">}</span><span class="s2">.&quot;</span><span class="p">)</span>
+                        <span class="n">mainlogger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+                            <span class="sa">f</span><span class="s2">&quot;Self-calibration was not successful for ms: </span><span class="si">{</span><span class="n">mslist</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="si">}</span><span class="s2">.&quot;</span>
+                        <span class="p">)</span>
                     <span class="k">else</span><span class="p">:</span>
                         <span class="n">gcal</span> <span class="o">=</span> <span class="n">r</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
                         <span class="n">tb</span> <span class="o">=</span> <span class="n">table</span><span class="p">()</span>
@@ -1538,10 +1579,10 @@
                         <span class="n">final_gain_caltable</span> <span class="o">=</span> <span class="n">caldir</span> <span class="o">+</span> <span class="sa">f</span><span class="s2">&quot;/selfcal_scan_</span><span class="si">{</span><span class="n">scan</span><span class="si">}</span><span class="s2">.gcal&quot;</span>
                         <span class="n">os</span><span class="o">.</span><span class="n">system</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;cp -r </span><span class="si">{</span><span class="n">gcal</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">final_gain_caltable</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
                         <span class="n">gcal_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">final_gain_caltable</span><span class="p">)</span>
-                <span class="k">if</span> <span class="nb">eval</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">options</span><span class="o">.</span><span class="n">keep_backup</span><span class="p">))</span> <span class="o">==</span> <span class="kc">False</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">keep_backup</span> <span class="o">==</span> <span class="kc">False</span><span class="p">:</span>
                     <span class="k">for</span> <span class="n">ms</span> <span class="ow">in</span> <span class="n">mslist</span><span class="p">:</span>
                         <span class="n">selfcaldir</span> <span class="o">=</span> <span class="p">(</span>
-                            <span class="n">options</span><span class="o">.</span><span class="n">workdir</span>
+                            <span class="n">args</span><span class="o">.</span><span class="n">workdir</span>
                             <span class="o">+</span> <span class="s2">&quot;/&quot;</span>
                             <span class="o">+</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">ms</span><span class="p">)</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;.ms&quot;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
                             <span class="o">+</span> <span class="s2">&quot;_selfcal&quot;</span>
@@ -1550,22 +1591,27 @@
                 <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">gcal_list</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
                     <span class="n">mainlogger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Final selfcal caltables: </span><span class="si">{</span><span class="n">gcal_list</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
                     <span class="n">mainlogger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;################################################&quot;</span><span class="p">)</span>
-                    <span class="n">mainlogger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Total time taken: </span><span class="si">{</span><span class="nb">round</span><span class="p">(</span><span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span><span class="o">-</span><span class="n">starttime</span><span class="p">,</span><span class="mi">2</span><span class="p">)</span><span class="si">}</span><span class="s2">s&quot;</span><span class="p">)</span>
+                    <span class="n">mainlogger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+                        <span class="sa">f</span><span class="s2">&quot;Total time taken: </span><span class="si">{</span><span class="nb">round</span><span class="p">(</span><span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span><span class="o">-</span><span class="n">starttime</span><span class="p">,</span><span class="mi">2</span><span class="p">)</span><span class="si">}</span><span class="s2">s&quot;</span>
+                    <span class="p">)</span>
                     <span class="n">mainlogger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;################################################&quot;</span><span class="p">)</span>
-                    <span class="n">msg</span><span class="o">=</span><span class="mi">0</span>
+                    <span class="n">msg</span> <span class="o">=</span> <span class="mi">0</span>
                 <span class="k">else</span><span class="p">:</span>
                     <span class="n">mainlogger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;No self-calibration is successful.&quot;</span><span class="p">)</span>
                     <span class="n">mainlogger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;################################################&quot;</span><span class="p">)</span>
-                    <span class="n">mainlogger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Total time taken: </span><span class="si">{</span><span class="nb">round</span><span class="p">(</span><span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span><span class="o">-</span><span class="n">starttime</span><span class="p">,</span><span class="mi">2</span><span class="p">)</span><span class="si">}</span><span class="s2">s&quot;</span><span class="p">)</span>
+                    <span class="n">mainlogger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+                        <span class="sa">f</span><span class="s2">&quot;Total time taken: </span><span class="si">{</span><span class="nb">round</span><span class="p">(</span><span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span><span class="o">-</span><span class="n">starttime</span><span class="p">,</span><span class="mi">2</span><span class="p">)</span><span class="si">}</span><span class="s2">s&quot;</span>
+                    <span class="p">)</span>
                     <span class="n">mainlogger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;################################################&quot;</span><span class="p">)</span>
-                    <span class="n">msg</span><span class="o">=</span><span class="mi">1</span>
+                    <span class="n">msg</span> <span class="o">=</span> <span class="mi">1</span>
     <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
         <span class="n">traceback</span><span class="o">.</span><span class="n">print_exc</span><span class="p">()</span>
-        <span class="n">msg</span><span class="o">=</span><span class="mi">1</span>
+        <span class="n">msg</span> <span class="o">=</span> <span class="mi">1</span>
     <span class="k">finally</span><span class="p">:</span>
         <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mi">5</span><span class="p">)</span>
         <span class="n">clean_shutdown</span><span class="p">(</span><span class="n">observer</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">msg</span></div>
+
 
 
 <span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s2">&quot;__main__&quot;</span><span class="p">:</span>
@@ -1606,7 +1652,7 @@
       
     </aside>
   </div>
-</div><script src="../../../_static/documentation_options.js?v=8d563738"></script>
+</div><script src="../../../_static/documentation_options.js?v=4ebf8126"></script>
     <script src="../../../_static/doctools.js?v=9a2dae69"></script>
     <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../../../_static/scripts/furo.js?v=32e29ea5"></script>

@@ -5,7 +5,7 @@
     <meta name="color-scheme" content="light dark"><link rel="index" title="Index" href="../../../genindex.html" /><link rel="search" title="Search" href="../../../search.html" />
 
     <!-- Generated with Sphinx 7.4.7 and Furo 2024.01.29 -->
-        <title>meersolar.pipeline.init_data - MeerSOLAR 1.0.0 documentation</title>
+        <title>meersolar.pipeline.init_data - MeerSOLAR</title>
       <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=a746c00c" />
     <link rel="stylesheet" type="text/css" href="../../../_static/styles/furo.css?v=135e06be" />
     <link rel="stylesheet" type="text/css" href="../../../_static/copybutton.css?v=76b2166b" />
@@ -123,7 +123,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="../../../index.html"><div class="brand">MeerSOLAR 1.0.0 documentation</div></a>
+      <a href="../../../index.html"><div class="brand">MeerSOLAR</div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -145,8 +145,12 @@
       
       <div class="sidebar-sticky"><a class="sidebar-brand" href="../../../index.html">
   
+  <div class="sidebar-logo-container">
+    <img class="sidebar-logo only-light" src="../../../_static/yourlogo-light.png" alt="Light Logo"/>
+    <img class="sidebar-logo only-dark" src="../../../_static/yourlogo-dark.png" alt="Dark Logo"/>
+  </div>
   
-  <span class="sidebar-brand-text">MeerSOLAR 1.0.0 documentation</span>
+  <span class="sidebar-brand-text">MeerSOLAR</span>
   
 </a><form class="sidebar-search-container" method="get" action="../../../search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
@@ -154,7 +158,21 @@
   <input type="hidden" name="area" value="default">
 </form>
 <div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
-  
+  <ul>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../../../install.html">Installation and Initial Setup</a><input class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><div class="visually-hidden">Toggle navigation of Installation and Initial Setup</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../install_conda.html">Installing Conda: Anaconda or Miniconda</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../activate_conda.html">Creating and Activating Conda Environment</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../install_meersolar.html">Install MeerSOLAR</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../initial_setup.html">Initial setup</a></li>
+</ul>
+</li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../../../meersolar.html">API Reference</a><input class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" role="switch" type="checkbox"/><label for="toctree-checkbox-2"><div class="visually-hidden">Toggle navigation of API Reference</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../meersolar.pipeline.html">Meersolar Pipeline Module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../meersolar.crystalball.html">Crystalball Module</a></li>
+</ul>
+</li>
+</ul>
+
 </div>
 </div>
 
@@ -188,21 +206,23 @@
         <article role="main">
           <h1>Source code for meersolar.pipeline.init_data</h1><div class="highlight"><pre>
 <span></span><span class="kn">from</span> <span class="nn">meersolar.pipeline.basic_func</span> <span class="kn">import</span> <span class="o">*</span>
-<span class="kn">from</span> <span class="nn">optparse</span> <span class="kn">import</span> <span class="n">OptionParser</span>
-<span class="kn">import</span> <span class="nn">requests</span><span class="o">,</span> <span class="nn">os</span><span class="o">,</span> <span class="nn">psutil</span>
+<span class="kn">import</span> <span class="nn">requests</span><span class="o">,</span> <span class="nn">os</span><span class="o">,</span> <span class="nn">psutil</span><span class="o">,</span> <span class="nn">argparse</span><span class="o">,</span> <span class="nn">sys</span>
 <span class="kn">from</span> <span class="nn">parfive</span> <span class="kn">import</span> <span class="n">Downloader</span>
 
-<span class="n">all_filenames</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;3C138_pol_model.txt&#39;</span><span class="p">,</span>
- <span class="s1">&#39;udocker-englib-1.2.11.tar.gz&#39;</span><span class="p">,</span>
- <span class="s1">&#39;J1939-6342_U_model.txt&#39;</span><span class="p">,</span>
- <span class="s1">&#39;UHF_band_cal.npy&#39;</span><span class="p">,</span>
- <span class="s1">&#39;L_band_cal.npy&#39;</span><span class="p">,</span>
- <span class="s1">&#39;3C286_pol_model.txt&#39;</span><span class="p">,</span>
- <span class="s1">&#39;J1939-6342_L_model.txt&#39;</span><span class="p">,</span>
- <span class="s1">&#39;J0408-6545_U_model.txt&#39;</span><span class="p">,</span>
- <span class="s1">&#39;MeerKAT_antavg_Uband.npz&#39;</span><span class="p">,</span>
- <span class="s1">&#39;J0408-6545_L_model.txt&#39;</span><span class="p">,</span>
- <span class="s1">&#39;MeerKAT_antavg_Lband.npz&#39;</span><span class="p">]</span>
+<span class="n">all_filenames</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="s2">&quot;3C138_pol_model.txt&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;udocker-englib-1.2.11.tar.gz&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;J1939-6342_U_model.txt&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;UHF_band_cal.npy&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;L_band_cal.npy&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;3C286_pol_model.txt&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;J1939-6342_L_model.txt&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;J0408-6545_U_model.txt&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;MeerKAT_antavg_Uband.npz&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;J0408-6545_L_model.txt&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;MeerKAT_antavg_Lband.npz&quot;</span><span class="p">,</span>
+<span class="p">]</span>
+
 
 <div class="viewcode-block" id="get_zenodo_file_urls">
 <a class="viewcode-back" href="../../../meersolar.pipeline.html#meersolar.pipeline.init_data.get_zenodo_file_urls">[docs]</a>
@@ -214,64 +234,85 @@
     <span class="k">return</span> <span class="p">[(</span><span class="n">f</span><span class="p">[</span><span class="s2">&quot;links&quot;</span><span class="p">][</span><span class="s2">&quot;self&quot;</span><span class="p">],</span> <span class="n">f</span><span class="p">[</span><span class="s2">&quot;key&quot;</span><span class="p">])</span> <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;files&quot;</span><span class="p">,</span> <span class="p">[])]</span></div>
 
 
+
 <div class="viewcode-block" id="download_with_parfive">
 <a class="viewcode-back" href="../../../meersolar.pipeline.html#meersolar.pipeline.init_data.download_with_parfive">[docs]</a>
 <span class="k">def</span> <span class="nf">download_with_parfive</span><span class="p">(</span><span class="n">record_id</span><span class="p">,</span> <span class="n">update</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">output_dir</span><span class="o">=</span><span class="s2">&quot;zenodo_download&quot;</span><span class="p">):</span>
-    <span class="nb">print</span> <span class="p">(</span><span class="s2">&quot;####################################&quot;</span><span class="p">)</span>
-    <span class="nb">print</span> <span class="p">(</span><span class="s2">&quot;Downloading MeerSOLAR data files ...&quot;</span><span class="p">)</span>
-    <span class="nb">print</span> <span class="p">(</span><span class="s2">&quot;####################################&quot;</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;####################################&quot;</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Downloading MeerSOLAR data files ...&quot;</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;####################################&quot;</span><span class="p">)</span>
     <span class="n">urls</span> <span class="o">=</span> <span class="n">get_zenodo_file_urls</span><span class="p">(</span><span class="n">record_id</span><span class="p">)</span>
     <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">output_dir</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-    <span class="n">total_cpu</span><span class="o">=</span><span class="n">psutil</span><span class="o">.</span><span class="n">cpu_count</span><span class="p">()</span>
-    <span class="n">dl</span> <span class="o">=</span> <span class="n">Downloader</span><span class="p">(</span><span class="n">max_conn</span><span class="o">=</span><span class="nb">min</span><span class="p">(</span><span class="n">total_cpu</span><span class="p">,</span><span class="nb">len</span><span class="p">(</span><span class="n">all_filenames</span><span class="p">)))</span>
+    <span class="n">total_cpu</span> <span class="o">=</span> <span class="n">psutil</span><span class="o">.</span><span class="n">cpu_count</span><span class="p">()</span>
+    <span class="n">dl</span> <span class="o">=</span> <span class="n">Downloader</span><span class="p">(</span><span class="n">max_conn</span><span class="o">=</span><span class="nb">min</span><span class="p">(</span><span class="n">total_cpu</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">all_filenames</span><span class="p">)))</span>
     <span class="k">for</span> <span class="n">file_url</span><span class="p">,</span> <span class="n">filename</span> <span class="ow">in</span> <span class="n">urls</span><span class="p">:</span>
         <span class="k">if</span> <span class="n">filename</span> <span class="ow">in</span> <span class="n">all_filenames</span><span class="p">:</span>
-            <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">output_dir</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="n">filename</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span><span class="o">==</span><span class="kc">False</span> <span class="ow">or</span> <span class="n">update</span><span class="o">==</span><span class="kc">True</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">output_dir</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="n">filename</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span> <span class="o">==</span> <span class="kc">False</span> <span class="ow">or</span> <span class="n">update</span> <span class="o">==</span> <span class="kc">True</span><span class="p">:</span>
                 <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">output_dir</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="n">filename</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">):</span>
                     <span class="n">os</span><span class="o">.</span><span class="n">system</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;rm -rf </span><span class="si">{</span><span class="n">output_dir</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="n">filename</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
                 <span class="n">dl</span><span class="o">.</span><span class="n">enqueue_file</span><span class="p">(</span><span class="n">file_url</span><span class="p">,</span> <span class="n">path</span><span class="o">=</span><span class="n">output_dir</span><span class="p">,</span> <span class="n">filename</span><span class="o">=</span><span class="n">filename</span><span class="p">)</span>
     <span class="n">results</span> <span class="o">=</span> <span class="n">dl</span><span class="o">.</span><span class="n">download</span><span class="p">()</span></div>
 
 
+
 <div class="viewcode-block" id="init_meersolar_data">
 <a class="viewcode-back" href="../../../meersolar.pipeline.html#meersolar.pipeline.init_data.init_meersolar_data">[docs]</a>
-<span class="k">def</span> <span class="nf">init_meersolar_data</span><span class="p">():</span>
-    <span class="n">usage</span> <span class="o">=</span> <span class="s2">&quot;Initiate MeerSOLAR data&quot;</span>
-    <span class="n">parser</span> <span class="o">=</span> <span class="n">OptionParser</span><span class="p">(</span><span class="n">usage</span><span class="o">=</span><span class="n">usage</span><span class="p">)</span>
-    <span class="n">parser</span><span class="o">.</span><span class="n">add_option</span><span class="p">(</span>
-        <span class="s2">&quot;--update&quot;</span><span class="p">,</span>
-        <span class="n">dest</span><span class="o">=</span><span class="s2">&quot;update&quot;</span><span class="p">,</span>
-        <span class="n">default</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Update existing data&quot;</span><span class="p">,</span>
-        <span class="n">metavar</span><span class="o">=</span><span class="s2">&quot;Boolean&quot;</span><span class="p">,</span>
-    <span class="p">)</span>
-    <span class="n">parser</span><span class="o">.</span><span class="n">add_option</span><span class="p">(</span>
-        <span class="s2">&quot;--remote_link&quot;</span><span class="p">,</span>
-        <span class="n">dest</span><span class="o">=</span><span class="s2">&quot;link&quot;</span><span class="p">,</span>
-        <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Set remote log link&quot;</span><span class="p">,</span>
-        <span class="n">metavar</span><span class="o">=</span><span class="s2">&quot;String&quot;</span><span class="p">,</span>
-    <span class="p">)</span>
-    <span class="p">(</span><span class="n">options</span><span class="p">,</span> <span class="n">args</span><span class="p">)</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">parse_args</span><span class="p">()</span>
-    <span class="n">datadir</span><span class="o">=</span><span class="n">get_datadir</span><span class="p">()</span>
-    <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">datadir</span><span class="si">}</span><span class="s2">/remotelink.txt&quot;</span><span class="p">)</span><span class="o">==</span><span class="kc">False</span><span class="p">:</span>
-        <span class="n">os</span><span class="o">.</span><span class="n">system</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;touch </span><span class="si">{</span><span class="n">datadir</span><span class="si">}</span><span class="s2">/remotelink.txt&quot;</span><span class="p">)</span>
-    <span class="k">if</span> <span class="n">options</span><span class="o">.</span><span class="n">link</span><span class="o">!=</span><span class="kc">None</span><span class="p">:</span>
-        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">datadir</span><span class="si">}</span><span class="s2">/remotelink.txt&quot;</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
-            <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">options</span><span class="o">.</span><span class="n">link</span><span class="p">))</span>
-    <span class="n">unavailable_files</span><span class="o">=</span><span class="p">[]</span>
-    <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">all_filenames</span><span class="p">:</span>
-        <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">datadir</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="n">f</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span><span class="o">==</span><span class="kc">False</span><span class="p">:</span>
-            <span class="n">unavailable_files</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
-    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">unavailable_files</span><span class="p">)</span><span class="o">&gt;</span><span class="mi">0</span> <span class="ow">or</span> <span class="nb">eval</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">options</span><span class="o">.</span><span class="n">update</span><span class="p">))</span><span class="o">==</span><span class="kc">True</span><span class="p">:</span>    
+<span class="k">def</span> <span class="nf">init_meersolar_data</span><span class="p">(</span><span class="n">update</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span><span class="n">remote_link</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Initiate MeerSOLAR data</span>
+<span class="sd">    </span>
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    update : bool, optional</span>
+<span class="sd">        Update data, if already exists</span>
+<span class="sd">    remote_link : str, optional</span>
+<span class="sd">        Remote logger link to save in database</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">datadir</span> <span class="o">=</span> <span class="n">get_datadir</span><span class="p">()</span>
+    <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">datadir</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">linkfile</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">datadir</span><span class="si">}</span><span class="s2">/remotelink.txt&quot;</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">linkfile</span><span class="p">):</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">linkfile</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;&quot;</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">remote_link</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">linkfile</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">remote_link</span><span class="p">))</span>
+
+    <span class="n">unavailable_files</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="n">f</span> <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">all_filenames</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">datadir</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="n">f</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="p">]</span>
+
+    <span class="k">if</span> <span class="n">unavailable_files</span> <span class="ow">or</span> <span class="n">update</span><span class="p">:</span>
         <span class="n">record_id</span> <span class="o">=</span> <span class="s2">&quot;15691548&quot;</span>
-        <span class="n">download_with_parfive</span><span class="p">(</span><span class="n">record_id</span><span class="p">,</span> <span class="n">update</span><span class="o">=</span><span class="nb">eval</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">options</span><span class="o">.</span><span class="n">update</span><span class="p">)),</span> <span class="n">output_dir</span><span class="o">=</span><span class="n">datadir</span><span class="p">)</span>
+        <span class="n">download_with_parfive</span><span class="p">(</span><span class="n">record_id</span><span class="p">,</span> <span class="n">update</span><span class="o">=</span><span class="n">update</span><span class="p">,</span> <span class="n">output_dir</span><span class="o">=</span><span class="n">datadir</span><span class="p">)</span>
         <span class="n">timestr</span> <span class="o">=</span> <span class="n">dt</span><span class="o">.</span><span class="n">utcnow</span><span class="p">()</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="s2">&quot;%Y-%m-</span><span class="si">%d</span><span class="s2"> %H:%M:%S&quot;</span><span class="p">)</span>
-        <span class="nb">print</span> <span class="p">(</span><span class="sa">f</span><span class="s2">&quot;MeeSOLAR data are updated in: </span><span class="si">{</span><span class="n">datadir</span><span class="si">}</span><span class="s2"> at time: </span><span class="si">{</span><span class="n">timestr</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-    <span class="k">else</span><span class="p">:</span>
-        <span class="nb">print</span> <span class="p">(</span><span class="sa">f</span><span class="s2">&quot;All MeerSOLAR data are available in : </span><span class="si">{</span><span class="n">datadir</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span></div>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;MeeSOLAR data are updated in: </span><span class="si">{</span><span class="n">datadir</span><span class="si">}</span><span class="s2"> at time: </span><span class="si">{</span><span class="n">timestr</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span></div>
+
+   
+
+<div class="viewcode-block" id="main">
+<a class="viewcode-back" href="../../../meersolar.pipeline.html#meersolar.pipeline.init_data.main">[docs]</a>
+<span class="k">def</span> <span class="nf">main</span><span class="p">():</span>
+    <span class="n">usage</span> <span class="o">=</span> <span class="s2">&quot;Initiate MeerSOLAR data&quot;</span>
+    <span class="n">parser</span> <span class="o">=</span> <span class="n">argparse</span><span class="o">.</span><span class="n">ArgumentParser</span><span class="p">(</span><span class="n">description</span><span class="o">=</span><span class="n">usage</span><span class="p">,</span><span class="n">formatter_class</span><span class="o">=</span><span class="n">argparse</span><span class="o">.</span><span class="n">ArgumentDefaultsHelpFormatter</span><span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s2">&quot;--init&quot;</span><span class="p">,</span> <span class="n">action</span><span class="o">=</span><span class="s2">&quot;store_true&quot;</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Initiate data&quot;</span><span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s2">&quot;--update&quot;</span><span class="p">,</span> <span class="n">action</span><span class="o">=</span><span class="s2">&quot;store_true&quot;</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Update existing data&quot;</span><span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;--remotelink&quot;</span><span class="p">,</span> <span class="n">dest</span><span class="o">=</span><span class="s2">&quot;link&quot;</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Set remote log link&quot;</span>
+    <span class="p">)</span>
+
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">sys</span><span class="o">.</span><span class="n">argv</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="n">parser</span><span class="o">.</span><span class="n">print_help</span><span class="p">(</span><span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="p">)</span>
+        <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">args</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">parse_args</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">init</span><span class="p">:</span>
+        <span class="n">init_meersolar_data</span><span class="p">(</span><span class="n">update</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">update</span><span class="p">,</span><span class="n">remote_link</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">link</span><span class="p">)</span>
+        <span class="nb">print</span> <span class="p">(</span><span class="sa">f</span><span class="s2">&quot;MeerSOLAR data are initiated.&quot;</span><span class="p">)</span></div>
 
 
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s2">&quot;__main__&quot;</span><span class="p">:</span>
+    <span class="n">main</span><span class="p">()</span>
 </pre></div>
         </article>
       </div>
@@ -304,7 +345,7 @@
       
     </aside>
   </div>
-</div><script src="../../../_static/documentation_options.js?v=8d563738"></script>
+</div><script src="../../../_static/documentation_options.js?v=4ebf8126"></script>
     <script src="../../../_static/doctools.js?v=9a2dae69"></script>
     <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../../../_static/scripts/furo.js?v=32e29ea5"></script>

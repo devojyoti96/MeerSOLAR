@@ -5,7 +5,7 @@
     <meta name="color-scheme" content="light dark"><link rel="index" title="Index" href="../../../genindex.html" /><link rel="search" title="Search" href="../../../search.html" />
 
     <!-- Generated with Sphinx 7.4.7 and Furo 2024.01.29 -->
-        <title>meersolar.pipeline.basic_func - MeerSOLAR 1.0.0 documentation</title>
+        <title>meersolar.pipeline.basic_func - MeerSOLAR</title>
       <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=a746c00c" />
     <link rel="stylesheet" type="text/css" href="../../../_static/styles/furo.css?v=135e06be" />
     <link rel="stylesheet" type="text/css" href="../../../_static/copybutton.css?v=76b2166b" />
@@ -123,7 +123,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="../../../index.html"><div class="brand">MeerSOLAR 1.0.0 documentation</div></a>
+      <a href="../../../index.html"><div class="brand">MeerSOLAR</div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -145,8 +145,12 @@
       
       <div class="sidebar-sticky"><a class="sidebar-brand" href="../../../index.html">
   
+  <div class="sidebar-logo-container">
+    <img class="sidebar-logo only-light" src="../../../_static/yourlogo-light.png" alt="Light Logo"/>
+    <img class="sidebar-logo only-dark" src="../../../_static/yourlogo-dark.png" alt="Dark Logo"/>
+  </div>
   
-  <span class="sidebar-brand-text">MeerSOLAR 1.0.0 documentation</span>
+  <span class="sidebar-brand-text">MeerSOLAR</span>
   
 </a><form class="sidebar-search-container" method="get" action="../../../search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
@@ -154,7 +158,21 @@
   <input type="hidden" name="area" value="default">
 </form>
 <div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
-  
+  <ul>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../../../install.html">Installation and Initial Setup</a><input class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><div class="visually-hidden">Toggle navigation of Installation and Initial Setup</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../install_conda.html">Installing Conda: Anaconda or Miniconda</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../activate_conda.html">Creating and Activating Conda Environment</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../install_meersolar.html">Install MeerSOLAR</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../initial_setup.html">Initial setup</a></li>
+</ul>
+</li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../../../meersolar.html">API Reference</a><input class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" role="switch" type="checkbox"/><label for="toctree-checkbox-2"><div class="visually-hidden">Toggle navigation of API Reference</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../meersolar.pipeline.html">Meersolar Pipeline Module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../meersolar.crystalball.html">Crystalball Module</a></li>
+</ul>
+</li>
+</ul>
+
 </div>
 </div>
 
@@ -190,7 +208,7 @@
 <span></span><span class="kn">import</span> <span class="nn">os</span><span class="o">,</span> <span class="nn">sys</span><span class="o">,</span> <span class="nn">glob</span><span class="o">,</span> <span class="nn">time</span><span class="o">,</span> <span class="nn">gc</span><span class="o">,</span> <span class="nn">tempfile</span><span class="o">,</span> <span class="nn">copy</span><span class="o">,</span> <span class="nn">traceback</span><span class="o">,</span> <span class="nn">resource</span><span class="o">,</span> <span class="nn">requests</span><span class="o">,</span> <span class="nn">threading</span><span class="o">,</span> <span class="nn">socket</span>
 <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s2">&quot;QT_OPENGL&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;software&quot;</span>
 <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s2">&quot;QT_QPA_PLATFORM&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;offscreen&quot;</span>
-<span class="kn">import</span> <span class="nn">matplotlib.ticker</span> <span class="k">as</span> <span class="nn">ticker</span><span class="o">,</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span><span class="o">,</span> <span class="nn">matplotlib</span><span class="o">,</span> <span class="nn">subprocess</span>
+<span class="kn">import</span> <span class="nn">matplotlib.ticker</span> <span class="k">as</span> <span class="nn">ticker</span><span class="o">,</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span><span class="o">,</span> <span class="nn">matplotlib</span><span class="o">,</span> <span class="nn">subprocess</span><span class="o">,</span> <span class="nn">contextlib</span>
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span><span class="o">,</span> <span class="nn">dask</span><span class="o">,</span> <span class="nn">psutil</span><span class="o">,</span> <span class="nn">logging</span><span class="o">,</span> <span class="nn">sunpy</span>
 <span class="kn">import</span> <span class="nn">astropy.units</span> <span class="k">as</span> <span class="nn">u</span><span class="o">,</span> <span class="nn">string</span><span class="o">,</span> <span class="nn">secrets</span>
 <span class="kn">from</span> <span class="nn">astropy.coordinates</span> <span class="kn">import</span> <span class="n">EarthLocation</span><span class="p">,</span> <span class="n">SkyCoord</span>
@@ -206,7 +224,6 @@
 <span class="kn">from</span> <span class="nn">casatools</span> <span class="kn">import</span> <span class="n">msmetadata</span><span class="p">,</span> <span class="n">ms</span> <span class="k">as</span> <span class="n">casamstool</span><span class="p">,</span> <span class="n">table</span><span class="p">,</span> <span class="n">agentflagger</span>
 <span class="kn">from</span> <span class="nn">dask.distributed</span> <span class="kn">import</span> <span class="n">Client</span><span class="p">,</span> <span class="n">LocalCluster</span>
 <span class="kn">from</span> <span class="nn">dask</span> <span class="kn">import</span> <span class="n">delayed</span><span class="p">,</span> <span class="n">compute</span><span class="p">,</span> <span class="n">config</span>
-<span class="kn">from</span> <span class="nn">optparse</span> <span class="kn">import</span> <span class="n">OptionParser</span>
 <span class="kn">from</span> <span class="nn">astropy.time</span> <span class="kn">import</span> <span class="n">Time</span>
 <span class="kn">from</span> <span class="nn">astropy.coordinates</span> <span class="kn">import</span> <span class="n">get_sun</span><span class="p">,</span> <span class="n">SkyCoord</span>
 <span class="kn">from</span> <span class="nn">astropy.io</span> <span class="kn">import</span> <span class="n">fits</span>
@@ -231,7 +248,6 @@
 <span class="k">except</span><span class="p">:</span>
     <span class="k">pass</span>
 
-
 <div class="viewcode-block" id="get_datadir">
 <a class="viewcode-back" href="../../../meersolar.pipeline.html#meersolar.pipeline.basic_func.get_datadir">[docs]</a>
 <span class="k">def</span> <span class="nf">get_datadir</span><span class="p">():</span>
@@ -241,8 +257,8 @@
     <span class="kn">from</span> <span class="nn">importlib.resources</span> <span class="kn">import</span> <span class="n">files</span>
 
     <span class="n">datadir_path</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">files</span><span class="p">(</span><span class="s2">&quot;meersolar&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">joinpath</span><span class="p">(</span><span class="s2">&quot;data&quot;</span><span class="p">))</span>
-    <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">datadir_path</span><span class="p">,</span><span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-    <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">datadir_path</span><span class="si">}</span><span class="s2">/pids&quot;</span><span class="p">,</span><span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">datadir_path</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">datadir_path</span><span class="si">}</span><span class="s2">/pids&quot;</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">datadir_path</span></div>
 
 
@@ -252,18 +268,36 @@
 <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s2">&quot;UDOCKER_DIR&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">udocker_dir</span>
 <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s2">&quot;UDOCKER_TARBALL&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">datadir</span> <span class="o">+</span> <span class="s2">&quot;/udocker-englib-1.2.11.tar.gz&quot;</span>
 
+
 <div class="viewcode-block" id="init_udocker">
 <a class="viewcode-back" href="../../../meersolar.pipeline.html#meersolar.pipeline.basic_func.init_udocker">[docs]</a>
 <span class="k">def</span> <span class="nf">init_udocker</span><span class="p">():</span>
     <span class="n">os</span><span class="o">.</span><span class="n">system</span><span class="p">(</span><span class="s2">&quot;udocker install&quot;</span><span class="p">)</span></div>
 
-    
+
+<div class="viewcode-block" id="suppress_casa_output">
+<a class="viewcode-back" href="../../../meersolar.pipeline.html#meersolar.pipeline.basic_func.suppress_casa_output">[docs]</a>
+<span class="nd">@contextlib</span><span class="o">.</span><span class="n">contextmanager</span>
+<span class="k">def</span> <span class="nf">suppress_casa_output</span><span class="p">():</span>
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">devnull</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">fnull</span><span class="p">:</span>
+        <span class="n">old_stdout</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">dup</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">old_stderr</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">dup</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+        <span class="n">os</span><span class="o">.</span><span class="n">dup2</span><span class="p">(</span><span class="n">fnull</span><span class="o">.</span><span class="n">fileno</span><span class="p">(),</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="n">os</span><span class="o">.</span><span class="n">dup2</span><span class="p">(</span><span class="n">fnull</span><span class="o">.</span><span class="n">fileno</span><span class="p">(),</span> <span class="mi">2</span><span class="p">)</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">yield</span>
+        <span class="k">finally</span><span class="p">:</span>
+            <span class="n">os</span><span class="o">.</span><span class="n">dup2</span><span class="p">(</span><span class="n">old_stdout</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+            <span class="n">os</span><span class="o">.</span><span class="n">dup2</span><span class="p">(</span><span class="n">old_stderr</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span></div>
+
+
 <div class="viewcode-block" id="clean_shutdown">
 <a class="viewcode-back" href="../../../meersolar.pipeline.html#meersolar.pipeline.basic_func.clean_shutdown">[docs]</a>
 <span class="k">def</span> <span class="nf">clean_shutdown</span><span class="p">(</span><span class="n">observer</span><span class="p">):</span>
     <span class="k">if</span> <span class="n">observer</span><span class="p">:</span>
         <span class="n">observer</span><span class="o">.</span><span class="n">stop</span><span class="p">()</span>
         <span class="n">observer</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">timeout</span><span class="o">=</span><span class="mi">5</span><span class="p">)</span></div>
+
 
 
 <div class="viewcode-block" id="limit_threads">
@@ -284,6 +318,7 @@
         <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s2">&quot;VECLIB_MAXIMUM_THREADS&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">n_threads</span><span class="p">)</span></div>
 
 
+
 <div class="viewcode-block" id="generate_password">
 <a class="viewcode-back" href="../../../meersolar.pipeline.html#meersolar.pipeline.basic_func.generate_password">[docs]</a>
 <span class="k">def</span> <span class="nf">generate_password</span><span class="p">(</span><span class="n">length</span><span class="o">=</span><span class="mi">6</span><span class="p">):</span>
@@ -291,13 +326,14 @@
 <span class="sd">    Generate secure 6-character password with letters, digits, and symbols</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">chars</span> <span class="o">=</span> <span class="n">string</span><span class="o">.</span><span class="n">ascii_letters</span> <span class="o">+</span> <span class="n">string</span><span class="o">.</span><span class="n">digits</span> <span class="o">+</span> <span class="s2">&quot;@#$&amp;*&quot;</span>
-    <span class="k">return</span> <span class="s1">&#39;&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">secrets</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span><span class="n">chars</span><span class="p">)</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">length</span><span class="p">))</span></div>
+    <span class="k">return</span> <span class="s2">&quot;&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">secrets</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span><span class="n">chars</span><span class="p">)</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">length</span><span class="p">))</span></div>
 
-       
+
+
 <div class="viewcode-block" id="get_remote_logger_link">
 <a class="viewcode-back" href="../../../meersolar.pipeline.html#meersolar.pipeline.basic_func.get_remote_logger_link">[docs]</a>
 <span class="k">def</span> <span class="nf">get_remote_logger_link</span><span class="p">():</span>
-    <span class="n">datadir</span><span class="o">=</span><span class="n">get_datadir</span><span class="p">()</span>
+    <span class="n">datadir</span> <span class="o">=</span> <span class="n">get_datadir</span><span class="p">()</span>
     <span class="n">link_file</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">datadir</span><span class="p">,</span> <span class="s2">&quot;remotelink.txt&quot;</span><span class="p">)</span>
     <span class="k">try</span><span class="p">:</span>
         <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">link_file</span><span class="p">,</span> <span class="s2">&quot;r&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
@@ -316,19 +352,23 @@
     <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
         <span class="k">return</span> <span class="s2">&quot;&quot;</span></div>
 
-    
+
+
 <div class="viewcode-block" id="RemoteLogger">
 <a class="viewcode-back" href="../../../meersolar.pipeline.html#meersolar.pipeline.basic_func.RemoteLogger">[docs]</a>
 <span class="k">class</span> <span class="nc">RemoteLogger</span><span class="p">(</span><span class="n">logging</span><span class="o">.</span><span class="n">Handler</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Remote logging handler for posting log messages to a web endpoint.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">job_id</span><span class="o">=</span><span class="s2">&quot;default&quot;</span><span class="p">,</span> <span class="n">log_id</span><span class="o">=</span><span class="s2">&quot;run_default&quot;</span><span class="p">,</span> <span class="n">remote_link</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="n">password</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">):</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">job_id</span><span class="o">=</span><span class="s2">&quot;default&quot;</span><span class="p">,</span> <span class="n">log_id</span><span class="o">=</span><span class="s2">&quot;run_default&quot;</span><span class="p">,</span> <span class="n">remote_link</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="n">password</span><span class="o">=</span><span class="s2">&quot;&quot;</span>
+    <span class="p">):</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">job_id</span> <span class="o">=</span> <span class="n">job_id</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">log_id</span> <span class="o">=</span> <span class="n">log_id</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">password</span> <span class="o">=</span> <span class="n">password</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">remote_link</span><span class="o">=</span><span class="n">remote_link</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">remote_link</span> <span class="o">=</span> <span class="n">remote_link</span>
 
 <div class="viewcode-block" id="RemoteLogger.emit">
 <a class="viewcode-back" href="../../../meersolar.pipeline.html#meersolar.pipeline.basic_func.RemoteLogger.emit">[docs]</a>
@@ -342,58 +382,67 @@
                     <span class="s2">&quot;log_id&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">log_id</span><span class="p">,</span>
                     <span class="s2">&quot;message&quot;</span><span class="p">:</span> <span class="n">msg</span><span class="p">,</span>
                     <span class="s2">&quot;password&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">password</span><span class="p">,</span>
-                    <span class="s2">&quot;first&quot;</span><span class="p">:</span><span class="kc">False</span><span class="p">,</span>
+                    <span class="s2">&quot;first&quot;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span>
                 <span class="p">},</span>
-                <span class="n">timeout</span><span class="o">=</span><span class="mi">2</span>
+                <span class="n">timeout</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
             <span class="p">)</span>
         <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
             <span class="k">pass</span>  <span class="c1"># Fail silently to avoid interrupting the main app</span></div>
 </div>
 
 
+
 <div class="viewcode-block" id="LogTailHandler">
 <a class="viewcode-back" href="../../../meersolar.pipeline.html#meersolar.pipeline.basic_func.LogTailHandler">[docs]</a>
 <span class="k">class</span> <span class="nc">LogTailHandler</span><span class="p">(</span><span class="n">FileSystemEventHandler</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Continuous logging </span>
+<span class="sd">    Continuous logging</span>
 <span class="sd">    &quot;&quot;&quot;</span>
+
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">logfile</span><span class="p">,</span> <span class="n">logger</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">logfile</span> <span class="o">=</span> <span class="n">logfile</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">logger</span> <span class="o">=</span> <span class="n">logger</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_position</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">getsize</span><span class="p">(</span><span class="n">logfile</span><span class="p">)</span> <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">logfile</span><span class="p">)</span> <span class="k">else</span> <span class="mi">0</span>
+
 <div class="viewcode-block" id="LogTailHandler.on_modified">
 <a class="viewcode-back" href="../../../meersolar.pipeline.html#meersolar.pipeline.basic_func.LogTailHandler.on_modified">[docs]</a>
     <span class="k">def</span> <span class="nf">on_modified</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">event</span><span class="p">):</span>
         <span class="k">if</span> <span class="n">event</span><span class="o">.</span><span class="n">src_path</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">logfile</span><span class="p">:</span>
             <span class="k">try</span><span class="p">:</span>
-                <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">logfile</span><span class="p">,</span> <span class="s1">&#39;r&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+                <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">logfile</span><span class="p">,</span> <span class="s2">&quot;r&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
                     <span class="n">f</span><span class="o">.</span><span class="n">seek</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_position</span><span class="p">)</span>
                     <span class="n">lines</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">readlines</span><span class="p">()</span>
                     <span class="bp">self</span><span class="o">.</span><span class="n">_position</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">tell</span><span class="p">()</span>
                 <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">lines</span><span class="p">:</span>
-                    <span class="k">if</span> <span class="n">line</span><span class="o">!=</span><span class="s2">&quot;&quot;</span> <span class="ow">and</span> <span class="n">line</span><span class="o">!=</span><span class="s2">&quot; &quot;</span> <span class="ow">and</span> <span class="n">line</span><span class="o">!=</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="n">line</span> <span class="o">!=</span> <span class="s2">&quot;&quot;</span> <span class="ow">and</span> <span class="n">line</span> <span class="o">!=</span> <span class="s2">&quot; &quot;</span> <span class="ow">and</span> <span class="n">line</span> <span class="o">!=</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">:</span>
                         <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="n">line</span><span class="o">.</span><span class="n">strip</span><span class="p">())</span>
             <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
-                <span class="k">pass</span>  </div>
+                <span class="k">pass</span></div>
 </div>
+
 
 
 <div class="viewcode-block" id="ping_logger">
 <a class="viewcode-back" href="../../../meersolar.pipeline.html#meersolar.pipeline.basic_func.ping_logger">[docs]</a>
 <span class="k">def</span> <span class="nf">ping_logger</span><span class="p">(</span><span class="n">jobid</span><span class="p">,</span> <span class="n">stop_event</span><span class="p">,</span> <span class="n">remote_link</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Ping a job-specific keep-alive endpoint periodically until stop_event is set.&quot;&quot;&quot;</span>
-    <span class="n">pid</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">getpid</span><span class="p">()</span>
-    <span class="n">datadir</span><span class="o">=</span><span class="n">get_datadir</span><span class="p">()</span>
-    <span class="n">save_pid</span><span class="p">(</span><span class="n">pid</span><span class="p">,</span><span class="n">datadir</span> <span class="o">+</span> <span class="sa">f</span><span class="s2">&quot;/pids/pids_</span><span class="si">{</span><span class="n">jobid</span><span class="si">}</span><span class="s2">.txt&quot;</span><span class="p">)</span>
-    <span class="n">interval</span><span class="o">=</span><span class="mi">10</span><span class="o">*</span><span class="mi">60</span> <span class="c1"># 10 min interval</span>
-    <span class="k">if</span> <span class="n">remote_link</span><span class="o">!=</span><span class="s2">&quot;&quot;</span><span class="p">:</span>
+    <span class="n">pid</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">getpid</span><span class="p">()</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;PID&quot;</span><span class="p">,</span> <span class="n">pid</span><span class="p">)</span>
+    <span class="n">datadir</span> <span class="o">=</span> <span class="n">get_datadir</span><span class="p">()</span>
+    <span class="n">save_pid</span><span class="p">(</span><span class="n">pid</span><span class="p">,</span> <span class="n">datadir</span> <span class="o">+</span> <span class="sa">f</span><span class="s2">&quot;/pids/pids_</span><span class="si">{</span><span class="n">jobid</span><span class="si">}</span><span class="s2">.txt&quot;</span><span class="p">)</span>
+    <span class="n">interval</span> <span class="o">=</span> <span class="mi">10</span>  <span class="c1"># 10 min interval</span>
+    <span class="k">if</span> <span class="n">remote_link</span> <span class="o">!=</span> <span class="s2">&quot;&quot;</span><span class="p">:</span>
         <span class="n">url</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">remote_link</span><span class="si">}</span><span class="s2">/api/ping/</span><span class="si">{</span><span class="n">jobid</span><span class="si">}</span><span class="s2">&quot;</span>
         <span class="k">while</span> <span class="ow">not</span> <span class="n">stop_event</span><span class="o">.</span><span class="n">is_set</span><span class="p">():</span>
             <span class="k">try</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;[ping_logger] Ping sent for job </span><span class="si">{</span><span class="n">jobid</span><span class="si">}</span><span class="s2"> at </span><span class="si">{</span><span class="n">dt</span><span class="o">.</span><span class="n">now</span><span class="p">()</span><span class="o">.</span><span class="n">isoformat</span><span class="p">()</span><span class="si">}</span><span class="s2">&quot;</span>
+                <span class="p">)</span>
                 <span class="n">res</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">post</span><span class="p">(</span><span class="n">url</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
             <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
                 <span class="k">pass</span>
             <span class="n">stop_event</span><span class="o">.</span><span class="n">wait</span><span class="p">(</span><span class="n">interval</span><span class="p">)</span></div>
+
 
 
 <div class="viewcode-block" id="create_logger">
@@ -422,7 +471,7 @@
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">logfile</span><span class="p">):</span>
         <span class="n">os</span><span class="o">.</span><span class="n">system</span><span class="p">(</span><span class="s2">&quot;rm -rf &quot;</span> <span class="o">+</span> <span class="n">logfile</span><span class="p">)</span>
-    <span class="n">formatter</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">Formatter</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">%(message)s</span><span class="s1">&#39;</span><span class="p">)</span>
+    <span class="n">formatter</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">Formatter</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">%(message)s</span><span class="s2">&quot;</span><span class="p">)</span>
     <span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="n">logname</span><span class="p">)</span>
     <span class="n">logger</span><span class="o">.</span><span class="n">setLevel</span><span class="p">(</span><span class="n">logging</span><span class="o">.</span><span class="n">DEBUG</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">verbose</span> <span class="o">==</span> <span class="kc">True</span><span class="p">:</span>
@@ -435,6 +484,7 @@
     <span class="n">logger</span><span class="o">.</span><span class="n">propagate</span> <span class="o">=</span> <span class="kc">False</span>
     <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Log file : &quot;</span> <span class="o">+</span> <span class="n">logfile</span> <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">logger</span><span class="p">,</span> <span class="n">logfile</span></div>
+
 
 
 <div class="viewcode-block" id="get_logid">
@@ -460,25 +510,26 @@
         <span class="s2">&quot;selfcal_targets.log&quot;</span><span class="p">:</span> <span class="s2">&quot;All self-calibrations&quot;</span><span class="p">,</span>
         <span class="s2">&quot;imaging_targets.log&quot;</span><span class="p">:</span> <span class="s2">&quot;All imaging&quot;</span><span class="p">,</span>
         <span class="s2">&quot;noise_cal.log&quot;</span><span class="p">:</span> <span class="s2">&quot;Flux calibration using noise-diode&quot;</span><span class="p">,</span>
-        <span class="s2">&quot;partition_cal.log&quot;</span><span class="p">:</span> <span class="s2">&quot;Partioning for basic calibration&quot;</span>
+        <span class="s2">&quot;partition_cal.log&quot;</span><span class="p">:</span> <span class="s2">&quot;Partioning for basic calibration&quot;</span><span class="p">,</span>
     <span class="p">}</span>
 
     <span class="k">if</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">logmap</span><span class="p">:</span>
         <span class="k">return</span> <span class="n">logmap</span><span class="p">[</span><span class="n">name</span><span class="p">]</span>
     <span class="k">elif</span> <span class="s2">&quot;selfcals_scan_&quot;</span> <span class="ow">in</span> <span class="n">name</span><span class="p">:</span>
-        <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="o">.</span><span class="n">rstrip</span><span class="p">(</span><span class="s2">&quot;_selfcal.log&quot;</span><span class="p">)</span>
+        <span class="n">name</span> <span class="o">=</span> <span class="n">name</span><span class="o">.</span><span class="n">rstrip</span><span class="p">(</span><span class="s2">&quot;_selfcal.log&quot;</span><span class="p">)</span>
         <span class="n">scan</span> <span class="o">=</span> <span class="n">name</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;scan_&quot;</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;_spw&quot;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
         <span class="n">spw</span> <span class="o">=</span> <span class="n">name</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;spw_&quot;</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;_selfcal&quot;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
         <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;Self-calibration for: Scan : </span><span class="si">{</span><span class="n">scan</span><span class="si">}</span><span class="s2">, Spectral window: </span><span class="si">{</span><span class="n">spw</span><span class="si">}</span><span class="s2">&quot;</span>
     <span class="k">elif</span> <span class="s2">&quot;imaging_targets_scan_&quot;</span> <span class="ow">in</span> <span class="n">name</span><span class="p">:</span>
-        <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="o">.</span><span class="n">rstrip</span><span class="p">(</span><span class="s2">&quot;.log&quot;</span><span class="p">)</span>
+        <span class="n">name</span> <span class="o">=</span> <span class="n">name</span><span class="o">.</span><span class="n">rstrip</span><span class="p">(</span><span class="s2">&quot;.log&quot;</span><span class="p">)</span>
         <span class="n">scan</span> <span class="o">=</span> <span class="n">name</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;scan_&quot;</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;_spw&quot;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
         <span class="n">spw</span> <span class="o">=</span> <span class="n">name</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;spw_&quot;</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;_selfcal&quot;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
         <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;Imaging for: Scan : </span><span class="si">{</span><span class="n">scan</span><span class="si">}</span><span class="s2">, Spectral window: </span><span class="si">{</span><span class="n">spw</span><span class="si">}</span><span class="s2">&quot;</span>
     <span class="k">else</span><span class="p">:</span>
         <span class="k">return</span> <span class="n">name</span></div>
 
-     
+
+
 <div class="viewcode-block" id="init_logger">
 <a class="viewcode-back" href="../../../meersolar.pipeline.html#meersolar.pipeline.basic_func.init_logger">[docs]</a>
 <span class="k">def</span> <span class="nf">init_logger</span><span class="p">(</span><span class="n">logname</span><span class="p">,</span> <span class="n">logfile</span><span class="p">,</span> <span class="n">jobname</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="n">password</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">):</span>
@@ -501,10 +552,10 @@
 <span class="sd">    logger : logging.Logger</span>
 <span class="sd">        Configured logger instance.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">timeout</span> <span class="o">=</span> <span class="mi">30</span> 
+    <span class="n">timeout</span> <span class="o">=</span> <span class="mi">30</span>
     <span class="n">waited</span> <span class="o">=</span> <span class="mi">0</span>
     <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
-        <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">logfile</span><span class="p">)</span><span class="o">==</span><span class="kc">False</span><span class="p">:</span> 
+        <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">logfile</span><span class="p">)</span> <span class="o">==</span> <span class="kc">False</span><span class="p">:</span>
             <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
             <span class="n">waited</span> <span class="o">+=</span> <span class="mi">1</span>
         <span class="k">elif</span> <span class="n">waited</span> <span class="o">&gt;=</span> <span class="n">timeout</span><span class="p">:</span>
@@ -516,13 +567,17 @@
     <span class="n">logger</span><span class="o">.</span><span class="n">propagate</span> <span class="o">=</span> <span class="kc">False</span>
     <span class="k">if</span> <span class="n">logger</span><span class="o">.</span><span class="n">hasHandlers</span><span class="p">():</span>
         <span class="n">logger</span><span class="o">.</span><span class="n">handlers</span><span class="o">.</span><span class="n">clear</span><span class="p">()</span>
-    <span class="n">formatter</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">Formatter</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">%(asctime)s</span><span class="s1"> </span><span class="si">%(levelname)s</span><span class="s1">-</span><span class="si">%(message)s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="s2">&quot;%Y-%m-</span><span class="si">%d</span><span class="s2">T%H:%M:%S&quot;</span><span class="p">)</span>
-    <span class="n">remote_link</span><span class="o">=</span><span class="n">get_remote_logger_link</span><span class="p">()</span>
-    <span class="k">if</span> <span class="n">remote_link</span><span class="o">!=</span><span class="s2">&quot;&quot;</span><span class="p">:</span>
+    <span class="n">formatter</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">Formatter</span><span class="p">(</span>
+        <span class="s2">&quot;</span><span class="si">%(asctime)s</span><span class="s2"> </span><span class="si">%(levelname)s</span><span class="s2">-</span><span class="si">%(message)s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="s2">&quot;%Y-%m-</span><span class="si">%d</span><span class="s2">T%H:%M:%S&quot;</span>
+    <span class="p">)</span>
+    <span class="n">remote_link</span> <span class="o">=</span> <span class="n">get_remote_logger_link</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">remote_link</span> <span class="o">!=</span> <span class="s2">&quot;&quot;</span><span class="p">:</span>
         <span class="k">if</span> <span class="n">jobname</span><span class="p">:</span>
             <span class="n">job_id</span> <span class="o">=</span> <span class="n">jobname</span>
-            <span class="n">log_id</span><span class="o">=</span><span class="n">get_logid</span><span class="p">(</span><span class="n">logfile</span><span class="p">)</span>
-            <span class="n">remote_handler</span> <span class="o">=</span> <span class="n">RemoteLogger</span><span class="p">(</span><span class="n">job_id</span><span class="o">=</span><span class="n">job_id</span><span class="p">,</span> <span class="n">log_id</span><span class="o">=</span><span class="n">log_id</span><span class="p">,</span> <span class="n">remote_link</span><span class="o">=</span><span class="n">remote_link</span><span class="p">,</span> <span class="n">password</span><span class="o">=</span><span class="n">password</span><span class="p">)</span>
+            <span class="n">log_id</span> <span class="o">=</span> <span class="n">get_logid</span><span class="p">(</span><span class="n">logfile</span><span class="p">)</span>
+            <span class="n">remote_handler</span> <span class="o">=</span> <span class="n">RemoteLogger</span><span class="p">(</span>
+                <span class="n">job_id</span><span class="o">=</span><span class="n">job_id</span><span class="p">,</span> <span class="n">log_id</span><span class="o">=</span><span class="n">log_id</span><span class="p">,</span> <span class="n">remote_link</span><span class="o">=</span><span class="n">remote_link</span><span class="p">,</span> <span class="n">password</span><span class="o">=</span><span class="n">password</span>
+            <span class="p">)</span>
             <span class="n">remote_handler</span><span class="o">.</span><span class="n">setFormatter</span><span class="p">(</span><span class="n">formatter</span><span class="p">)</span>
             <span class="n">logger</span><span class="o">.</span><span class="n">addHandler</span><span class="p">(</span><span class="n">remote_handler</span><span class="p">)</span>
 
@@ -536,22 +591,25 @@
                         <span class="s2">&quot;password&quot;</span><span class="p">:</span> <span class="n">password</span><span class="p">,</span>
                         <span class="s2">&quot;first&quot;</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span>
                     <span class="p">},</span>
-                    <span class="n">timeout</span><span class="o">=</span><span class="mi">2</span>
+                    <span class="n">timeout</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
                 <span class="p">)</span>
             <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
                 <span class="k">pass</span>
         <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">logfile</span><span class="p">):</span>
             <span class="n">event_handler</span> <span class="o">=</span> <span class="n">LogTailHandler</span><span class="p">(</span><span class="n">logfile</span><span class="p">,</span> <span class="n">logger</span><span class="p">)</span>
             <span class="n">observer</span> <span class="o">=</span> <span class="n">Observer</span><span class="p">()</span>
-            <span class="n">observer</span><span class="o">.</span><span class="n">schedule</span><span class="p">(</span><span class="n">event_handler</span><span class="p">,</span> <span class="n">path</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">logfile</span><span class="p">),</span> <span class="n">recursive</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+            <span class="n">observer</span><span class="o">.</span><span class="n">schedule</span><span class="p">(</span>
+                <span class="n">event_handler</span><span class="p">,</span> <span class="n">path</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">logfile</span><span class="p">),</span> <span class="n">recursive</span><span class="o">=</span><span class="kc">False</span>
+            <span class="p">)</span>
             <span class="n">observer</span><span class="o">.</span><span class="n">start</span><span class="p">()</span>
-            <span class="k">return</span> <span class="n">observer</span>  
+            <span class="k">return</span> <span class="n">observer</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="k">return</span>
     <span class="k">else</span><span class="p">:</span>
         <span class="k">return</span></div>
 
-            
+
+
 <div class="viewcode-block" id="flag_outside_uvrange">
 <a class="viewcode-back" href="../../../meersolar.pipeline.html#meersolar.pipeline.basic_func.flag_outside_uvrange">[docs]</a>
 <span class="k">def</span> <span class="nf">flag_outside_uvrange</span><span class="p">(</span><span class="n">vis</span><span class="p">,</span> <span class="n">uvrange</span><span class="p">,</span> <span class="n">n_threads</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span> <span class="n">flagbackup</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
@@ -1229,7 +1287,7 @@
             <span class="n">axes</span><span class="o">=</span><span class="n">ax_colormap</span><span class="p">,</span>
             <span class="n">title</span><span class="o">=</span><span class="n">title</span><span class="p">,</span>
             <span class="n">autoalign</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-            <span class="n">clip_interval</span><span class="o">=</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="mf">99.9</span><span class="p">)</span> <span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">percent</span><span class="p">,</span>
+            <span class="n">clip_interval</span><span class="o">=</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="mf">99.9</span><span class="p">)</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">percent</span><span class="p">,</span>
             <span class="n">zorder</span><span class="o">=</span><span class="n">z</span><span class="p">,</span>
         <span class="p">)</span>
         <span class="n">z</span> <span class="o">+=</span> <span class="mi">1</span>
@@ -2814,7 +2872,7 @@
 
 <div class="viewcode-block" id="move_to_sun">
 <a class="viewcode-back" href="../../../meersolar.pipeline.html#meersolar.pipeline.basic_func.move_to_sun">[docs]</a>
-<span class="k">def</span> <span class="nf">move_to_sun</span><span class="p">(</span><span class="n">msname</span><span class="p">):</span>
+<span class="k">def</span> <span class="nf">move_to_sun</span><span class="p">(</span><span class="n">msname</span><span class="p">,</span> <span class="n">only_uvw</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Move the phasecenter of the measurement set at the center of the Sun (Assuming ms has one scan)</span>
 
@@ -2822,6 +2880,9 @@
 <span class="sd">    ----------</span>
 <span class="sd">    msname : str</span>
 <span class="sd">        Name of the measurement set</span>
+<span class="sd">    only_uvw : bool, optional</span>
+<span class="sd">        Note: This is required when visibilities are properly phase rotated in correlator to track the Sun,</span>
+<span class="sd">        but while creating the MS, UVW values are estimated using a wrong phase center at the start of solar center at the start.</span>
 
 <span class="sd">    Returns</span>
 <span class="sd">    -------</span>
@@ -2829,7 +2890,9 @@
 <span class="sd">        Success message</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">sun_radec_string</span><span class="p">,</span> <span class="n">sunra</span><span class="p">,</span> <span class="n">sundec</span><span class="p">,</span> <span class="n">sunra_deg</span><span class="p">,</span> <span class="n">sundec_deg</span> <span class="o">=</span> <span class="n">radec_sun</span><span class="p">(</span><span class="n">msname</span><span class="p">)</span>
-    <span class="n">msg</span> <span class="o">=</span> <span class="n">run_chgcenter</span><span class="p">(</span><span class="n">msname</span><span class="p">,</span> <span class="n">sunra</span><span class="p">,</span> <span class="n">sundec</span><span class="p">,</span> <span class="n">container_name</span><span class="o">=</span><span class="s2">&quot;meerwsclean&quot;</span><span class="p">)</span>
+    <span class="n">msg</span> <span class="o">=</span> <span class="n">run_chgcenter</span><span class="p">(</span>
+        <span class="n">msname</span><span class="p">,</span> <span class="n">sunra</span><span class="p">,</span> <span class="n">sundec</span><span class="p">,</span> <span class="n">only_uvw</span><span class="o">=</span><span class="n">only_uvw</span><span class="p">,</span> <span class="n">container_name</span><span class="o">=</span><span class="s2">&quot;meerwsclean&quot;</span>
+    <span class="p">)</span>
     <span class="k">if</span> <span class="n">msg</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
         <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Phasecenter could not be shifted.&quot;</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">msg</span></div>
@@ -2918,7 +2981,8 @@
 <span class="sd">    bool</span>
 <span class="sd">        Whether it is noise-diode cal scan or not</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">def</span> <span class="nf">is_noisescan</span><span class="p">(</span><span class="n">msname</span><span class="p">,</span><span class="n">chan</span><span class="p">,</span><span class="n">scan</span><span class="p">):</span>
+
+    <span class="k">def</span> <span class="nf">is_noisescan</span><span class="p">(</span><span class="n">msname</span><span class="p">,</span> <span class="n">chan</span><span class="p">,</span> <span class="n">scan</span><span class="p">):</span>
         <span class="n">mstool</span> <span class="o">=</span> <span class="n">casamstool</span><span class="p">()</span>
         <span class="n">mstool</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">msname</span><span class="p">)</span>
         <span class="n">mstool</span><span class="o">.</span><span class="n">select</span><span class="p">({</span><span class="s2">&quot;antenna1&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span> <span class="s2">&quot;antenna2&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span> <span class="s2">&quot;scan_number&quot;</span><span class="p">:</span> <span class="n">scan</span><span class="p">})</span>
@@ -2940,10 +3004,11 @@
             <span class="k">return</span> <span class="kc">True</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="k">return</span> <span class="kc">False</span>
+
     <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Check noise-diode cal for scan : </span><span class="si">{</span><span class="n">scan</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
     <span class="n">good_spw</span> <span class="o">=</span> <span class="n">get_good_chans</span><span class="p">(</span><span class="n">msname</span><span class="p">)</span>
     <span class="n">chan</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">good_spw</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;;&quot;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;:&quot;</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;~&quot;</span><span class="p">)[</span><span class="mi">0</span><span class="p">])</span>
-    <span class="k">return</span> <span class="n">is_noisescan</span><span class="p">(</span><span class="n">msname</span><span class="p">,</span><span class="n">chan</span><span class="p">,</span><span class="n">scan</span><span class="p">)</span></div>
+    <span class="k">return</span> <span class="n">is_noisescan</span><span class="p">(</span><span class="n">msname</span><span class="p">,</span> <span class="n">chan</span><span class="p">,</span> <span class="n">scan</span><span class="p">)</span></div>
 
 
 
@@ -2967,6 +3032,7 @@
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">limit_threads</span><span class="p">(</span><span class="n">n_threads</span><span class="o">=</span><span class="n">n_threads</span><span class="p">)</span>
     <span class="kn">from</span> <span class="nn">casatools</span> <span class="kn">import</span> <span class="n">ms</span> <span class="k">as</span> <span class="n">casamstool</span>
+
     <span class="n">mstool</span> <span class="o">=</span> <span class="n">casamstool</span><span class="p">()</span>
     <span class="n">mstool</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">msname</span><span class="p">)</span>
     <span class="n">scan_summary</span> <span class="o">=</span> <span class="n">mstool</span><span class="o">.</span><span class="n">getscansummary</span><span class="p">()</span>
@@ -4153,39 +4219,38 @@
     <span class="k">return</span> <span class="n">merged_caltable</span></div>
 
 
+
 <div class="viewcode-block" id="kill_job">
 <a class="viewcode-back" href="../../../meersolar.pipeline.html#meersolar.pipeline.basic_func.kill_job">[docs]</a>
 <span class="k">def</span> <span class="nf">kill_job</span><span class="p">():</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Kill MeerSOLAR Job</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="kn">import</span> <span class="nn">signal</span>
-    <span class="kn">from</span> <span class="nn">optparse</span> <span class="kn">import</span> <span class="n">OptionParser</span>
-    <span class="n">usage</span> <span class="o">=</span> <span class="s2">&quot;Kill MeerSOLAR Job&quot;</span>
-    <span class="n">parser</span> <span class="o">=</span> <span class="n">OptionParser</span><span class="p">(</span><span class="n">usage</span><span class="o">=</span><span class="n">usage</span><span class="p">)</span>
-    <span class="n">parser</span><span class="o">.</span><span class="n">add_option</span><span class="p">(</span>
-        <span class="s2">&quot;--jobid&quot;</span><span class="p">,</span>
-        <span class="n">dest</span><span class="o">=</span><span class="s2">&quot;jobid&quot;</span><span class="p">,</span>
-        <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;MeerSOLAR Job ID&quot;</span><span class="p">,</span>
-        <span class="n">metavar</span><span class="o">=</span><span class="s2">&quot;Integer&quot;</span><span class="p">,</span>
+    <span class="kn">import</span> <span class="nn">signal</span><span class="o">,</span> <span class="nn">argparse</span>
+
+    <span class="n">parser</span> <span class="o">=</span> <span class="n">argparse</span><span class="o">.</span><span class="n">ArgumentParser</span><span class="p">(</span><span class="n">description</span><span class="o">=</span><span class="s2">&quot;Kill MeerSOLAR Job&quot;</span><span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;--jobid&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span> <span class="n">required</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s2">&quot;MeerSOLAR Job ID to kill&quot;</span>
     <span class="p">)</span>
-    <span class="p">(</span><span class="n">options</span><span class="p">,</span> <span class="n">args</span><span class="p">)</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">parse_args</span><span class="p">()</span>
-    <span class="n">datadir</span><span class="o">=</span><span class="n">get_datadir</span><span class="p">()</span>
-    <span class="n">jobfile_name</span><span class="o">=</span><span class="n">datadir</span> <span class="o">+</span> <span class="sa">f</span><span class="s2">&quot;/main_pids_</span><span class="si">{</span><span class="n">options</span><span class="o">.</span><span class="n">jobid</span><span class="si">}</span><span class="s2">.txt&quot;</span>
-    <span class="n">results</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">loadtxt</span><span class="p">(</span><span class="n">jobfile_name</span><span class="p">,</span><span class="n">dtype</span><span class="o">=</span><span class="s2">&quot;str&quot;</span><span class="p">,</span><span class="n">unpack</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-    <span class="n">basedir</span><span class="o">=</span><span class="n">results</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span>
-    <span class="n">main_pid</span><span class="o">=</span><span class="n">results</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
-    <span class="n">pid_file</span> <span class="o">=</span> <span class="n">datadir</span> <span class="o">+</span> <span class="sa">f</span><span class="s2">&quot;/pids_</span><span class="si">{</span><span class="n">options</span><span class="o">.</span><span class="n">jobid</span><span class="si">}</span><span class="s2">.txt&quot;</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">sys</span><span class="o">.</span><span class="n">argv</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="n">parser</span><span class="o">.</span><span class="n">print_help</span><span class="p">(</span><span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="p">)</span>
+        <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">args</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">parse_args</span><span class="p">()</span>
+    <span class="n">datadir</span> <span class="o">=</span> <span class="n">get_datadir</span><span class="p">()</span>
+    <span class="n">jobfile_name</span> <span class="o">=</span> <span class="n">datadir</span> <span class="o">+</span> <span class="sa">f</span><span class="s2">&quot;/main_pids_</span><span class="si">{</span><span class="n">args</span><span class="o">.</span><span class="n">jobid</span><span class="si">}</span><span class="s2">.txt&quot;</span>
+    <span class="n">results</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">loadtxt</span><span class="p">(</span><span class="n">jobfile_name</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="s2">&quot;str&quot;</span><span class="p">,</span> <span class="n">unpack</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">basedir</span> <span class="o">=</span> <span class="n">results</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span>
+    <span class="n">main_pid</span> <span class="o">=</span> <span class="n">results</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+    <span class="n">pid_file</span> <span class="o">=</span> <span class="n">datadir</span> <span class="o">+</span> <span class="sa">f</span><span class="s2">&quot;/pids_</span><span class="si">{</span><span class="n">args</span><span class="o">.</span><span class="n">jobid</span><span class="si">}</span><span class="s2">.txt&quot;</span>
     <span class="k">try</span><span class="p">:</span>
-        <span class="n">os</span><span class="o">.</span><span class="n">kill</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">main_pid</span><span class="p">),</span><span class="n">signal</span><span class="o">.</span><span class="n">SIGKILL</span><span class="p">)</span>
+        <span class="n">os</span><span class="o">.</span><span class="n">kill</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">main_pid</span><span class="p">),</span> <span class="n">signal</span><span class="o">.</span><span class="n">SIGKILL</span><span class="p">)</span>
     <span class="k">except</span><span class="p">:</span>
         <span class="k">pass</span>
     <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">pid_file</span><span class="p">):</span>
-        <span class="n">pids</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">loadtxt</span><span class="p">(</span><span class="n">pid_file</span><span class="p">,</span><span class="n">unpack</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span><span class="n">dtype</span><span class="o">=</span><span class="s2">&quot;int&quot;</span><span class="p">)</span>
-        <span class="k">if</span> <span class="n">pids</span><span class="o">.</span><span class="n">size</span><span class="o">==</span><span class="mi">0</span><span class="p">:</span>
+        <span class="n">pids</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">loadtxt</span><span class="p">(</span><span class="n">pid_file</span><span class="p">,</span> <span class="n">unpack</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="s2">&quot;int&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">pids</span><span class="o">.</span><span class="n">size</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
             <span class="k">pass</span>
-        <span class="k">elif</span> <span class="n">pids</span><span class="o">.</span><span class="n">size</span><span class="o">==</span><span class="mi">1</span><span class="p">:</span>
+        <span class="k">elif</span> <span class="n">pids</span><span class="o">.</span><span class="n">size</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
             <span class="k">try</span><span class="p">:</span>
                 <span class="n">os</span><span class="o">.</span><span class="n">kill</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">pids</span><span class="p">),</span> <span class="n">signal</span><span class="o">.</span><span class="n">SIGKILL</span><span class="p">)</span>
             <span class="k">except</span><span class="p">:</span>
@@ -4197,7 +4262,8 @@
                 <span class="k">except</span><span class="p">:</span>
                     <span class="k">pass</span></div>
 
-    
+
+
 <div class="viewcode-block" id="get_nprocess_meersolar">
 <a class="viewcode-back" href="../../../meersolar.pipeline.html#meersolar.pipeline.basic_func.get_nprocess_meersolar">[docs]</a>
 <span class="k">def</span> <span class="nf">get_nprocess_meersolar</span><span class="p">(</span><span class="n">jobid</span><span class="p">):</span>
@@ -4226,64 +4292,67 @@
     <span class="k">return</span> <span class="n">n_process</span></div>
 
 
+
 <div class="viewcode-block" id="save_pid">
 <a class="viewcode-back" href="../../../meersolar.pipeline.html#meersolar.pipeline.basic_func.save_pid">[docs]</a>
-<span class="k">def</span> <span class="nf">save_pid</span><span class="p">(</span><span class="n">pid</span><span class="p">,</span><span class="n">pid_file</span><span class="p">):</span>
+<span class="k">def</span> <span class="nf">save_pid</span><span class="p">(</span><span class="n">pid</span><span class="p">,</span> <span class="n">pid_file</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Save PID</span>
-<span class="sd">    </span>
+
 <span class="sd">    Parameters</span>
 <span class="sd">    ----------</span>
 <span class="sd">    pid : int</span>
 <span class="sd">        Process ID</span>
 <span class="sd">    pid_file : str</span>
 <span class="sd">        File to save</span>
-<span class="sd">    &quot;&quot;&quot;</span> 
+<span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">pid_file</span><span class="p">):</span>
         <span class="n">pids</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">loadtxt</span><span class="p">(</span><span class="n">pid_file</span><span class="p">,</span> <span class="n">unpack</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="s2">&quot;int&quot;</span><span class="p">)</span>
-        <span class="n">pids</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">pids</span><span class="p">,</span><span class="n">pid</span><span class="p">)</span>
+        <span class="n">pids</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">pids</span><span class="p">,</span> <span class="n">pid</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
-        <span class="n">pids</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">pid</span><span class="p">],</span><span class="n">dtype</span><span class="o">=</span><span class="s2">&quot;int&quot;</span><span class="p">)</span>
+        <span class="n">pids</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">pid</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="s2">&quot;int&quot;</span><span class="p">)</span>
     <span class="n">np</span><span class="o">.</span><span class="n">savetxt</span><span class="p">(</span><span class="n">pid_file</span><span class="p">,</span> <span class="n">pids</span><span class="p">,</span> <span class="n">fmt</span><span class="o">=</span><span class="s2">&quot;</span><span class="si">%d</span><span class="s2">&quot;</span><span class="p">)</span></div>
 
-    
+
+
 <div class="viewcode-block" id="get_jobid">
 <a class="viewcode-back" href="../../../meersolar.pipeline.html#meersolar.pipeline.basic_func.get_jobid">[docs]</a>
 <span class="k">def</span> <span class="nf">get_jobid</span><span class="p">():</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Get MeerSOLAR Job ID</span>
-<span class="sd">    </span>
+
 <span class="sd">    Returns</span>
 <span class="sd">    -------</span>
 <span class="sd">    int</span>
 <span class="sd">        Job ID</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">datadir</span> <span class="o">=</span> <span class="n">get_datadir</span><span class="p">()</span>
-    <span class="n">jobid_file</span><span class="o">=</span><span class="n">datadir</span><span class="o">+</span><span class="sa">f</span><span class="s2">&quot;/jobids.txt&quot;</span>
+    <span class="n">jobid_file</span> <span class="o">=</span> <span class="n">datadir</span> <span class="o">+</span> <span class="sa">f</span><span class="s2">&quot;/jobids.txt&quot;</span>
     <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">jobid_file</span><span class="p">):</span>
-        <span class="n">prev_jobids</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">loadtxt</span><span class="p">(</span><span class="n">jobid_file</span><span class="p">,</span><span class="n">unpack</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span><span class="n">dtype</span><span class="o">=</span><span class="s2">&quot;int&quot;</span><span class="p">)</span>
-        <span class="k">if</span> <span class="n">prev_jobids</span><span class="o">.</span><span class="n">size</span><span class="o">==</span><span class="mi">0</span><span class="p">:</span>
-            <span class="n">prev_jobids</span><span class="o">=</span><span class="p">[]</span>
-        <span class="k">elif</span> <span class="n">prev_jobids</span><span class="o">.</span><span class="n">size</span><span class="o">==</span><span class="mi">1</span><span class="p">:</span>
-            <span class="n">prev_jobids</span><span class="o">=</span><span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">prev_jobids</span><span class="p">)]</span>
+        <span class="n">prev_jobids</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">loadtxt</span><span class="p">(</span><span class="n">jobid_file</span><span class="p">,</span> <span class="n">unpack</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="s2">&quot;int&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">prev_jobids</span><span class="o">.</span><span class="n">size</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">prev_jobids</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">elif</span> <span class="n">prev_jobids</span><span class="o">.</span><span class="n">size</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">prev_jobids</span> <span class="o">=</span> <span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">prev_jobids</span><span class="p">)]</span>
     <span class="k">else</span><span class="p">:</span>
-        <span class="n">prev_jobids</span><span class="o">=</span><span class="p">[]</span>
-    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">prev_jobids</span><span class="p">)</span><span class="o">&gt;</span><span class="mi">0</span><span class="p">:</span>
+        <span class="n">prev_jobids</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">prev_jobids</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
         <span class="n">FORMAT</span> <span class="o">=</span> <span class="s2">&quot;%Y%m</span><span class="si">%d</span><span class="s2">%H%M%S&quot;</span>
         <span class="n">CUTOFF</span> <span class="o">=</span> <span class="n">dt</span><span class="o">.</span><span class="n">utcnow</span><span class="p">()</span> <span class="o">-</span> <span class="n">timedelta</span><span class="p">(</span><span class="n">days</span><span class="o">=</span><span class="mi">30</span><span class="p">)</span>
-        <span class="n">filtered_prev_jobids</span><span class="o">=</span><span class="p">[]</span>
+        <span class="n">filtered_prev_jobids</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="k">for</span> <span class="n">job_id</span> <span class="ow">in</span> <span class="n">prev_jobids</span><span class="p">:</span>
             <span class="n">job_time</span> <span class="o">=</span> <span class="n">dt</span><span class="o">.</span><span class="n">strptime</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">job_id</span><span class="p">),</span> <span class="n">FORMAT</span><span class="p">)</span>
             <span class="k">if</span> <span class="n">job_time</span> <span class="o">&gt;=</span> <span class="n">CUTOFF</span><span class="p">:</span>
-                <span class="n">filtered_prev_jobids</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">job_id</span><span class="p">)</span>    
-        <span class="n">prev_jobids</span><span class="o">=</span><span class="n">filtered_prev_jobids</span>
+                <span class="n">filtered_prev_jobids</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">job_id</span><span class="p">)</span>
+        <span class="n">prev_jobids</span> <span class="o">=</span> <span class="n">filtered_prev_jobids</span>
     <span class="n">cur_jobid</span> <span class="o">=</span> <span class="n">dt</span><span class="o">.</span><span class="n">utcnow</span><span class="p">()</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="s2">&quot;%Y%m</span><span class="si">%d</span><span class="s2">%H%M%S&quot;</span><span class="p">)</span>
     <span class="n">prev_jobids</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">cur_jobid</span><span class="p">)</span>
     <span class="n">job_ids_int</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">prev_jobids</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
     <span class="n">np</span><span class="o">.</span><span class="n">savetxt</span><span class="p">(</span><span class="n">jobid_file</span><span class="p">,</span> <span class="n">job_ids_int</span><span class="p">,</span> <span class="n">fmt</span><span class="o">=</span><span class="s2">&quot;</span><span class="si">%d</span><span class="s2">&quot;</span><span class="p">)</span>
     <span class="k">return</span> <span class="nb">int</span><span class="p">(</span><span class="n">cur_jobid</span><span class="p">)</span></div>
 
-    
+
+
 <div class="viewcode-block" id="save_main_process_info">
 <a class="viewcode-back" href="../../../meersolar.pipeline.html#meersolar.pipeline.basic_func.save_main_process_info">[docs]</a>
 <span class="k">def</span> <span class="nf">save_main_process_info</span><span class="p">(</span><span class="n">pid</span><span class="p">,</span> <span class="n">jobid</span><span class="p">,</span> <span class="n">basedir</span><span class="p">,</span> <span class="n">cpu_frac</span><span class="p">,</span> <span class="n">mem_frac</span><span class="p">):</span>
@@ -4302,7 +4371,7 @@
 <span class="sd">        CPU fraction of the job</span>
 <span class="sd">    mem_frac : float</span>
 <span class="sd">        Mempry fraction of the job</span>
-<span class="sd">        </span>
+
 <span class="sd">    Returns</span>
 <span class="sd">    -------</span>
 <span class="sd">    str</span>
@@ -4310,10 +4379,11 @@
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">datadir</span> <span class="o">=</span> <span class="n">get_datadir</span><span class="p">()</span>
     <span class="n">main_job_file</span> <span class="o">=</span> <span class="n">datadir</span> <span class="o">+</span> <span class="sa">f</span><span class="s2">&quot;/main_pids_</span><span class="si">{</span><span class="n">jobid</span><span class="si">}</span><span class="s2">.txt&quot;</span>
-    <span class="n">main_str</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">jobid</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">pid</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">basedir</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">cpu_frac</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">mem_frac</span><span class="si">}</span><span class="s2">&quot;</span>
+    <span class="n">main_str</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">jobid</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">pid</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">basedir</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">cpu_frac</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">mem_frac</span><span class="si">}</span><span class="s2">&quot;</span>
     <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">main_job_file</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
         <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">main_str</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">main_job_file</span></div>
+
 
 
 <div class="viewcode-block" id="create_batch_script_nonhpc">
@@ -4520,11 +4590,11 @@
 
     <span class="c1">##########################################</span>
     <span class="k">if</span> <span class="n">only_cal</span> <span class="o">==</span> <span class="kc">False</span><span class="p">:</span>
-        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">#################################&quot;</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;#################################&quot;</span><span class="p">)</span>
         <span class="nb">print</span><span class="p">(</span>
             <span class="sa">f</span><span class="s2">&quot;Dask workers: </span><span class="si">{</span><span class="n">n_workers</span><span class="si">}</span><span class="s2">, Threads per worker: </span><span class="si">{</span><span class="n">threads_per_worker</span><span class="si">}</span><span class="s2">, Mem/worker: </span><span class="si">{</span><span class="nb">round</span><span class="p">(</span><span class="n">mem_per_worker</span><span class="o">/</span><span class="p">(</span><span class="mf">1024.0</span><span class="o">**</span><span class="mi">3</span><span class="p">),</span><span class="mi">2</span><span class="p">)</span><span class="si">}</span><span class="s2"> GB&quot;</span>
         <span class="p">)</span>
-        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">#################################&quot;</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;#################################&quot;</span><span class="p">)</span>
     <span class="c1"># Memory control settings</span>
     <span class="n">swap</span> <span class="o">=</span> <span class="n">psutil</span><span class="o">.</span><span class="n">swap_memory</span><span class="p">()</span>
     <span class="n">swap_gb</span> <span class="o">=</span> <span class="n">swap</span><span class="o">.</span><span class="n">total</span> <span class="o">/</span> <span class="mf">1024.0</span><span class="o">**</span><span class="mi">3</span>
@@ -4957,6 +5027,7 @@
     <span class="k">return</span> <span class="n">model_flux</span><span class="p">,</span> <span class="nb">round</span><span class="p">(</span><span class="n">dr1</span><span class="p">,</span> <span class="mi">2</span><span class="p">),</span> <span class="nb">round</span><span class="p">(</span><span class="n">rmsvalue</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span></div>
 
 
+
 <div class="viewcode-block" id="generate_tb_map">
 <a class="viewcode-back" href="../../../meersolar.pipeline.html#meersolar.pipeline.basic_func.generate_tb_map">[docs]</a>
 <span class="k">def</span> <span class="nf">generate_tb_map</span><span class="p">(</span><span class="n">imagename</span><span class="p">,</span> <span class="n">outfile</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">):</span>
@@ -5054,7 +5125,7 @@
         <span class="n">a</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">system</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;udocker pull </span><span class="si">{</span><span class="n">image_name</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
         <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Image &#39;</span><span class="si">{</span><span class="n">image_name</span><span class="si">}</span><span class="s2">&#39; already present.&quot;</span><span class="p">)</span>
-        <span class="n">a</span><span class="o">=</span><span class="mi">0</span>
+        <span class="n">a</span> <span class="o">=</span> <span class="mi">0</span>
     <span class="k">if</span> <span class="n">a</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
         <span class="n">a</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">system</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;udocker create --name=</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">image_name</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
         <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Container started with name : </span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
@@ -5063,10 +5134,17 @@
         <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Container could not be created with name : </span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
         <span class="k">return</span></div>
 
-           
+
+
 <div class="viewcode-block" id="run_wsclean">
 <a class="viewcode-back" href="../../../meersolar.pipeline.html#meersolar.pipeline.basic_func.run_wsclean">[docs]</a>
-<span class="k">def</span> <span class="nf">run_wsclean</span><span class="p">(</span><span class="n">wsclean_cmd</span><span class="p">,</span> <span class="n">container_name</span><span class="o">=</span><span class="s2">&quot;meerwsclean&quot;</span><span class="p">,</span> <span class="n">check_container</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">dry_run</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<span class="k">def</span> <span class="nf">run_wsclean</span><span class="p">(</span>
+    <span class="n">wsclean_cmd</span><span class="p">,</span>
+    <span class="n">container_name</span><span class="o">=</span><span class="s2">&quot;meerwsclean&quot;</span><span class="p">,</span>
+    <span class="n">check_container</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+    <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+    <span class="n">dry_run</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+<span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Run WSClean inside a udocker container (no root permission required).</span>
 
@@ -5096,6 +5174,7 @@
             <span class="nb">print</span><span class="p">(</span><span class="nb">open</span><span class="p">(</span><span class="n">path</span><span class="p">)</span><span class="o">.</span><span class="n">read</span><span class="p">())</span>
         <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
             <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Error: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
     <span class="k">if</span> <span class="n">check_container</span><span class="p">:</span>
         <span class="n">container_present</span> <span class="o">=</span> <span class="n">check_udocker_container</span><span class="p">(</span><span class="n">container_name</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">container_present</span> <span class="o">==</span> <span class="kc">False</span><span class="p">:</span>
@@ -5105,7 +5184,7 @@
                     <span class="s2">&quot;Container </span><span class="si">{container_name}</span><span class="s2"> is not initiated. First initiate container and then run.&quot;</span>
                 <span class="p">)</span>
                 <span class="k">return</span> <span class="mi">1</span>
-            
+
     <span class="k">if</span> <span class="n">dry_run</span><span class="p">:</span>
         <span class="n">cmd</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;chgenter &gt;&gt; </span><span class="si">{</span><span class="n">tmp1</span><span class="si">}</span><span class="s2"> &gt;&gt; </span><span class="si">{</span><span class="n">tmp2</span><span class="si">}</span><span class="s2">&quot;</span>
         <span class="n">cwd</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">getcwd</span><span class="p">()</span>
@@ -5117,7 +5196,7 @@
         <span class="n">mem</span> <span class="o">=</span> <span class="nb">round</span><span class="p">(</span><span class="n">process</span><span class="o">.</span><span class="n">memory_info</span><span class="p">()</span><span class="o">.</span><span class="n">rss</span> <span class="o">/</span> <span class="mi">1024</span><span class="o">**</span><span class="mi">3</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>  <span class="c1"># in GB</span>
         <span class="n">os</span><span class="o">.</span><span class="n">system</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;rm -rf </span><span class="si">{</span><span class="n">tmp1</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">tmp2</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">mem</span>
-        
+
     <span class="n">msname</span> <span class="o">=</span> <span class="n">wsclean_cmd</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot; &quot;</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
     <span class="n">msname</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="n">msname</span><span class="p">)</span>
     <span class="n">mspath</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">msname</span><span class="p">)</span>
@@ -5179,7 +5258,11 @@
 <div class="viewcode-block" id="run_solar_sidereal_cor">
 <a class="viewcode-back" href="../../../meersolar.pipeline.html#meersolar.pipeline.basic_func.run_solar_sidereal_cor">[docs]</a>
 <span class="k">def</span> <span class="nf">run_solar_sidereal_cor</span><span class="p">(</span>
-    <span class="n">msname</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="n">container_name</span><span class="o">=</span><span class="s2">&quot;meerwsclean&quot;</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">dry_run</span><span class="o">=</span><span class="kc">False</span>
+    <span class="n">msname</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span>
+    <span class="n">only_uvw</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+    <span class="n">container_name</span><span class="o">=</span><span class="s2">&quot;meerwsclean&quot;</span><span class="p">,</span>
+    <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+    <span class="n">dry_run</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
 <span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Run chgcenter inside a udocker container to correct solar sidereal motion (no root permission required).</span>
@@ -5188,6 +5271,10 @@
 <span class="sd">    ----------</span>
 <span class="sd">    msname : str</span>
 <span class="sd">        Name of the measurement set</span>
+<span class="sd">    only_uvw : bool, optional</span>
+<span class="sd">        Update only UVW values</span>
+<span class="sd">        Note: This is required when visibilities are properly phase rotated in correlator to track the Sun,</span>
+<span class="sd">        but while creating the MS, UVW values are estimated using the first phasecenter of the Sun.</span>
 <span class="sd">    container_name : str, optional</span>
 <span class="sd">        Container name</span>
 <span class="sd">    verbose : bool, optional</span>
@@ -5226,14 +5313,28 @@
     <span class="n">msname</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="n">msname</span><span class="p">)</span>
     <span class="n">mspath</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">msname</span><span class="p">)</span>
     <span class="n">temp_docker_path</span> <span class="o">=</span> <span class="n">tempfile</span><span class="o">.</span><span class="n">mkdtemp</span><span class="p">(</span><span class="n">prefix</span><span class="o">=</span><span class="s2">&quot;chgcenter_udocker_&quot;</span><span class="p">,</span> <span class="nb">dir</span><span class="o">=</span><span class="n">mspath</span><span class="p">)</span>
-    <span class="n">cmd</span> <span class="o">=</span> <span class="s2">&quot;chgcentre -solarcenter &quot;</span> <span class="o">+</span> <span class="n">temp_docker_path</span> <span class="o">+</span> <span class="s2">&quot;/&quot;</span> <span class="o">+</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">msname</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">only_uvw</span><span class="p">:</span>
+        <span class="n">cmd</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="s2">&quot;chgcentre -only-uvw -solarcenter &quot;</span>
+            <span class="o">+</span> <span class="n">temp_docker_path</span>
+            <span class="o">+</span> <span class="s2">&quot;/&quot;</span>
+            <span class="o">+</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">msname</span><span class="p">)</span>
+        <span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">cmd</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="s2">&quot;chgcentre -solarcenter &quot;</span>
+            <span class="o">+</span> <span class="n">temp_docker_path</span>
+            <span class="o">+</span> <span class="s2">&quot;/&quot;</span>
+            <span class="o">+</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">msname</span><span class="p">)</span>
+        <span class="p">)</span>
     <span class="k">try</span><span class="p">:</span>
         <span class="n">full_command</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;udocker --quiet run --nobanner --volume=</span><span class="si">{</span><span class="n">mspath</span><span class="si">}</span><span class="s2">:</span><span class="si">{</span><span class="n">temp_docker_path</span><span class="si">}</span><span class="s2"> --workdir </span><span class="si">{</span><span class="n">temp_docker_path</span><span class="si">}</span><span class="s2"> meerwsclean </span><span class="si">{</span><span class="n">cmd</span><span class="si">}</span><span class="s2">&quot;</span>
         <span class="k">if</span> <span class="n">verbose</span> <span class="o">==</span> <span class="kc">False</span><span class="p">:</span>
             <span class="n">full_command</span> <span class="o">+=</span> <span class="sa">f</span><span class="s2">&quot; &gt;&gt; </span><span class="si">{</span><span class="n">tmp1</span><span class="si">}</span><span class="s2"> &gt;&gt; </span><span class="si">{</span><span class="n">tmp2</span><span class="si">}</span><span class="s2">&quot;</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="nb">print</span><span class="p">(</span><span class="n">cmd</span><span class="p">)</span>
-        <span class="n">exit_code</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">system</span><span class="p">(</span><span class="n">full_command</span><span class="p">)</span>
+        <span class="k">with</span> <span class="n">suppress_casa_output</span><span class="p">():</span>
+            <span class="n">exit_code</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">system</span><span class="p">(</span><span class="n">full_command</span><span class="p">)</span>
         <span class="n">os</span><span class="o">.</span><span class="n">system</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;rm -rf </span><span class="si">{</span><span class="n">temp_docker_path</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">tmp1</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">tmp2</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
         <span class="k">return</span> <span class="mi">0</span> <span class="k">if</span> <span class="n">exit_code</span> <span class="o">==</span> <span class="mi">0</span> <span class="k">else</span> <span class="mi">1</span>
     <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
@@ -5246,7 +5347,13 @@
 <div class="viewcode-block" id="run_chgcenter">
 <a class="viewcode-back" href="../../../meersolar.pipeline.html#meersolar.pipeline.basic_func.run_chgcenter">[docs]</a>
 <span class="k">def</span> <span class="nf">run_chgcenter</span><span class="p">(</span>
-    <span class="n">msname</span><span class="p">,</span> <span class="n">ra</span><span class="p">,</span> <span class="n">dec</span><span class="p">,</span> <span class="n">container_name</span><span class="o">=</span><span class="s2">&quot;meerwsclean&quot;</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">dry_run</span><span class="o">=</span><span class="kc">False</span>
+    <span class="n">msname</span><span class="p">,</span>
+    <span class="n">ra</span><span class="p">,</span>
+    <span class="n">dec</span><span class="p">,</span>
+    <span class="n">only_uvw</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+    <span class="n">container_name</span><span class="o">=</span><span class="s2">&quot;meerwsclean&quot;</span><span class="p">,</span>
+    <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+    <span class="n">dry_run</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
 <span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Run chgcenter inside a udocker container (no root permission required).</span>
@@ -5259,6 +5366,10 @@
 <span class="sd">        RA can either be 00h00m00.0s or 00:00:00.0</span>
 <span class="sd">    dec : str</span>
 <span class="sd">        Dec can either be 00d00m00.0s or 00.00.00.0</span>
+<span class="sd">    only_uvw : bool, optional</span>
+<span class="sd">        Update only UVW values</span>
+<span class="sd">        Note: This is required when visibilities are properly phase rotated in correlator,</span>
+<span class="sd">        but while creating the MS, UVW values are estimated using a wrong phase center.</span>
 <span class="sd">    container_name : str, optional</span>
 <span class="sd">        Container name</span>
 <span class="sd">    verbose : bool, optional</span>
@@ -5295,16 +5406,28 @@
     <span class="n">msname</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="n">msname</span><span class="p">)</span>
     <span class="n">mspath</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">msname</span><span class="p">)</span>
     <span class="n">temp_docker_path</span> <span class="o">=</span> <span class="n">tempfile</span><span class="o">.</span><span class="n">mkdtemp</span><span class="p">(</span><span class="n">prefix</span><span class="o">=</span><span class="s2">&quot;chgcenter_udocker_&quot;</span><span class="p">,</span> <span class="nb">dir</span><span class="o">=</span><span class="n">mspath</span><span class="p">)</span>
-    <span class="n">cmd</span> <span class="o">=</span> <span class="p">(</span>
-        <span class="s2">&quot;chgcentre &quot;</span>
-        <span class="o">+</span> <span class="n">temp_docker_path</span>
-        <span class="o">+</span> <span class="s2">&quot;/&quot;</span>
-        <span class="o">+</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">msname</span><span class="p">)</span>
-        <span class="o">+</span> <span class="s2">&quot; &quot;</span>
-        <span class="o">+</span> <span class="n">ra</span>
-        <span class="o">+</span> <span class="s2">&quot; &quot;</span>
-        <span class="o">+</span> <span class="n">dec</span>
-    <span class="p">)</span>
+    <span class="k">if</span> <span class="n">only_uvw</span><span class="p">:</span>
+        <span class="n">cmd</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="s2">&quot;chgcentre -only-uvw &quot;</span>
+            <span class="o">+</span> <span class="n">temp_docker_path</span>
+            <span class="o">+</span> <span class="s2">&quot;/&quot;</span>
+            <span class="o">+</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">msname</span><span class="p">)</span>
+            <span class="o">+</span> <span class="s2">&quot; &quot;</span>
+            <span class="o">+</span> <span class="n">ra</span>
+            <span class="o">+</span> <span class="s2">&quot; &quot;</span>
+            <span class="o">+</span> <span class="n">dec</span>
+        <span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">cmd</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="s2">&quot;chgcentre &quot;</span>
+            <span class="o">+</span> <span class="n">temp_docker_path</span>
+            <span class="o">+</span> <span class="s2">&quot;/&quot;</span>
+            <span class="o">+</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">msname</span><span class="p">)</span>
+            <span class="o">+</span> <span class="s2">&quot; &quot;</span>
+            <span class="o">+</span> <span class="n">ra</span>
+            <span class="o">+</span> <span class="s2">&quot; &quot;</span>
+            <span class="o">+</span> <span class="n">dec</span>
+        <span class="p">)</span>
     <span class="k">try</span><span class="p">:</span>
         <span class="n">full_command</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;udocker --quiet run --nobanner --volume=</span><span class="si">{</span><span class="n">mspath</span><span class="si">}</span><span class="s2">:</span><span class="si">{</span><span class="n">temp_docker_path</span><span class="si">}</span><span class="s2"> --workdir </span><span class="si">{</span><span class="n">temp_docker_path</span><span class="si">}</span><span class="s2"> meerwsclean </span><span class="si">{</span><span class="n">cmd</span><span class="si">}</span><span class="s2">&quot;</span>
         <span class="k">if</span> <span class="n">verbose</span> <span class="o">==</span> <span class="kc">False</span><span class="p">:</span>
@@ -5352,7 +5475,7 @@
       
     </aside>
   </div>
-</div><script src="../../../_static/documentation_options.js?v=8d563738"></script>
+</div><script src="../../../_static/documentation_options.js?v=4ebf8126"></script>
     <script src="../../../_static/doctools.js?v=9a2dae69"></script>
     <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../../../_static/scripts/furo.js?v=32e29ea5"></script>
