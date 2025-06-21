@@ -1,7 +1,6 @@
-import numpy as np, os, sys, glob, time, traceback, gc, copy
+import numpy as np, os, sys, glob, time, traceback, gc, copy, argparse
 from meersolar.pipeline.basic_func import *
 from dask import delayed, compute, config
-from optparse import OptionParser
 from casatasks import casalog
 
 try:
@@ -9,6 +8,7 @@ try:
     os.system("rm -rf " + logfile)
 except:
     pass
+
 
 def run_delaycal(
     msname="",
@@ -36,21 +36,22 @@ def run_delaycal(
         return mem
     print(f"Performing delay calibration on : {msname}")
     caltable_prefix = os.path.basename(msname).split(".ms")[0]
-    gaincal(
-        vis=msname,
-        caltable=caltable_prefix + ".kcal",
-        field=str(field),
-        scan=str(scan),
-        uvrange="",
-        refant=refant,
-        refantmode=refantmode,
-        solint=solint,
-        combine=combine,
-        gaintype="K",
-        gaintable=gaintable,
-        gainfield=gainfield,
-        interp=interp,
-    )
+    with suppress_casa_output():
+        gaincal(
+            vis=msname,
+            caltable=caltable_prefix + ".kcal",
+            field=str(field),
+            scan=str(scan),
+            uvrange="",
+            refant=refant,
+            refantmode=refantmode,
+            solint=solint,
+            combine=combine,
+            gaintype="K",
+            gaintable=gaintable,
+            gainfield=gainfield,
+            interp=interp,
+        )
     return caltable_prefix + ".kcal"
 
 
@@ -81,26 +82,27 @@ def run_bandpass(
         return mem
     print(f"Performing bandpass calibration on : {msname}")
     caltable_prefix = os.path.basename(msname).split(".ms")[0]
-    bandpass(
-        vis=msname,
-        caltable=caltable_prefix + ".bcal",
-        field=str(field),
-        scan=str(scan),
-        uvrange=uvrange,
-        refant=refant,
-        solint=solint,
-        solnorm=solnorm,
-        combine=combine,
-        gaintable=gaintable,
-        gainfield=gainfield,
-        interp=interp,
-    )
-    flagdata(
-        vis=caltable_prefix + ".bcal",
-        mode="rflag",
-        datacolumn="CPARAM",
-        flagbackup=False,
-    )
+    with suppress_casa_output():
+        bandpass(
+            vis=msname,
+            caltable=caltable_prefix + ".bcal",
+            field=str(field),
+            scan=str(scan),
+            uvrange=uvrange,
+            refant=refant,
+            solint=solint,
+            solnorm=solnorm,
+            combine=combine,
+            gaintable=gaintable,
+            gainfield=gainfield,
+            interp=interp,
+        )
+        flagdata(
+            vis=caltable_prefix + ".bcal",
+            mode="rflag",
+            datacolumn="CPARAM",
+            flagbackup=False,
+        )
     return caltable_prefix + ".bcal"
 
 
@@ -137,26 +139,27 @@ def run_gaincal(
         return mem
     print(f"Performing gain calibration on : {msname}")
     caltable_prefix = os.path.basename(msname).split(".ms")[0]
-    gaincal(
-        vis=msname,
-        caltable=caltable_prefix + ".gcal",
-        field=str(field),
-        scan=str(scan),
-        uvrange=uvrange,
-        refant=refant,
-        refantmode=refantmode,
-        solint=solint,
-        combine=combine,
-        gaintype=gaintype,
-        calmode=calmode,
-        solmode=solmode,
-        rmsthresh=rmsthresh,
-        smodel=smodel,
-        append=append,
-        gaintable=gaintable,
-        gainfield=gainfield,
-        interp=interp,
-    )
+    with suppress_casa_output():
+        gaincal(
+            vis=msname,
+            caltable=caltable_prefix + ".gcal",
+            field=str(field),
+            scan=str(scan),
+            uvrange=uvrange,
+            refant=refant,
+            refantmode=refantmode,
+            solint=solint,
+            combine=combine,
+            gaintype=gaintype,
+            calmode=calmode,
+            solmode=solmode,
+            rmsthresh=rmsthresh,
+            smodel=smodel,
+            append=append,
+            gaintable=gaintable,
+            gainfield=gainfield,
+            interp=interp,
+        )
     return caltable_prefix + ".gcal"
 
 
@@ -185,26 +188,27 @@ def run_leakagecal(
         return mem
     print(f"Performing relative leakage calibration on : {msname}")
     caltable_prefix = os.path.basename(msname).split(".ms")[0]
-    polcal(
-        vis=msname,
-        caltable=caltable_prefix + ".dcal",
-        field=str(field),
-        scan=str(scan),
-        uvrange=uvrange,
-        refant=refant,
-        solint="inf,10MHz",
-        combine=combine,
-        poltype="Df",
-        gaintable=gaintable,
-        gainfield=gainfield,
-        interp=interp,
-    )
-    flagdata(
-        vis=caltable_prefix + ".dcal",
-        mode="rflag",
-        datacolumn="CPARAM",
-        flagbackup=False,
-    )
+    with suppress_casa_output():
+        polcal(
+            vis=msname,
+            caltable=caltable_prefix + ".dcal",
+            field=str(field),
+            scan=str(scan),
+            uvrange=uvrange,
+            refant=refant,
+            solint="inf,10MHz",
+            combine=combine,
+            poltype="Df",
+            gaintable=gaintable,
+            gainfield=gainfield,
+            interp=interp,
+        )
+        flagdata(
+            vis=caltable_prefix + ".dcal",
+            mode="rflag",
+            datacolumn="CPARAM",
+            flagbackup=False,
+        )
     return caltable_prefix + ".dcal"
 
 
@@ -233,58 +237,61 @@ def run_polcal(
         return mem
     print(f"Performing relative leakage calibration on : {msname}")
     caltable_prefix = os.path.basename(msname).split(".ms")[0]
-    gaincal(
-        vis=msname,
-        caltable=caltable_prefix + ".kcrosscal",
-        field=str(field),
-        scan=str(scan),
-        uvrange=uvrange,
-        refant=refant,
-        refantmode="flex",
-        solint="inf",
-        combine=combine,
-        gaintype="KCROSS",
-        gaintable=gaintable,
-        gainfield=gainfield,
-        interp=interp,
-    )
-    if os.path.exists(caltable_prefix + ".kcrosscal"):
-        gaintable.append(caltable_prefix + ".kcrosscal")
-        gainfield.append(str(field))
-        interp.append("")
-        polcal(
+    with suppress_casa_output():
+        gaincal(
             vis=msname,
-            caltable=caltable_prefix + ".xfcal",
+            caltable=caltable_prefix + ".kcrosscal",
             field=str(field),
             scan=str(scan),
             uvrange=uvrange,
             refant=refant,
-            solint="inf,10MHz",
+            refantmode="flex",
+            solint="inf",
             combine=combine,
-            poltype="Xf",
+            gaintype="KCROSS",
             gaintable=gaintable,
             gainfield=gainfield,
             interp=interp,
         )
-        if os.path.exists(caltable_prefix + ".xfcal"):
-            gaintable.append(caltable_prefix + ".xfcal")
-            gainfield.append(str(field))
-            interp.append("")
+    if os.path.exists(caltable_prefix + ".kcrosscal"):
+        gaintable.append(caltable_prefix + ".kcrosscal")
+        gainfield.append(str(field))
+        interp.append("")
+        with suppress_casa_output():
             polcal(
                 vis=msname,
-                caltable=caltable_prefix + ".panglecal",
+                caltable=caltable_prefix + ".xfcal",
                 field=str(field),
                 scan=str(scan),
                 uvrange=uvrange,
                 refant=refant,
-                refantmode="flex",
                 solint="inf,10MHz",
-                combine="obs,scan",
-                poltype="PosAng",
+                combine=combine,
+                poltype="Xf",
                 gaintable=gaintable,
                 gainfield=gainfield,
                 interp=interp,
             )
+        if os.path.exists(caltable_prefix + ".xfcal"):
+            gaintable.append(caltable_prefix + ".xfcal")
+            gainfield.append(str(field))
+            interp.append("")
+            with suppress_casa_output():
+                polcal(
+                    vis=msname,
+                    caltable=caltable_prefix + ".panglecal",
+                    field=str(field),
+                    scan=str(scan),
+                    uvrange=uvrange,
+                    refant=refant,
+                    refantmode="flex",
+                    solint="inf,10MHz",
+                    combine="obs,scan",
+                    poltype="PosAng",
+                    gaintable=gaintable,
+                    gainfield=gainfield,
+                    interp=interp,
+                )
     return (
         caltable_prefix + ".kcrosscal",
         caltable_prefix + ".xfcal",
@@ -317,18 +324,19 @@ def run_applycal(
         mem = round(process.memory_info().rss / 1024**3, 2)  # in GB
         return mem
     print(f"Applying calibration solutions on : {msname}")
-    applycal(
-        vis=msname,
-        field=str(field),
-        scan=str(scan),
-        gaintable=gaintable,
-        gainfield=gainfield,
-        interp=interp,
-        calwt=calwt,
-        applymode=applymode,
-        flagbackup=flagbackup,
-        parang=parang,
-    )
+    with suppress_casa_output():
+        applycal(
+            vis=msname,
+            field=str(field),
+            scan=str(scan),
+            gaintable=gaintable,
+            gainfield=gainfield,
+            interp=interp,
+            calwt=calwt,
+            applymode=applymode,
+            flagbackup=flagbackup,
+            parang=parang,
+        )
     return
 
 
@@ -394,7 +402,7 @@ def run_postcal_flag(
             if ntime < timeres:
                 ntime = timeres
             print(f"Time chunk : {ntime}s")
-        try:
+        with suppress_casa_output():
             flagdata(
                 vis=msname,
                 mode=mode,
@@ -403,8 +411,6 @@ def run_postcal_flag(
                 flagbackup=False,
                 ntime=ntime,
             )
-        except:
-            pass
     except Exception as e:
         traceback.print_exc()
     return
@@ -429,10 +435,10 @@ def single_round_cal_and_flag(
     do_postcal_flag=True,
     cpu_frac=0.8,
     mem_frac=0.8,
-    ):
+):
     """
     Single round calibration and post-calibration flagging
-    
+
     Parameters
     ----------
     msname : str
@@ -472,7 +478,7 @@ def single_round_cal_and_flag(
         CPU fraction to use
     mem_frac : float, optional
         Memory fraction to use
-        
+
     Returns
     -------
     int
@@ -754,13 +760,14 @@ def single_round_cal_and_flag(
                         "Gain calibration was not successful and did not produce gain caltable."
                     )
                 else:
-                    fluxscale_result = fluxscale(
-                        vis=msname,
-                        caltable=gain_caltable,
-                        fluxtable=fluxscale_caltable,
-                        reference=fluxcal_fields,
-                        transfer=phasecal_fields,
-                    )
+                    with suppress_casa_output():
+                        fluxscale_result = fluxscale(
+                            vis=msname,
+                            caltable=gain_caltable,
+                            fluxtable=fluxscale_caltable,
+                            reference=fluxcal_fields,
+                            transfer=phasecal_fields,
+                        )
                     if fluxscale_caltable != None and os.path.exists(
                         fluxscale_caltable
                     ):
@@ -1063,7 +1070,7 @@ def run_basic_cal_rounds(
 ):
     """
     Perform basic calibration rounds
-    
+
     Parameters
     ----------
     msname : str
@@ -1082,7 +1089,7 @@ def run_basic_cal_rounds(
         CPU fraction to use
     mem_frac : float, optional
         Memory fraction to use
-        
+
     Returns
     -------
     int
@@ -1203,129 +1210,131 @@ def run_basic_cal_rounds(
 
 
 def main():
-    usage = "Basic calibration using calibrators"
-    parser = OptionParser(usage=usage)
-    parser.add_option(
-        "--msname",
-        dest="msname",
-        default="",
-        help="Name of measurement set",
-        metavar="Measurement Set",
+    parser = argparse.ArgumentParser(description="Basic calibration using calibrators",formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+
+    ## Essential parameters
+    basic_args = parser.add_argument_group(
+        "###################\nEssential parameters\n###################"
     )
-    parser.add_option(
+    basic_args.add_argument(
+        "msname",
+        type=str,
+        help="Name of measurement set (required positional argument)",
+    )
+
+    basic_args.add_argument(
         "--workdir",
-        dest="workdir",
+        type=str,
         default="",
-        help="Name of work directory",
-        metavar="String",
+        help="Working directory for calibration outputs (default: auto-created next to MS)",
     )
-    parser.add_option(
-        "--refant",
-        dest="refant",
-        default="",
-        help="Reference antenna",
-        metavar="String",
+    
+    ## Advanced parameters
+    adv_args = parser.add_argument_group(
+        "###################\nAdvanced calibration parameters\n###################"
     )
-    parser.add_option(
+    adv_args.add_argument("--refant", type=str, default="1", help="Reference antenna")
+    adv_args.add_argument(
         "--uvrange",
-        dest="uvrange",
+        type=str,
         default="",
-        help="UV range",
-        metavar="String",
+        help="UV range for calibration (e.g. '>100lambda')",
     )
-    parser.add_option(
-        "--perform_polcal",
-        dest="perform_polcal",
-        default=False,
-        help="Perform polarization calibration or nor",
-        metavar="Boolean",
+    adv_args.add_argument(
+        "--perform_polcal", action="store_true", help="Enable polarization calibration"
     )
-    parser.add_option(
+    adv_args.add_argument(
         "--keep_backup",
-        dest="keep_backup",
-        default=False,
-        help="Keep backup of measurement set after each round",
-        metavar="Boolean",
+        action="store_true",
+        help="Keep backup of measurement set after each calibration round",
     )
-    parser.add_option(
-        "--cpu_frac",
-        dest="cpu_frac",
-        default=0.8,
-        help="CPU fraction to use",
-        metavar="Float",
+
+    ## Resource management parameters
+    hard_args = parser.add_argument_group(
+        "###################\nHardware resource management parameters\n###################"
     )
-    parser.add_option(
-        "--mem_frac",
-        dest="mem_frac",
-        default=0.8,
-        help="Memory fraction to use",
-        metavar="Float",
+    hard_args.add_argument(
+        "--cpu_frac", type=float, default=0.8, help="CPU fraction to use"
     )
-    parser.add_option(
-        "--logfile",
-        dest="logfile",
-        default=None,
-        help="Log file",
-        metavar="String",
+    hard_args.add_argument(
+        "--mem_frac", type=float, default=0.8, help="Memory fraction to use"
     )
-    parser.add_option(
-        "--jobid",
-        dest="jobid",
-        default=0,
-        help="Job ID",
-        metavar="Integer",
+    hard_args.add_argument(
+        "--logfile", type=str, default=None, help="Optional path to log file"
     )
-    (options, args) = parser.parse_args()
-    pid=os.getpid()
-    save_pid(pid,datadir + f"/pids/pids_{options.jobid}.txt")
-    if options.workdir == "" or os.path.exists(options.workdir) == False:
-        workdir = os.path.dirname(os.path.abspath(options.msname)) + "/workdir"
-        if os.path.exists(workdir) == False:
+    hard_args.add_argument(
+        "--jobid", type=str, default="0", help="Job ID for logging and PID tracking"
+    )
+
+    if len(sys.argv) == 1:
+        parser.print_help(sys.stderr)
+        sys.exit(1)
+
+    args = parser.parse_args()
+
+    pid = os.getpid()
+    save_pid(pid, datadir + f"/pids/pids_{args.jobid}.txt")
+
+    if args.workdir == "" or not os.path.exists(args.workdir):
+        workdir = os.path.dirname(os.path.abspath(args.msname)) + "/workdir"
+        if not os.path.exists(workdir):
             os.makedirs(workdir)
     else:
-        workdir = options.workdir
-    logfile=options.logfile
-    observer=None
-    if os.path.exists(f"{workdir}/jobname_password.npy") and logfile!=None: 
+        workdir = args.workdir
+
+    logfile = args.logfile
+    observer = None
+
+    if os.path.exists(f"{workdir}/jobname_password.npy") and logfile is not None:
         time.sleep(5)
-        jobname,password=np.load(f"{workdir}/jobname_password.npy",allow_pickle=True)
+        jobname, password = np.load(
+            f"{workdir}/jobname_password.npy", allow_pickle=True
+        )
         if os.path.exists(logfile):
-            observer=init_logger("basic_cal",logfile,jobname=jobname,password=password)
+            observer = init_logger(
+                "basic_cal", logfile, jobname=jobname, password=password
+            )
+
     try:
-        if options.msname != "" and os.path.exists(options.msname):
+        if args.msname != "" and os.path.exists(args.msname):
             print("\n###################################")
             print("Starting initial calibration.")
             print("###################################\n")
+
             caldir = workdir + "/caltables"
-            if os.path.exists(caldir) == False:
+            if not os.path.exists(caldir):
                 os.makedirs(caldir)
+
             msg, caltables = run_basic_cal_rounds(
-                options.msname,
+                args.msname,
                 workdir,
-                refant=str(options.refant),
-                uvrange=str(options.uvrange),
-                perform_polcal=eval(str(options.perform_polcal)),
-                keep_backup=eval(str(options.keep_backup)),
-                cpu_frac=float(options.cpu_frac),
-                mem_frac=float(options.mem_frac),
+                refant=args.refant,
+                uvrange=args.uvrange,
+                perform_polcal=args.perform_polcal,
+                keep_backup=args.keep_backup,
+                cpu_frac=args.cpu_frac,
+                mem_frac=args.mem_frac,
             )
+
             for caltable in caltables:
-                if caltable != None and os.path.exists(caltable):
-                    if os.path.exists(caldir + "/" + os.path.basename(caltable)):
-                        os.system("rm -rf " + caldir + "/" + os.path.basename(caltable))
+                if caltable is not None and os.path.exists(caltable):
+                    dest = caldir + "/" + os.path.basename(caltable)
+                    if os.path.exists(dest):
+                        os.system("rm -rf " + dest)
                     os.system("mv " + caltable + " " + caldir)
         else:
-            print("Please provide correct measurement set.\n")
-            msg=1
+            print("Please provide a valid measurement set.\n")
+            msg = 1
     except Exception as e:
         traceback.print_exc()
-        msg=1
+        msg = 1
     finally:
         time.sleep(5)
         clean_shutdown(observer)
-    return msg    
-    
-    
+
+    return msg
+
+
 if __name__ == "__main__":
     result = main()
     print(

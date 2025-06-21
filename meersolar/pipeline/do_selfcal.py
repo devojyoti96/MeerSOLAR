@@ -1,8 +1,7 @@
-import os, numpy as np, copy, psutil, gc, traceback, resource, time
+import os, numpy as np, copy, psutil, gc, traceback, resource, time, argparse
 from astropy.io import fits
 from meersolar.pipeline.basic_func import *
 from dask import delayed, compute, config
-from optparse import OptionParser
 from functools import partial
 from casatasks import casalog
 
@@ -11,6 +10,7 @@ try:
     os.system("rm -rf " + casalogfile)
 except:
     pass
+
 
 def single_selfcal_iteration(
     msname,
@@ -401,7 +401,8 @@ def single_selfcal_iteration(
         # Restoring flags if applymode is calflag
         #########################################
         if applymode == "calflag":
-            flags = flagmanager(vis=msname, mode="list")
+            with suppress_casa_output():    
+                flags = flagmanager(vis=msname, mode="list")
             keys = flags.keys()
             for k in keys:
                 if k == "MS":
@@ -410,8 +411,9 @@ def single_selfcal_iteration(
                     version = flags[0]["name"]
                     if "applycal" in version:
                         try:
-                            flagmanager(vis=msname, mode="restore", versionname=version)
-                            flagmanager(vis=msname, mode="delete", versionname=version)
+                            with suppress_casa_output():
+                                flagmanager(vis=msname, mode="restore", versionname=version)
+                                flagmanager(vis=msname, mode="delete", versionname=version)
                         except:
                             pass
 
@@ -466,15 +468,16 @@ def single_selfcal_iteration(
         logger.info(
             f"bandpass(vis='{msname}',caltable='{bpass_caltable}',uvrange='{uvrange}',refant='{refant}',solint='{solint},10MHz',minsnr=1,solnorm=True)\n"
         )
-        bandpass(
-            vis=msname,
-            caltable=bpass_caltable,
-            uvrange=uvrange,
-            refant=refant,
-            minsnr=1,
-            solint=f"{solint},10MHz",
-            solnorm=True,
-        )
+        with suppress_casa_output():
+            bandpass(
+                vis=msname,
+                caltable=bpass_caltable,
+                uvrange=uvrange,
+                refant=refant,
+                minsnr=1,
+                solint=f"{solint},10MHz",
+                solnorm=True,
+            )
         if os.path.exists(bpass_caltable) == False:
             logger.info(f"No gain solutions are found.\n")
             gc.collect()
@@ -483,9 +486,10 @@ def single_selfcal_iteration(
         #########################################
         # Flagging bad gains
         #########################################
-        flagdata(
-            vis=bpass_caltable, mode="rflag", datacolumn="CPARAM", flagbackup=False
-        )
+        with suppress_casa_output():
+            flagdata(
+                vis=bpass_caltable, mode="rflag", datacolumn="CPARAM", flagbackup=False
+            )
         tb = table()
         tb.open(bpass_caltable, nomodify=False)
         gain = tb.getcol("CPARAM")
@@ -504,24 +508,26 @@ def single_selfcal_iteration(
         logger.info(
             f"applycal(vis={msname},gaintable=[{bpass_caltable}],interp=['linear,linearflag'],applymode='{applymode}',calwt=[False])\n"
         )
-        applycal(
-            vis=msname,
-            gaintable=[bpass_caltable],
-            interp=["linear,linearflag"],
-            applymode=applymode,
-            calwt=[False],
-        )
+        with suppress_casa_output():
+            applycal(
+                vis=msname,
+                gaintable=[bpass_caltable],
+                interp=["linear,linearflag"],
+                applymode=applymode,
+                calwt=[False],
+            )
 
         #####################################
         # Flag zeros
         #####################################
-        flagdata(
-            vis=msname,
-            mode="clip",
-            clipzeros=True,
-            datacolumn="corrected",
-            flagbackup=False,
-        )
+        with suppress_casa_output():
+            flagdata(
+                vis=msname,
+                mode="clip",
+                clipzeros=True,
+                datacolumn="corrected",
+                flagbackup=False,
+            )
         gc.collect()
         return (
             0,
@@ -619,20 +625,28 @@ def do_selfcal(
     limit_threads(n_threads=ncpu)
     from casatasks import split, flagdata, initweights, flagmanager
     from casatools import msmetadata
+
     if dry_run:
         process = psutil.Process(os.getpid())
         mem = round(process.memory_info().rss / 1024**3, 2)  # in GB
         return mem
-    sub_observer=None
+    sub_observer = None
     logger, logfile = create_logger(
         os.path.basename(logfile).split(".log")[0], logfile, verbose=False
     )
-    if os.path.exists(f"{workdir}/jobname_password.npy") and logfile!=None: 
+    if os.path.exists(f"{workdir}/jobname_password.npy") and logfile != None:
         time.sleep(5)
-        jobname,password=np.load(f"{workdir}/jobname_password.npy",allow_pickle=True)
+        jobname, password = np.load(
+            f"{workdir}/jobname_password.npy", allow_pickle=True
+        )
         if os.path.exists(logfile):
-            print (f"Starting remote logger. Remote logger password: {password}")
-            sub_observer=init_logger("remotelogger_selfcal_{os.path.basename(msname).split('.ms')[0]}",logfile,jobname=jobname,password=password)     
+            print(f"Starting remote logger. Remote logger password: {password}")
+            sub_observer = init_logger(
+                "remotelogger_selfcal_{os.path.basename(msname).split('.ms')[0]}",
+                logfile,
+                jobname=jobname,
+                password=password,
+            )
     try:
         msname = os.path.abspath(msname.rstrip("/"))
         selfcaldir = selfcaldir.rstrip("/")
@@ -650,7 +664,8 @@ def do_selfcal(
         ##############################
         # Restoring any previous flags
         ##############################
-        flags = flagmanager(vis=msname, mode="list")
+        with suppress_casa_output():
+            flags = flagmanager(vis=msname, mode="list")
         keys = flags.keys()
         for k in keys:
             if k == "MS":
@@ -658,8 +673,9 @@ def do_selfcal(
             else:
                 version = flags[0]["name"]
                 try:
-                    flagmanager(vis=msname, mode="restore", versionname=version)
-                    flagmanager(vis=msname, mode="delete", versionname=version)
+                    with suppress_casa_output():
+                        flagmanager(vis=msname, mode="restore", versionname=version)
+                        flagmanager(vis=msname, mode="delete", versionname=version)
                 except:
                     pass
         if os.path.exists(msname + ".flagversions"):
@@ -676,36 +692,40 @@ def do_selfcal(
         msmd.close()
         if hascor:
             logger.info(f"Spliting corrected data to ms : {selfcalms}")
-            split(
-                vis=msname,
-                field=str(field),
-                scan=str(scan),
-                outputvis=selfcalms,
-                datacolumn="corrected",
-            )
+            with suppress_casa_output():
+                split(
+                    vis=msname,
+                    field=str(field),
+                    scan=str(scan),
+                    outputvis=selfcalms,
+                    datacolumn="corrected",
+                )
         else:
             logger.info(f"Spliting data to ms : {selfcalms}")
-            split(
-                vis=msname,
-                field=str(field),
-                scan=str(scan),
-                outputvis=selfcalms,
-                datacolumn="data",
-            )
+            with suppress_casa_output():
+                split(
+                    vis=msname,
+                    field=str(field),
+                    scan=str(scan),
+                    outputvis=selfcalms,
+                    datacolumn="data",
+                )
         msname = selfcalms
 
         ##########################################
         # Initiate proper weighting
         ##########################################
-        flagdata(
-            vis=msname,
-            mode="clip",
-            clipzeros=True,
-            datacolumn="data",
-            flagbackup=False,
-        )
+        with suppress_casa_output():
+            flagdata(
+                vis=msname,
+                mode="clip",
+                clipzeros=True,
+                datacolumn="data",
+                flagbackup=False,
+            )
         logger.info("Initiating weights ....")
-        initweights(vis=msname, wtmode="ones", dowtsp=True)
+        with suppress_casa_output():
+            initweights(vis=msname, wtmode="ones", dowtsp=True)
 
         ############################################
         # Imaging and calibration parameters
@@ -1021,180 +1041,174 @@ def do_selfcal(
 
 def main():
     starttime = time.time()
-    usage = "Self-calibration"
-    parser = OptionParser(usage=usage)
-    parser.add_option(
-        "--mslist",
-        dest="mslist",
-        default=None,
-        help="Measurement set list",
-        metavar="List",
+    parser = argparse.ArgumentParser(description="Self-calibration",formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    
+    ## Essential parameters
+    basic_args = parser.add_argument_group(
+        "###################\nEssential parameters\n###################"
     )
-    parser.add_option(
-        "--workdir",
-        dest="workdir",
-        default="",
-        help="Working directory",
-        metavar="String",
+    basic_args.add_argument(
+        "mslist",
+        type=str,
+        help="Comma-separated list of measurement sets (required positional argument)",
     )
-    parser.add_option(
+    basic_args.add_argument(
+        "--workdir", type=str, default="", help="Working directory", metavar="String"
+    )
+    
+    ## Advanced parameters
+    adv_args = parser.add_argument_group(
+        "###################\nAdvanced calibration and imaging parameters\n###################"
+    )
+    adv_args.add_argument(
         "--start_thresh",
-        dest="start_thresh",
+        type=float,
         default=5,
-        help="Starting CLEANing threshold ",
+        help="Starting CLEANing threshold",
         metavar="Float",
     )
-    parser.add_option(
+    adv_args.add_argument(
         "--stop_thresh",
-        dest="stop_thresh",
+        type=float,
         default=3,
         help="Stop CLEANing threshold",
         metavar="Float",
     )
-    parser.add_option(
+    adv_args.add_argument(
         "--max_iter",
-        dest="max_iter",
+        type=int,
         default=100,
-        help="Maximum numbers of selfcal iterations",
+        help="Maximum number of selfcal iterations",
         metavar="Integer",
     )
-    parser.add_option(
+    adv_args.add_argument(
         "--max_DR",
-        dest="max_DR",
+        type=float,
         default=1000,
         help="Maximum dynamic range",
-        metavar="Integer",
+        metavar="Float",
     )
-    parser.add_option(
+    adv_args.add_argument(
         "--min_iter",
-        dest="min_iter",
+        type=int,
         default=2,
-        help="Minimum numbers of selfcal iterations",
+        help="Minimum number of selfcal iterations",
         metavar="Integer",
     )
-    parser.add_option(
+    adv_args.add_argument(
         "--conv_frac",
-        dest="conv_frac",
+        type=float,
         default=0.3,
         help="Fractional change in DR to determine convergence",
         metavar="Float",
     )
-    parser.add_option(
-        "--solint",
-        dest="solint",
-        default="60s",
-        help="Solution interval",
-        metavar="String",
+    adv_args.add_argument(
+        "--solint", type=str, default="60s", help="Solution interval", metavar="String"
     )
-    parser.add_option(
-        "--do_apcal",
-        dest="do_apcal",
-        default=False,
-        help="Peform ap-selfcal or not",
-        metavar="Boolean",
-    )
-    parser.add_option(
-        "--solar_selfcal",
-        dest="solar_selfcal",
-        default=True,
-        help="Peforming solar self-calibration or not",
-        metavar="Boolean",
-    )
-    parser.add_option(
-        "--cpu_frac",
-        dest="cpu_frac",
-        default=0.8,
-        help="CPU fraction to use",
-        metavar="Float",
-    )
-    parser.add_option(
-        "--mem_frac",
-        dest="mem_frac",
-        default=0.8,
-        help="Memory fraction to use",
-        metavar="Float",
-    )
-    parser.add_option(
-        "--keep_backup",
-        dest="keep_backup",
-        default=False,
-        help="Keep backup of self-calibration rounds",
-        metavar="Boolean",
-    )
-    parser.add_option(
+    adv_args.add_argument(
         "--uvrange",
-        dest="uvrange",
+        type=str,
         default="",
         help="Calibration UV-range (CASA format)",
         metavar="String",
     )
-    parser.add_option(
+    adv_args.add_argument(
         "--minuv",
-        dest="minuv",
+        type=float,
         default=0,
         help="Minimum UV-lambda used for imaging",
         metavar="Float",
     )
-    parser.add_option(
-        "--weight",
-        dest="weight",
-        default="briggs",
-        help="Imaging weight",
-        metavar="String",
+    adv_args.add_argument(
+        "--weight", type=str, default="briggs", help="Imaging weight", metavar="String"
     )
-    parser.add_option(
+    adv_args.add_argument(
         "--robust",
-        dest="robust",
+        type=float,
         default=0.0,
         help="Robust parameter for briggs weight",
         metavar="Float",
     )
-    parser.add_option(
+    adv_args.add_argument(
         "--applymode",
-        dest="applymode",
+        type=str,
         default="calonly",
         help="Solution apply mode",
         metavar="String",
     )
-    parser.add_option(
+    adv_args.add_argument(
         "--min_tol_factor",
-        dest="min_tol_factor",
+        type=float,
         default=1.0,
         help="Minimum tolerable variation in temporal direction in percentage",
         metavar="Float",
     )
-    parser.add_option(
-        "--jobid",
-        dest="jobid",
-        default=0,
-        help="Job ID",
-        metavar="Integer",
+    adv_args.add_argument("--no_apcal", action="store_false", dest="do_apcal", help="Do not perform ap-selfcal")
+    adv_args.add_argument(
+        "--no_solar_selfcal", action="store_false", dest="solar_selfcal", help="Do not perform solar self-calibration"
     )
-    (options, args) = parser.parse_args()
-    pid=os.getpid()
-    save_pid(pid,datadir + f"/pids/pids_{options.jobid}.txt")
-    if options.workdir == "" or os.path.exists(options.workdir) == False:
-        workdir = os.path.dirname(os.path.abspath(options.msname)) + "/workdir"
+    adv_args.add_argument(
+        "--keep_backup",
+        action="store_true",
+        help="Keep backup of self-calibration rounds",
+    )
+    
+    ## Resource management parameters
+    hard_args = parser.add_argument_group(
+        "###################\nHardware resource management parameters\n###################"
+    )
+    hard_args.add_argument(
+        "--cpu_frac",
+        type=float,
+        default=0.8,
+        help="CPU fraction to use",
+        metavar="Float",
+    )
+    hard_args.add_argument(
+        "--mem_frac",
+        type=float,
+        default=0.8,
+        help="Memory fraction to use",
+        metavar="Float",
+    )
+    hard_args.add_argument(
+        "--jobid", type=int, default=0, help="Job ID", metavar="Integer"
+    )
+
+    if len(sys.argv) == 1:
+        parser.print_help(sys.stderr)
+        sys.exit(1)
+
+    args = parser.parse_args()
+
+    pid = os.getpid()
+    save_pid(pid, datadir + f"/pids/pids_{args.jobid}.txt")
+    if args.workdir == "" or os.path.exists(args.workdir) == False:
+        workdir = os.path.dirname(os.path.abspath(args.msname)) + "/workdir"
         if os.path.exists(workdir) == False:
             os.makedirs(workdir)
     else:
-        workdir = options.workdir
-    if os.path.exists(options.workdir + "/logs/") == False:
-        os.makedirs(options.workdir + "/logs/")
-    mainlog_file = options.workdir + "/logs/selfcal_targets.mainlog"
+        workdir = args.workdir
+    if os.path.exists(args.workdir + "/logs/") == False:
+        os.makedirs(args.workdir + "/logs/")
+    mainlog_file = args.workdir + "/logs/selfcal_targets.mainlog"
     mainlogger, mainlog_file = create_logger(
         os.path.basename(mainlog_file).split(".mainlog")[0], mainlog_file, verbose=False
     )
-    observer=None
-    if os.path.exists(f"{workdir}/jobname_password.npy") and mainlog_file!=None: 
+    observer = None
+    if os.path.exists(f"{workdir}/jobname_password.npy") and mainlog_file != None:
         time.sleep(5)
-        jobname,password=np.load(f"{workdir}/jobname_password.npy",allow_pickle=True)
+        jobname, password = np.load(
+            f"{workdir}/jobname_password.npy", allow_pickle=True
+        )
         if os.path.exists(mainlog_file):
-            observer=init_logger("all_selfcal",mainlog_file,jobname=jobname,password=password)
+            observer = init_logger(
+                "all_selfcal", mainlog_file, jobname=jobname, password=password
+            )
     ###########################
     # WSClean container
     ###########################
-    container_name="meerwsclean"
+    container_name = "meerwsclean"
     container_present = check_udocker_container(container_name)
     if container_present == False:
         container_name = initialize_wsclean_container(name=container_name)
@@ -1204,37 +1218,37 @@ def main():
             )
             return 1
     try:
-        if options.mslist == None:
+        if args.mslist == None:
             mainlogger.info("Please provide a mslist.")
-            msg=1
+            msg = 1
         else:
-            mslist = str(options.mslist).split(",")
+            mslist = str(args.mslist).split(",")
             if len(mslist) == 0:
                 mainlogger.info("Please provide at-least one measurement set.")
-                msg=1
+                msg = 1
             else:
-                caldir = options.workdir + "/caltables"
+                caldir = args.workdir + "/caltables"
                 if os.path.exists(caldir) == False:
                     os.makedirs(caldir)
                 task = delayed(do_selfcal)(dry_run=True)
-                mem_limit = run_limited_memory_task(task, dask_dir=options.workdir)
+                mem_limit = run_limited_memory_task(task, dask_dir=args.workdir)
                 partial_do_selfcal = partial(
                     do_selfcal,
-                    start_threshold=float(options.start_thresh),
-                    end_threshold=float(options.stop_thresh),
-                    max_iter=int(options.max_iter),
-                    max_DR=float(options.max_DR),
-                    min_iter=int(options.min_iter),
-                    DR_convegerence_frac=float(options.conv_frac),
-                    uvrange=str(options.uvrange),
-                    minuv=float(options.minuv),
-                    solint=str(options.solint),
-                    weight=str(options.weight),
-                    robust=float(options.robust),
-                    do_apcal=eval(str(options.do_apcal)),
-                    applymode=options.applymode,
-                    min_tol_factor=float(options.min_tol_factor),
-                    solar_selfcal=eval(str(options.solar_selfcal)),
+                    start_threshold=float(args.start_thresh),
+                    end_threshold=float(args.stop_thresh),
+                    max_iter=int(args.max_iter),
+                    max_DR=float(args.max_DR),
+                    min_iter=int(args.min_iter),
+                    DR_convegerence_frac=float(args.conv_frac),
+                    uvrange=str(args.uvrange),
+                    minuv=float(args.minuv),
+                    solint=str(args.solint),
+                    weight=str(args.weight),
+                    robust=float(args.robust),
+                    do_apcal=args.do_apcal,
+                    applymode=args.applymode,
+                    min_tol_factor=float(args.min_tol_factor),
+                    solar_selfcal=args.solar_selfcal,
                 )
 
                 ####################################
@@ -1253,7 +1267,10 @@ def main():
                 chanlist = []
                 for ms in mslist:
                     channame = (
-                        os.path.basename(ms).split(".ms")[0].split("spw_")[-1].split("_time")[0]
+                        os.path.basename(ms)
+                        .split(".ms")[0]
+                        .split("spw_")[-1]
+                        .split("_time")[0]
                     )
                     if channame not in chanlist:
                         chanlist.append(channame)
@@ -1270,7 +1287,9 @@ def main():
                 soft_limit, hard_limit = resource.getrlimit(resource.RLIMIT_NOFILE)
                 new_soft_limit = max(soft_limit, int(0.8 * hard_limit))
                 if soft_limit < new_soft_limit:
-                    resource.setrlimit(resource.RLIMIT_NOFILE, (new_soft_limit, hard_limit))
+                    resource.setrlimit(
+                        resource.RLIMIT_NOFILE, (new_soft_limit, hard_limit)
+                    )
 
                 num_fd_list = []
                 for ms in mslist:
@@ -1293,18 +1312,20 @@ def main():
                 n_jobs = max(1, int(new_soft_limit / total_fd))
                 n_jobs = min(len(mslist), n_jobs)
 
-                dask_client, dask_cluster, n_jobs, n_threads, mem_limit = get_dask_client(
-                    n_jobs,
-                    dask_dir=options.workdir,
-                    cpu_frac=float(options.cpu_frac),
-                    mem_frac=float(options.mem_frac),
-                    min_cpu_per_job=3,
-                    min_mem_per_job=min_mem_per_job,
+                dask_client, dask_cluster, n_jobs, n_threads, mem_limit = (
+                    get_dask_client(
+                        n_jobs,
+                        dask_dir=args.workdir,
+                        cpu_frac=float(args.cpu_frac),
+                        mem_frac=float(args.mem_frac),
+                        min_cpu_per_job=3,
+                        min_mem_per_job=min_mem_per_job,
+                    )
                 )
                 tasks = []
                 for ms in mslist:
                     logfile = (
-                        options.workdir
+                        args.workdir
                         + "/logs/"
                         + os.path.basename(ms).split(".ms")[0]
                         + "_selfcal.log"
@@ -1313,8 +1334,8 @@ def main():
                     tasks.append(
                         delayed(partial_do_selfcal)(
                             ms,
-                            options.workdir,
-                            options.workdir
+                            args.workdir,
+                            args.workdir
                             + "/"
                             + os.path.basename(ms).split(".ms")[0]
                             + "_selfcal",
@@ -1331,7 +1352,9 @@ def main():
                     r = results[i]
                     msg = r[0]
                     if msg != 0:
-                        mainlogger.info(f"Self-calibration was not successful for ms: {mslist[i]}.")
+                        mainlogger.info(
+                            f"Self-calibration was not successful for ms: {mslist[i]}."
+                        )
                     else:
                         gcal = r[1]
                         tb = table()
@@ -1341,10 +1364,10 @@ def main():
                         final_gain_caltable = caldir + f"/selfcal_scan_{scan}.gcal"
                         os.system(f"cp -r {gcal} {final_gain_caltable}")
                         gcal_list.append(final_gain_caltable)
-                if eval(str(options.keep_backup)) == False:
+                if args.keep_backup == False:
                     for ms in mslist:
                         selfcaldir = (
-                            options.workdir
+                            args.workdir
                             + "/"
                             + os.path.basename(ms).split(".ms")[0]
                             + "_selfcal"
@@ -1353,22 +1376,27 @@ def main():
                 if len(gcal_list) > 0:
                     mainlogger.info(f"Final selfcal caltables: {gcal_list}")
                     mainlogger.info("################################################")
-                    mainlogger.info(f"Total time taken: {round(time.time()-starttime,2)}s")
+                    mainlogger.info(
+                        f"Total time taken: {round(time.time()-starttime,2)}s"
+                    )
                     mainlogger.info("################################################")
-                    msg=0
+                    msg = 0
                 else:
                     mainlogger.info("No self-calibration is successful.")
                     mainlogger.info("################################################")
-                    mainlogger.info(f"Total time taken: {round(time.time()-starttime,2)}s")
+                    mainlogger.info(
+                        f"Total time taken: {round(time.time()-starttime,2)}s"
+                    )
                     mainlogger.info("################################################")
-                    msg=1
+                    msg = 1
     except Exception as e:
         traceback.print_exc()
-        msg=1
+        msg = 1
     finally:
         time.sleep(5)
         clean_shutdown(observer)
     return msg
+
 
 if __name__ == "__main__":
     result = main()

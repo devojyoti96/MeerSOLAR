@@ -1,6 +1,5 @@
 import sys, psutil, traceback
-import os, numpy as np, time, glob
-from optparse import OptionParser
+import os, numpy as np, time, glob, argparse
 from meersolar.pipeline.basic_func import *
 from casatasks import casalog
 from casatools import msmetadata
@@ -80,19 +79,20 @@ def polcal_setjy(msname="", field_name="", n_threads=-1, ismms=True, dry_run=Fal
             print("Field name is not either of the polcal, 3C286 or 3C138.")
             return 1
         print(f"Reference frequency: {ref_freq} GHz.")
-        setjy(
-            vis=msname,
-            field=field_name,
-            scalebychan=True,
-            standard="manual",
-            fluxdensity=[I, 0.0, 0.0, 0.0],
-            spix=polyI,
-            reffreq=f"{ref_freq}GHz",
-            polindex=poly_pfrac,
-            polangle=poly_pangle,
-            rotmeas=0,
-            usescratch=True,
-        )
+        with suppress_casa_output():
+            setjy(
+                vis=msname,
+                field=field_name,
+                scalebychan=True,
+                standard="manual",
+                fluxdensity=[I, 0.0, 0.0, 0.0],
+                spix=polyI,
+                reffreq=f"{ref_freq}GHz",
+                polindex=poly_pfrac,
+                polangle=poly_pangle,
+                rotmeas=0,
+                usescratch=True,
+            )
     except Exception as e:
         traceback.print_exc()
     return
@@ -121,14 +121,15 @@ def phasecal_setjy(msname="", field="", ismms=False, n_threads=-1, dry_run=False
         mem = round(process.memory_info().rss / 1024**3, 2)  # in GB
         return mem
     try:
-        setjy(
-            vis=msname,
-            field=field,
-            standard="manual",
-            fluxdensity=[1.0, 0, 0, 0],
-            usescratch=True,
-            ismms=ismms,
-        )
+        with suppress_casa_output():
+            setjy(
+                vis=msname,
+                field=field,
+                standard="manual",
+                fluxdensity=[1.0, 0, 0, 0],
+                usescratch=True,
+                ismms=ismms,
+            )
     except Exception as e:
         traceback.print_exc()
     return
@@ -175,7 +176,7 @@ def import_fluxcal_models(
         for fluxcal in fluxcal_fields:
             f_scan = fluxcal_scans[fluxcal]
             for s in f_scan:
-                scans=np.array(scans)
+                scans = np.array(scans)
                 pos = np.argmin(np.abs(scans - s))
                 sub_msname = mslist[pos]
                 modelname = datadir + "/" + fluxcal + "_" + bandname + "_model.txt"
@@ -189,7 +190,8 @@ def import_fluxcal_models(
                 crys_cmd = "crystalball " + " ".join(crys_cmd_args) + " " + sub_msname
                 print(crys_cmd)
                 tmpfile = f"tmp_{os.path.basename(sub_msname).split('.ms')[0]}"
-                msg = os.system(crys_cmd + f" > {tmpfile}")
+                with suppress_casa_output():    
+                    msg = os.system(crys_cmd + f" > {tmpfile}")
                 os.system(f"rm -rf {tmpfile}")
                 if msg == 0:
                     print(f"Fluxcal model is imported successfully for scan: {s}.")
@@ -247,7 +249,7 @@ def import_phasecal_models(
         for phasecal in phasecal_fields:
             ph_scan = phasecal_scans[phasecal]
             for s in ph_scan:
-                scans=np.array(scans)
+                scans = np.array(scans)
                 pos = np.argmin(np.abs(scans - s))
                 sub_msname = mslist[pos]
                 tasks.append(
@@ -312,7 +314,7 @@ def import_polcal_model(
         for polcal_field in polcal_fields:
             p_scan = polcal_scans[polcal_field]
             for s in p_scan:
-                scans=np.array(scans)
+                scans = np.array(scans)
                 pos = np.argmin(np.abs(scans - s))
                 sub_msname = mslist[pos]
                 tasks.append(
@@ -416,72 +418,63 @@ def import_all_models(msname, workdir, cpu_frac=0.8, mem_frac=0.8):
 
 def main():
     usage = "Import calibrator models"
-    parser = OptionParser(usage=usage)
-    parser.add_option(
-        "--msname",
-        dest="msname",
-        default=None,
-        help="Name of measurement set",
-        metavar="Measurement Set",
+    parser = argparse.ArgumentParser(description=usage,formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    
+    ## Essential parameters
+    basic_args = parser.add_argument_group(
+        "###################\nEssential parameters\n###################"
     )
-    parser.add_option(
-        "--workdir",
-        dest="workdir",
-        default="",
-        help="Name of work directory",
-        metavar="String",
+    basic_args.add_argument("msname", type=str, help="Name of measurement set")
+    basic_args.add_argument(
+        "--workdir", type=str, default="", help="Name of work directory"
     )
-    parser.add_option(
-        "--cpu_frac",
-        dest="cpu_frac",
-        default=0.8,
-        help="CPU fraction to use",
-        metavar="Float",
+    
+    ## Resource management parameters
+    hard_args = parser.add_argument_group(
+        "###################\nHardware resource management parameters\n###################"
     )
-    parser.add_option(
-        "--mem_frac",
-        dest="mem_frac",
-        default=0.8,
-        help="Memory fraction to use",
-        metavar="Float",
+    hard_args.add_argument(
+        "--cpu_frac", type=float, default=0.8, help="CPU fraction to use"
     )
-    parser.add_option(
-        "--logfile",
-        dest="logfile",
-        default=None,
-        help="Log file",
-        metavar="String",
+    hard_args.add_argument(
+        "--mem_frac", type=float, default=0.8, help="Memory fraction to use"
     )
-    parser.add_option(
-        "--jobid",
-        dest="jobid",
-        default=0,
-        help="Job ID",
-        metavar="Integer",
-    )
-    (options, args) = parser.parse_args()
-    pid=os.getpid()
-    save_pid(pid,datadir + f"/pids/pids_{options.jobid}.txt")
-    if options.workdir == "" or os.path.exists(options.workdir) == False:
-        workdir = os.path.dirname(os.path.abspath(options.msname)) + "/workdir"
-        if os.path.exists(workdir) == False:
-            os.makedirs(workdir)
+    hard_args.add_argument("--logfile", type=str, default=None, help="Log file")
+    hard_args.add_argument("--jobid", type=int, default=0, help="Job ID")
+
+    if len(sys.argv) == 1:
+        parser.print_help(sys.stderr)
+        sys.exit(1)
+        
+    args = parser.parse_args()
+
+    pid = os.getpid()
+    save_pid(pid, datadir + f"/pids/pids_{args.jobid}.txt")
+
+    if args.workdir == "" or not os.path.exists(args.workdir):
+        workdir = os.path.dirname(os.path.abspath(args.msname)) + "/workdir"
+        os.makedirs(workdir, exist_ok=True)
     else:
-        workdir = options.workdir
-    logfile=options.logfile
-    observer=None
-    if os.path.exists(f"{workdir}/jobname_password.npy") and logfile!=None: 
+        workdir = args.workdir
+
+    observer = None
+    if os.path.exists(f"{workdir}/jobname_password.npy") and args.logfile:
         time.sleep(5)
-        jobname,password=np.load(f"{workdir}/jobname_password.npy",allow_pickle=True)
-        if os.path.exists(logfile):
-            observer=init_logger("import_model",logfile,jobname=jobname,password=password)
+        jobname, password = np.load(
+            f"{workdir}/jobname_password.npy", allow_pickle=True
+        )
+        if os.path.exists(args.logfile):
+            observer = init_logger(
+                "import_model", args.logfile, jobname=jobname, password=password
+            )
+
     try:
-        if options.msname != None and os.path.exists(options.msname):
+        if args.msname and os.path.exists(args.msname):
             fluxcal_result, phasecal_result, polcal_result = import_all_models(
-                options.msname,
-                options.workdir,
-                cpu_frac=float(options.cpu_frac),
-                mem_frac=float(options.mem_frac),
+                args.msname,
+                workdir,
+                cpu_frac=args.cpu_frac,
+                mem_frac=args.mem_frac,
             )
             os.system("touch " + workdir + "/.fluxcal_" + str(fluxcal_result))
             os.system("touch " + workdir + "/.phasecal_" + str(phasecal_result))
@@ -489,23 +482,25 @@ def main():
             if fluxcal_result == 1 or (
                 fluxcal_result == 1 and phasecal_result == 1 and polcal_result == 1
             ):
-                msg=1
+                msg = 1
             else:
-                msg=0
+                msg = 0
         else:
             print("Please provide correct measurement set.\n")
-            msg=1
+            msg = 1
     except Exception as e:
         traceback.print_exc()
         os.system("touch " + workdir + "/.fluxcal_1")
         os.system("touch " + workdir + "/.phasecal_1")
         os.system("touch " + workdir + "/.polcal_1")
-        msg=1
+        msg = 1
     finally:
         time.sleep(5)
         clean_shutdown(observer)
-    return msg  
-    
+
+    return msg
+
+
 if __name__ == "__main__":
     result = main()
     print(

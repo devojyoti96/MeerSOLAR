@@ -1,4 +1,4 @@
-import numpy as np, copy, psutil, os, astropy.units as u, warnings, gc, traceback, time
+import numpy as np, copy, psutil, os, astropy.units as u, warnings, gc, traceback, time, argparse, sys
 from astropy.io import fits
 from numpy.linalg import inv
 from astropy.coordinates import AltAz, EarthLocation, SkyCoord
@@ -9,8 +9,14 @@ from dask import delayed, compute
 from joblib import Parallel, delayed
 from astropy.wcs import FITSFixedWarning
 from meersolar.pipeline.basic_func import get_datadir
-from optparse import OptionParser
 
+from casatasks import casalog
+try:
+    casalogfile = casalog.logfile()
+    os.system("rm -rf " + casalogfile)
+except:
+    pass
+    
 warnings.simplefilter("ignore", category=FITSFixedWarning)
 
 # Define MeerKAT location
@@ -640,97 +646,90 @@ def get_pbcor_image(
 
 
 def main():
-    usage = "Correct image for full-polar antenna averaged MeerKAT primary beam"
-    parser = OptionParser(usage=usage)
-    parser.add_option(
-        "--imagename",
-        dest="imagename",
-        default="",
-        help="Name of image",
-        metavar="String",
+    parser = argparse.ArgumentParser(
+        description="Correct image for full-polar antenna averaged MeerKAT primary beam",formatter_class=argparse.ArgumentDefaultsHelpFormatter
     )
-    parser.add_option(
+    
+    ## Essential parameters
+    basic_args = parser.add_argument_group(
+        "###################\nEssential parameters\n###################"
+    )
+    basic_args.add_argument(
+        "imagename", type=str, help="Name of image (required positional argument)"
+    )
+    basic_args.add_argument(
         "--pbdir",
-        dest="pbdir",
+        type=str,
         default="",
         help="Name of primary beam directory",
         metavar="String",
     )
-    parser.add_option(
+    basic_args.add_argument(
         "--pbcor_dir",
-        dest="pbcor_dir",
+        type=str,
         default="",
         help="Name of primary beam corrected image directory",
         metavar="String",
     )
-    parser.add_option(
-        "--save_beam",
-        dest="save_beam",
-        default=True,
-        help="Save beam to disk or not",
-        metavar="Boolean",
+    
+    ## Advanced parameters
+    adv_args = parser.add_argument_group(
+        "###################\nAdvanced parameters\n###################"
     )
-    parser.add_option(
-        "--band",
-        dest="band",
-        default="",
-        help="Band name",
-        metavar="String",
+    adv_args.add_argument(
+        "--no_save_beam", action="store_false", dest="save_beam", help="Do not save beam to disk"
     )
-    parser.add_option(
-        "--apply_parang",
-        dest="apply_parang",
-        default=True,
-        help="Apply parallactic angle correction",
-        metavar="Boolean",
+    adv_args.add_argument(
+        "--band", type=str, default="", help="Band name", metavar="String"
     )
-    parser.add_option(
-        "--verbose",
-        dest="verbose",
-        default=False,
-        help="Verbose output",
-        metavar="Boolean",
+    adv_args.add_argument(
+        "--no_apply_parang", action="store_false", dest="apply_parang", help="Do not apply parallactic angle correction"
     )
-    parser.add_option(
+    adv_args.add_argument("--verbose", action="store_true", help="Verbose output")
+    
+    ## Resource management parameters
+    hard_args = parser.add_argument_group(
+        "###################\nHardware resource management parameters\n###################"
+    )
+    hard_args.add_argument(
         "--ncpu",
-        dest="ncpu",
+        type=int,
         default=8,
         help="Number of CPU threads to use",
         metavar="Integer",
     )
-    parser.add_option(
-        "--jobid",
-        dest="jobid",
-        default=0,
-        help="Job ID",
-        metavar="Integer",
+    hard_args.add_argument(
+        "--jobid", type=int, default=0, help="Job ID", metavar="Integer"
     )
-    (options, args) = parser.parse_args()
-    pid=os.getpid()
-    save_pid(pid,datadir + f"/pids/pids_{options.jobid}.txt")
+
+    if len(sys.argv) == 1:
+        parser.print_help(sys.stderr)
+        sys.exit(1)
+
+    args = parser.parse_args()
+    pid = os.getpid()
+    save_pid(pid, datadir + f"/pids/pids_{args.jobid}.txt")
+
     try:
-        if options.imagename != "" and os.path.exists(options.imagename):
-            if options.pbdir == "":
+        if args.imagename and os.path.exists(args.imagename):
+            if args.pbdir == "":
                 print("Provide an existing directory name in pbdir.")
-                msg=1
+                msg = 1
             else:
-                os.makedirs(options.pbdir, exist_ok=True)
-                if options.pbcor_dir == "":
-                    pbcor_dir = options.pbdir
-                else:
-                    pbcor_dir = options.pbcor_dir
+                os.makedirs(args.pbdir, exist_ok=True)
+                pbcor_dir = args.pbcor_dir if args.pbcor_dir else args.pbdir
                 os.makedirs(pbcor_dir, exist_ok=True)
                 pbcor_image = get_pbcor_image(
-                    options.imagename,
-                    options.pbdir,
+                    args.imagename,
+                    args.pbdir,
                     pbcor_dir,
-                    band=options.band,
-                    apply_parang=eval(str(options.apply_parang)),
-                    save_beam=eval(str(options.save_beam)),
-                    n_cpu=int(options.ncpu),
-                    verbose=eval(str(options.verbose)),
+                    band=args.band,
+                    apply_parang=args.apply_parang,
+                    save_beam=args.save_beam,
+                    n_cpu=args.ncpu,
+                    verbose=args.verbose,
                 )
-                if pbcor_image == None or os.path.exists(pbcor_image) == False:
+                if pbcor_image is None or not os.path.exists(pbcor_image):
                     msg = 1
                     print(f"Primary beam correction is not successful")
                 else:
@@ -738,12 +737,14 @@ def main():
                     print(f"Primary beam corrected image: {pbcor_image}")
         else:
             print("Please provide correct image name.\n")
-            msg=1
+            msg = 1
     except Exception as e:
         traceback.print_exc()
-        msg=1
+        msg = 1
+
     return msg
-    
+
+
 if __name__ == "__main__":
     result = main()
     os._exit(result)

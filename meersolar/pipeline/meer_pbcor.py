@@ -1,10 +1,15 @@
-import os, glob, traceback
-from optparse import OptionParser
+import os, glob, traceback, argparse
 from meersolar.pipeline.single_image_meerpbcor import get_pbcor_image
 from meersolar.pipeline.basic_func import *
 from dask import delayed, compute
+from casatasks import casalog
 
-
+try:
+    casalogfile = casalog.logfile()
+    os.system("rm -rf " + casalogfile)
+except:
+    pass
+    
 def get_fits_freq(image_file):
     hdr = fits.getheader(image_file)
     if hdr["CTYPE3"] == "FREQ":
@@ -19,7 +24,9 @@ def get_fits_freq(image_file):
 
 
 def run_pbcor(imagename, pbdir, pbcor_dir, apply_parang, jobid=0, ncpu=8):
-    cmd = f"run_single_meerpbcor --imagename {imagename} --pbdir {pbdir} --pbcor_dir {pbcor_dir} --ncpu {ncpu} --apply_parang {apply_parang} --jobid {jobid}"
+    cmd = f"run_single_meerpbcor {imagename} --pbdir {pbdir} --pbcor_dir {pbcor_dir} --ncpu {ncpu} --jobid {jobid}"
+    if apply_parang==False:
+        cmd+=" --no_apply_parang"
     a = os.system(f"{cmd} > {imagename}.tmp")
     os.system(f"rm -rf {imagename}.tmp")
     return a
@@ -116,7 +123,9 @@ def pbcor_all_images(
             )
             tasks = []
             for image in remaining_set:
-                task = delayed(run_pbcor)(image, pbdir, pbcor_dir, apply_parang, jobid=jobid, ncpu=n_threads)
+                task = delayed(run_pbcor)(
+                    image, pbdir, pbcor_dir, apply_parang, jobid=jobid, ncpu=n_threads
+                )
                 tasks.append(task)
             results = compute(*tasks)
             dask_client.close()
@@ -184,110 +193,95 @@ def pbcor_all_images(
 
 
 def main():
-    usage = "Correct all images in a directory for full-polar antenna averaged MeerKAT primary beam"
-    parser = OptionParser(usage=usage)
-    parser.add_option(
-        "--imagedir",
-        dest="imagedir",
-        default="",
-        help="Name of image directory",
-        metavar="String",
+    parser = argparse.ArgumentParser(
+        description="Correct all images for MeerKAT full-pol averaged primary beam",formatter_class=argparse.ArgumentDefaultsHelpFormatter
     )
-    parser.add_option(
-        "--workdir",
-        dest="workdir",
-        default="",
-        help="Name of work directory",
-        metavar="String",
+    
+    ## Essential parameters
+    basic_args = parser.add_argument_group(
+        "###################\nEssential parameters\n###################"
     )
-    parser.add_option(
-        "--make_TB",
-        dest="make_TB",
-        default=True,
-        help="Make brightness temperature map",
-        metavar="Boolean",
+    basic_args.add_argument("imagedir", help="Path to image directory")
+    basic_args.add_argument("--workdir", default="", help="Path to work directory")
+    
+    ## Advanced parameters
+    adv_args = parser.add_argument_group(
+        "###################\nAdvanced parameters\n###################"
     )
-    parser.add_option(
-        "--make_plots",
-        dest="make_plots",
-        default=True,
-        help="Make plots",
-        metavar="Boolean",
+    adv_args.add_argument(
+        "--no_make_TB", action="store_false", dest="make_TB", help="Do not generate brightness temperature map"
     )
-    parser.add_option(
-        "--apply_parang",
-        dest="apply_parang",
-        default=True,
-        help="Apply parallactic angle correction on beam",
-        metavar="Boolean",
+    adv_args.add_argument(
+        "--no_make_plots", action="store_false", dest="make_plots", help="Do not make png and pdf plots"
     )
-    parser.add_option(
-        "--cpu_frac",
-        dest="cpu_frac",
-        default=0.8,
-        help="CPU fraction to use",
-        metavar="Float",
+    adv_args.add_argument(
+        "--no_apply_parang", action="store_false", dest="apply_parang", help="Do not apply parallactic angle correction"
     )
-    parser.add_option(
-        "--mem_frac",
-        dest="mem_frac",
-        default=0.8,
-        help="Memory fraction to use",
-        metavar="Float",
+    
+    ## Resource management parameters
+    hard_args = parser.add_argument_group(
+        "###################\nHardware resource management parameters\n###################"
     )
-    parser.add_option(
-        "--logfile",
-        dest="logfile",
-        default=None,
-        help="Log file",
-        metavar="String",
+    hard_args.add_argument(
+        "--cpu_frac", type=float, default=0.8, help="CPU usage fraction"
     )
-    parser.add_option(
-        "--jobid",
-        dest="jobid",
-        default=0,
-        help="Job ID",
-        metavar="Integer",
+    hard_args.add_argument(
+        "--mem_frac", type=float, default=0.8, help="Memory usage fraction"
     )
-    (options, args) = parser.parse_args()
-    pid=os.getpid()
-    save_pid(pid,datadir + f"/pids/pids_{options.jobid}.txt")
-    if options.workdir == "":
-        print ("Please provide a valid work directory name.")
+    hard_args.add_argument("--logfile", default=None, help="Path to log file")
+    hard_args.add_argument(
+        "--jobid", type=int, default=0, help="Job ID for logging and PID tracking"
+    )
+    
+    if len(sys.argv) == 1:
+        parser.print_help(sys.stderr)
+        sys.exit(1)
+
+    args = parser.parse_args()
+
+    pid = os.getpid()
+    save_pid(pid, datadir + f"/pids/pids_{args.jobid}.txt")
+
+    if args.workdir == "":
+        print("Please provide a valid work directory name.")
         return 1
-    elif os.path.exists(options.workdir) == False:
-        workdir=options.workdir
-        os.makedirs(workdir,exist_ok=True)
-    else:
-        workdir = options.workdir
-    logfile=options.logfile
-    observer=None
-    if os.path.exists(f"{workdir}/jobname_password.npy") and logfile!=None: 
+
+    os.makedirs(args.workdir, exist_ok=True)
+    logfile = args.logfile
+    observer = None
+
+    if os.path.exists(f"{args.workdir}/jobname_password.npy") and logfile is not None:
         time.sleep(5)
-        jobname,password=np.load(f"{workdir}/jobname_password.npy",allow_pickle=True)
+        jobname, password = np.load(
+            f"{args.workdir}/jobname_password.npy", allow_pickle=True
+        )
         if os.path.exists(logfile):
-            print (f"Starting remote logger. Remote logger password: {password}")
-            observer=init_logger("all_pbcor",logfile,jobname=jobname,password=password)
+            print(f"Starting remote logger. Remote logger password: {password}")
+            observer = init_logger(
+                "all_pbcor", logfile, jobname=jobname, password=password
+            )
+
     try:
-        if options.imagedir != "" and os.path.exists(options.imagedir):
+        if os.path.exists(args.imagedir):
             msg = pbcor_all_images(
-                options.imagedir,
-                make_TB=eval(str(options.make_TB)),
-                make_plots=eval(str(options.make_plots)),
-                apply_parang=eval(str(options.apply_parang)),
-                jobid=int(options.jobid),
-                cpu_frac=float(options.cpu_frac),
-                mem_frac=float(options.mem_frac),
+                args.imagedir,
+                make_TB=args.make_TB,
+                make_plots=args.make_plots,
+                apply_parang=args.apply_parang,
+                jobid=args.jobid,
+                cpu_frac=args.cpu_frac,
+                mem_frac=args.mem_frac,
             )
         else:
-            print("Please provide correct image directory name.\n")
-            msg=1
-    except Exception as e:
+            print("Please provide correct image directory path.")
+            msg = 1
+    except Exception:
         traceback.print_exc()
-        msg=1
+        msg = 1
     finally:
         time.sleep(5)
         clean_shutdown(observer)
+
     return msg
 
 

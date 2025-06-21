@@ -1,6 +1,5 @@
-import numpy as np, os, time, traceback, gc
+import numpy as np, os, time, traceback, gc, argparse
 from meersolar.pipeline.basic_func import *
-from optparse import OptionParser
 from casatasks import casalog
 from dask import delayed, compute
 
@@ -39,7 +38,7 @@ def cor_sidereal_motion(
     list
         List of sidereal motion corrected measurement sets
     """
-    start_time=time.time()
+    start_time = time.time()
     #############################################
     # Memory limit
     #############################################
@@ -82,104 +81,117 @@ def cor_sidereal_motion(
 
 
 def main():
-    usage = "Correct measurement sets for sidereal motion"
-    parser = OptionParser(usage=usage)
-    parser.add_option(
-        "--mslist",
-        dest="mslist",
-        default="",
-        help="Name of measurement sets",
-        metavar="List",
+    parser = argparse.ArgumentParser(
+        description="Correct measurement sets for sidereal motion",formatter_class=argparse.ArgumentDefaultsHelpFormatter
     )
-    parser.add_option(
-        "--workdir",
-        dest="workdir",
-        default="",
-        help="Name of work directory",
-        metavar="String",
+    
+    ## Essential parameters
+    basic_args = parser.add_argument_group(
+        "###################\nEssential parameters\n###################"
     )
-    parser.add_option(
+    basic_args.add_argument(
+        "mslist",
+        type=str,
+        help="Comma-separated list of measurement sets (required positional argument)",
+    )
+    basic_args.add_argument(
+        "--workdir", type=str, default="", help="Working directory", metavar="String"
+    )
+    
+    ## Resource management parameters
+    hard_args = parser.add_argument_group(
+        "###################\nHardware resource management parameters\n###################"
+    )
+    hard_args.add_argument(
         "--cpu_frac",
-        dest="cpu_frac",
+        type=float,
         default=0.8,
         help="CPU fraction to use",
         metavar="Float",
     )
-    parser.add_option(
+    hard_args.add_argument(
         "--mem_frac",
-        dest="mem_frac",
+        type=float,
         default=0.8,
         help="Memory fraction to use",
         metavar="Float",
     )
-    parser.add_option(
+    hard_args.add_argument(
         "--max_cpu_frac",
-        dest="max_cpu_frac",
+        type=float,
         default=0.8,
         help="Maximum CPU fraction to use",
         metavar="Float",
     )
-    parser.add_option(
+    hard_args.add_argument(
         "--max_mem_frac",
-        dest="max_mem_frac",
+        type=float,
         default=0.8,
         help="Maximum memory fraction to use",
         metavar="Float",
     )
-    parser.add_option(
-        "--logfile",
-        dest="logfile",
-        default=None,
-        help="Log file",
-        metavar="String",
+    hard_args.add_argument(
+        "--logfile", type=str, default=None, help="Log file", metavar="String"
     )
-    parser.add_option(
-        "--jobid",
-        dest="jobid",
-        default=0,
-        help="Job ID",
-        metavar="Integer",
+    hard_args.add_argument(
+        "--jobid", type=int, default=0, help="Job ID", metavar="Integer"
     )
-    (options, args) = parser.parse_args()
-    pid=os.getpid()
-    save_pid(pid,datadir + f"/pids/pids_{options.jobid}.txt")
-    if options.workdir == "" or os.path.exists(options.workdir) == False:
-        workdir = os.path.dirname(os.path.abspath(options.msname)) + "/workdir"
+
+    if len(sys.argv) == 1:
+        parser.print_help(sys.stderr)
+        sys.exit(1)
+
+    args = parser.parse_args()
+
+    pid = os.getpid()
+    save_pid(pid, datadir + f"/pids/pids_{args.jobid}.txt")
+
+    if args.workdir == "" or os.path.exists(args.workdir) == False:
+        workdir = (
+            os.path.dirname(os.path.abspath(args.mslist.split(",")[0])) + "/workdir"
+        )
         if os.path.exists(workdir) == False:
             os.makedirs(workdir)
     else:
-        workdir = options.workdir
-    logfile=options.logfile
-    observer=None
-    if os.path.exists(f"{workdir}/jobname_password.npy") and logfile!=None: 
+        workdir = args.workdir
+
+    logfile = args.logfile
+    observer = None
+    if os.path.exists(f"{workdir}/jobname_password.npy") and logfile != None:
         time.sleep(5)
-        jobname,password=np.load(f"{workdir}/jobname_password.npy",allow_pickle=True)
+        jobname, password = np.load(
+            f"{workdir}/jobname_password.npy", allow_pickle=True
+        )
         if os.path.exists(logfile):
-            observer=init_logger("do_sidereal_cor",logfile,jobname=jobname,password=password)
+            observer = init_logger(
+                "do_sidereal_cor", logfile, jobname=jobname, password=password
+            )
+
     try:
-        if options.mslist == "":
+        mslist = args.mslist.split(",")
+        if len(mslist) == 0:
             print("Please provide a list of measurement sets.")
-            msg=1
-        elif options.workdir == "" or os.path.exists(options.workdir) == False:
+            msg = 1
+        elif args.workdir == "" or os.path.exists(args.workdir) == False:
             print("Please provide a valid work directory.")
-            msg=1
+            msg = 1
         else:
-            mslist = options.mslist.split(",")
             msg, final_target_mslist = cor_sidereal_motion(
                 mslist,
-                options.workdir,
-                cpu_frac=float(options.cpu_frac),
-                mem_frac=float(options.mem_frac),
-                max_cpu_frac=float(options.max_cpu_frac),
-                max_mem_frac=float(options.max_mem_frac),
+                args.workdir,
+                cpu_frac=float(args.cpu_frac),
+                mem_frac=float(args.mem_frac),
+                max_cpu_frac=float(args.max_cpu_frac),
+                max_mem_frac=float(args.max_mem_frac),
             )
     except Exception as e:
         traceback.print_exc()
-        msg=1
+        msg = 1
     finally:
         time.sleep(5)
         clean_shutdown(observer)
-    return msg  
+    return msg
+
 
 if __name__ == "__main__":
     result = main()

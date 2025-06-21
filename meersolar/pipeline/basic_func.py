@@ -1,7 +1,7 @@
 import os, sys, glob, time, gc, tempfile, copy, traceback, resource, requests, threading, socket
 os.environ["QT_OPENGL"] = "software"
 os.environ["QT_QPA_PLATFORM"] = "offscreen"
-import matplotlib.ticker as ticker, matplotlib.pyplot as plt, matplotlib, subprocess
+import matplotlib.ticker as ticker, matplotlib.pyplot as plt, matplotlib, subprocess, contextlib
 import numpy as np, dask, psutil, logging, sunpy
 import astropy.units as u, string, secrets
 from astropy.coordinates import EarthLocation, SkyCoord
@@ -17,7 +17,6 @@ from scipy.ndimage import gaussian_filter
 from casatools import msmetadata, ms as casamstool, table, agentflagger
 from dask.distributed import Client, LocalCluster
 from dask import delayed, compute, config
-from optparse import OptionParser
 from astropy.time import Time
 from astropy.coordinates import get_sun, SkyCoord
 from astropy.io import fits
@@ -42,7 +41,6 @@ try:
 except:
     pass
 
-
 def get_datadir():
     """
     Get package data directory
@@ -50,8 +48,8 @@ def get_datadir():
     from importlib.resources import files
 
     datadir_path = str(files("meersolar").joinpath("data"))
-    os.makedirs(datadir_path,exist_ok=True)
-    os.makedirs(f"{datadir_path}/pids",exist_ok=True)
+    os.makedirs(datadir_path, exist_ok=True)
+    os.makedirs(f"{datadir_path}/pids", exist_ok=True)
     return datadir_path
 
 
@@ -60,13 +58,28 @@ udocker_dir = datadir + "/udocker"
 os.environ["UDOCKER_DIR"] = udocker_dir
 os.environ["UDOCKER_TARBALL"] = datadir + "/udocker-englib-1.2.11.tar.gz"
 
+
 def init_udocker():
     os.system("udocker install")
-    
+
+@contextlib.contextmanager
+def suppress_casa_output():
+    with open(os.devnull, 'w') as fnull:
+        old_stdout = os.dup(1)
+        old_stderr = os.dup(2)
+        os.dup2(fnull.fileno(), 1)
+        os.dup2(fnull.fileno(), 2)
+        try:
+            yield
+        finally:
+            os.dup2(old_stdout, 1)
+            os.dup2(old_stderr, 2)
+
 def clean_shutdown(observer):
     if observer:
         observer.stop()
         observer.join(timeout=5)
+
 
 def limit_threads(n_threads=-1):
     """
@@ -83,15 +96,17 @@ def limit_threads(n_threads=-1):
         os.environ["MKL_NUM_THREADS"] = str(n_threads)
         os.environ["VECLIB_MAXIMUM_THREADS"] = str(n_threads)
 
+
 def generate_password(length=6):
     """
     Generate secure 6-character password with letters, digits, and symbols
     """
     chars = string.ascii_letters + string.digits + "@#$&*"
-    return ''.join(secrets.choice(chars) for _ in range(length))
-       
+    return "".join(secrets.choice(chars) for _ in range(length))
+
+
 def get_remote_logger_link():
-    datadir=get_datadir()
+    datadir = get_datadir()
     link_file = os.path.join(datadir, "remotelink.txt")
     try:
         with open(link_file, "r") as f:
@@ -109,17 +124,21 @@ def get_remote_logger_link():
             return ""
     except Exception:
         return ""
-    
+
+
 class RemoteLogger(logging.Handler):
     """
     Remote logging handler for posting log messages to a web endpoint.
     """
-    def __init__(self, job_id="default", log_id="run_default", remote_link="", password=""):
+
+    def __init__(
+        self, job_id="default", log_id="run_default", remote_link="", password=""
+    ):
         super().__init__()
         self.job_id = job_id
         self.log_id = log_id
         self.password = password
-        self.remote_link=remote_link
+        self.remote_link = remote_link
 
     def emit(self, record):
         msg = self.format(record)
@@ -131,48 +150,57 @@ class RemoteLogger(logging.Handler):
                     "log_id": self.log_id,
                     "message": msg,
                     "password": self.password,
-                    "first":False,
+                    "first": False,
                 },
-                timeout=2
+                timeout=2,
             )
         except Exception as e:
             pass  # Fail silently to avoid interrupting the main app
 
+
 class LogTailHandler(FileSystemEventHandler):
     """
-    Continuous logging 
+    Continuous logging
     """
+
     def __init__(self, logfile, logger):
         self.logfile = logfile
         self.logger = logger
         self._position = os.path.getsize(logfile) if os.path.exists(logfile) else 0
+
     def on_modified(self, event):
         if event.src_path == self.logfile:
             try:
-                with open(self.logfile, 'r') as f:
+                with open(self.logfile, "r") as f:
                     f.seek(self._position)
                     lines = f.readlines()
                     self._position = f.tell()
                 for line in lines:
-                    if line!="" and line!=" " and line!="\n":
+                    if line != "" and line != " " and line != "\n":
                         self.logger.info(line.strip())
             except Exception:
-                pass  
+                pass
+
 
 def ping_logger(jobid, stop_event, remote_link=""):
     """Ping a job-specific keep-alive endpoint periodically until stop_event is set."""
-    pid=os.getpid()
-    datadir=get_datadir()
-    save_pid(pid,datadir + f"/pids/pids_{jobid}.txt")
-    interval=10*60 # 10 min interval
-    if remote_link!="":
+    pid = os.getpid()
+    print("PID", pid)
+    datadir = get_datadir()
+    save_pid(pid, datadir + f"/pids/pids_{jobid}.txt")
+    interval = 10  # 10 min interval
+    if remote_link != "":
         url = f"{remote_link}/api/ping/{jobid}"
         while not stop_event.is_set():
             try:
+                print(
+                    f"[ping_logger] Ping sent for job {jobid} at {dt.now().isoformat()}"
+                )
                 res = requests.post(url, timeout=2)
             except Exception as e:
                 pass
             stop_event.wait(interval)
+
 
 def create_logger(logname, logfile, verbose=False):
     """
@@ -198,7 +226,7 @@ def create_logger(logname, logfile, verbose=False):
     """
     if os.path.exists(logfile):
         os.system("rm -rf " + logfile)
-    formatter = logging.Formatter('%(message)s')
+    formatter = logging.Formatter("%(message)s")
     logger = logging.getLogger(logname)
     logger.setLevel(logging.DEBUG)
     if verbose == True:
@@ -211,6 +239,7 @@ def create_logger(logname, logfile, verbose=False):
     logger.propagate = False
     logger.info("Log file : " + logfile + "\n")
     return logger, logfile
+
 
 def get_logid(logfile):
     """
@@ -233,24 +262,25 @@ def get_logid(logfile):
         "selfcal_targets.log": "All self-calibrations",
         "imaging_targets.log": "All imaging",
         "noise_cal.log": "Flux calibration using noise-diode",
-        "partition_cal.log": "Partioning for basic calibration"
+        "partition_cal.log": "Partioning for basic calibration",
     }
 
     if name in logmap:
         return logmap[name]
     elif "selfcals_scan_" in name:
-        name=name.rstrip("_selfcal.log")
+        name = name.rstrip("_selfcal.log")
         scan = name.split("scan_")[-1].split("_spw")[0]
         spw = name.split("spw_")[-1].split("_selfcal")[0]
         return f"Self-calibration for: Scan : {scan}, Spectral window: {spw}"
     elif "imaging_targets_scan_" in name:
-        name=name.rstrip(".log")
+        name = name.rstrip(".log")
         scan = name.split("scan_")[-1].split("_spw")[0]
         spw = name.split("spw_")[-1].split("_selfcal")[0]
         return f"Imaging for: Scan : {scan}, Spectral window: {spw}"
     else:
         return name
-     
+
+
 def init_logger(logname, logfile, jobname="", password=""):
     """
     Initialize a local + optional remote logger with watchdog-based tailing.
@@ -271,10 +301,10 @@ def init_logger(logname, logfile, jobname="", password=""):
     logger : logging.Logger
         Configured logger instance.
     """
-    timeout = 30 
+    timeout = 30
     waited = 0
     while True:
-        if os.path.exists(logfile)==False: 
+        if os.path.exists(logfile) == False:
             time.sleep(1)
             waited += 1
         elif waited >= timeout:
@@ -286,13 +316,17 @@ def init_logger(logname, logfile, jobname="", password=""):
     logger.propagate = False
     if logger.hasHandlers():
         logger.handlers.clear()
-    formatter = logging.Formatter('%(asctime)s %(levelname)s-%(message)s', "%Y-%m-%dT%H:%M:%S")
-    remote_link=get_remote_logger_link()
-    if remote_link!="":
+    formatter = logging.Formatter(
+        "%(asctime)s %(levelname)s-%(message)s", "%Y-%m-%dT%H:%M:%S"
+    )
+    remote_link = get_remote_logger_link()
+    if remote_link != "":
         if jobname:
             job_id = jobname
-            log_id=get_logid(logfile)
-            remote_handler = RemoteLogger(job_id=job_id, log_id=log_id, remote_link=remote_link, password=password)
+            log_id = get_logid(logfile)
+            remote_handler = RemoteLogger(
+                job_id=job_id, log_id=log_id, remote_link=remote_link, password=password
+            )
             remote_handler.setFormatter(formatter)
             logger.addHandler(remote_handler)
 
@@ -306,21 +340,24 @@ def init_logger(logname, logfile, jobname="", password=""):
                         "password": password,
                         "first": True,
                     },
-                    timeout=2
+                    timeout=2,
                 )
             except Exception:
                 pass
         if os.path.exists(logfile):
             event_handler = LogTailHandler(logfile, logger)
             observer = Observer()
-            observer.schedule(event_handler, path=os.path.dirname(logfile), recursive=False)
+            observer.schedule(
+                event_handler, path=os.path.dirname(logfile), recursive=False
+            )
             observer.start()
-            return observer  
+            return observer
         else:
             return
     else:
         return
-            
+
+
 def flag_outside_uvrange(vis, uvrange, n_threads=-1, flagbackup=True):
     """
     Flag outside the given uv range
@@ -978,7 +1015,7 @@ def make_meer_overlay(
             axes=ax_colormap,
             title=title,
             autoalign=True,
-            clip_interval=(3, 99.9) *u.percent,
+            clip_interval=(3, 99.9) * u.percent,
             zorder=z,
         )
         z += 1
@@ -2476,7 +2513,7 @@ def angular_separation_equatorial(ra1, dec1, ra2, dec2):
     return theta_deg
 
 
-def move_to_sun(msname):
+def move_to_sun(msname, only_uvw=False):
     """
     Move the phasecenter of the measurement set at the center of the Sun (Assuming ms has one scan)
 
@@ -2484,6 +2521,9 @@ def move_to_sun(msname):
     ----------
     msname : str
         Name of the measurement set
+    only_uvw : bool, optional
+        Note: This is required when visibilities are properly phase rotated in correlator to track the Sun,
+        but while creating the MS, UVW values are estimated using a wrong phase center at the start of solar center at the start.
 
     Returns
     -------
@@ -2491,7 +2531,9 @@ def move_to_sun(msname):
         Success message
     """
     sun_radec_string, sunra, sundec, sunra_deg, sundec_deg = radec_sun(msname)
-    msg = run_chgcenter(msname, sunra, sundec, container_name="meerwsclean")
+    msg = run_chgcenter(
+        msname, sunra, sundec, only_uvw=only_uvw, container_name="meerwsclean"
+    )
     if msg != 0:
         print("Phasecenter could not be shifted.")
     return msg
@@ -2571,7 +2613,8 @@ def determine_noise_diode_cal_scan(msname, scan):
     bool
         Whether it is noise-diode cal scan or not
     """
-    def is_noisescan(msname,chan,scan):
+
+    def is_noisescan(msname, chan, scan):
         mstool = casamstool()
         mstool.open(msname)
         mstool.select({"antenna1": 1, "antenna2": 1, "scan_number": scan})
@@ -2593,10 +2636,11 @@ def determine_noise_diode_cal_scan(msname, scan):
             return True
         else:
             return False
+
     print(f"Check noise-diode cal for scan : {scan}")
     good_spw = get_good_chans(msname)
     chan = int(good_spw.split(";")[0].split(":")[-1].split("~")[0])
-    return is_noisescan(msname,chan,scan)
+    return is_noisescan(msname, chan, scan)
 
 
 def get_valid_scans(msname, field="", min_scan_time=1, n_threads=-1):
@@ -2617,6 +2661,7 @@ def get_valid_scans(msname, field="", min_scan_time=1, n_threads=-1):
     """
     limit_threads(n_threads=n_threads)
     from casatools import ms as casamstool
+
     mstool = casamstool()
     mstool.open(msname)
     scan_summary = mstool.getscansummary()
@@ -3733,37 +3778,36 @@ def merge_caltables(caltables, merged_caltable, append=False, keepcopy=False):
                     os.system("rm -rf " + caltable)
     return merged_caltable
 
+
 def kill_job():
     """
     Kill MeerSOLAR Job
     """
-    import signal
-    from optparse import OptionParser
-    usage = "Kill MeerSOLAR Job"
-    parser = OptionParser(usage=usage)
-    parser.add_option(
-        "--jobid",
-        dest="jobid",
-        default=None,
-        help="MeerSOLAR Job ID",
-        metavar="Integer",
+    import signal, argparse
+
+    parser = argparse.ArgumentParser(description="Kill MeerSOLAR Job")
+    parser.add_argument(
+        "--jobid", type=str, required=True, help="MeerSOLAR Job ID to kill"
     )
-    (options, args) = parser.parse_args()
-    datadir=get_datadir()
-    jobfile_name=datadir + f"/main_pids_{options.jobid}.txt"
-    results=np.loadtxt(jobfile_name,dtype="str",unpack=True)
-    basedir=results[2]
-    main_pid=results[1]
-    pid_file = datadir + f"/pids_{options.jobid}.txt"
+    if len(sys.argv) == 1:
+        parser.print_help(sys.stderr)
+        sys.exit(1)
+    args = parser.parse_args()
+    datadir = get_datadir()
+    jobfile_name = datadir + f"/main_pids_{args.jobid}.txt"
+    results = np.loadtxt(jobfile_name, dtype="str", unpack=True)
+    basedir = results[2]
+    main_pid = results[1]
+    pid_file = datadir + f"/pids_{args.jobid}.txt"
     try:
-        os.kill(int(main_pid),signal.SIGKILL)
+        os.kill(int(main_pid), signal.SIGKILL)
     except:
         pass
     if os.path.exists(pid_file):
-        pids=np.loadtxt(pid_file,unpack=True,dtype="int")
-        if pids.size==0:
+        pids = np.loadtxt(pid_file, unpack=True, dtype="int")
+        if pids.size == 0:
             pass
-        elif pids.size==1:
+        elif pids.size == 1:
             try:
                 os.kill(int(pids), signal.SIGKILL)
             except:
@@ -3774,7 +3818,8 @@ def kill_job():
                     os.kill(int(pid), signal.SIGKILL)
                 except:
                     pass
-    
+
+
 def get_nprocess_meersolar(jobid):
     """
     Get numbers of MeerSOLAR processes currently running
@@ -3800,58 +3845,61 @@ def get_nprocess_meersolar(jobid):
             n_process += 1
     return n_process
 
-def save_pid(pid,pid_file):
+
+def save_pid(pid, pid_file):
     """
     Save PID
-    
+
     Parameters
     ----------
     pid : int
         Process ID
     pid_file : str
         File to save
-    """ 
+    """
     if os.path.exists(pid_file):
         pids = np.loadtxt(pid_file, unpack=True, dtype="int")
-        pids=np.append(pids,pid)
+        pids = np.append(pids, pid)
     else:
-        pids=np.array([pid],dtype="int")
+        pids = np.array([pid], dtype="int")
     np.savetxt(pid_file, pids, fmt="%d")
-    
+
+
 def get_jobid():
     """
     Get MeerSOLAR Job ID
-    
+
     Returns
     -------
     int
         Job ID
     """
     datadir = get_datadir()
-    jobid_file=datadir+f"/jobids.txt"
+    jobid_file = datadir + f"/jobids.txt"
     if os.path.exists(jobid_file):
-        prev_jobids=np.loadtxt(jobid_file,unpack=True,dtype="int")
-        if prev_jobids.size==0:
-            prev_jobids=[]
-        elif prev_jobids.size==1:
-            prev_jobids=[int(prev_jobids)]
+        prev_jobids = np.loadtxt(jobid_file, unpack=True, dtype="int")
+        if prev_jobids.size == 0:
+            prev_jobids = []
+        elif prev_jobids.size == 1:
+            prev_jobids = [int(prev_jobids)]
     else:
-        prev_jobids=[]
-    if len(prev_jobids)>0:
+        prev_jobids = []
+    if len(prev_jobids) > 0:
         FORMAT = "%Y%m%d%H%M%S"
         CUTOFF = dt.utcnow() - timedelta(days=30)
-        filtered_prev_jobids=[]
+        filtered_prev_jobids = []
         for job_id in prev_jobids:
             job_time = dt.strptime(str(job_id), FORMAT)
             if job_time >= CUTOFF:
-                filtered_prev_jobids.append(job_id)    
-        prev_jobids=filtered_prev_jobids
+                filtered_prev_jobids.append(job_id)
+        prev_jobids = filtered_prev_jobids
     cur_jobid = dt.utcnow().strftime("%Y%m%d%H%M%S")
     prev_jobids.append(cur_jobid)
     job_ids_int = np.array(prev_jobids, dtype=np.int64)
     np.savetxt(jobid_file, job_ids_int, fmt="%d")
     return int(cur_jobid)
-    
+
+
 def save_main_process_info(pid, jobid, basedir, cpu_frac, mem_frac):
     """
     Save MeerSOLAR main processes info
@@ -3868,7 +3916,7 @@ def save_main_process_info(pid, jobid, basedir, cpu_frac, mem_frac):
         CPU fraction of the job
     mem_frac : float
         Mempry fraction of the job
-        
+
     Returns
     -------
     str
@@ -3876,10 +3924,11 @@ def save_main_process_info(pid, jobid, basedir, cpu_frac, mem_frac):
     """
     datadir = get_datadir()
     main_job_file = datadir + f"/main_pids_{jobid}.txt"
-    main_str=f"{jobid} {pid} {basedir} {cpu_frac} {mem_frac}"
+    main_str = f"{jobid} {pid} {basedir} {cpu_frac} {mem_frac}"
     with open(main_job_file, "w") as f:
         f.write(main_str)
     return main_job_file
+
 
 def create_batch_script_nonhpc(cmd, workdir, basename, jobid, write_logfile=True):
     """
@@ -4080,11 +4129,11 @@ def get_dask_client(
 
     ##########################################
     if only_cal == False:
-        print("\n#################################")
+        print("#################################")
         print(
             f"Dask workers: {n_workers}, Threads per worker: {threads_per_worker}, Mem/worker: {round(mem_per_worker/(1024.0**3),2)} GB"
         )
-        print("\n#################################")
+        print("#################################")
     # Memory control settings
     swap = psutil.swap_memory()
     swap_gb = swap.total / 1024.0**3
@@ -4489,6 +4538,7 @@ def calc_dyn_range(imagename, modelname, residualname, fits_mask=""):
     rmsvalue = rmsvalue / np.sqrt(len(residualname))
     return model_flux, round(dr1, 2), round(rmsvalue, 2)
 
+
 def generate_tb_map(imagename, outfile=""):
     """
     Function to generate brightness temperature map
@@ -4578,7 +4628,7 @@ def initialize_wsclean_container(name="meerwsclean"):
         a = os.system(f"udocker pull {image_name}")
     else:
         print(f"Image '{image_name}' already present.")
-        a=0
+        a = 0
     if a == 0:
         a = os.system(f"udocker create --name={name} {image_name}")
         print(f"Container started with name : {name}")
@@ -4586,8 +4636,15 @@ def initialize_wsclean_container(name="meerwsclean"):
     else:
         print(f"Container could not be created with name : {name}")
         return
-           
-def run_wsclean(wsclean_cmd, container_name="meerwsclean", check_container=False, verbose=False, dry_run=False):
+
+
+def run_wsclean(
+    wsclean_cmd,
+    container_name="meerwsclean",
+    check_container=False,
+    verbose=False,
+    dry_run=False,
+):
     """
     Run WSClean inside a udocker container (no root permission required).
 
@@ -4617,6 +4674,7 @@ def run_wsclean(wsclean_cmd, container_name="meerwsclean", check_container=False
             print(open(path).read())
         except Exception as e:
             print(f"Error: {e}")
+
     if check_container:
         container_present = check_udocker_container(container_name)
         if container_present == False:
@@ -4626,7 +4684,7 @@ def run_wsclean(wsclean_cmd, container_name="meerwsclean", check_container=False
                     "Container {container_name} is not initiated. First initiate container and then run."
                 )
                 return 1
-            
+
     if dry_run:
         cmd = f"chgenter >> {tmp1} >> {tmp2}"
         cwd = os.getcwd()
@@ -4638,7 +4696,7 @@ def run_wsclean(wsclean_cmd, container_name="meerwsclean", check_container=False
         mem = round(process.memory_info().rss / 1024**3, 2)  # in GB
         os.system(f"rm -rf {tmp1} {tmp2}")
         return mem
-        
+
     msname = wsclean_cmd.split(" ")[-1]
     msname = os.path.abspath(msname)
     mspath = os.path.dirname(msname)
@@ -4697,7 +4755,11 @@ def run_wsclean(wsclean_cmd, container_name="meerwsclean", check_container=False
 
 
 def run_solar_sidereal_cor(
-    msname="", container_name="meerwsclean", verbose=False, dry_run=False
+    msname="",
+    only_uvw=False,
+    container_name="meerwsclean",
+    verbose=False,
+    dry_run=False,
 ):
     """
     Run chgcenter inside a udocker container to correct solar sidereal motion (no root permission required).
@@ -4706,6 +4768,10 @@ def run_solar_sidereal_cor(
     ----------
     msname : str
         Name of the measurement set
+    only_uvw : bool, optional
+        Update only UVW values
+        Note: This is required when visibilities are properly phase rotated in correlator to track the Sun,
+        but while creating the MS, UVW values are estimated using the first phasecenter of the Sun.
     container_name : str, optional
         Container name
     verbose : bool, optional
@@ -4744,14 +4810,28 @@ def run_solar_sidereal_cor(
     msname = os.path.abspath(msname)
     mspath = os.path.dirname(msname)
     temp_docker_path = tempfile.mkdtemp(prefix="chgcenter_udocker_", dir=mspath)
-    cmd = "chgcentre -solarcenter " + temp_docker_path + "/" + os.path.basename(msname)
+    if only_uvw:
+        cmd = (
+            "chgcentre -only-uvw -solarcenter "
+            + temp_docker_path
+            + "/"
+            + os.path.basename(msname)
+        )
+    else:
+        cmd = (
+            "chgcentre -solarcenter "
+            + temp_docker_path
+            + "/"
+            + os.path.basename(msname)
+        )
     try:
         full_command = f"udocker --quiet run --nobanner --volume={mspath}:{temp_docker_path} --workdir {temp_docker_path} meerwsclean {cmd}"
         if verbose == False:
             full_command += f" >> {tmp1} >> {tmp2}"
         else:
             print(cmd)
-        exit_code = os.system(full_command)
+        with suppress_casa_output():
+            exit_code = os.system(full_command)
         os.system(f"rm -rf {temp_docker_path} {tmp1} {tmp2}")
         return 0 if exit_code == 0 else 1
     except Exception as e:
@@ -4761,7 +4841,13 @@ def run_solar_sidereal_cor(
 
 
 def run_chgcenter(
-    msname, ra, dec, container_name="meerwsclean", verbose=False, dry_run=False
+    msname,
+    ra,
+    dec,
+    only_uvw=False,
+    container_name="meerwsclean",
+    verbose=False,
+    dry_run=False,
 ):
     """
     Run chgcenter inside a udocker container (no root permission required).
@@ -4774,6 +4860,10 @@ def run_chgcenter(
         RA can either be 00h00m00.0s or 00:00:00.0
     dec : str
         Dec can either be 00d00m00.0s or 00.00.00.0
+    only_uvw : bool, optional
+        Update only UVW values
+        Note: This is required when visibilities are properly phase rotated in correlator,
+        but while creating the MS, UVW values are estimated using a wrong phase center.
     container_name : str, optional
         Container name
     verbose : bool, optional
@@ -4810,16 +4900,28 @@ def run_chgcenter(
     msname = os.path.abspath(msname)
     mspath = os.path.dirname(msname)
     temp_docker_path = tempfile.mkdtemp(prefix="chgcenter_udocker_", dir=mspath)
-    cmd = (
-        "chgcentre "
-        + temp_docker_path
-        + "/"
-        + os.path.basename(msname)
-        + " "
-        + ra
-        + " "
-        + dec
-    )
+    if only_uvw:
+        cmd = (
+            "chgcentre -only-uvw "
+            + temp_docker_path
+            + "/"
+            + os.path.basename(msname)
+            + " "
+            + ra
+            + " "
+            + dec
+        )
+    else:
+        cmd = (
+            "chgcentre "
+            + temp_docker_path
+            + "/"
+            + os.path.basename(msname)
+            + " "
+            + ra
+            + " "
+            + dec
+        )
     try:
         full_command = f"udocker --quiet run --nobanner --volume={mspath}:{temp_docker_path} --workdir {temp_docker_path} meerwsclean {cmd}"
         if verbose == False:

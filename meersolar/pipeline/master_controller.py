@@ -1,4 +1,5 @@
-import os, glob, psutil, copy, time, traceback, argparse, socket, threading
+import os, glob, psutil, copy, time, traceback, argparse, socket
+from multiprocessing import Process, Event
 from meersolar.pipeline.basic_func import *
 from meersolar.pipeline.init_data import init_meersolar_data
 from casatasks import casalog
@@ -10,7 +11,9 @@ except:
     pass
 
 
-def run_flag(msname, workdir, flag_calibrators=True, jobid=0, cpu_frac=0.8, mem_frac=0.8):
+def run_flag(
+    msname, workdir, flag_calibrators=True, jobid=0, cpu_frac=0.8, mem_frac=0.8
+):
     """
     Run flagging jobs
 
@@ -44,9 +47,8 @@ def run_flag(msname, workdir, flag_calibrators=True, jobid=0, cpu_frac=0.8, mem_
     if flag_calibrators:
         flagfield_type = "cal"
         flagging_cmd = (
-            "run_flag --msname "
-            + msname
-            + " --datacolumn DATA --use_tfcrop True --flagbackup True"
+            f"run_flag {msname}"
+            + " --datacolumn DATA --use_tfcrop"
             + " --cpu_frac "
             + str(cpu_frac)
             + " --mem_frac "
@@ -59,9 +61,8 @@ def run_flag(msname, workdir, flag_calibrators=True, jobid=0, cpu_frac=0.8, mem_
     else:
         flagfield_type = "target"
         flagging_cmd = (
-            "run_flag --msname "
-            + msname
-            + " --datacolumn DATA --use_tfcrop True --flagdimension freq --flagbackup True"
+            f"run_flag {msname}"
+            + " --datacolumn DATA --use_tfcrop --flagdimension freq"
             + " --cpu_frac "
             + str(cpu_frac)
             + " --mem_frac "
@@ -71,9 +72,11 @@ def run_flag(msname, workdir, flag_calibrators=True, jobid=0, cpu_frac=0.8, mem_
             + " --jobid "
             + str(jobid)
         )
-    flag_basename = f"flagging_{flagfield_type}_" + os.path.basename(msname).split(".ms")[0]
+    flag_basename = (
+        f"flagging_{flagfield_type}_" + os.path.basename(msname).split(".ms")[0]
+    )
     logfile = workdir + "/logs/" + flag_basename + ".log"
-    flagging_cmd+=f" --logfile {logfile}"
+    flagging_cmd += f" --logfile {logfile}"
     if os.path.isdir(workdir + "/logs") == False:
         os.makedirs(workdir + "/logs")
     batch_file = create_batch_script_nonhpc(flagging_cmd, workdir, flag_basename, jobid)
@@ -120,8 +123,7 @@ def run_import_model(msname, workdir, jobid=0, cpu_frac=0.8, mem_frac=0.8):
     print("###########################\n")
     msname = msname.rstrip("/")
     import_model_cmd = (
-        "import_model --msname "
-        + msname
+        f"import_model {msname}"
         + " --workdir "
         + str(workdir)
         + " --cpu_frac "
@@ -133,10 +135,12 @@ def run_import_model(msname, workdir, jobid=0, cpu_frac=0.8, mem_frac=0.8):
     )
     model_basename = "modeling_" + os.path.basename(msname).split(".ms")[0]
     logfile = workdir + "/logs/" + model_basename + ".log"
-    import_model_cmd+=f" --logfile {logfile}"
+    import_model_cmd += f" --logfile {logfile}"
     if os.path.isdir(workdir + "/logs") == False:
         os.makedirs(workdir + "/logs")
-    batch_file = create_batch_script_nonhpc(import_model_cmd, workdir, model_basename, jobid)
+    batch_file = create_batch_script_nonhpc(
+        import_model_cmd, workdir, model_basename, jobid
+    )
     print(import_model_cmd + "\n")
     os.system("bash " + batch_file)
     print("Waiting to finish visibility simulation for calibrators...\n")
@@ -158,7 +162,13 @@ def run_import_model(msname, workdir, jobid=0, cpu_frac=0.8, mem_frac=0.8):
 
 
 def run_basic_cal_jobs(
-    msname, workdir, perform_polcal=False, jobid=0, cpu_frac=0.8, mem_frac=0.8, keep_backup=False
+    msname,
+    workdir,
+    perform_polcal=False,
+    jobid=0,
+    cpu_frac=0.8,
+    mem_frac=0.8,
+    keep_backup=False,
 ):
     """
     Perform basic calibration
@@ -189,23 +199,22 @@ def run_basic_cal_jobs(
     msname = msname.rstrip("/")
     cal_basename = "basic_cal"
     basic_cal_cmd = (
-        "run_basic_cal --msname "
-        + msname
+        f"run_basic_cal {msname}"
         + " --workdir "
         + workdir
-        + " --perform_polcal "
-        + str(perform_polcal)
         + " --cpu_frac "
         + str(cpu_frac)
         + " --mem_frac "
         + str(mem_frac)
-        + " --keep_backup "
-        + str(keep_backup)
         + " --jobid "
         + str(jobid)
     )
+    if perform_polcal:
+        basic_cal_cmd+=" --perform_polcal"
+    if keep_backup:
+        basic_cal_cmd+=" --keep_backup"
     logfile = workdir + "/logs/" + cal_basename + ".log"
-    basic_cal_cmd+=f" --logfile {logfile}"
+    basic_cal_cmd += f" --logfile {logfile}"
     if os.path.isdir(workdir + "/logs") == False:
         os.makedirs(workdir + "/logs")
     batch_file = create_batch_script_nonhpc(basic_cal_cmd, workdir, cal_basename, jobid)
@@ -226,7 +235,7 @@ def run_basic_cal_jobs(
     return success_index_cal
 
 
-def run_noise_diode_cal(msname, workdir, jobid=0, cpu_frac=0.8, mem_frac=0.8):
+def run_noise_diode_cal(msname, workdir, keep_backup=False, jobid=0, cpu_frac=0.8, mem_frac=0.8):
     """
     Perform noise diode based flux calibration
 
@@ -236,6 +245,8 @@ def run_noise_diode_cal(msname, workdir, jobid=0, cpu_frac=0.8, mem_frac=0.8):
         Name of the measurement set
     workdir : str
         Working directory
+    keep_backup : bool, optional
+        Keep backup
     cpu_frac : float, optional
         CPU fraction to use
     mem_frac : float, optional
@@ -253,8 +264,7 @@ def run_noise_diode_cal(msname, workdir, jobid=0, cpu_frac=0.8, mem_frac=0.8):
         msname = msname.rstrip("/")
         noisecal_basename = "noise_cal"
         noise_cal_cmd = (
-            "run_fluxcal --msname "
-            + msname
+            f"run_fluxcal {msname}"
             + " --workdir "
             + workdir
             + " --cpu_frac "
@@ -265,7 +275,7 @@ def run_noise_diode_cal(msname, workdir, jobid=0, cpu_frac=0.8, mem_frac=0.8):
             + str(jobid)
         )
         logfile = workdir + "/logs/" + noisecal_basename + ".log"
-        noise_cal_cmd+=f" --logfile {logfile}"
+        noise_cal_cmd += f" --logfile {logfile}"
         if os.path.isdir(workdir + "/logs") == False:
             os.makedirs(workdir + "/logs")
         batch_file = create_batch_script_nonhpc(
@@ -291,7 +301,9 @@ def run_noise_diode_cal(msname, workdir, jobid=0, cpu_frac=0.8, mem_frac=0.8):
         return 1
 
 
-def run_partion(msname, workdir, split_fullpol=False, jobid=0, cpu_frac=0.8, mem_frac=0.8):
+def run_partion(
+    msname, workdir, split_fullpol=False, jobid=0, cpu_frac=0.8, mem_frac=0.8
+):
     """
     Perform basic calibration
 
@@ -346,17 +358,21 @@ def run_partion(msname, workdir, split_fullpol=False, jobid=0, cpu_frac=0.8, mem
     cal_scans = copy.deepcopy(cal_scans_copy)
     cal_scans = ",".join([str(s) for s in cal_scans])
     calibrator_ms = workdir + "/calibrator.ms"
-    split_cmd = f"run_partition --msname {msname} --outputms {calibrator_ms} --scans {cal_scans} --timebin {timebin} --width {width} --cpu_frac {cpu_frac} --mem_frac {mem_frac} --split_fullpol {split_fullpol} --workdir {workdir} --jobid {jobid}"
+    split_cmd = f"run_partition {msname} --outputms {calibrator_ms} --scans {cal_scans} --timebin {timebin} --width {width} --cpu_frac {cpu_frac} --mem_frac {mem_frac} --workdir {workdir} --jobid {jobid}"
+    if split_fullpol:
+        split_cmd+=" --split_fullpol"
     ####################################
     # Partition fields
     ####################################
     print("\n########################################")
     partition_basename = f"partition_cal"
     logfile = workdir + "/logs/" + partition_basename + ".log"
-    split_cmd+=f" --logfile {logfile}"
+    split_cmd += f" --logfile {logfile}"
     if os.path.isdir(workdir + "/logs") == False:
         os.makedirs(workdir + "/logs")
-    batch_file = create_batch_script_nonhpc(split_cmd, workdir, partition_basename, jobid)
+    batch_file = create_batch_script_nonhpc(
+        split_cmd, workdir, partition_basename, jobid
+    )
     print(split_cmd + "\n")
     os.system("bash " + batch_file)
     print("Waiting to finish partitioning...\n")
@@ -446,8 +462,7 @@ def run_target_split_jobs(
         msname = msname.rstrip("/")
         split_basename = f"split_{prefix}"
         split_cmd = (
-            "run_target_split --msname "
-            + msname
+            f"run_target_split {msname}"
             + " --workdir "
             + workdir
             + " --datacolumn "
@@ -470,17 +485,17 @@ def run_target_split_jobs(
             + str(n_spectral_chunk)
             + " --prefix "
             + str(prefix)
-            + " --split_fullpol "
-            + str(split_fullpol)
             + " --time_window "
             + str(time_window)
             + " --time_interval "
             + str(time_interval)
-            + " --merge_spws "
-            + str(merge_spws)
             + " --jobid "
             + str(jobid)
         )
+        if split_fullpol:
+            split_cmd+=" --split_fullpol"
+        if merge_spws:
+            split_cmd+=" --merge_spws"
         if spw != "":
             split_cmd = split_cmd + " --spw " + str(spw)
         if len(target_scans) > 0:
@@ -488,10 +503,12 @@ def run_target_split_jobs(
                 split_cmd + " --scans " + ",".join([str(s) for s in target_scans])
             )
         logfile = workdir + "/logs/" + split_basename + ".log"
-        split_cmd+=f" --logfile {logfile}"
+        split_cmd += f" --logfile {logfile}"
         if os.path.isdir(workdir + "/logs") == False:
             os.makedirs(workdir + "/logs")
-        batch_file = create_batch_script_nonhpc(split_cmd, workdir, split_basename, jobid)
+        batch_file = create_batch_script_nonhpc(
+            split_cmd, workdir, split_basename, jobid
+        )
         print(split_cmd + "\n")
         os.system("bash " + batch_file)
         return 0
@@ -500,7 +517,7 @@ def run_target_split_jobs(
         return 1
 
 
-def run_sidereal_cor_jobs(
+def run_solar_siderealcor_jobs(
     mslist,
     workdir,
     prefix="targets",
@@ -511,7 +528,7 @@ def run_sidereal_cor_jobs(
     max_mem_frac=0.8,
 ):
     """
-    Apply sidereal motion correction
+    Apply sidereal motion correction of the Sun
 
     Parameters
     ----------
@@ -542,8 +559,7 @@ def run_sidereal_cor_jobs(
         mslist = ",".join(mslist)
         sidereal_basename = f"cor_sidereal_{prefix}"
         sidereal_cor_cmd = (
-            "run_sidereal_cor --mslist "
-            + mslist
+            f"run_solar_siderealcor {mslist}"
             + " --workdir "
             + str(workdir)
             + " --cpu_frac "
@@ -560,7 +576,7 @@ def run_sidereal_cor_jobs(
         if os.path.isdir(workdir + "/logs") == False:
             os.makedirs(workdir + "/logs")
         logfile = workdir + "/logs/" + sidereal_basename + ".log"
-        sidereal_cor_cmd+=f" --logfile {logfile}"
+        sidereal_cor_cmd += f" --logfile {logfile}"
         batch_file = create_batch_script_nonhpc(
             sidereal_cor_cmd, workdir, sidereal_basename, jobid
         )
@@ -627,15 +643,15 @@ def run_apply_pbcor(
             + str(cpu_frac)
             + " --mem_frac "
             + str(mem_frac)
-            + " --apply_parang "
-            + str(apply_parang)
             + " --jobid "
             + str(jobid)
         )
+        if apply_parang==False:
+            applypbcor_cmd+=" --no_apply_parang"
         if os.path.isdir(workdir + "/logs") == False:
             os.makedirs(workdir + "/logs")
         logfile = workdir + "/logs/" + applypbcor_basename + ".log"
-        applypbcor_cmd+=f" --logfile {logfile}"
+        applypbcor_cmd += f" --logfile {logfile}"
         batch_file = create_batch_script_nonhpc(
             applypbcor_cmd, workdir, applypbcor_basename, jobid
         )
@@ -704,31 +720,30 @@ def run_apply_basiccal_sol(
         print("Applying basic calibration solutions on target scans .....")
         print("###########################\n")
         applycal_basename = "apply_basiccal"
+        mslist=",".join(target_mslist)
         applycal_cmd = (
-            "run_apply_basiccal --mslist "
-            + ",".join(target_mslist)
+            f"run_apply_basiccal {mslist}"
             + " --workdir "
             + workdir
             + " --caldir "
             + caldir
-            + " --use_only_bandpass "
-            + str(use_only_bandpass)
             + " --cpu_frac "
             + str(cpu_frac)
             + " --mem_frac "
             + str(mem_frac)
-            + " --overwrite_datacolumn "
-            + str(overwrite_datacolumn)
             + " --applymode "
             + str(applymode)
-            + " --do_post_flag False "
             + " --jobid "
             + str(jobid)
         )
+        if use_only_bandpass:
+            applycal_cmd+=" --use_only_bandpass"
+        if overwrite_datacolumn:
+            applycal_cmd+=" --overwrite_datacolumn"
         if os.path.isdir(workdir + "/logs") == False:
             os.makedirs(workdir + "/logs")
         logfile = workdir + "/logs/" + applycal_basename + ".log"
-        applycal_cmd+=f" --logfile {logfile}"
+        applycal_cmd += f" --logfile {logfile}"
         batch_file = create_batch_script_nonhpc(
             applycal_cmd, workdir, applycal_basename, jobid
         )
@@ -794,9 +809,9 @@ def run_apply_selfcal_sol(
         print("Applying self-calibration solutions on target scans .....")
         print("###########################\n")
         applycal_basename = "apply_selfcal"
+        mslist=",".join(target_mslist)
         applycal_cmd = (
-            "run_apply_selfcal --mslist "
-            + ",".join(target_mslist)
+            f"run_apply_selfcal {mslist}"
             + " --workdir "
             + workdir
             + " --caldir "
@@ -805,17 +820,17 @@ def run_apply_selfcal_sol(
             + str(cpu_frac)
             + " --mem_frac "
             + str(mem_frac)
-            + " --overwrite_datacolumn "
-            + str(overwrite_datacolumn)
             + " --applymode "
             + str(applymode)
             + " --jobid "
             + str(jobid)
         )
+        if overwrite_datacolumn:
+            applycal_cmd+=" --overwrite_datacolumn"
         if os.path.isdir(workdir + "/logs") == False:
             os.makedirs(workdir + "/logs")
         logfile = workdir + "/logs/" + applycal_basename + ".log"
-        applycal_cmd+=f" --logfile {logfile}"
+        applycal_cmd += f" --logfile {logfile}"
         batch_file = create_batch_script_nonhpc(
             applycal_cmd, workdir, applycal_basename, jobid
         )
@@ -916,9 +931,9 @@ def run_selfcal_jobs(
         print("Performing self-calibration of target scans .....")
         print("###########################\n")
         selfcal_basename = "selfcal_targets"
+        mslist=",".join(mslist)
         selfcal_cmd = (
-            "run_selfcal --mslist "
-            + ",".join(mslist)
+            f"run_selfcal {mslist}"
             + " --workdir "
             + workdir
             + " --cpu_frac "
@@ -942,12 +957,6 @@ def run_selfcal_jobs(
             selfcal_cmd += " --conv_frac " + str(conv_frac)
         if solint != "":
             selfcal_cmd += " --solint " + solint
-        if do_apcal != "":
-            selfcal_cmd += " --do_apcal " + str(do_apcal)
-        if solar_selfcal != "":
-            selfcal_cmd += " --solar_selfcal " + str(solar_selfcal)
-        if keep_backup != "":
-            selfcal_cmd += " --keep_backup " + str(keep_backup)
         if uvrange != "":
             selfcal_cmd += " --uvrange " + str(uvrange)
         if minuv > 0:
@@ -960,9 +969,17 @@ def run_selfcal_jobs(
             selfcal_cmd += " --weight " + str(weight)
         if robust != "":
             selfcal_cmd += " --robust " + str(robust)
+        if do_apcal==False:
+            selfcal_cmd += " --no_apcal"
+        if solar_selfcal == False:
+            selfcal_cmd += " --no_solar_selfcal"
+        if keep_backup:
+            selfcal_cmd += " --keep_backup"
         if os.path.isdir(workdir + "/logs") == False:
             os.makedirs(workdir + "/logs")
-        batch_file = create_batch_script_nonhpc(selfcal_cmd, workdir, selfcal_basename, jobid)
+        batch_file = create_batch_script_nonhpc(
+            selfcal_cmd, workdir, selfcal_basename, jobid
+        )
         print(selfcal_cmd + "\n")
         os.system("bash " + batch_file)
         print("Waiting to finish self-calibration...\n")
@@ -1063,9 +1080,9 @@ def run_imaging_jobs(
         print("Performing imaging of target scans .....")
         print("###########################\n")
         imaging_basename = "imaging_targets"
+        mslist=",".join(mslist)
         imaging_cmd = (
-            "run_imaging --mslist "
-            + ",".join(mslist)
+            f"run_imaging {mslist}"
             + " --workdir "
             + workdir
             + " --cpu_frac "
@@ -1084,24 +1101,23 @@ def run_imaging_jobs(
             + str(robust)
             + " --minuv_l "
             + str(minuv)
-            + " --use_solar_mask "
-            + str(use_solar_mask)
             + " --threshold "
             + str(threshold)
-            + " --savemodel "
-            + str(savemodel)
-            + " --saveres "
-            + str(saveres)
-            + " --use_multiscale "
-            + str(use_multiscale)
-            + " --make_overlay "
-            + str(make_overlay)
             + " --cutout_rsun "
             + str(cutout_rsun)
-            + " --make_plots True "
             + " --jobid "
             + str(jobid)
         )
+        if use_solar_mask==False:
+            imaging_cmd+=" --no_solar_mask"
+        if savemodel==False:
+            imaging_cmd+=" --no_savemodel"
+        if saveres==False:
+            imaging_cmd+=" --no_saveres"
+        if use_multiscale==False:
+            imaging_cmd+=" --no_multiscale"
+        if make_overlay==False:
+            imaging_cmd+=" --no_make_overlay"        
         if freqrange != "":
             imaging_cmd += " --freqrange " + str(freqrange)
         if timerange != "":
@@ -1110,7 +1126,9 @@ def run_imaging_jobs(
             imaging_cmd += " --band " + str(band)
         if os.path.isdir(workdir + "/logs") == False:
             os.makedirs(workdir + "/logs")
-        batch_file = create_batch_script_nonhpc(imaging_cmd, workdir, imaging_basename, jobid)
+        batch_file = create_batch_script_nonhpc(
+            imaging_cmd, workdir, imaging_basename, jobid
+        )
         print(imaging_cmd + "\n")
         os.system("bash " + batch_file)
         print("Waiting to finish imaging...\n")
@@ -1158,6 +1176,43 @@ def check_status(workdir, basename):
         return False
 
 
+def start_ping_logger(jobid, waittime, remote_link=""):
+    """
+    Run ping remote logger in background
+
+    Parameters
+    ----------
+    jobid : int
+        Job ID
+    waittime : float
+        Wait time before process ends in hour
+    remote_link : str, optional
+        Remote logger link
+
+    Returns
+    -------
+    int
+        PID of the background job
+    """
+    if remote_link != "" and waittime > 0:
+        stop_event = Event()
+        proc = Process(
+            target=ping_logger, args=(jobid, stop_event, remote_link), daemon=False
+        )
+        proc.start()
+
+        def stop_after_delay():
+            time.sleep(waittime * 3600)
+            stop_event.set()
+
+        from threading import Thread
+
+        Thread(target=stop_after_delay, daemon=True).start()
+        return proc.pid
+    else:
+        return
+
+
 def exit_job(start_time, mspath="", workdir=""):
     print(f"Total time taken: {round(time.time()-start_time,2)}s.")
     time.sleep(10)
@@ -1166,7 +1221,8 @@ def exit_job(start_time, mspath="", workdir=""):
         os.system("rm -rf " + mspath + "/dask-scratch-space " + mspath + "/tmp")
     if workdir != "" and os.path.exists(workdir + "/dask-scratch-space"):
         os.system("rm -rf " + workdir + "/dask-scratch-space " + workdir + "/tmp")
-        
+
+
 def master_control(
     msname,
     workdir,
@@ -1185,6 +1241,7 @@ def master_control(
     do_apply_selfcal=True,
     do_ap_selfcal=True,
     solar_selfcal=True,
+    do_sidereal_cor=True,
     target_scans=[],
     freqrange="",
     timerange="",
@@ -1195,8 +1252,6 @@ def master_control(
     weight="briggs",
     robust=0.0,
     minuv=0,
-    freqavg=-1,
-    timeavg=-1,
     image_freqres=-1,
     image_timeres=-1,
     pol="I",
@@ -1208,10 +1263,10 @@ def master_control(
     make_overlay=True,
     cpu_frac=0.8,
     mem_frac=0.8,
-    n_nodes=1,
+    n_nodes=0,
     keep_backup=False,
     remote_logger=False,
-    remote_logger_waittime=2,
+    remote_logger_waittime=0,
 ):
     """
     Master controller of the entire pipeline
@@ -1270,17 +1325,12 @@ def master_control(
         Robust parameter for briggs weighting (-1 to 1)
     minuv : float, optional
         Minimum UV-lambda for final imaging
-    freqavg : float, optional
-        Frequency averaging in MHz
-    timeavg : float, optional
-        Time averaging in seconds
     image_freqres : float, optional
         Image frequency resolution in MHz
     image_timeres : float, optional
-        Image temporal resolution
+        Image temporal resolution in seconds
     pol : str, optional
-        Stokes
-    Parameters of final imaging
+        Stokes parameters of final imaging
     apply_parang : bool, optional
         Apply parallactic angle correction
     clean_threshold : float, optional
@@ -1308,13 +1358,13 @@ def master_control(
         Success message
     """
     init_meersolar_data()
-    pid=os.getpid()
-    jobid=get_jobid()
+    pid = os.getpid()
+    jobid = get_jobid()
     main_job_file = save_main_process_info(pid, jobid, workdir, cpu_frac, mem_frac)
     start_time = time.time()
     print("###########################")
     print("Starting the pipeline .....")
-    print (f"MeerSOLAR Job ID: {jobid}")
+    print(f"MeerSOLAR Job ID: {jobid}")
     print("###########################\n")
     msname = os.path.abspath(msname.rstrip("/"))
     if os.path.exists(msname) == False:
@@ -1341,10 +1391,10 @@ def master_control(
     cpu_frac_bkp = copy.deepcopy(cpu_frac)
     mem_frac_bkp = copy.deepcopy(mem_frac)
     if remote_logger:
-        remote_link=get_remote_logger_link()    
-        if remote_link=="":
-            print ("Please provide a valid remote link.")
-            remote_logger=False    
+        remote_link = get_remote_logger_link()
+        if remote_link == "":
+            print("Please provide a valid remote link.")
+            remote_logger = False
 
     if remote_logger:
         ####################################
@@ -1352,17 +1402,26 @@ def master_control(
         ####################################
         hostname = socket.gethostname()
         timestamp = dt.utcnow().strftime("%Y-%m-%dT%H:%M:%S")
-        job_name = f"{hostname} :: {timestamp} :: {os.path.basename(msname).split('.ms')[0]}"
+        job_name = (
+            f"{hostname} :: {timestamp} :: {os.path.basename(msname).split('.ms')[0]}"
+        )
         timestamp1 = dt.utcnow().strftime("%Y%m%dT%H%M%S")
         job_id = f"{hostname}_{timestamp1}_{os.path.basename(msname).split('.ms')[0]}"
-        password=generate_password()
-        np.save(f"{workdir}/jobname_password.npy",np.array([job_name,password],dtype="object"))
-        print ("############################################################################")
-        print (remote_link)
-        print (f"Job ID: {job_name}")
-        print (f"Remote access password: {password}")
-        print ("#############################################################################")
-    
+        password = generate_password()
+        np.save(
+            f"{workdir}/jobname_password.npy",
+            np.array([job_name, password], dtype="object"),
+        )
+        print(
+            "############################################################################"
+        )
+        print(remote_link)
+        print(f"Job ID: {job_name}")
+        print(f"Remote access password: {password}")
+        print(
+            "#############################################################################"
+        )
+
     #####################################
     # Settings for solar data
     #####################################
@@ -1400,10 +1459,7 @@ def master_control(
     # Determining maximum allowed frequency averaging
     #################################################
     max_freqres = calc_bw_smearing_freqwidth(msname)
-    if freqavg < 0 or freqavg > max_freqres:
-        freqavg = round(max_freqres, 2)
-    if image_freqres > 0 and freqavg > image_freqres:
-        freqavg = image_freqres
+    freqavg = round(min(image_freqres, max_freqres), 2)
 
     #########################################
     # Target ms frequency chunk based on band
@@ -1436,17 +1492,6 @@ def master_control(
         nchunk = image_freqres // target_freq_chunk
         target_freq_chunk = image_freqres / nchunk
 
-    ################################################
-    # Determining maximum allowed temporal averaging
-    ################################################
-    max_timeres = min(
-        calc_time_smearing_timewidth(msname), max_time_solar_smearing(msname)
-    )
-    if timeavg < 0 or timeavg > max_timeres:
-        timeavg = round(max_timeres, 2)
-    if image_timeres > 0 and timeavg > image_timeres:
-        timeavg = image_timeres
-
     #############################
     # Reset any previous weights
     ############################
@@ -1466,6 +1511,7 @@ def master_control(
             msname,
             workdir,
             jobid=jobid,
+            keep_backup=keep_backup,
             cpu_frac=round(cpu_frac, 2),
             mem_frac=round(mem_frac, 2),
         )  # Run noise diode based flux calibration
@@ -1477,8 +1523,9 @@ def master_control(
     ##############################
     # Run partitioning jobs
     ##############################
+    # If do partition or calibrator ms is not present in case of basic calibration is requested 
     calibrator_msname = workdir + "/calibrator.ms"
-    if do_cal_partition or ((do_cal_flag or do_import_model or do_basic_cal) and os.path.exists(calibrator_msname) == False):
+    if do_basic_cal and (do_cal_partition or os.path.exists(calibrator_msname) == False):
         msg = run_partion(
             msname,
             workdir,
@@ -1491,22 +1538,27 @@ def master_control(
             print("!!!! WARNING: Error in partitioning calibrator fields. !!!!")
             exit_job(start_time, mspath, workdir)
             if remote_logger:
-                stop_event = threading.Event()
-                threading.Thread(target=ping_logger, args=(job_id, stop_event), daemon=True).start()
-                threading.Timer((remote_logger_waittime*3600), stop_event.set).start()
+                pid = start_ping_logger(
+                    job_id, remote_logger_waittime, remote_link=remote_link
+                )
+                datadir = get_datadir()
+                save_pid(pid, datadir + f"/pids/pids_{job_id}.txt")
             return 1
 
     ##################################
     # Run flagging jobs on calibrators
     ##################################
-    if do_cal_flag:
+    # Only if basic calibration is requested
+    if do_cal_flag and do_basic_cal:
         if os.path.exists(calibrator_msname) == False:
             print(f"Calibrator ms: {calibrator_ms} is not present.")
             exit_job(start_time, mspath, workdir)
             if remote_logger:
-                stop_event = threading.Event()
-                threading.Thread(target=ping_logger, args=(job_id, stop_event), daemon=True).start()
-                threading.Timer((remote_logger_waittime*3600), stop_event.set).start()
+                pid = start_ping_logger(
+                    job_id, remote_logger_waittime, remote_link=remote_link
+                )
+                datadir = get_datadir()
+                save_pid(pid, datadir + f"/pids/pids_{job_id}.txt")
             return 1
         msg = run_flag(
             calibrator_msname,
@@ -1517,19 +1569,24 @@ def master_control(
             mem_frac=round(mem_frac, 2),
         )
         if msg != 0:
-            print("!!!! WARNING: Flagging error. Examine calibration solutions with caution. !!!!")
-            
+            print(
+                "!!!! WARNING: Flagging error. Examine calibration solutions with caution. !!!!"
+            )
+
     #################################
     # Import model
     #################################
-    if do_import_model:
+    # Only if basic calibration is requested
+    if do_import_model and do_basic_cal:
         if os.path.exists(calibrator_msname) == False:
             print(f"Calibrator ms: {calibrator_ms} is not present.")
             exit_job(start_time, mspath, workdir)
             if remote_logger:
-                stop_event = threading.Event()
-                threading.Thread(target=ping_logger, args=(job_id, stop_event), daemon=True).start()
-                threading.Timer((remote_logger_waittime*3600), stop_event.set).start()
+                pid = start_ping_logger(
+                    job_id, remote_logger_waittime, remote_link=remote_link
+                )
+                datadir = get_datadir()
+                save_pid(pid, datadir + f"/pids/pids_{job_id}.txt")
             return 1
         fluxcal_fields, fluxcal_scans = get_fluxcals(calibrator_msname)
         phasecal_fields, phasecal_scans, phasecal_fluxes = get_phasecals(
@@ -1549,9 +1606,11 @@ def master_control(
             )
             exit_job(start_time, mspath, workdir)
             if remote_logger:
-                stop_event = threading.Event()
-                threading.Thread(target=ping_logger, args=(job_id, stop_event), daemon=True).start()
-                threading.Timer((remote_logger_waittime*3600), stop_event.set).start()
+                pid = start_ping_logger(
+                    job_id, remote_logger_waittime, remote_link=remote_link
+                )
+                datadir = get_datadir()
+                save_pid(pid, datadir + f"/pids/pids_{job_id}.txt")
             return 1
 
     ###############################
@@ -1563,9 +1622,11 @@ def master_control(
             print(f"Calibrator ms: {calibrator_ms} is not present.")
             exit_job(start_time, mspath, workdir)
             if remote_logger:
-                stop_event = threading.Event()
-                threading.Thread(target=ping_logger, args=(job_id, stop_event), daemon=True).start()
-                threading.Timer((remote_logger_waittime*3600), stop_event.set).start()
+                pid = start_ping_logger(
+                    job_id, remote_logger_waittime, remote_link=remote_link
+                )
+                datadir = get_datadir()
+                save_pid(pid, datadir + f"/pids/pids_{job_id}.txt")
             return 1
         msg = run_basic_cal_jobs(
             calibrator_msname,
@@ -1582,9 +1643,11 @@ def master_control(
             )
             exit_job(start_time, mspath, workdir)
             if remote_logger:
-                stop_event = threading.Event()
-                threading.Thread(target=ping_logger, args=(job_id, stop_event), daemon=True).start()
-                threading.Timer((remote_logger_waittime*3600), stop_event.set).start()
+                pid = start_ping_logger(
+                    job_id, remote_logger_waittime, remote_link=remote_link
+                )
+                datadir = get_datadir()
+                save_pid(pid, datadir + f"/pids/pids_{job_id}.txt")
             return 1
 
     ##########################################
@@ -1594,9 +1657,11 @@ def master_control(
         print(f"No bandpass table is present in calibration directory : {caldir}.")
         exit_job(start_time, mspath, workdir)
         if remote_logger:
-            stop_event = threading.Event()
-            threading.Thread(target=ping_logger, args=(job_id, stop_event), daemon=True).start()
-            threading.Timer((remote_logger_waittime*3600), stop_event.set).start()
+            pid = start_ping_logger(
+                job_id, remote_logger_waittime, remote_link=remote_link
+            )
+            datadir = get_datadir()
+            save_pid(pid, datadir + f"/pids/pids_{job_id}.txt")
         return 1
     if len(glob.glob(caldir + "/*.gcal")) == 0:
         print(
@@ -1607,69 +1672,70 @@ def master_control(
     ############################################
     # Spliting for self-cals
     ############################################
-    if do_selfcal_split==False:
-        selfcal_target_mslist = glob.glob(workdir + "/selfcals_scan*.ms")
-        if len(selfcal_target_mslist) == 0:
-            print ("No measurement set is present for self-calibration. Spliting them..")
-            do_selfcal_split = True
-        
-    if do_selfcal_split:
-        prefix = "selfcals"
-        try:
-            time_interval = float(solint)
-        except:
-            if "s" in solint:
-                time_interval = float(solint.split("s")[0])
-            elif "min" in solint:
-                time_interval = float(solint.split("min")[0]) * 60
-            elif solint == "int":
-                time_interval = timeavg
-            else:
-                time_interval = -1
-        msg = run_target_split_jobs(
-            msname,
-            workdir,
-            datacolumn="data",
-            timeres=timeavg,
-            freqres=freqavg,
-            target_freq_chunk=25,
-            n_spectral_chunk=nchunk,  # Number of target spectral chunk
-            target_scans=target_scans,
-            prefix=prefix,
-            merge_spws=True,
-            time_window=min(60, time_interval),
-            time_interval=time_interval,
-            split_fullpol=do_polcal,
-            jobid=jobid,
-            cpu_frac=round(cpu_frac, 2),
-            mem_frac=round(mem_frac, 2),
-            max_cpu_frac=round(cpu_frac, 2),
-            max_mem_frac=round(mem_frac, 2),
-        )
-        if msg != 0:
-            print(
-                "!!!! WARNING: Error in running spliting target scans for selfcal. !!!!"
-            )
-            do_selfcal = False
-        else:
-            print("Waiting to finish spliting of target scans for selfcal...\n")
-            split_basename = f"split_{prefix}"
-            while True:
-                finished_file = glob.glob(
-                    workdir + "/.Finished_" + split_basename + "*"
-                )
-                if len(finished_file) > 0:
-                    break
+    # Spliting only if self-cal is requested
+    if do_selfcal:
+        if do_selfcal_split == False:
+            selfcal_target_mslist = glob.glob(workdir + "/selfcals_scan*.ms")
+            if len(selfcal_target_mslist) == 0:
+                print("No measurement set is present for self-calibration. Spliting them..")
+                do_selfcal_split = True
+                
+        if do_selfcal_split:
+            prefix = "selfcals"
+            try:
+                time_interval = float(solint)
+            except:
+                if "s" in solint:
+                    time_interval = float(solint.split("s")[0])
+                elif "min" in solint:
+                    time_interval = float(solint.split("min")[0]) * 60
+                elif solint == "int":
+                    time_interval = image_timeres
                 else:
-                    time.sleep(1)
-            success_index_split_target = int(finished_file[0].split("_")[-1])
-            if success_index_split_target == 0:
-                print("Spliting target scans are done successfully for selfcal.\n")
-            else:
+                    time_interval = -1
+            msg = run_target_split_jobs(
+                msname,
+                workdir,
+                datacolumn="data",
+                freqres=freqavg,
+                target_freq_chunk=25,
+                n_spectral_chunk=nchunk,  # Number of target spectral chunk
+                target_scans=target_scans,
+                prefix=prefix,
+                merge_spws=True,
+                time_window=min(60, time_interval),
+                time_interval=time_interval,
+                split_fullpol=do_polcal,
+                jobid=jobid,
+                cpu_frac=round(cpu_frac, 2),
+                mem_frac=round(mem_frac, 2),
+                max_cpu_frac=round(cpu_frac, 2),
+                max_mem_frac=round(mem_frac, 2),
+            )
+            if msg != 0:
                 print(
-                    "!!!! WARNING: Error in spliting target scans for selfcal. Not continuing further for selfcal. !!!!"
+                    "!!!! WARNING: Error in running spliting target scans for selfcal. !!!!"
                 )
                 do_selfcal = False
+            else:
+                print("Waiting to finish spliting of target scans for selfcal...\n")
+                split_basename = f"split_{prefix}"
+                while True:
+                    finished_file = glob.glob(
+                        workdir + "/.Finished_" + split_basename + "*"
+                    )
+                    if len(finished_file) > 0:
+                        break
+                    else:
+                        time.sleep(1)
+                success_index_split_target = int(finished_file[0].split("_")[-1])
+                if success_index_split_target == 0:
+                    print("Spliting target scans are done successfully for selfcal.\n")
+                else:
+                    print(
+                        "!!!! WARNING: Error in spliting target scans for selfcal. Not continuing further for selfcal. !!!!"
+                    )
+                    do_selfcal = False
 
     ####################################
     # Filtering any corrupted ms
@@ -1713,24 +1779,25 @@ def master_control(
                 "!!!! WARNING: Error in applying basic calibration solutions on target scans. Not continuing further for selfcal.!!!!"
             )
             do_selfcal = False
-        
+
     ########################################
     # Performing self-calibration
     ########################################
     if do_selfcal:
         os.system("rm -rf " + workdir + "/*selfcal " + workdir + "/caltables/*selfcal*")
-        msg = run_sidereal_cor_jobs(
-            selfcal_mslist,
-            workdir,
-            prefix="selfcals",
-            jobid=jobid,
-            cpu_frac=round(cpu_frac, 2),
-            mem_frac=round(mem_frac, 2),
-            max_cpu_frac=round(cpu_frac, 2),
-            max_mem_frac=round(mem_frac, 2),
-        )
-        if msg != 0:
-            print("Sidereal correction is not successful.")
+        if do_sidereal_cor:
+            msg = run_solar_siderealcor_jobs(
+                selfcal_mslist,
+                workdir,
+                prefix="selfcals",
+                jobid=jobid,
+                cpu_frac=round(cpu_frac, 2),
+                mem_frac=round(mem_frac, 2),
+                max_cpu_frac=round(cpu_frac, 2),
+                max_mem_frac=round(mem_frac, 2),
+            )
+            if msg != 0:
+                print("Sidereal correction is not successful.")
         msg = run_selfcal_jobs(
             selfcal_mslist,
             workdir,
@@ -1764,15 +1831,15 @@ def master_control(
     #############################################
     # Check spliting target scans finished or not
     #############################################
+    # If corrected data is requested or imaging is requested
     prefix = "targets"
-    if do_target_split:
+    if do_target_split and (do_applycal or do_imaging):
         msg = run_target_split_jobs(
             msname,
             workdir,
             datacolumn="data",
             spw=spw,
             target_freq_chunk=target_freq_chunk,
-            timeres=timeavg,
             freqres=freqavg,
             n_spectral_chunk=-1,
             target_scans=target_scans,
@@ -1788,32 +1855,38 @@ def master_control(
             print("!!!! WARNING: Error in running spliting target scans. !!!!")
             exit_job(start_time, mspath, workdir)
             if remote_logger:
-                stop_event = threading.Event()
-                threading.Thread(target=ping_logger, args=(job_id, stop_event), daemon=True).start()
-                threading.Timer((remote_logger_waittime*3600), stop_event.set).start()
+                pid = start_ping_logger(
+                    job_id, remote_logger_waittime, remote_link=remote_link
+                )
+                datadir = get_datadir()
+                save_pid(pid, datadir + f"/pids/pids_{job_id}.txt")
             return 1
-
-    print("Waiting to finish spliting of target scans...\n")
-    split_basename = f"split_{prefix}"
-    while True:
-        finished_file = glob.glob(workdir + "/.Finished_" + split_basename + "*")
-        if len(finished_file) > 0:
-            break
+        ##################################
+        # Waiting only spliting is started
+        ##################################
+        print("Waiting to finish spliting of target scans...\n")
+        split_basename = f"split_{prefix}"
+        while True:
+            finished_file = glob.glob(workdir + "/.Finished_" + split_basename + "*")
+            if len(finished_file) > 0:
+                break
+            else:
+                time.sleep(1)
+        success_index_split_target = int(finished_file[0].split("_")[-1])
+        if success_index_split_target == 0:
+            print("Spliting target scans are done successfully.\n")
         else:
-            time.sleep(1)
-    success_index_split_target = int(finished_file[0].split("_")[-1])
-    if success_index_split_target == 0:
-        print("Spliting target scans are done successfully.\n")
-    else:
-        print(
-            "!!!! WARNING: Error in spliting target scans. Not continuing further. !!!!"
-        )
-        exit_job(start_time, mspath, workdir)
-        if remote_logger:
-            stop_event = threading.Event()
-            threading.Thread(target=ping_logger, args=(job_id, stop_event), daemon=True).start()
-            threading.Timer((remote_logger_waittime*3600), stop_event.set).start()
-        return 1
+            print(
+                "!!!! WARNING: Error in spliting target scans. Not continuing further. !!!!"
+            )
+            exit_job(start_time, mspath, workdir)
+            if remote_logger:
+                pid = start_ping_logger(
+                    job_id, remote_logger_waittime, remote_link=remote_link
+                )
+                datadir = get_datadir()
+                save_pid(pid, datadir + f"/pids/pids_{job_id}.txt")
+            return 1
 
     cpu_frac = copy.deepcopy(cpu_frac_bkp)
     mem_frac = copy.deepcopy(mem_frac_bkp)
@@ -1835,9 +1908,11 @@ def master_control(
         print("No splited target scan ms are available in work directory.")
         exit_job(start_time, mspath, workdir)
         if remote_logger:
-            stop_event = threading.Event()
-            threading.Thread(target=ping_logger, args=(job_id, stop_event), daemon=True).start()
-            threading.Timer((remote_logger_waittime*3600), stop_event.set).start()
+            pid = start_ping_logger(
+                job_id, remote_logger_waittime, remote_link=remote_link
+            )
+            datadir = get_datadir()
+            save_pid(pid, datadir + f"/pids/pids_{job_id}.txt")
         return 1
 
     if do_applycal or do_imaging:
@@ -1866,9 +1941,11 @@ def master_control(
                 )
                 exit_job(start_time, mspath, workdir)
                 if remote_logger:
-                    stop_event = threading.Event()
-                    threading.Thread(target=ping_logger, args=(job_id, stop_event), daemon=True).start()
-                    threading.Timer((remote_logger_waittime*3600), stop_event.set).start()
+                    pid = start_ping_logger(
+                        job_id, remote_logger_waittime, remote_link=remote_link
+                    )
+                    datadir = get_datadir()
+                    save_pid(pid, datadir + f"/pids/pids_{job_id}.txt")
                 return 1
         else:
             print(
@@ -1876,20 +1953,23 @@ def master_control(
             )
             exit_job(start_time, mspath, workdir)
             if remote_logger:
-                stop_event = threading.Event()
-                threading.Thread(target=ping_logger, args=(job_id, stop_event), daemon=True).start()
-                threading.Timer((remote_logger_waittime*3600), stop_event.set).start()
+                pid = start_ping_logger(
+                    job_id, remote_logger_waittime, remote_link=remote_link
+                )
+                datadir = get_datadir()
+                save_pid(pid, datadir + f"/pids/pids_{job_id}.txt")
             return 1
-        msg = run_sidereal_cor_jobs(
-            target_mslist,
-            workdir,
-            prefix="targets",
-            jobid=jobid,
-            cpu_frac=round(cpu_frac, 2),
-            mem_frac=round(mem_frac, 2),
-            max_cpu_frac=round(cpu_frac, 2),
-            max_mem_frac=round(mem_frac, 2),
-        )
+        if do_sidereal_cor:
+            msg = run_solar_siderealcor_jobs(
+                target_mslist,
+                workdir,
+                prefix="targets",
+                jobid=jobid,
+                cpu_frac=round(cpu_frac, 2),
+                mem_frac=round(mem_frac, 2),
+                max_cpu_frac=round(cpu_frac, 2),
+                max_mem_frac=round(mem_frac, 2),
+            )
 
     ########################################
     # Apply self-calibration
@@ -1949,9 +2029,11 @@ def master_control(
             )
             exit_job(start_time, mspath, workdir)
             if remote_logger:
-                stop_event = threading.Event()
-                threading.Thread(target=ping_logger, args=(job_id, stop_event), daemon=True).start()
-                threading.Timer((remote_logger_waittime*3600), stop_event.set).start()
+                pid = start_ping_logger(
+                    job_id, remote_logger_waittime, remote_link=remote_link
+                )
+                datadir = get_datadir()
+                save_pid(pid, datadir + f"/pids/pids_{job_id}.txt")
             return 1
 
     ###########################
@@ -1998,9 +2080,11 @@ def master_control(
                 )
                 exit_job(start_time, mspath, workdir)
                 if remote_logger:
-                    stop_event = threading.Event()
-                    threading.Thread(target=ping_logger, args=(job_id, stop_event), daemon=True).start()
-                    threading.Timer((remote_logger_waittime*3600), stop_event.set).start()
+                    pid = start_ping_logger(
+                        job_id, remote_logger_waittime, remote_link=remote_link
+                    )
+                    datadir = get_datadir()
+                    save_pid(pid, datadir + f"/pids/pids_{job_id}.txt")
                 return 1
             print(f"Final image directory: {os.path.dirname(imagedir)}\n")
     ###########################################
@@ -2011,119 +2095,334 @@ def master_control(
     )
     exit_job(start_time, mspath, workdir)
     if remote_logger:
-        stop_event = threading.Event()
-        threading.Thread(target=ping_logger, args=(job_id, stop_event), daemon=True).start()
-        threading.Timer((remote_logger_waittime*3600), stop_event.set).start()
+        pid = start_ping_logger(job_id, remote_logger_waittime, remote_link=remote_link)
+        datadir = get_datadir()
+        save_pid(pid, datadir + f"/pids/pids_{job_id}.txt")
     return 0
-    
+
+
 def main():
-    parser = argparse.ArgumentParser(
-        description="Run MeerSOLAR for calibration and imaging."
-    )
-    
-    # === Essential parameters ===
-    essential = parser.add_argument_group("Essential parameters")
-    essential.add_argument("msname", type=str, help="Measurement set name")
-    essential.add_argument("workdir", type=str, help="Working directory")
-    essential.add_argument("--solar_data", action="store_true", help="Enable solar data mode")
-    
-    # === Advanced options ===
-    advanced = parser.add_argument_group("Advanced parameters")
+    try:
+        parser = argparse.ArgumentParser(
+            description="Run MeerSOLAR for calibration and imaging of solar observations.",formatter_class=argparse.ArgumentDefaultsHelpFormatter
+        )
+        # === Essential parameters ===
+        essential = parser.add_argument_group(
+            "###################\nEssential parameters\n###################"
+        )
+        essential.add_argument("msname", type=str,  help="Measurement set name")
+        essential.add_argument("--workdir", type=str, dest="workdir",required=True, help="Working directory")
+        essential.add_argument(
+            "--non_solar_data", action="store_false", dest="solar_data", help="Enable non-solar data mode"
+        )
 
-    advanced.add_argument("--do_basic_cal", action="store_true", help="Perform basic gain calibration")
-    advanced.add_argument("--do_imaging", action="store_true", help="Run final imaging")
-    advanced.add_argument("--do_forcereset_weightflag", action="store_true")
-    advanced.add_argument("--do_cal_partition", action="store_true")
-    advanced.add_argument("--do_cal_flag", action="store_true")
-    advanced.add_argument("--do_import_model", action="store_true")
-    advanced.add_argument("--do_noise_cal", action="store_true")
-    advanced.add_argument("--do_applycal", action="store_true")
-    advanced.add_argument("--do_target_split", action="store_true")
-    advanced.add_argument("--do_polcal", action="store_true")
-    advanced.add_argument("--do_selfcal", action="store_true")
-    advanced.add_argument("--do_selfcal_split", action="store_true")
-    advanced.add_argument("--do_apply_selfcal", action="store_true")
-    advanced.add_argument("--do_ap_selfcal", action="store_true")
-    advanced.add_argument("--solar_selfcal", action="store_true")
+        # === Advanced options ===
+        advanced = parser.add_argument_group(
+            "###################\nAdvanced pipeline parameters\n###################"
+        )
+        # Default true
+        advanced.add_argument(
+            "--no_basic_cal",
+            action="store_false",
+            dest="do_basic_cal",
+            help="Disable basic gain calibration",
+        )
+        advanced.add_argument(
+            "--no_imaging",
+            action="store_false",
+            dest="do_imaging",
+            help="Disable final imaging",
+        )
+        advanced.add_argument(
+            "--no_cal_partition",
+            action="store_false",
+            dest="do_cal_partition",
+            help="Disable calibration MS partitioning",
+        )
+        advanced.add_argument(
+            "--no_cal_flag",
+            action="store_false",
+            dest="do_cal_flag",
+            help="Disable initial calibration flagging",
+        )
+        advanced.add_argument(
+            "--no_import_model",
+            action="store_false",
+            dest="do_import_model",
+            help="Disable model import",
+        )
+        advanced.add_argument(
+            "--no_noise_cal",
+            action="store_false",
+            dest="do_noise_cal",
+            help="Disable noise calibration",
+        )
+        advanced.add_argument(
+            "--no_applycal",
+            action="store_false",
+            dest="do_applycal",
+            help="Disable application of calibration solutions",
+        )
+        advanced.add_argument(
+            "--no_target_split",
+            action="store_false",
+            dest="do_target_split",
+            help="Disable target data split",
+        )
+        advanced.add_argument(
+            "--no_polcal",
+            action="store_false",
+            dest="do_polcal",
+            help="Disable polarization calibration",
+        )
+        advanced.add_argument(
+            "--no_selfcal",
+            action="store_false",
+            dest="do_selfcal",
+            help="Disable self-calibration",
+        )
+        advanced.add_argument(
+            "--no_selfcal_split",
+            action="store_false",
+            dest="do_selfcal_split",
+            help="Disable post-selfcal split",
+        )
+        advanced.add_argument(
+            "--no_apply_selfcal",
+            action="store_false",
+            dest="do_apply_selfcal",
+            help="Disable application of self-calibration solutions",
+        )
+        advanced.add_argument(
+            "--no_ap_selfcal",
+            action="store_false",
+            dest="do_ap_selfcal",
+            help="Disable amplitude+phase self-calibration",
+        )
+        advanced.add_argument(
+            "--no_solar_selfcal",
+            action="store_false",
+            dest="solar_selfcal",
+            help="Disable solar-specific self-calibration",
+        )
+        # Default false
+        advanced.add_argument(
+            "--do_sidereal_cor",
+            action="store_true",
+            dest="do_sidereal_cor",
+            help="Sidereal motion correction for Sun (disabled by default)",
+        )
+        advanced.add_argument(
+            "--do_forcereset_weightflag",
+            action="store_true",
+            help="Force reset of weights and flags (disabled by default)",
+        )
 
-    advanced.add_argument("--target_scans", nargs='*', type=str, default=[])
-    advanced.add_argument("--freqrange", type=str, default="")
-    advanced.add_argument("--timerange", type=str, default="")
-    advanced.add_argument("--uvrange", type=str, default="")
-    advanced.add_argument("--solint", type=str, default="5min")
+        # === Advanced imaging and calibration parameters ===
+        advanced_calimage = parser.add_argument_group(
+            "###################\nAdvanced calibration and imaging parameters\n###################"
+        )
+        advanced_calimage.add_argument(
+            "--target_scans",
+            nargs="*",
+            type=str,
+            default=[],
+            help="List of target scans to process (space-separated, e.g. 3 5 7)",
+        )
+        advanced_calimage.add_argument(
+            "--freqrange",
+            type=str,
+            default="",
+            help="Frequency range to select during imaging (e.g. '100~110MHz')",
+        )
+        advanced_calimage.add_argument(
+            "--timerange",
+            type=str,
+            default="",
+            help="Time range to select during imaging (e.g. '09:30:00~09:45:00')",
+        )
+        advanced_calimage.add_argument(
+            "--uvrange",
+            type=str,
+            default="",
+            help="UV range to filter data (e.g. '>100klambda')",
+        )
+        advanced_calimage.add_argument(
+            "--solint",
+            type=str,
+            default="5min",
+            help="Solution interval for calibration (e.g. 'int', '5min', 'inf')",
+        )
+        advanced_calimage.add_argument(
+            "--do_pbcor",
+            action="store_true",
+            help="Apply primary beam correction after imaging",
+        )
+        advanced_calimage.add_argument(
+            "--weight",
+            type=str,
+            default="briggs",
+            help="Imaging weighting scheme (e.g. 'briggs', 'natural', 'uniform')",
+        )
+        advanced_calimage.add_argument(
+            "--robust",
+            type=float,
+            default=0.0,
+            help="Robust parameter for Briggs weighting (-2 to +2)",
+        )
+        advanced_calimage.add_argument(
+            "--minuv",
+            type=float,
+            default=0,
+            help="Minimum baseline length (in wavelengths) to include in imaging",
+        )
+        advanced_calimage.add_argument(
+            "--image_freqres",
+            type=int,
+            default=-1,
+            help="Output image frequency resolution in MHz (-1 = full)",
+        )
+        advanced_calimage.add_argument(
+            "--image_timeres",
+            type=int,
+            default=-1,
+            help="Output image time resolution in seconds (-1 = full)",
+        )
+        advanced_calimage.add_argument(
+            "--pol",
+            type=str,
+            default="I",
+            help="Stokes parameter(s) to image (e.g. 'I', 'XX', 'RR', 'IQUV')",
+        )
+        advanced_calimage.add_argument(
+            "--clean_threshold",
+            type=float,
+            default=1.0,
+            help="Clean threshold in sigma for final deconvolution",
+        )
+        advanced_calimage.add_argument(
+            "--cutout_rsun",
+            type=float,
+            default=2.5,
+            help="Field of view cutout radius in solar radii",
+        )
+        advanced_calimage.add_argument(
+            "--no_multiscale",
+            action="store_false",
+            dest="use_multiscale",
+            help="Disable multiscale CLEAN for extended structures",
+        )
+        advanced_calimage.add_argument(
+            "--no_solar_mask",
+            action="store_false",
+            dest="use_solar_mask",
+            help="Disable use solar disk mask during deconvolution",
+        )
+        advanced_calimage.add_argument(
+            "--no_overlay",
+            action="store_false",
+            dest="make_overlay",
+            help="Generate overlay plot on GOES SUVI after imaging",
+        )
+        advanced.add_argument(
+            "--no_apply_parang",
+            action="store_false",
+            dest="apply_parang",
+            help="Disable parallactic angle rotation during imaging",
+        )
 
-    advanced.add_argument("--do_pbcor", action="store_true")
-    advanced.add_argument("--weight", type=str, default="briggs")
-    advanced.add_argument("--robust", type=float, default=0.0)
-    advanced.add_argument("--minuv", type=float, default=0)
-    advanced.add_argument("--freqavg", type=int, default=-1)
-    advanced.add_argument("--timeavg", type=int, default=-1)
-    advanced.add_argument("--image_freqres", type=int, default=-1)
-    advanced.add_argument("--image_timeres", type=int, default=-1)
-    advanced.add_argument("--pol", type=str, default="I")
-    advanced.add_argument("--apply_parang", action="store_true")
-    advanced.add_argument("--clean_threshold", type=float, default=1.0)
-    advanced.add_argument("--use_multiscale", action="store_true")
-    advanced.add_argument("--use_solar_mask", action="store_true")
-    advanced.add_argument("--cutout_rsun", type=float, default=2.5)
-    advanced.add_argument("--make_overlay", action="store_true")
-    advanced.add_argument("--cpu_frac", type=float, default=0.8)
-    advanced.add_argument("--mem_frac", type=float, default=0.8)
-    advanced.add_argument("--n_nodes", type=int, default=1)
-    advanced.add_argument("--keep_backup", action="store_true")
+        # === Advanced local system/ per node hardware resource parameters ===
+        advanced_resource = parser.add_argument_group(
+            "###################\nAdvanced hardware resource parameters for local system or per node on HPC cluster\n###################"
+        )
+        advanced_resource.add_argument(
+            "--cpu_frac", type=float, default=0.8, help="Fraction of CPU usuage per node"
+        )
+        advanced_resource.add_argument(
+            "--mem_frac", type=float, default=0.8, help="Fraction of memory usuage per node"
+        )
+        advanced_resource.add_argument(
+            "--keep_backup", action="store_true", help="Keep backup of intermediate steps"
+        )
+        advanced_resource.add_argument(
+            "--remote_logger", action="store_true", help="Use remote logger"
+        )
+        advanced_resource.add_argument(
+            "--logger_alivetime",
+            type=float,
+            default=0,
+            help="Keep remote logger alive for this many hours (Otherwise, logger will be removed after 15minutes of inactivity)",
+        )
 
-    if len(sys.argv) == 1:
-        parser.print_help(sys.stderr)
-        sys.exit(1)
-    
-    args = parser.parse_args()
-    
-    master_control(
-        msname=args.msname,
-        workdir=args.workdir,
-        solar_data=args.solar_data,
-        do_forcereset_weightflag=args.do_forcereset_weightflag,
-        do_cal_partition=args.do_cal_partition,
-        do_cal_flag=args.do_cal_flag,
-        do_import_model=args.do_import_model,
-        do_basic_cal=args.do_basic_cal,
-        do_noise_cal=args.do_noise_cal,
-        do_applycal=args.do_applycal,
-        do_target_split=args.do_target_split,
-        do_polcal=args.do_polcal,
-        do_selfcal=args.do_selfcal,
-        do_selfcal_split=args.do_selfcal_split,
-        do_apply_selfcal=args.do_apply_selfcal,
-        do_ap_selfcal=args.do_ap_selfcal,
-        solar_selfcal=args.solar_selfcal,
-        target_scans=args.target_scans,
-        freqrange=args.freqrange,
-        timerange=args.timerange,
-        uvrange=args.uvrange,
-        solint=args.solint,
-        do_imaging=args.do_imaging,
-        do_pbcor=args.do_pbcor,
-        weight=args.weight,
-        robust=args.robust,
-        minuv=args.minuv,
-        freqavg=args.freqavg,
-        timeavg=args.timeavg,
-        image_freqres=args.image_freqres,
-        image_timeres=args.image_timeres,
-        pol=args.pol,
-        apply_parang=args.apply_parang,
-        clean_threshold=args.clean_threshold,
-        use_multiscale=args.use_multiscale,
-        use_solar_mask=args.use_solar_mask,
-        cutout_rsun=args.cutout_rsun,
-        make_overlay=args.make_overlay,
-        cpu_frac=args.cpu_frac,
-        mem_frac=args.mem_frac,
-        n_nodes=args.n_nodes,
-        keep_backup=args.keep_backup,
-    )
+        # === Advanced local system/ per node hardware resource parameters ===
+        advanced_hpc = parser.add_argument_group(
+            "###################\nAdvanced HPC settings\n###################"
+        )
+        advanced_hpc.add_argument(
+            "--n_nodes",
+            type=int,
+            default=0,
+            help="Number of compute nodes to use (0 means local cluster)",
+        )
+
+        if len(sys.argv) == 1:
+            parser.print_help(sys.stderr)
+            sys.exit(1)
+
+        args = parser.parse_args()
+        
+        print("\n########################################")
+        print ("Starting MeerSOLAR Pipeline....")
+        print ("#########################################\n")
+
+        msg = master_control(
+            msname=args.msname,
+            workdir=args.workdir,
+            solar_data=args.solar_data,
+            do_forcereset_weightflag=args.do_forcereset_weightflag,
+            do_cal_partition=args.do_cal_partition,
+            do_cal_flag=args.do_cal_flag,
+            do_import_model=args.do_import_model,
+            do_basic_cal=args.do_basic_cal,
+            do_noise_cal=args.do_noise_cal,
+            do_applycal=args.do_applycal,
+            do_target_split=args.do_target_split,
+            do_polcal=args.do_polcal,
+            do_selfcal=args.do_selfcal,
+            do_selfcal_split=args.do_selfcal_split,
+            do_apply_selfcal=args.do_apply_selfcal,
+            do_ap_selfcal=args.do_ap_selfcal,
+            do_sidereal_cor=args.do_sidereal_cor,
+            solar_selfcal=args.solar_selfcal,
+            target_scans=args.target_scans,
+            freqrange=args.freqrange,
+            timerange=args.timerange,
+            uvrange=args.uvrange,
+            solint=args.solint,
+            do_imaging=args.do_imaging,
+            do_pbcor=args.do_pbcor,
+            weight=args.weight,
+            robust=args.robust,
+            minuv=args.minuv,
+            image_freqres=args.image_freqres,
+            image_timeres=args.image_timeres,
+            pol=args.pol,
+            apply_parang=args.apply_parang,
+            clean_threshold=args.clean_threshold,
+            use_multiscale=args.use_multiscale,
+            use_solar_mask=args.use_solar_mask,
+            cutout_rsun=args.cutout_rsun,
+            make_overlay=args.make_overlay,
+            cpu_frac=args.cpu_frac,
+            mem_frac=args.mem_frac,
+            n_nodes=args.n_nodes,
+            keep_backup=args.keep_backup,
+            remote_logger=args.remote_logger,
+            remote_logger_waittime=args.logger_alivetime,
+        )
+    except Exception as e:
+        traceback.print_exc()
+
 
 if __name__ == "__main__":
     main()
-    
-    

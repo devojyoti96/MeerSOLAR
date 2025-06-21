@@ -1,6 +1,5 @@
-import numpy as np, os, time, traceback, gc
+import numpy as np, os, time, traceback, gc, argparse
 from meersolar.pipeline.basic_func import *
-from optparse import OptionParser
 from casatasks import casalog
 from dask import delayed, compute
 
@@ -95,30 +94,32 @@ def split_scan(
             f"split(vis='{msname}',outputvis='{outputvis}',field='{fields_str}',scan='{scan}',spw='{spw}',correlation='{corr}',timerange='{timerange}',width={width},timebin='{timebin}',datacolumn='{datacolumn}')\n"
         )
         s = time.time()
-        split(
-            vis=msname,
-            outputvis=outputvis,
-            field=fields_str,
-            correlation=corr,
-            scan=scan,
-            spw=spw,
-            timerange=timerange,
-            width=width,
-            timebin=timebin,
-            datacolumn=datacolumn,
-        )
+        with suppress_casa_output():
+            split(
+                vis=msname,
+                outputvis=outputvis,
+                field=fields_str,
+                correlation=corr,
+                scan=scan,
+                spw=spw,
+                timerange=timerange,
+                width=width,
+                timebin=timebin,
+                datacolumn=datacolumn,
+            )
         ##########################################
         # Initiate proper weighting
         ##########################################
         print("Initiating weights ....")
-        initweights(vis=outputvis, wtmode="ones", dowtsp=True)
-        flagdata(
-            vis=outputvis,
-            mode="clip",
-            clipzeros=True,
-            datacolumn="data",
-            flagbackup=False,
-        )
+        with suppress_casa_output():
+            initweights(vis=outputvis, wtmode="ones", dowtsp=True)
+            flagdata(
+                vis=outputvis,
+                mode="clip",
+                clipzeros=True,
+                datacolumn="data",
+                flagbackup=False,
+            )
         os.system(f"touch {outputvis}/.splited")
     return outputvis
 
@@ -422,216 +423,215 @@ def split_target_scans(
 
 
 def main():
-    usage = "Split target scans"
-    parser = OptionParser(usage=usage)
-    parser.add_option(
-        "--msname",
-        dest="msname",
-        default="",
-        help="Name of measurement set",
-        metavar="Measurement Set",
+    parser = argparse.ArgumentParser(description="Split target scans",formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    
+    ## Essential parameters
+    basic_args = parser.add_argument_group(
+        "###################\nEssential parameters\n###################"
     )
-    parser.add_option(
+    basic_args.add_argument(
+        "msname",
+        type=str,
+        help="Name of measurement set (required positional argument)",
+    )
+    basic_args.add_argument(
         "--workdir",
-        dest="workdir",
+        type=str,
         default="",
         help="Name of work directory",
         metavar="String",
     )
-    parser.add_option(
+    
+    ## Advanced parameters
+    adv_args = parser.add_argument_group(
+        "###################\nAdvanced parameters\n###################"
+    )
+    adv_args.add_argument(
         "--datacolumn",
-        dest="datacolumn",
+        type=str,
         default="data",
         help="Data column to split",
         metavar="String",
     )
-    parser.add_option(
-        "--spw",
-        dest="spw",
-        default="",
-        help="Spectral window to split",
-        metavar="String",
+    adv_args.add_argument(
+        "--spw", type=str, default="", help="Spectral window to split", metavar="String"
     )
-    parser.add_option(
+    adv_args.add_argument(
         "--scans",
-        dest="scans",
+        type=str,
         default="",
         help="Target scan list (default: all)",
         metavar="String",
     )
-    parser.add_option(
+    adv_args.add_argument(
         "--time_window",
-        dest="time_window",
+        type=float,
         default=-1,
         help="Time window in seconds",
         metavar="Float",
     )
-    parser.add_option(
+    adv_args.add_argument(
         "--time_interval",
-        dest="time_interval",
+        type=float,
         default=-1,
         help="Time interval in seconds",
         metavar="Float",
     )
-    parser.add_option(
+    adv_args.add_argument(
         "--quack_timestamps",
-        dest="quack_timestamps",
+        type=int,
         default=-1,
         help="Time stamps to ignore at the start and end of the each scan",
         metavar="Integer",
     )
-    parser.add_option(
+    adv_args.add_argument(
         "--spectral_chunk",
-        dest="spectral_chunk",
+        type=float,
         default=-1,
         help="Spectral chunk in MHz",
         metavar="Float",
     )
-    parser.add_option(
+    adv_args.add_argument(
         "--n_spectral_chunk",
-        dest="n_spectral_chunk",
+        type=int,
         default=-1,
         help="Numbers of spectral chunks to split",
         metavar="Integer",
     )
-    parser.add_option(
+    adv_args.add_argument(
         "--freqres",
-        dest="freqres",
+        type=float,
         default=-1,
         help="Frequency to average in MHz",
         metavar="Float",
     )
-    parser.add_option(
+    adv_args.add_argument(
         "--timeres",
-        dest="timeres",
+        type=float,
         default=-1,
         help="Time bin to average in seconds",
         metavar="Float",
     )
-    parser.add_option(
+    adv_args.add_argument(
         "--prefix",
-        dest="prefix",
+        type=str,
         default="targets",
         help="Splited ms prefix name",
         metavar="String",
     )
-    parser.add_option(
-        "--split_fullpol",
-        dest="fullpol",
-        default=False,
-        help="Split full polar data",
-        metavar="Boolean",
+    adv_args.add_argument(
+        "--split_fullpol", action="store_true", help="Split full polar data"
     )
-    parser.add_option(
-        "--merge_spws",
-        dest="merge_spws",
-        default=False,
-        help="Merge spectral windows",
-        metavar="Boolean",
+    adv_args.add_argument(
+        "--merge_spws", action="store_true", help="Merge spectral windows"
     )
-    parser.add_option(
+    
+    ## Resource management parameters
+    hard_args = parser.add_argument_group(
+        "###################\nHardware resource management parameters\n###################"
+    )
+    hard_args.add_argument(
         "--cpu_frac",
-        dest="cpu_frac",
+        type=float,
         default=0.8,
         help="CPU fraction to use",
         metavar="Float",
     )
-    parser.add_option(
+    hard_args.add_argument(
         "--mem_frac",
-        dest="mem_frac",
+        type=float,
         default=0.8,
         help="Memory fraction to use",
         metavar="Float",
     )
-    parser.add_option(
+    hard_args.add_argument(
         "--max_cpu_frac",
-        dest="max_cpu_frac",
+        type=float,
         default=0.8,
         help="Maximum CPU fraction to use",
         metavar="Float",
     )
-    parser.add_option(
+    hard_args.add_argument(
         "--max_mem_frac",
-        dest="max_mem_frac",
+        type=float,
         default=0.8,
         help="Maximum memory fraction to use",
         metavar="Float",
     )
-    parser.add_option(
-        "--logfile",
-        dest="logfile",
-        default=None,
-        help="Log file",
-        metavar="String",
+    hard_args.add_argument(
+        "--logfile", type=str, default=None, help="Log file", metavar="String"
     )
-    parser.add_option(
-        "--jobid",
-        dest="jobid",
-        default=0,
-        help="Job ID",
-        metavar="Integer",
+    hard_args.add_argument(
+        "--jobid", type=int, default=0, help="Job ID", metavar="Integer"
     )
-    (options, args) = parser.parse_args()
-    pid=os.getpid()
-    save_pid(pid,datadir + f"/pids/pids_{options.jobid}.txt")
-    if options.workdir == "" or os.path.exists(options.workdir) == False:
-        workdir = os.path.dirname(os.path.abspath(options.msname)) + "/workdir"
-        if os.path.exists(workdir) == False:
-            os.makedirs(workdir)
-    else:
-        workdir = options.workdir
-    logfile=options.logfile
-    observer=None
-    if os.path.exists(f"{workdir}/jobname_password.npy") and logfile!=None: 
+
+    if len(sys.argv) == 1:
+        parser.print_help(sys.stderr)
+        sys.exit(1)
+
+    args = parser.parse_args()
+    pid = os.getpid()
+    save_pid(pid, datadir + f"/pids/pids_{args.jobid}.txt")
+
+    workdir = (
+        args.workdir
+        if args.workdir and os.path.exists(args.workdir)
+        else os.path.dirname(os.path.abspath(args.msname)) + "/workdir"
+    )
+    if not os.path.exists(workdir):
+        os.makedirs(workdir)
+
+    logfile = args.logfile
+    observer = None
+    if os.path.exists(f"{workdir}/jobname_password.npy") and logfile is not None:
         time.sleep(5)
-        jobname,password=np.load(f"{workdir}/jobname_password.npy",allow_pickle=True)
+        jobname, password = np.load(
+            f"{workdir}/jobname_password.npy", allow_pickle=True
+        )
         if os.path.exists(logfile):
-            observer=init_logger("do_target_split",logfile,jobname=jobname,password=password)
+            observer = init_logger(
+                "do_target_split", logfile, jobname=jobname, password=password
+            )
+
     try:
-        if options.msname != "" and os.path.exists(options.msname):
+        if args.msname and os.path.exists(args.msname):
             print("\n###################################")
             print("Start spliting target scans.")
             print("###################################\n")
-            if options.workdir == "" or os.path.exists(options.workdir) == False:
-                print("Provide existing work directory name.")
-                msg=1
-            else:
-                if options.scans != "":
-                    scans = [int(i) for i in options.scans.split(",")]
-                else:
-                    scans = []
-                msg, final_target_mslist = split_target_scans(
-                    options.msname,
-                    options.workdir,
-                    float(options.timeres),
-                    float(options.freqres),
-                    options.datacolumn,
-                    spw=str(options.spw),
-                    time_window=float(options.time_window),
-                    time_interval=float(options.time_interval),
-                    quack_timestamps=int(options.quack_timestamps),
-                    scans=scans,
-                    fullpol=eval(str(options.fullpol)),
-                    n_spectral_chunk=int(options.n_spectral_chunk),
-                    prefix=options.prefix,
-                    merge_spws=eval(str(options.merge_spws)),
-                    spectral_chunk=float(options.spectral_chunk),
-                    cpu_frac=float(options.cpu_frac),
-                    mem_frac=float(options.mem_frac),
-                    max_cpu_frac=float(options.max_cpu_frac),
-                    max_mem_frac=float(options.max_mem_frac),
-                )
+            scans = [int(i) for i in args.scans.split(",")] if args.scans else []
+            msg, final_target_mslist = split_target_scans(
+                args.msname,
+                workdir,
+                float(args.timeres),
+                float(args.freqres),
+                args.datacolumn,
+                spw=str(args.spw),
+                time_window=float(args.time_window),
+                time_interval=float(args.time_interval),
+                quack_timestamps=int(args.quack_timestamps),
+                scans=scans,
+                fullpol=args.split_fullpol,
+                n_spectral_chunk=int(args.n_spectral_chunk),
+                prefix=args.prefix,
+                merge_spws=args.merge_spws,
+                spectral_chunk=float(args.spectral_chunk),
+                cpu_frac=float(args.cpu_frac),
+                mem_frac=float(args.mem_frac),
+                max_cpu_frac=float(args.max_cpu_frac),
+                max_mem_frac=float(args.max_mem_frac),
+            )
         else:
             print("Please provide correct measurement set.\n")
-            msg=1
+            msg = 1
     except Exception as e:
         traceback.print_exc()
-        msg=1
+        msg = 1
     finally:
         time.sleep(5)
         clean_shutdown(observer)
-    return msg  
-    
+
+    return msg
+
 
 if __name__ == "__main__":
     result = main()

@@ -1,6 +1,5 @@
 import sys, traceback, time, gc
-import os, numpy as np, copy, glob
-from optparse import OptionParser
+import os, numpy as np, copy, glob, argparse
 from datetime import datetime as dt, timezone
 from functools import partial
 from meersolar.pipeline.basic_func import *
@@ -69,13 +68,14 @@ def single_ms_flag(
     if badspw != "":
         print(f"Flagging bad spectral windows: {badspw}\n")
         try:
-            flagdata(
-                vis=msname,
-                mode="manual",
-                spw=badspw,
-                cmdreason="badchan",
-                flagbackup=False,
-            )
+            with suppress_casa_output():
+                flagdata(
+                    vis=msname,
+                    mode="manual",
+                    spw=badspw,
+                    cmdreason="badchan",
+                    flagbackup=False,
+                )
         except:
             pass
 
@@ -85,13 +85,14 @@ def single_ms_flag(
     if bad_ants_str != "":
         print(f"Flagging bad antenna: {bad_ants_str}\n")
         try:
-            flagdata(
-                vis=msname,
-                mode="manual",
-                antenna=bad_ants_str,
-                cmdreason="badant",
-                flagbackup=False,
-            )
+            with suppress_casa_output():
+                flagdata(
+                    vis=msname,
+                    mode="manual",
+                    antenna=bad_ants_str,
+                    cmdreason="badant",
+                    flagbackup=False,
+                )
         except:
             pass
 
@@ -99,14 +100,15 @@ def single_ms_flag(
     # Clip zero amplitude data points
     #################################
     try:
-        flagdata(
-            vis=msname,
-            mode="clip",
-            clipzeros=True,
-            datacolumn=datacolumn,
-            autocorr=flag_autocorr,
-            flagbackup=False,
-        )
+        with suppress_casa_output():
+            flagdata(
+                vis=msname,
+                mode="clip",
+                clipzeros=True,
+                datacolumn=datacolumn,
+                autocorr=flag_autocorr,
+                flagbackup=False,
+            )
     except:
         pass
 
@@ -115,13 +117,14 @@ def single_ms_flag(
     #################################
     if flag_autocorr:
         try:
-            flagdata(
-                vis=msname,
-                mode="manual",
-                autocorr=True,
-                datacolumn=datacolumn,
-                flagbackup=False,
-            )
+            with suppress_casa_output():
+                flagdata(
+                    vis=msname,
+                    mode="manual",
+                    autocorr=True,
+                    datacolumn=datacolumn,
+                    flagbackup=False,
+                )
         except:
             pass
 
@@ -187,15 +190,41 @@ def single_ms_flag(
     ##############
     if use_tfcrop:
         try:
+            with suppress_casa_output():
+                flagdata(
+                    vis=msname,
+                    mode="tfcrop",
+                    timefit="line",
+                    freqfit="line",
+                    extendflags=False,
+                    flagdimension=flagdimension,
+                    timecutoff=5.0,
+                    freqcutoff=5.0,
+                    extendpols=True,
+                    growaround=False,
+                    action="apply",
+                    flagbackup=False,
+                    overwrite=True,
+                    writeflags=True,
+                    datacolumn=datacolumn,
+                    ntime=ntime,
+                )
+        except:
+            pass
+
+    #############
+    # Rflag flag
+    #############
+    try:
+        with suppress_casa_output():
             flagdata(
                 vis=msname,
-                mode="tfcrop",
+                mode="rflag",
                 timefit="line",
                 freqfit="line",
                 extendflags=False,
-                flagdimension=flagdimension,
-                timecutoff=5.0,
-                freqcutoff=5.0,
+                timedevscale=5.0,
+                freqdevscale=5.0,
                 extendpols=True,
                 growaround=False,
                 action="apply",
@@ -205,30 +234,6 @@ def single_ms_flag(
                 datacolumn=datacolumn,
                 ntime=ntime,
             )
-        except:
-            pass
-
-    #############
-    # Rflag flag
-    #############
-    try:
-        flagdata(
-            vis=msname,
-            mode="rflag",
-            timefit="line",
-            freqfit="line",
-            extendflags=False,
-            timedevscale=5.0,
-            freqdevscale=5.0,
-            extendpols=True,
-            growaround=False,
-            action="apply",
-            flagbackup=False,
-            overwrite=True,
-            writeflags=True,
-            datacolumn=datacolumn,
-            ntime=ntime,
-        )
     except:
         pass
 
@@ -236,24 +241,25 @@ def single_ms_flag(
     # Extend flag
     ##############
     try:
-        flagdata(
-            vis=msname,
-            mode="extend",
-            datacolumn="data",
-            clipzeros=True,
-            extendflags=False,
-            extendpols=True,
-            growtime=80.0,
-            growfreq=80.0,
-            growaround=False,
-            flagneartime=False,
-            flagnearfreq=False,
-            action="apply",
-            flagbackup=False,
-            overwrite=True,
-            writeflags=True,
-            ntime=ntime,
-        )
+        with suppress_casa_output():
+            flagdata(
+                vis=msname,
+                mode="extend",
+                datacolumn="data",
+                clipzeros=True,
+                extendflags=False,
+                extendpols=True,
+                growtime=80.0,
+                growfreq=80.0,
+                growaround=False,
+                flagneartime=False,
+                flagnearfreq=False,
+                action="apply",
+                flagbackup=False,
+                overwrite=True,
+                writeflags=True,
+                ntime=ntime,
+            )
     except:
         pass
     return
@@ -308,6 +314,7 @@ def do_flagging(
     start_time = time.time()
     try:
         from casatasks import flagdata
+
         msname = msname.rstrip("/")
         mspath = os.path.dirname(os.path.abspath(msname))
         os.chdir(mspath)
@@ -315,10 +322,11 @@ def do_flagging(
         print("Flagging measurement set : ", msname)
         print("###########################\n")
         total_cpus = psutil.cpu_count(logical=True)
-        ncpu=int(total_cpus*cpu_frac)
+        ncpu = int(total_cpus * cpu_frac)
         correct_missing_col_subms(msname)
         print("Restoring all previous flags...")
-        flagdata(vis=msname, mode="unflag", spw="0", flagbackup=False)
+        with suppress_casa_output():
+            flagdata(vis=msname, mode="unflag", spw="0", flagbackup=False)
         fluxcal_field, fluxcal_scans = get_fluxcals(msname)
         if len(fluxcal_field) == 0:
             flag_bad_spw = False
@@ -383,146 +391,123 @@ def do_flagging(
 
 def main():
     usage = "Initial flagging of calibrator data"
-    parser = OptionParser(usage=usage)
-    parser.add_option(
-        "--msname",
-        dest="msname",
-        default=None,
-        help="Name of measurement set",
-        metavar="Measurement Set",
+    parser = argparse.ArgumentParser(description=usage,formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+
+    ## Essential parameters
+    basic_args = parser.add_argument_group(
+        "###################\nEssential parameters\n###################"
     )
-    parser.add_option(
-        "--workdir",
-        dest="workdir",
-        default="",
-        help="Name of work directory",
-        metavar="String",
+    basic_args.add_argument("msname", type=str, help="Name of measurement set")
+    basic_args.add_argument(
+        "--workdir", type=str, default="", help="Name of work directory"
     )
-    parser.add_option(
-        "--datacolumn",
-        dest="datacolumn",
-        default="DATA",
-        help="Name of the datacolumn",
-        metavar="String",
+    basic_args.add_argument(
+        "--datacolumn", type=str, default="DATA", help="Name of the datacolumn"
     )
-    parser.add_option(
-        "--flag_bad_ants",
+
+    adv_args = parser.add_argument_group(
+        "###################\nAdvanced parameters\n###################"
+    )
+    
+    # Advanced switches
+    adv_args.add_argument(
+        "--no_flag_bad_ants",
         dest="flag_bad_ants",
-        default=True,
-        help="Flag bad antennas",
-        metavar="Boolean",
+        action="store_false",
+        help="Do not flag bad antennas",
     )
-    parser.add_option(
-        "--flag_bad_spw",
+    adv_args.add_argument(
+        "--no_flag_bad_spw",
         dest="flag_bad_spw",
-        default=True,
-        help="Flag bad channels",
-        metavar="Boolean",
+        action="store_false",
+        help="Do not flag bad spectral windows",
     )
-    parser.add_option(
-        "--use_tfcrop",
-        dest="use_tfcrop",
-        default=False,
-        help="Use tfcrop",
-        metavar="Boolean",
+    adv_args.add_argument(
+        "--use_tfcrop", action="store_true", help="Use tfcrop flagging"
     )
-    parser.add_option(
-        "--use_rflag",
-        dest="use_rflag",
-        default=False,
-        help="Use rflag",
-        metavar="Boolean",
-    )
-    parser.add_option(
-        "--flagdimension",
-        dest="flagdimension",
-        default="freqtime",
-        help="Flag dimension",
-        metavar="String",
-    )
-    parser.add_option(
-        "--flag_autocorr",
+    adv_args.add_argument("--use_rflag", action="store_true", help="Use rflag flagging")
+    adv_args.add_argument(
+        "--no_flag_autocorr",
         dest="flag_autocorr",
-        default=True,
-        help="Flag autpo-correlations or not",
-        metavar="Boolean",
+        action="store_false",
+        help="Do not flag auto-correlations",
     )
-    parser.add_option(
-        "--flagbackup",
+    adv_args.add_argument(
+        "--no_flagbackup",
         dest="flagbackup",
-        default=True,
-        help="Flag backup",
-        metavar="Boolean",
+        action="store_false",
+        help="Do not backup flags",
     )
-    parser.add_option(
-        "--cpu_frac",
-        dest="cpu_frac",
-        default=0.8,
-        help="CPU fraction to use",
-        metavar="Float",
+
+    ## Resource management parameters
+    hard_args = parser.add_argument_group(
+        "###################\nHardware resource management parameters\n###################"
     )
-    parser.add_option(
-        "--mem_frac",
-        dest="mem_frac",
-        default=0.8,
-        help="Memory fraction to use",
-        metavar="Float",
+    hard_args.add_argument(
+        "--flagdimension", type=str, default="freqtime", help="Flag dimension"
     )
-    parser.add_option(
-        "--logfile",
-        dest="logfile",
-        default=None,
-        help="Log file",
-        metavar="String",
+    hard_args.add_argument(
+        "--cpu_frac", type=float, default=0.8, help="CPU fraction to use"
     )
-    parser.add_option(
-        "--jobid",
-        dest="jobid",
-        default=0,
-        help="Job ID",
-        metavar="Integer",
+    hard_args.add_argument(
+        "--mem_frac", type=float, default=0.8, help="Memory fraction to use"
     )
-    (options, args) = parser.parse_args()
-    pid=os.getpid()
-    save_pid(pid,datadir + f"/pids/pids_{options.jobid}.txt")
-    if options.workdir == "" or os.path.exists(options.workdir) == False:
-        workdir = os.path.dirname(os.path.abspath(options.msname)) + "/workdir"
-        if os.path.exists(workdir) == False:
-            os.makedirs(workdir)
+    hard_args.add_argument("--logfile", type=str, default=None, help="Log file")
+    hard_args.add_argument("--jobid", type=int, default=0, help="Job ID")
+
+    if len(sys.argv) == 1:
+        parser.print_help(sys.stderr)
+        sys.exit(1)
+
+    args = parser.parse_args()
+
+    pid = os.getpid()
+    save_pid(pid, datadir + f"/pids/pids_{args.jobid}.txt")
+
+    if args.workdir == "" or not os.path.exists(args.workdir):
+        workdir = os.path.dirname(os.path.abspath(args.msname)) + "/workdir"
+        os.makedirs(workdir, exist_ok=True)
     else:
-        workdir = options.workdir
-    logfile=options.logfile
-    observer=None
-    if os.path.exists(f"{workdir}/jobname_password.npy") and logfile!=None: 
+        workdir = args.workdir
+
+    observer = None
+    if os.path.exists(f"{workdir}/jobname_password.npy") and args.logfile:
         time.sleep(5)
-        jobname,password=np.load(f"{workdir}/jobname_password.npy",allow_pickle=True)
-        if os.path.exists(logfile):
-            observer=init_logger("do_flagging",logfile,jobname=jobname,password=password)
+        jobname, password = np.load(
+            f"{workdir}/jobname_password.npy", allow_pickle=True
+        )
+        if os.path.exists(args.logfile):
+            observer = init_logger(
+                "do_flagging", args.logfile, jobname=jobname, password=password
+            )
+
     try:
-        if options.msname != None and os.path.exists(options.msname):
+        if args.msname and os.path.exists(args.msname):
             msg = do_flagging(
-                options.msname,
-                datacolumn=options.datacolumn,
-                flag_bad_ants=eval(str(options.flag_bad_ants)),
-                flag_bad_spw=eval(str(options.flag_bad_spw)),
-                use_tfcrop=eval(str(options.use_tfcrop)),
-                use_rflag=eval(str(options.use_rflag)),
-                flagdimension=options.flagdimension,
-                flag_autocorr=eval(str(options.flag_autocorr)),
-                flag_backup=eval(str(options.flagbackup)),
-                cpu_frac=float(options.cpu_frac),
-                mem_frac=float(options.mem_frac),
+                args.msname,
+                datacolumn=args.datacolumn,
+                flag_bad_ants=args.flag_bad_ants,
+                flag_bad_spw=args.flag_bad_spw,
+                use_tfcrop=args.use_tfcrop,
+                use_rflag=args.use_rflag,
+                flagdimension=args.flagdimension,
+                flag_autocorr=args.flag_autocorr,
+                flag_backup=args.flagbackup,
+                cpu_frac=args.cpu_frac,
+                mem_frac=args.mem_frac,
             )
         else:
             print("Please provide correct measurement set.\n")
-            msg=1
+            msg = 1
     except Exception as e:
         traceback.print_exc()
-        msg=1
+        msg = 1
     finally:
         time.sleep(5)
         clean_shutdown(observer)
-    return msg  
+
+    return msg
+
 
 if __name__ == "__main__":
     result = main()

@@ -1,10 +1,9 @@
 import os, time, psutil, numpy as np, glob, traceback, gc, copy
-import dask.array as da
+import dask.array as da, argparse
 from meersolar.pipeline.basic_func import *
 from meersolar.pipeline.flagging import single_ms_flag
 from meersolar.pipeline.import_model import import_fluxcal_models
 from casatools import table, ms as casamstool, msmetadata
-from optparse import OptionParser
 from dask import delayed, compute, config
 from casatasks import casalog
 
@@ -19,21 +18,22 @@ def split_casatask(
     msname="", outputvis="", scan="", time_range="", n_threads=-1, dry_run=False
 ):
     limit_threads(n_threads=n_threads)
-    from casatasks import split
-
     if dry_run:
         process = psutil.Process(os.getpid())
         mem = round(process.memory_info().rss / 1024**3, 2)  # in GB
         return mem
-    split(
-        vis=msname,
-        outputvis=outputvis,
-        scan=scan,
-        timerange=time_range,
-        datacolumn="data",
-        uvrange="0",
-        correlation="XX,YY",
-    )
+    with suppress_casa_output():
+        from casatasks import split
+        split(
+            vis=msname,
+            outputvis=outputvis,
+            scan=scan,
+            timerange=time_range,
+            datacolumn="data",
+            uvrange="0",
+            correlation="XX,YY",
+            
+        )
     return outputvis
 
 
@@ -254,7 +254,7 @@ def get_power_diff(
     cal_msname = cal_msname.rstrip("/")
     source_msname = source_msname.rstrip("/")
     print(
-        f"Estimating power difference from {os.path.basename(cal_msname)} and {os.path.basename(source_msname)}...."
+        f"Estimating power difference from {os.path.basename(cal_msname)} and {os.path.basename(source_msname)}....\n"
     )
     # Get MS metadata
     msmd = msmetadata()
@@ -302,7 +302,6 @@ def get_power_diff(
     per_ant_memory = (scale_factor_size + total_mssize) / nant
     per_ant_memory += att_ant_array_size + func_mem
     nant_per_chunk = min(nant, max(2, int(memory_limit / per_ant_memory)))
-    print(f"Numbers of antennas per chunk : {nant_per_chunk}")
     ##############################################
     # Estimating per antenna attenuation in chunks
     ##############################################
@@ -555,6 +554,7 @@ def run_noise_cal(
     ncpus = int(psutil.cpu_count() * (1 - cpu_frac))
     limit_threads(n_threads=ncpus)
     from casatasks import split, bandpass
+
     try:
         os.chdir(workdir)
         msname = msname.rstrip("/")
@@ -597,13 +597,14 @@ def run_noise_cal(
             os.system("rm -rf " + noisecal_ms)
         if os.path.exists(noisecal_ms + ".flagversions"):
             os.system("rm -rf " + noisecal_ms + ".flagversions")
-        
-        split(
-            vis=msname,
-            outputvis=noisecal_ms,
-            scan=noise_diode_cal_scan,
-            datacolumn="data",
-        )
+
+        with suppress_casa_output():
+            split(
+                vis=msname,
+                outputvis=noisecal_ms,
+                scan=noise_diode_cal_scan,
+                datacolumn="data",
+            )
 
         ###############################
         # Flagging
@@ -627,7 +628,14 @@ def run_noise_cal(
         # Import models
         ##################################
         print("Importing calibrator models ....")
-        fluxcal_result = import_fluxcal_models([noisecal_ms], f_scans, fluxcal_fields, fluxcal_scans, ncpus=ncpus, mem_frac=1 - cpu_frac)
+        fluxcal_result = import_fluxcal_models(
+            [noisecal_ms],
+            f_scans,
+            fluxcal_fields,
+            fluxcal_scans,
+            ncpus=ncpus,
+            mem_frac=1 - cpu_frac,
+        )
 
         ##################################
         # Bandpass calibration
@@ -662,21 +670,22 @@ def run_noise_cal(
             off_timerange = even_timerange
         oncal = noisecal_ms.split(".ms")[0] + "_on.bcal"
         offcal = noisecal_ms.split(".ms")[0] + "_off.bcal"
-        
-        bandpass(
-            vis=noisecal_ms,
-            caltable=oncal,
-            timerange=on_timerange,
-            uvrange=">200lambda",
-            minsnr=1,
-        )
-        bandpass(
-            vis=noisecal_ms,
-            caltable=offcal,
-            timerange=off_timerange,
-            uvrange=">200lambda",
-            minsnr=1,
-        )
+
+        with suppress_casa_output():
+            bandpass(
+                vis=noisecal_ms,
+                caltable=oncal,
+                timerange=on_timerange,
+                uvrange=">200lambda",
+                minsnr=1,
+            )
+            bandpass(
+                vis=noisecal_ms,
+                caltable=offcal,
+                timerange=off_timerange,
+                uvrange=">200lambda",
+                minsnr=1,
+            )
 
         #####################################
         # Determine attenuation scaling
@@ -736,102 +745,114 @@ def run_noise_cal(
 
 
 def main():
-    usage = "Basic calibration using calibrators"
-    parser = OptionParser(usage=usage)
-    parser.add_option(
-        "--msname",
-        dest="msname",
-        default="",
-        help="Name of measurement set",
-        metavar="Measurement Set",
+    parser = argparse.ArgumentParser(description="Basic calibration using calibrators",formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+
+    ## Essential parameters
+    basic_args = parser.add_argument_group(
+        "###################\nEssential parameters\n###################"
     )
-    parser.add_option(
+    basic_args.add_argument(
+        "msname",
+        type=str,
+        help="Name of measurement set (required positional argument)",
+    )
+    basic_args.add_argument(
         "--workdir",
-        dest="workdir",
+        type=str,
         default="",
-        help="Name of work directory",
-        metavar="String",
+        help="Working directory for calibration products",
     )
-    parser.add_option(
+
+    ## Advanced parameters
+    adv_args = parser.add_argument_group(
+        "###################\nAdvanced parameters\n###################"
+    )
+    adv_args.add_argument(
         "--keep_backup",
-        dest="keep_backup",
-        default=False,
+        action="store_true",
         help="Keep backup of measurement set after each round",
-        metavar="Boolean",
     )
-    parser.add_option(
-        "--cpu_frac",
-        dest="cpu_frac",
-        default=0.8,
-        help="CPU fraction to use",
-        metavar="Float",
+
+    ## Resource management parameters
+    hard_args = parser.add_argument_group(
+        "###################\nHardware resource management parameters\n###################"
     )
-    parser.add_option(
-        "--mem_frac",
-        dest="mem_frac",
-        default=0.8,
-        help="Memory fraction to use",
-        metavar="Float",
+    hard_args.add_argument(
+        "--cpu_frac", type=float, default=0.8, help="CPU fraction to use"
     )
-    parser.add_option(
-        "--logfile",
-        dest="logfile",
-        default=None,
-        help="Log file",
-        metavar="String",
+    hard_args.add_argument(
+        "--mem_frac", type=float, default=0.8, help="Memory fraction to use"
     )
-    parser.add_option(
-        "--jobid",
-        dest="jobid",
-        default=0,
-        help="Job ID",
-        metavar="Integer",
+    hard_args.add_argument("--logfile", type=str, default=None, help="Path to log file")
+    hard_args.add_argument(
+        "--jobid", type=str, default="0", help="Job ID for logging and tracking"
     )
-    (options, args) = parser.parse_args()
-    pid=os.getpid()
-    save_pid(pid,datadir + f"/pids/pids_{options.jobid}.txt")
-    if options.workdir == "" or os.path.exists(options.workdir) == False:
-        workdir = os.path.dirname(os.path.abspath(options.msname)) + "/workdir"
-        if os.path.exists(workdir) == False:
+
+    # === Show help if no arguments ===
+    if len(sys.argv) == 1:
+        parser.print_help(sys.stderr)
+        sys.exit(1)
+
+    args = parser.parse_args()
+
+    pid = os.getpid()
+    save_pid(pid, datadir + f"/pids/pids_{args.jobid}.txt")
+
+    # === Set up workdir ===
+    if args.workdir == "" or not os.path.exists(args.workdir):
+        workdir = os.path.dirname(os.path.abspath(args.msname)) + "/workdir"
+        if not os.path.exists(workdir):
             os.makedirs(workdir)
     else:
-        workdir = options.workdir
-    logfile=options.logfile
-    observer=None
-    if os.path.exists(f"{workdir}/jobname_password.npy") and logfile!=None: 
+        workdir = args.workdir
+
+    logfile = args.logfile
+    observer = None
+
+    if os.path.exists(f"{workdir}/jobname_password.npy") and logfile is not None:
         time.sleep(5)
-        jobname,password=np.load(f"{workdir}/jobname_password.npy",allow_pickle=True)
+        jobname, password = np.load(
+            f"{workdir}/jobname_password.npy", allow_pickle=True
+        )
         if os.path.exists(logfile):
-            observer=init_logger("do_fluxcal",logfile,jobname=jobname,password=password)
+            observer = init_logger(
+                "do_fluxcal", logfile, jobname=jobname, password=password
+            )
+
     try:
-        if options.msname != "" and os.path.exists(options.msname):
+        if os.path.exists(args.msname):
             print("\n###################################")
             print("Starting flux calibration using noise-diode.")
             print("###################################\n")
-            caldir = workdir + "/caltables"
-            if os.path.exists(caldir) == False:
+
+            caldir = os.path.join(workdir, "caltables")
+            if not os.path.exists(caldir):
                 os.makedirs(caldir)
+
             msg, att_level, all_scaling_files = run_noise_cal(
-                options.msname,
+                args.msname,
                 workdir,
-                keep_backup=eval(str(options.keep_backup)),
-                cpu_frac=float(options.cpu_frac),
-                mem_frac=float(options.mem_frac),
+                keep_backup=args.keep_backup,
+                cpu_frac=args.cpu_frac,
+                mem_frac=args.mem_frac,
             )
-            if msg == 0 and all_scaling_files != None:
+
+            if msg == 0 and all_scaling_files is not None:
                 for att_file in all_scaling_files:
                     os.system("mv " + att_file + " " + caldir)
         else:
-            print("Please provide correct measurement set.\n")
-            msg=1
-    except Exception as e:
+            print("Please provide a valid measurement set.")
+            msg = 1
+    except Exception:
         traceback.print_exc()
-        msg=1
+        msg = 1
     finally:
         time.sleep(5)
         clean_shutdown(observer)
-    return msg  
-    
+
+    return msg
+
+
 if __name__ == "__main__":
     result = main()
     print(

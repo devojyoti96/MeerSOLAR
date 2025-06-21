@@ -1,8 +1,7 @@
-import os, glob, resource, traceback, psutil, time, copy, math
+import os, glob, resource, traceback, psutil, time, copy, math, argparse
 from astropy.io import fits
 from casatools import msmetadata
 from meersolar.pipeline.basic_func import *
-from optparse import OptionParser
 from dask import delayed, compute
 from casatasks import casalog
 
@@ -32,8 +31,7 @@ def rename_image(
     imagedir : str, optional
         Image directory (default given image directory)
     pol : str, optional
-        Stokes
-    Parameters
+        Stokes parameters
     band : str, optional
         Observing band
     cutout_rsun : float, optional
@@ -55,6 +53,7 @@ def rename_image(
     header = fits.getheader(imagename)
     time = header["DATE-OBS"]
     sun_coords = get_sun(Time(time))
+    print(f"Solar center: {sun_coords.to_string('hmsdms')}")
     with fits.open(imagename, mode="update") as hdul:
         hdr = hdul[0].header
         hdr["AUTHOR"] = "DevojyotiKansabanik,DeepanPatra"
@@ -104,13 +103,15 @@ def rename_image(
             make_meer_overlay(
                 new_name,
                 overlay_pngdir,
-                plot_file_prefix=os.path.basename(new_name).split(".fits")[0]+ "_suvi_meerkat_overlay",
+                plot_file_prefix=os.path.basename(new_name).split(".fits")[0]
+                + "_suvi_meerkat_overlay",
                 extension="png",
             )
             make_meer_overlay(
                 new_name,
                 overlay_pdfdir,
-                plot_file_prefix=os.path.basename(new_name).split(".fits")[0]+ "_suvi_meerkat_overlay",
+                plot_file_prefix=os.path.basename(new_name).split(".fits")[0]
+                + "_suvi_meerkat_overlay",
                 extension="pdf",
             )
         except Exception as e:
@@ -223,13 +224,20 @@ def perform_imaging(
     logger, logfile = create_logger(
         os.path.basename(logfile).split(".log")[0], logfile, verbose=False
     )
-    sub_observer=None
-    if os.path.exists(f"{workdir}/jobname_password.npy") and logfile!=None: 
+    sub_observer = None
+    if os.path.exists(f"{workdir}/jobname_password.npy") and logfile != None:
         time.sleep(5)
-        jobname,password=np.load(f"{workdir}/jobname_password.npy",allow_pickle=True)
+        jobname, password = np.load(
+            f"{workdir}/jobname_password.npy", allow_pickle=True
+        )
         if os.path.exists(logfile):
-            print (f"Starting remote logger. Remote logger password: {password}")
-            sub_observer=init_logger("remotelogger_imaging_{os.path.basename(msname).split('.ms')[0]}",logfile,jobname=jobname,password=password)
+            print(f"Starting remote logger. Remote logger password: {password}")
+            sub_observer = init_logger(
+                "remotelogger_imaging_{os.path.basename(msname).split('.ms')[0]}",
+                logfile,
+                jobname=jobname,
+                password=password,
+            )
     try:
         msname = msname.rstrip("/")
         msname = os.path.abspath(msname)
@@ -658,23 +666,29 @@ def run_all_imaging(
     """
     start_time = time.time()
     mslist = sorted(mslist)
-    observer=None
-    if mainlogger==None:
+    observer = None
+    if mainlogger == None:
         mainlog_file = workdir + "/logs/imaging_targets.mainlog"
         mainlogger, mainlog_file = create_logger(
-            os.path.basename(mainlog_file).split(".mainlog")[0], mainlog_file, verbose=False
+            os.path.basename(mainlog_file).split(".mainlog")[0],
+            mainlog_file,
+            verbose=False,
         )
-        observer=None
-        if os.path.exists(f"{workdir}/jobname_password.npy") and mainlog_file!=None: 
+        observer = None
+        if os.path.exists(f"{workdir}/jobname_password.npy") and mainlog_file != None:
             time.sleep(5)
-            jobname,password=np.load(f"{workdir}/jobname_password.npy",allow_pickle=True)
+            jobname, password = np.load(
+                f"{workdir}/jobname_password.npy", allow_pickle=True
+            )
             if os.path.exists(mainlog_file):
-                print (f"Starting remote logger. Remote logger password: {password}")
-                observer=init_logger("all_imaging",mainlog_file,jobname=jobname,password=password)
+                print(f"Starting remote logger. Remote logger password: {password}")
+                observer = init_logger(
+                    "all_imaging", mainlog_file, jobname=jobname, password=password
+                )
     ###########################
     # WSClean container
     ###########################
-    container_name="meerwsclean"
+    container_name = "meerwsclean"
     container_present = check_udocker_container(container_name)
     if container_present == False:
         container_name = initialize_wsclean_container(name=container_name)
@@ -882,231 +896,232 @@ def run_all_imaging(
 
 
 def main():
-    usage = "Perform spectropolarimetric snapshot imaging"
-    parser = OptionParser(usage=usage)
-    parser.add_option(
-        "--mslist",
-        dest="mslist",
-        default=None,
-        help="Measurement set list",
-        metavar="List",
+    parser = argparse.ArgumentParser(
+        description="Perform spectropolarimetric snapshot imaging",formatter_class=argparse.ArgumentDefaultsHelpFormatter
     )
-    parser.add_option(
+
+    ## Essential parameters
+    basic_args = parser.add_argument_group(
+        "###################\nEssential parameters\n###################"
+    )
+    basic_args.add_argument(
+        "mslist",
+        type=str,
+        help="Comma-separated list of measurement sets (required)",
+        metavar="MSLIST",
+    )
+    basic_args.add_argument(
         "--workdir",
-        dest="workdir",
-        default=None,
-        help="Work directory",
-        metavar="String",
+        type=str,
+        default="",
+        help="Work directory for imaging outputs",
     )
-    parser.add_option(
+
+    ## Advanced parameters
+    adv_args = parser.add_argument_group(
+        "###################\nAdvanced imaging parameters\n###################"
+    )
+    adv_args.add_argument(
         "--freqrange",
-        dest="freqrange",
+        type=str,
         default="",
         help="Frequency range to image",
-        metavar="String",
     )
-    parser.add_option(
+    adv_args.add_argument(
         "--timerange",
-        dest="timerange",
+        type=str,
         default="",
-        help="Time range",
-        metavar="String",
+        help="Time range to image",
     )
-    parser.add_option(
+    adv_args.add_argument(
         "--datacolumn",
-        dest="datacolumn",
+        type=str,
         default="CORRECTED_DATA",
-        help="Data column",
-        metavar="String",
+        help="Data column to use for imaging",
     )
-    parser.add_option(
+    adv_args.add_argument(
         "--pol",
-        dest="pol",
+        type=str,
         default="I",
-        help="Stokes parameters",
-        metavar="String",
+        help="Stokes parameters to image",
     )
-    parser.add_option(
+    adv_args.add_argument(
         "--freqres",
-        dest="freqres",
+        type=float,
         default=-1,
-        help="Frequency resolution of spectral chunk in MHz",
-        metavar="Float",
+        help="Frequency resolution per chunk in MHz (-1 for full)",
     )
-    parser.add_option(
+    adv_args.add_argument(
         "--timeres",
-        dest="timeres",
+        type=float,
         default=-1,
-        help="Time resolution of temporal chunk in seconds",
-        metavar="Float",
+        help="Time resolution per chunk in seconds (-1 for full)",
     )
-    parser.add_option(
+    adv_args.add_argument(
         "--weight",
-        dest="weight",
+        type=str,
         default="briggs",
-        help="Image weighting",
-        metavar="String",
+        help="Imaging weighting scheme",
     )
-    parser.add_option(
+    adv_args.add_argument(
         "--robust",
-        dest="robust",
+        type=float,
         default=0.0,
-        help="Robust parameter for briggs weighting",
-        metavar="Float",
+        help="Briggs robust parameter",
     )
-    parser.add_option(
+    adv_args.add_argument(
         "--minuv_l",
         dest="minuv",
+        type=float,
         default=0.0,
-        help="Minimum UV in lambda",
-        metavar="Float",
+        help="Minimum UV distance in wavelengths",
     )
-    parser.add_option(
+    adv_args.add_argument(
         "--threshold",
-        dest="threshold",
+        type=float,
         default=1.0,
-        help="CLEAN threshold",
-        metavar="Float",
+        help="CLEAN threshold in Jy",
     )
-    parser.add_option(
-        "--use_multiscale",
-        dest="use_multiscale",
-        default=True,
-        help="Use multiscale or not",
-        metavar=True,
-    )
-    parser.add_option(
-        "--use_solar_mask",
-        dest="use_solar_mask",
-        default=True,
-        help="Use solar mask or not",
-        metavar="Boolean",
-    )
-    parser.add_option(
-        "--savemodel",
-        dest="savemodel",
-        default=False,
-        help="Save model images or not",
-        metavar="Boolean",
-    )
-    parser.add_option(
-        "--saveres",
-        dest="saveres",
-        default=False,
-        help="Save residual images or not",
-        metavar="Boolean",
-    )
-    parser.add_option(
+    adv_args.add_argument(
         "--band",
-        dest="band",
+        type=str,
         default="",
-        help="Band name",
-        metavar="String",
+        help="Band name label for output",
     )
-    parser.add_option(
+    adv_args.add_argument(
         "--cutout_rsun",
-        dest="cutout_rsun",
+        type=float,
         default=2.5,
-        help="Cutout image size in solar radii",
-        metavar="Float",
+        help="Cutout radius for images (solar radii)",
     )
-    parser.add_option(
-        "--make_overlay",
+    adv_args.add_argument(
+        "--no_multiscale",
+        action="store_false",
+        dest="use_multiscale",
+        help="Do not use multiscale CLEAN",
+    )
+    adv_args.add_argument(
+        "--no_solar_mask",
+        action="store_false",
+        dest="use_solar_mask",
+        help="Do not use solar disk mask for CLEANing",
+    )
+    adv_args.add_argument(
+        "--no_savemodel", action="store_false", dest="savemodel", help="Do no save model images"
+    )
+    adv_args.add_argument(
+        "--no_saveres", action="store_false", dest="saveres", help="Do not save residual images"
+    )
+    adv_args.add_argument(
+        "--no_make_overlay",
+        action="store_false",
         dest="make_overlay",
-        default=True,
-        help="Make SUVI MeerKAT overlay",
-        metavar="Boolean",
+        help="Do not generate overlay with SUVI images",
     )
-    parser.add_option(
-        "--make_plots",
+    adv_args.add_argument(
+        "--no_make_plots",
+        action="store_false",
         dest="make_plots",
-        default=True,
-        help="Make radio map helioprojective plots",
-        metavar="Boolean",
+        help="Do not make generate helioprojective plots",
     )
-    parser.add_option(
+    
+    ## Resource management parameters
+    hard_args = parser.add_argument_group(
+        "###################\nHardware resource management parameters\n###################"
+    )
+    hard_args.add_argument(
         "--cpu_frac",
-        dest="cpu_frac",
+        type=float,
         default=0.8,
-        help="CPU fraction to use",
-        metavar="Float",
+        help="Fraction of available CPU to use",
     )
-    parser.add_option(
+    hard_args.add_argument(
         "--mem_frac",
-        dest="mem_frac",
+        type=float,
         default=0.8,
-        help="Memory fraction to use",
-        metavar="Float",
+        help="Fraction of available memory to use",
     )
-    parser.add_option(
+    hard_args.add_argument(
         "--jobid",
-        dest="jobid",
-        default=0,
-        help="Job ID",
-        metavar="Integer",
+        type=str,
+        default="0",
+        help="Job ID for process tracking and logging",
     )
-    (options, args) = parser.parse_args()
-    pid=os.getpid()
-    save_pid(pid,datadir + f"/pids/pids_{options.jobid}.txt")
-    if options.workdir == "" or os.path.exists(options.workdir) == False:
-        workdir = os.path.dirname(os.path.abspath(options.msname)) + "/workdir"
-        if os.path.exists(workdir) == False:
+
+    if len(sys.argv) == 1:
+        parser.print_help(sys.stderr)
+        sys.exit(1)
+
+    args = parser.parse_args()
+
+    pid = os.getpid()
+    save_pid(pid, datadir + f"/pids/pids_{args.jobid}.txt")
+
+    if args.workdir == "" or not os.path.exists(args.workdir):
+        first_ms = args.mslist.split(",")[0]
+        workdir = os.path.dirname(os.path.abspath(first_ms)) + "/workdir"
+        if not os.path.exists(workdir):
             os.makedirs(workdir)
     else:
-        workdir = options.workdir
-    if os.path.exists(options.workdir + "/logs/") == False:
-        os.makedirs(options.workdir + "/logs/")
-    mainlog_file = options.workdir + "/logs/imaging_targets.mainlog"
+        workdir = args.workdir
+
+    if not os.path.exists(workdir + "/logs/"):
+        os.makedirs(workdir + "/logs/")
+
+    mainlog_file = workdir + "/logs/imaging_targets.mainlog"
     mainlogger, mainlog_file = create_logger(
         os.path.basename(mainlog_file).split(".mainlog")[0], mainlog_file, verbose=False
     )
-    observer=None
-    if os.path.exists(f"{workdir}/jobname_password.npy") and mainlog_file!=None: 
+
+    observer = None
+    if os.path.exists(f"{workdir}/jobname_password.npy") and mainlog_file is not None:
         time.sleep(5)
-        jobname,password=np.load(f"{workdir}/jobname_password.npy",allow_pickle=True)
+        jobname, password = np.load(
+            f"{workdir}/jobname_password.npy", allow_pickle=True
+        )
         if os.path.exists(mainlog_file):
-            observer=init_logger("all_imaging",mainlog_file,jobname=jobname,password=password)
-    try:    
-        if options.mslist == None:
-            mainlogger.info("Please provide correct measurement set list.")
-            msg=1
+            observer = init_logger(
+                "all_imaging", mainlog_file, jobname=jobname, password=password
+            )
+
+    try:
+        mslist = args.mslist.split(",")
+        if len(mslist) == 0:
+            mainlogger.info("Please provide a valid measurement set list.")
+            msg = 1
         else:
-            mslist = str(options.mslist).split(",")
-            if len(mslist) == 0:
-                mainlogger.info("Please provide correct measurement set list.")
-                msg=1
-            else:
-                msg = run_all_imaging(
-                    mslist=mslist,
-                    mainlogger=mainlogger,
-                    workdir=options.workdir,
-                    freqrange=options.freqrange,
-                    timerange=options.timerange,
-                    datacolumn=options.datacolumn,
-                    freqres=float(options.freqres),
-                    timeres=float(options.timeres),
-                    weight=options.weight,
-                    robust=float(options.robust),
-                    minuv=float(options.minuv),
-                    threshold=float(options.threshold),
-                    use_multiscale=eval(str(options.use_multiscale)),
-                    use_solar_mask=eval(str(options.use_solar_mask)),
-                    pol=options.pol,
-                    band=options.band,
-                    make_plots=eval(str(options.make_plots)),
-                    cutout_rsun=float(options.cutout_rsun),
-                    make_overlay=eval(str(options.make_overlay)),
-                    savemodel=eval(str(options.savemodel)),
-                    saveres=eval(str(options.saveres)),
-                    cpu_frac=float(options.cpu_frac),
-                    mem_frac=float(options.mem_frac),
-                )
-    except Exception as e:
+            msg = run_all_imaging(
+                mslist=mslist,
+                mainlogger=mainlogger,
+                workdir=workdir,
+                freqrange=args.freqrange,
+                timerange=args.timerange,
+                datacolumn=args.datacolumn,
+                freqres=args.freqres,
+                timeres=args.timeres,
+                weight=args.weight,
+                robust=args.robust,
+                minuv=args.minuv,
+                threshold=args.threshold,
+                use_multiscale=args.use_multiscale,
+                use_solar_mask=args.use_solar_mask,
+                pol=args.pol,
+                band=args.band,
+                make_plots=args.make_plots,
+                cutout_rsun=args.cutout_rsun,
+                make_overlay=args.make_overlay,
+                savemodel=args.savemodel,
+                saveres=args.saveres,
+                cpu_frac=args.cpu_frac,
+                mem_frac=args.mem_frac,
+            )
+    except Exception:
         traceback.print_exc()
-        msg=1
+        msg = 1
     finally:
         time.sleep(5)
         clean_shutdown(observer)
+
     return msg
 
 

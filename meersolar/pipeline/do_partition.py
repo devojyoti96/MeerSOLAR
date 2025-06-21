@@ -1,5 +1,4 @@
-from optparse import OptionParser
-import os, time, copy, traceback, gc
+import os, time, copy, traceback, gc, argparse
 from meersolar.pipeline.basic_func import *
 from dask import delayed, compute
 from casatasks import casalog
@@ -9,6 +8,7 @@ try:
     os.system("rm -rf " + logfile)
 except:
     pass
+
 
 def single_mstransform(
     msname="",
@@ -53,12 +53,13 @@ def single_mstransform(
     """
     limit_threads(n_threads=n_threads)
     from casatasks import mstransform
+
     if dry_run:
         process = psutil.Process(os.getpid())
         mem = round(process.memory_info().rss / 1024**3, 2)  # in GB
         return mem
     print(
-        f"Transforming scan : {scan}, channel averaging: {width}, time averaging: {timebin}"
+        f"Transforming scan : {scan}, channel averaging: {width}, time averaging: {timebin}\n"
     )
     if timebin == "":
         timeaverage = False
@@ -74,22 +75,23 @@ def single_mstransform(
     if os.path.exists(outputms + ".flagversions"):
         os.system("rm -rf " + outputms + ".flagversions")
     try:
-        mstransform(
-            vis=msname,
-            outputvis=outputms,
-            field=field,
-            scan=scan,
-            datacolumn=datacolumn,
-            createmms=True,
-            correlation=corr,
-            timeaverage=timeaverage,
-            timebin=timebin,
-            chanaverage=chanaverage,
-            chanbin=int(width),
-            nthreads=2,
-            separationaxis="scan",
-            numsubms=1,
-        )
+        with suppress_casa_output():
+            mstransform(
+                vis=msname,
+                outputvis=outputms,
+                field=field,
+                scan=scan,
+                datacolumn=datacolumn,
+                createmms=True,
+                correlation=corr,
+                timeaverage=timeaverage,
+                timebin=timebin,
+                chanaverage=chanaverage,
+                chanbin=int(width),
+                nthreads=2,
+                separationaxis="scan",
+                numsubms=1,
+            )
         gc.collect()
         return outputms
     except Exception as e:
@@ -144,6 +146,7 @@ def partion_ms(
     print("##################\n")
     print("Determining valid scan list ....")
     from casatools import msmetadata
+
     start_time = time.time()
     valid_scans = get_valid_scans(msname, min_scan_time=1)
     msmd = msmetadata()
@@ -240,12 +243,13 @@ def partion_ms(
         os.system("rm -rf " + outputms + ".flagversions")
     if len(splited_ms_list) == 0:
         print("No splited ms to concat.")
-    elif len(splited_ms_list)==1:
+    elif len(splited_ms_list) == 1:
         os.system(f"mv {splited_ms_list[0]} {outputms}")
     else:
         print("Making multi-MS ....")
         from casatasks import virtualconcat
-        virtualconcat(vis=splited_ms_list, concatvis=outputms)
+        with suppress_casa_output():
+            virtualconcat(vis=splited_ms_list, concatvis=outputms)
     print("##################")
     print("Total time taken : " + str(time.time() - start_time) + "s")
     print("##################\n")
@@ -254,146 +258,160 @@ def partion_ms(
 
 
 def main():
-    usage = "Partition measurement set in multi-MS format"
-    parser = OptionParser(usage=usage)
-    parser.add_option(
-        "--msname",
-        dest="msname",
-        default=None,
-        help="Name of measurement set",
-        metavar="Measurement Set",
+    parser = argparse.ArgumentParser(
+        description="Partition measurement set in multi-MS format",formatter_class=argparse.ArgumentDefaultsHelpFormatter
     )
-    parser.add_option(
+
+    ## Essential parameters
+    basic_args = parser.add_argument_group(
+        "###################\nEssential parameters\n###################"
+    )
+    basic_args.add_argument(
+        "msname",
+        type=str,
+        help="Name of input measurement set (required positional argument)",
+    )
+    basic_args.add_argument(
         "--outputms",
-        dest="outputms",
-        default="multi.ms",
-        help="Name of output measurement set",
-        metavar="Measurement Set",
+        type=str,
+        default="multi.ms", 
+        help="Name of output multi-MS",
     )
-    parser.add_option(
-        "--workdir",
-        dest="workdir",
-        default="",
-        help="Name of work directory",
-        metavar="String",
+    basic_args.add_argument(
+        "--workdir", type=str, default="",  help="Work directory"
     )
-    parser.add_option(
+
+    ## Advanced parameters
+    adv_args = parser.add_argument_group(
+        "###################\nAdvanced parameters\n###################"
+    )
+    adv_args.add_argument(
         "--fields",
-        dest="fields",
+        type=str,
         default="",
-        help="Field IDs to split",
-        metavar="Comma seperated string",
+        help="Comma-separated list of field IDs to split",
     )
-    parser.add_option(
+    adv_args.add_argument(
         "--scans",
-        dest="scans",
+        type=str,
         default="",
-        help="Scans to split",
-        metavar="Comma seperated string",
+        help="Comma-separated list of scans to split",
     )
-    parser.add_option(
+    adv_args.add_argument(
         "--width",
-        dest="width",
+        type=int,
         default=1,
         help="Number of spectral channels to average",
-        metavar="Integer",
     )
-    parser.add_option(
+    adv_args.add_argument(
         "--timebin",
-        dest="timebin",
+        type=str,
         default="",
-        help="Time to average",
-        metavar="String",
+        help="Time averaging bin (e.g., '10s', '1min')",
     )
-    parser.add_option(
+    adv_args.add_argument(
         "--datacolumn",
-        dest="datacolumn",
+        type=str,
         default="data",
         help="Datacolumn to split",
-        metavar="String",
     )
-    parser.add_option(
+    adv_args.add_argument(
         "--split_fullpol",
         dest="fullpol",
+        action="store_true",
         default=False,
-        help="Split full polar data",
-        metavar="Boolean",
+        help="Split all polarizations (default: False)",
     )
-    parser.add_option(
+    
+    ## Resource management parameters
+    hard_args = parser.add_argument_group(
+        "###################\nHardware resource management parameters\n###################"
+    )
+    hard_args.add_argument(
         "--cpu_frac",
-        dest="cpu_frac",
+        type=float,
         default=0.8,
         help="CPU fraction to use",
-        metavar="Float",
     )
-    parser.add_option(
+    hard_args.add_argument(
         "--mem_frac",
-        dest="mem_frac",
+        type=float,
         default=0.8,
         help="Memory fraction to use",
-        metavar="Float",
     )
-    parser.add_option(
-        "--logfile",
-        dest="logfile",
-        default=None,
-        help="Log file",
-        metavar="String",
+    hard_args.add_argument(
+        "--logfile", type=str, default=None,  help="Path to log file"
     )
-    parser.add_option(
+    hard_args.add_argument(
         "--jobid",
-        dest="jobid",
-        default=0,
-        help="Job ID",
-        metavar="Integer",
+        type=str,
+        default="0",
+        help="Job ID for process tracking",
     )
-    (options, args) = parser.parse_args()
-    pid=os.getpid()
-    save_pid(pid,datadir + f"/pids/pids_{options.jobid}.txt")
-    if options.workdir == "" or os.path.exists(options.workdir) == False:
-        workdir = os.path.dirname(os.path.abspath(options.msname)) + "/workdir"
-        if os.path.exists(workdir) == False:
+
+    # Show help if nothing is passed
+    if len(sys.argv) == 1:
+        parser.print_help(sys.stderr)
+        sys.exit(1)
+
+    args = parser.parse_args()
+
+    pid = os.getpid()
+    save_pid(pid, datadir + f"/pids/pids_{args.jobid}.txt")
+
+    if args.workdir == "" or not os.path.exists(args.workdir):
+        workdir = os.path.dirname(os.path.abspath(args.msname)) + "/workdir"
+        if not os.path.exists(workdir):
             os.makedirs(workdir)
     else:
-        workdir = options.workdir
-    logfile=options.logfile
-    observer=None
-    if os.path.exists(f"{workdir}/jobname_password.npy") and logfile!=None: 
+        workdir = args.workdir
+
+    logfile = args.logfile
+    observer = None
+
+    if os.path.exists(f"{workdir}/jobname_password.npy") and logfile is not None:
         time.sleep(5)
-        jobname,password=np.load(f"{workdir}/jobname_password.npy",allow_pickle=True)
+        jobname, password = np.load(
+            f"{workdir}/jobname_password.npy", allow_pickle=True
+        )
         if os.path.exists(logfile):
-            observer=init_logger("partition_cal",logfile,jobname=jobname,password=password)
-    try:
-        if options.msname != None and os.path.exists(options.msname): 
-            outputms = partion_ms(
-                options.msname,
-                options.outputms,
-                fields=options.fields,
-                scans=options.scans,
-                width=int(options.width),
-                timebin=str(options.timebin),
-                fullpol=eval(str(options.fullpol)),
-                datacolumn=options.datacolumn,
-                cpu_frac=float(options.cpu_frac),
-                mem_frac=float(options.mem_frac),
+            observer = init_logger(
+                "partition_cal", logfile, jobname=jobname, password=password
             )
-            if outputms == None or os.path.exists(outputms) == False:
+
+    try:
+        if os.path.exists(args.msname):
+            outputms = partion_ms(
+                args.msname,
+                args.outputms,
+                fields=args.fields,
+                scans=args.scans,
+                width=args.width,
+                timebin=args.timebin,
+                fullpol=args.fullpol,
+                datacolumn=args.datacolumn,
+                cpu_frac=args.cpu_frac,
+                mem_frac=args.mem_frac,
+            )
+            if outputms is None or not os.path.exists(outputms):
                 print("Error in partitioning measurement set.")
-                msg=0
+                msg = 0
             else:
-                print("Partitioned multi-MS is created at: ", outputms)
-                msg=1
+                print("Partitioned multi-MS is created at:", outputms)
+                msg = 1
         else:
-            print("Please provide correct measurement set.\n")
-            msg=1
-    except Exception as e:
+            print("Please provide a valid measurement set.\n")
+            msg = 1
+    except Exception:
         traceback.print_exc()
-        msg=1
+        msg = 1
     finally:
         time.sleep(5)
         clean_shutdown(observer)
-    return msg     
-    
+
+    return msg
+
+
 if __name__ == "__main__":
     result = main()
     print(

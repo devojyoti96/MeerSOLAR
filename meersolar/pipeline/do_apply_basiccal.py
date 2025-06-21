@@ -1,11 +1,10 @@
-import numpy as np, glob, os, copy, warnings, traceback, gc
+import numpy as np, glob, os, copy, warnings, traceback, gc, argparse
 from casatools import table
 from scipy.interpolate import CubicSpline
 from scipy.ndimage import gaussian_filter1d
 from scipy.interpolate import interp1d
 from meersolar.pipeline.basic_func import *
 from dask import delayed, compute
-from optparse import OptionParser
 from casatasks import casalog
 
 try:
@@ -13,6 +12,7 @@ try:
     os.system("rm -rf " + logfile)
 except:
     pass
+
 
 def interpolate_nans(data):
     """Linearly interpolate NaNs in 1D array."""
@@ -71,7 +71,7 @@ def filter_outliers(data, threshold=5, max_iter=3):
     return filtered_data
 
 
-def scale_bandpass(bandpass_table, att_table, n=15):
+def scale_bandpass(bandpass_table, att_table, freqavg=10):
     """
     Scale a bandpass calibration table using attenuation data.
 
@@ -82,8 +82,8 @@ def scale_bandpass(bandpass_table, att_table, n=15):
         Input bandpass calibration table.
     att_table : str
         NumPy .npy file containing attenuation frequency and values.
-    n : int, optional
-        Number of channels to average over for polynomial fitting (default is 15). Final table has same number pf channels as input.
+    freqavg : float, optional
+        Frequency average in MHz for polynomial fitting (default is 10 MHz). Final table has same number of channels as input.
 
     Returns
     -------
@@ -97,6 +97,8 @@ def scale_bandpass(bandpass_table, att_table, n=15):
     print(f"Bandpass table: {bandpass_table}, Attenuation table: {att_table}")
     results = np.load(att_table, allow_pickle=True)
     scan, freqs, att_values, flag_ants, att_array = results
+    freqres=abs(freqs[1]-freqs[0])/10**6 # In MHz
+    n=int(freqavg/freqres)
     output_table = bandpass_table.split(".bcal")[0] + "_scan_" + str(scan) + ".bcal"
     tb = table()
     tb.open(f"{bandpass_table}/SPECTRAL_WINDOW")
@@ -212,20 +214,22 @@ def applysol(
             return 0
         else:
             if os.path.exists(msname + check_file) and force_apply == True:
-                clearcal(vis=msname)
-                flagdata(vis=msname, mode="unflag", spw="0", flagbackup=False)
+                with suppress_casa_output():
+                    clearcal(vis=msname)
+                    flagdata(vis=msname, mode="unflag", spw="0", flagbackup=False)
                 if os.path.exists(msname + ".flagversions"):
                     os.system("rm -rf " + msname + ".flagversions")
-            applycal(
-                vis=msname,
-                gaintable=gaintable,
-                gainfield=gainfield,
-                applymode=applymode,
-                interp=interp,
-                calwt=[False],
-                parang=parang,
-                flagbackup=False,
-            )
+            with suppress_casa_output():
+                applycal(
+                    vis=msname,
+                    gaintable=gaintable,
+                    gainfield=gainfield,
+                    applymode=applymode,
+                    interp=interp,
+                    calwt=[False],
+                    parang=parang,
+                    flagbackup=False,
+                )
         if overwrite_datacolumn:
             print(f"Spliting corrected data for ms: {msname}.")
             outputvis = msname.split(".ms")[0] + "_cor.ms"
@@ -234,7 +238,8 @@ def applysol(
             touch_file_names = glob.glob(f"{msname}/.*")
             if len(touch_file_names) > 0:
                 touch_file_names = [os.path.basename(f) for f in touch_file_names]
-            split(vis=msname, outputvis=outputvis, datacolumn="corrected")
+            with suppress_casa_output():
+                split(vis=msname, outputvis=outputvis, datacolumn="corrected")
             if os.path.exists(outputvis):
                 os.system(f"rm -rf {msname} {msname}.flagversions")
                 os.system(f"mv {outputvis} {msname}")
@@ -486,143 +491,141 @@ def run_all_applysol(
 
 
 def main():
-    usage = "Apply basic calibration solutions of target scans"
-    parser = OptionParser(usage=usage)
-    parser.add_option(
-        "--mslist",
-        dest="mslist",
-        default="",
-        help="Comma seperated list of measurement sets",
-        metavar="String",
+    parser = argparse.ArgumentParser(
+        description="Apply basic calibration solutions to target scans",formatter_class=argparse.ArgumentDefaultsHelpFormatter
     )
-    parser.add_option(
+
+    ## Essential parameters
+    basic_args = parser.add_argument_group(
+        "###################\nEssential parameters\n###################"
+    )
+    basic_args.add_argument(
+        "mslist",
+        type=str,
+        help="Comma-separated list of measurement sets (required)",
+    )
+    basic_args.add_argument(
         "--workdir",
-        dest="workdir",
+        type=str,
         default="",
-        help="Name of work directory",
-        metavar="String",
+        help="Working directory for intermediate files",
     )
-    parser.add_option(
-        "--caldir",
-        dest="caldir",
-        default="",
-        help="Caltable directory",
-        metavar="String",
+    basic_args.add_argument(
+        "--caldir", type=str, default="", help="Directory containing calibration tables"
     )
-    parser.add_option(
+
+    ## Advanced parameters
+    adv_args = parser.add_argument_group(
+        "###################\nAdvanced parameters\n###################"
+    )
+    adv_args.add_argument(
         "--use_only_bandpass",
-        dest="use_only_bandpass",
-        default=False,
-        help="Use only bandpass solutions",
-        metavar="Boolean",
+        action="store_true",
+        help="Use only bandpass calibration solutions",
     )
-    parser.add_option(
+    adv_args.add_argument(
         "--applymode",
-        dest="applymode",
+        type=str,
         default="calflag",
-        help="Applycal mode",
-        metavar="String",
+        help="Applycal mode (e.g. 'calonly', 'calflag')",
     )
-    parser.add_option(
+    adv_args.add_argument(
         "--overwrite_datacolumn",
-        dest="overwrite_datacolumn",
-        default=False,
-        help="Overwrite data column or not",
-        metavar="Boolean",
+        action="store_true",
+        help="Overwrite corrected data column in MS",
     )
-    parser.add_option(
+    adv_args.add_argument(
         "--force_apply",
-        dest="force_apply",
-        default=False,
-        help="Force to apply solutions even it is already applied",
-        metavar="Boolean",
+        action="store_true",
+        help="Force apply calibration even if already applied",
     )
-    parser.add_option(
-        "--do_post_flag",
-        dest="do_post_flag",
-        default=False,
-        help="Do post calibration flagging",
-        metavar="Boolean",
+    adv_args.add_argument(
+        "--do_post_flag", action="store_true", help="Perform post-calibration flagging"
     )
-    parser.add_option(
-        "--cpu_frac",
-        dest="cpu_frac",
-        default=0.8,
-        help="CPU fraction to use",
-        metavar="Float",
+
+    ## Resource management parameters
+    hard_args = parser.add_argument_group(
+        "###################\nHardware resource management parameters\n###################"
     )
-    parser.add_option(
-        "--mem_frac",
-        dest="mem_frac",
-        default=0.8,
-        help="Memory fraction to use",
-        metavar="Float",
+    hard_args.add_argument(
+        "--cpu_frac", type=float, default=0.8, help="CPU fraction to use"
     )
-    parser.add_option(
-        "--logfile",
-        dest="logfile",
-        default=None,
-        help="Log file",
-        metavar="String",
+    hard_args.add_argument(
+        "--mem_frac", type=float, default=0.8, help="Memory fraction to use"
     )
-    parser.add_option(
-        "--jobid",
-        dest="jobid",
-        default=0,
-        help="Job ID",
-        metavar="Integer",
+    hard_args.add_argument(
+        "--logfile", type=str, default=None, help="Optional path to log file"
     )
-    (options, args) = parser.parse_args()
-    pid=os.getpid()
-    save_pid(pid,datadir + f"/pids/pids_{options.jobid}.txt")
-    if options.workdir == "" or os.path.exists(options.workdir) == False:
-        workdir = os.path.dirname(os.path.abspath(options.msname)) + "/workdir"
-        if os.path.exists(workdir) == False:
+    hard_args.add_argument(
+        "--jobid", type=str, default="0", help="Job ID for logging and process tracking"
+    )
+
+    if len(sys.argv) == 1:
+        parser.print_help(sys.stderr)
+        sys.exit(1)
+
+    args = parser.parse_args()
+
+    pid = os.getpid()
+    save_pid(pid, datadir + f"/pids/pids_{args.jobid}.txt")
+
+    if args.workdir == "" or not os.path.exists(args.workdir):
+        workdir = (
+            os.path.dirname(os.path.abspath(args.mslist.split(",")[0])) + "/workdir"
+        )
+        if not os.path.exists(workdir):
             os.makedirs(workdir)
     else:
-        workdir = options.workdir
-    logfile=options.logfile
-    observer=None
-    if os.path.exists(f"{workdir}/jobname_password.npy") and logfile!=None: 
+        workdir = args.workdir
+
+    logfile = args.logfile
+    observer = None
+
+    if os.path.exists(f"{workdir}/jobname_password.npy") and logfile is not None:
         time.sleep(5)
-        jobname,password=np.load(f"{workdir}/jobname_password.npy",allow_pickle=True)
+        jobname, password = np.load(
+            f"{workdir}/jobname_password.npy", allow_pickle=True
+        )
         if os.path.exists(logfile):
-            observer=init_logger("apply_basiccal",logfile,jobname=jobname,password=password)
+            observer = init_logger(
+                "apply_basiccal", logfile, jobname=jobname, password=password
+            )
+
     try:
-        if options.mslist != "":
-            print("\n###################################")
-            print("Starting applying solutions...")
-            print("###################################\n")
-            if options.workdir == "" or os.path.exists(options.workdir) == False:
-                print("Provide existing work directory name.")
-                msg=1
-            elif options.caldir == "" or os.path.exists(options.caldir) == False:
-                print("Provide existing caltable directory.")
-                msg=1
-            else:
-                msg = run_all_applysol(
-                    options.mslist.split(","),
-                    options.workdir,
-                    options.caldir,
-                    use_only_bandpass=eval(str(options.use_only_bandpass)),
-                    overwrite_datacolumn=eval(str(options.overwrite_datacolumn)),
-                    do_post_flag=eval(str(options.do_post_flag)),
-                    applymode=options.applymode,
-                    force_apply=eval(str(options.force_apply)),
-                    cpu_frac=float(options.cpu_frac),
-                    mem_frac=float(options.mem_frac),
-                )
+        print("\n###################################")
+        print("Starting applying solutions...")
+        print("###################################\n")
+
+        if args.workdir == "" or not os.path.exists(args.workdir):
+            print("Provide existing work directory name.")
+            msg = 1
+        elif args.caldir == "" or not os.path.exists(args.caldir):
+            print("Provide existing caltable directory.")
+            msg = 1
         else:
-            print("Please provide valid measurement set list.\n")
-            msg=1
-    except Exception as e:
+            mslist = args.mslist.split(",")
+            msg = run_all_applysol(
+                mslist,
+                args.workdir,
+                args.caldir,
+                use_only_bandpass=args.use_only_bandpass,
+                overwrite_datacolumn=args.overwrite_datacolumn,
+                do_post_flag=args.do_post_flag,
+                applymode=args.applymode,
+                force_apply=args.force_apply,
+                cpu_frac=args.cpu_frac,
+                mem_frac=args.mem_frac,
+            )
+    except Exception:
         traceback.print_exc()
-        msg=1
+        msg = 1
     finally:
         time.sleep(5)
         clean_shutdown(observer)
-    return msg  
-    
+
+    return msg
+
+
 if __name__ == "__main__":
     result = main()
     print(
