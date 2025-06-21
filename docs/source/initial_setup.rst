@@ -15,6 +15,7 @@ Download MeerSOLAR metadata
 2. If data files are present, but needs to updated, run:
 
 .. code-block :: bash
+
     init_meersolar_data --init --update
     
 Setup remote logger link
