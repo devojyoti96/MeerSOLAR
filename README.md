@@ -25,10 +25,10 @@ MeerSOLAR is distributed on [PyPI]. To use it:
 
 1. Install conda with python 3.10
 
-    
+    ```text
     conda create -n meersolar_env python=3.10
     conda activate meersolar_env
-    
+    ```
 
 2. Install MeerSOLAR in conda environment
 

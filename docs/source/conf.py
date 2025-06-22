@@ -25,6 +25,10 @@ extensions = [
     "sphinx.ext.autosummary",
     "sphinx.ext.doctest",
     "sphinxcontrib.programoutput",  
+    "sphinx_togglebutton",
+    "myst_parser",
+    'sphinx.ext.graphviz',
+
 ]
 
 templates_path = ['_templates']
@@ -45,7 +49,7 @@ html_theme_options = {
     "navigation_with_keys": True,
 }
 
-
+sphinx_togglebutton_selector = ".toggle-this-element, #my-special-id"
 napoleon_google_docstring = True
 napoleon_numpy_docstring = True
 
@@ -53,4 +57,14 @@ autodoc_mock_imports = [
     "casatools",
     "casatasks",
 ]
+myst_enable_extensions = [
+    "colon_fence",
+    "attrs_inline",
+    "deflist",
+]
+
+source_suffix = {
+    ".rst": "restructuredtext",
+    ".md": "markdown",
+}
 

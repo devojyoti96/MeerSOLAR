@@ -3,10 +3,10 @@
   <head><meta charset="utf-8"/>
     <meta name="viewport" content="width=device-width,initial-scale=1"/>
     <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
-<link rel="index" title="Index" href="genindex.html" /><link rel="search" title="Search" href="search.html" /><link rel="next" title="Meersolar Pipeline Module" href="meersolar.pipeline.html" /><link rel="prev" title="Command line tools" href="cli.html" />
+<link rel="index" title="Index" href="genindex.html" /><link rel="search" title="Search" href="search.html" /><link rel="next" title="Run MeerSOLAR pipeline" href="runpipeline.html" /><link rel="prev" title="Tutorial" href="tutorial.html" />
 
     <!-- Generated with Sphinx 7.4.7 and Furo 2024.01.29 -->
-        <title>API Reference - MeerSOLAR</title>
+        <title>MeerSOLAR Flowchart - MeerSOLAR</title>
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=a746c00c" />
     <link rel="stylesheet" type="text/css" href="_static/styles/furo.css?v=135e06be" />
     <link rel="stylesheet" type="text/css" href="_static/copybutton.css?v=76b2166b" />
@@ -171,13 +171,13 @@
 <li class="toctree-l2"><a class="reference internal" href="initial_setup.html">Initial setup</a></li>
 </ul>
 </li>
-<li class="toctree-l1 has-children"><a class="reference internal" href="tutorial.html">Tutorial</a><input class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" role="switch" type="checkbox"/><label for="toctree-checkbox-2"><div class="visually-hidden">Toggle navigation of Tutorial</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
-<li class="toctree-l2"><a class="reference internal" href="flowchart.html">MeerSOLAR Flowchart</a></li>
+<li class="toctree-l1 current has-children"><a class="reference internal" href="tutorial.html">Tutorial</a><input checked="" class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" role="switch" type="checkbox"/><label for="toctree-checkbox-2"><div class="visually-hidden">Toggle navigation of Tutorial</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="current">
+<li class="toctree-l2 current current-page"><a class="current reference internal" href="#">MeerSOLAR Flowchart</a></li>
 <li class="toctree-l2"><a class="reference internal" href="runpipeline.html">Run MeerSOLAR pipeline</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="cli.html">Command line tools</a></li>
-<li class="toctree-l1 current has-children current-page"><a class="current reference internal" href="#">API Reference</a><input checked="" class="toctree-checkbox" id="toctree-checkbox-3" name="toctree-checkbox-3" role="switch" type="checkbox"/><label for="toctree-checkbox-3"><div class="visually-hidden">Toggle navigation of API Reference</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l1 has-children"><a class="reference internal" href="meersolar.html">API Reference</a><input class="toctree-checkbox" id="toctree-checkbox-3" name="toctree-checkbox-3" role="switch" type="checkbox"/><label for="toctree-checkbox-3"><div class="visually-hidden">Toggle navigation of API Reference</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
 <li class="toctree-l2"><a class="reference internal" href="meersolar.pipeline.html">Meersolar Pipeline Module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="meersolar.crystalball.html">Crystalball Module</a></li>
 </ul>
@@ -216,45 +216,60 @@
           </label>
         </div>
         <article role="main">
-          <section id="api-reference">
-<h1>API Reference<a class="headerlink" href="#api-reference" title="Link to this heading">¶</a></h1>
-<p>This page provides details of API of different modules of MeerSOLAR pipeline.</p>
-<div class="toctree-wrapper compound">
-<ul>
-<li class="toctree-l1"><a class="reference internal" href="meersolar.pipeline.html">Meersolar Pipeline Module</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="meersolar.pipeline.html#module-meersolar.pipeline.basic_cal">meersolar.pipeline.basic_cal module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="meersolar.pipeline.html#module-meersolar.pipeline.basic_func">meersolar.pipeline.basic_func module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="meersolar.pipeline.html#module-meersolar.pipeline.do_apply_basiccal">meersolar.pipeline.do_apply_basiccal module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="meersolar.pipeline.html#module-meersolar.pipeline.do_apply_selfcal">meersolar.pipeline.do_apply_selfcal module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="meersolar.pipeline.html#module-meersolar.pipeline.do_fluxcal">meersolar.pipeline.do_fluxcal module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="meersolar.pipeline.html#module-meersolar.pipeline.do_imaging">meersolar.pipeline.do_imaging module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="meersolar.pipeline.html#module-meersolar.pipeline.do_partition">meersolar.pipeline.do_partition module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="meersolar.pipeline.html#module-meersolar.pipeline.do_selfcal">meersolar.pipeline.do_selfcal module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="meersolar.pipeline.html#module-meersolar.pipeline.do_sidereal_cor">meersolar.pipeline.do_sidereal_cor module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="meersolar.pipeline.html#module-meersolar.pipeline.do_target_split">meersolar.pipeline.do_target_split module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="meersolar.pipeline.html#module-meersolar.pipeline.flagging">meersolar.pipeline.flagging module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="meersolar.pipeline.html#module-meersolar.pipeline.import_model">meersolar.pipeline.import_model module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="meersolar.pipeline.html#module-meersolar.pipeline.init_data">meersolar.pipeline.init_data module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="meersolar.pipeline.html#module-meersolar.pipeline.master_controller">meersolar.pipeline.master_controller module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="meersolar.pipeline.html#module-meersolar.pipeline.meer_pbcor">meersolar.pipeline.meer_pbcor module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="meersolar.pipeline.html#module-meersolar.pipeline.single_image_meerpbcor">meersolar.pipeline.single_image_meerpbcor module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="meersolar.pipeline.html#module-meersolar.pipeline.viewer">meersolar.pipeline.viewer module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="meersolar.pipeline.html#module-meersolar.pipeline">Module contents</a></li>
-</ul>
-</li>
-<li class="toctree-l1"><a class="reference internal" href="meersolar.crystalball.html">Crystalball Module</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="meersolar.crystalball.html#module-meersolar.crystalball.budget">meersolar.crystalball.budget module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="meersolar.crystalball.html#module-meersolar.crystalball.crystalball">meersolar.crystalball.crystalball module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="meersolar.crystalball.html#module-meersolar.crystalball.filtering">meersolar.crystalball.filtering module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="meersolar.crystalball.html#module-meersolar.crystalball.logger_init">meersolar.crystalball.logger_init module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="meersolar.crystalball.html#module-meersolar.crystalball.ms">meersolar.crystalball.ms module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="meersolar.crystalball.html#module-meersolar.crystalball.region">meersolar.crystalball.region module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="meersolar.crystalball.html#module-meersolar.crystalball.wsclean">meersolar.crystalball.wsclean module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="meersolar.crystalball.html#module-meersolar.crystalball">Module contents</a></li>
-</ul>
-</li>
-</ul>
-</div>
+          <section id="meersolar-flowchart">
+<h1>MeerSOLAR Flowchart<a class="headerlink" href="#meersolar-flowchart" title="Link to this heading">¶</a></h1>
+<p>The pipeline follows these following steps:</p>
+<div class="graphviz"><img src="_images/graphviz-e9adee92ec693c98bf35e698c325387656e77239.png" alt="digraph G {
+    rankdir=TB;  // Top to Bottom
+
+    Start [label=&quot;Start&quot;, shape=ellipse];
+    Decision1 [label=&quot;HPC?&quot;, shape=diamond];
+    Process1 [label=&quot;Fluxcal with\nnoise-diode&quot;, shape=box];
+    Process2 [label=&quot;Target spliting\nin parallel&quot;, shape=box];
+    Decision2 [label=&quot;Do basic\ncalibration?&quot;, shape=diamond];
+    Process3 [label=&quot;Make multi-ms using\ncalibrator scans&quot;, shape=box];
+    Process4 [label=&quot;Perform flagging\non calibrators&quot;, shape=box];
+    Process4a [label=&quot;Simulate\ncalibrator\nvisibilities&quot;, shape=box];
+    Process5 [label=&quot;Perform basic\ncalibration&quot;, shape=box];
+    Decision2a [label=&quot;Calibration\ntable\npresent?&quot;, shape=diamond];
+    Decision3 [label=&quot;Do\nself\ncalibration?&quot;, shape=diamond];
+    Process6 [label=&quot;Apply basic\ncalibrations&quot;, shape=box];
+    Decision1a [label=&quot;HPC?&quot;, shape=diamond];
+    Process7 [label=&quot;Target spliting\nin parallel&quot;, shape=box];
+    Process8 [label=&quot;Perform\nself-calibration&quot;, shape=box];
+    Process9 [label=&quot;Stop with\nbasic calibrated\nvisibilities&quot;, shape=ellipse];
+    Decision4 [label=&quot;Self\ncalibration\nsuccessful?&quot;, shape=diamond];
+    Process10 [label=&quot;Apply\nself-calibration&quot;, shape=box];
+    Process11 [label=&quot;Stop with\nbasic calibrated\nvisibilities&quot;, shape=ellipse];
+    Process12 [label=&quot;Split raw\ndata of\ntarget scans\nfor imaging&quot;, shape=box];
+    Process13 [label=&quot;Apply\nbasic calibrations&quot;, shape=box];
+    Process14 [label=&quot;Apply\nself calibrations&quot;, shape=box];
+    Process15 [label=&quot;Perform imaging&quot;, shape=box];
+    Process16 [label=&quot;Finished with\nfinal imaging\nproducts&quot;, shape=ellipse];
+    Stop [label=&quot;Pipeline end&quot;, shape=ellipse];
+
+
+    Start -&gt; Decision1;
+    Decision1 -&gt; Process1 [label=&quot; Y/N&quot;, tailport=s, headport=n, rank=same];
+    Process1 -&gt; Decision2 [tailport=s, headport=n, rank=same];
+    Decision1-&gt; Process2 [label=&quot; Y&quot;, tailport=e, headport=n, rank=same];
+    Decision2 -&gt; Process3 [label=&quot; Y&quot;, tailport=w, headport=n, rank=same];
+    Process3 -&gt; Process4 -&gt; Process4a-&gt; Process5 [tailport=s, headport=n, rank=same];
+    Process5 -&gt; Decision2a [tailport=s, headport=w, rank=same];
+    Decision2 -&gt; Decision2a [label=&quot; N&quot;, tailport=s, headport=n, rank=same];
+    Decision2a -&gt; Process6 [tailport=s, headport=n, rank=same];
+    Decision2a -&gt; Stop [tailport=e, headport=n, rank=same];
+    Process6 -&gt; Decision3 [tailport=s, headport=n, rank=same];
+    Decision3 -&gt; Decision1a [label=&quot; Y&quot;, tailport=w, headport=n, rank=same];
+    Decision1a -&gt; Process8 [label=&quot; Y&quot;, tailport=e, headport=n, rank=same];
+    Decision1a -&gt; Process7 [label=&quot; N&quot;, tailport=s, headport=n, rank=same];
+    Process7 -&gt; Process8 [tailport=s, headport=w, rank=same];
+    Process8 -&gt; Decision4 [tailport=s, headport=n, rank=same];
+    Decision3 -&gt; Process9 [label=&quot; N&quot;, tailport=e, headport=n, rank=same];
+    Decision4 -&gt; Process10 [label=&quot; Y&quot;, tailport=s, headport=n, rank=same]
+    Decision4 -&gt; Process11 [label=&quot; N&quot;, tailport=e, headport=n, rank=same];
+    Process10 -&gt; Process12 -&gt; Process13 -&gt; Process14 -&gt; Process15 -&gt; Process16 [tailport=s, headport=n, rank=same];
+}" class="graphviz" /></div>
 </section>
 
         </article>
@@ -262,23 +277,23 @@
       <footer>
         
         <div class="related-pages">
-          <a class="next-page" href="meersolar.pipeline.html">
+          <a class="next-page" href="runpipeline.html">
               <div class="page-info">
                 <div class="context">
                   <span>Next</span>
                 </div>
-                <div class="title">Meersolar Pipeline Module</div>
+                <div class="title">Run MeerSOLAR pipeline</div>
               </div>
               <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
             </a>
-          <a class="prev-page" href="cli.html">
+          <a class="prev-page" href="tutorial.html">
               <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
               <div class="page-info">
                 <div class="context">
                   <span>Previous</span>
                 </div>
                 
-                <div class="title">Command line tools</div>
+                <div class="title">Tutorial</div>
                 
               </div>
             </a>

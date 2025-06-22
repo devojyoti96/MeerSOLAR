@@ -10,8 +10,10 @@
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=a746c00c" />
     <link rel="stylesheet" type="text/css" href="_static/styles/furo.css?v=135e06be" />
     <link rel="stylesheet" type="text/css" href="_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="_static/togglebutton.css?v=13237357" />
+    <link rel="stylesheet" type="text/css" href="_static/graphviz.css?v=fd3f3429" />
     <link rel="stylesheet" type="text/css" href="_static/styles/furo-extensions.css?v=36a5483c" />
-    <link rel="stylesheet" type="text/css" href="_static/custom.css?v=db239b2d" />
+    <link rel="stylesheet" type="text/css" href="_static/custom.css?v=2b5763e6" />
     
     
 
@@ -161,6 +163,7 @@
 </form>
 <div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
   <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="quickstart.html">Quickstart</a></li>
 <li class="toctree-l1 has-children"><a class="reference internal" href="install.html">Installation and Initial Setup</a><input class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><div class="visually-hidden">Toggle navigation of Installation and Initial Setup</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
 <li class="toctree-l2"><a class="reference internal" href="install_conda.html">Installing Conda: Anaconda or Miniconda</a></li>
 <li class="toctree-l2"><a class="reference internal" href="activate_conda.html">Creating and Activating Conda Environment</a></li>
@@ -168,9 +171,13 @@
 <li class="toctree-l2"><a class="reference internal" href="initial_setup.html">Initial setup</a></li>
 </ul>
 </li>
-<li class="toctree-l1"><a class="reference internal" href="tutorial.html">Basic Tutorial</a></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="tutorial.html">Tutorial</a><input class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" role="switch" type="checkbox"/><label for="toctree-checkbox-2"><div class="visually-hidden">Toggle navigation of Tutorial</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="flowchart.html">MeerSOLAR Flowchart</a></li>
+<li class="toctree-l2"><a class="reference internal" href="runpipeline.html">Run MeerSOLAR pipeline</a></li>
+</ul>
+</li>
 <li class="toctree-l1"><a class="reference internal" href="cli.html">Command line tools</a></li>
-<li class="toctree-l1 current has-children"><a class="reference internal" href="meersolar.html">API Reference</a><input checked="" class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" role="switch" type="checkbox"/><label for="toctree-checkbox-2"><div class="visually-hidden">Toggle navigation of API Reference</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="current">
+<li class="toctree-l1 current has-children"><a class="reference internal" href="meersolar.html">API Reference</a><input checked="" class="toctree-checkbox" id="toctree-checkbox-3" name="toctree-checkbox-3" role="switch" type="checkbox"/><label for="toctree-checkbox-3"><div class="visually-hidden">Toggle navigation of API Reference</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="current">
 <li class="toctree-l2 current current-page"><a class="current reference internal" href="#">Meersolar Pipeline Module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="meersolar.crystalball.html">Crystalball Module</a></li>
 </ul>
@@ -360,6 +367,12 @@
 raises a NotImplementedError.</p>
 </dd></dl>
 
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="meersolar.pipeline.basic_func.SmartDefaultsHelpFormatter">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">meersolar.pipeline.basic_func.</span></span><span class="sig-name descname"><span class="pre">SmartDefaultsHelpFormatter</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">prog</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">indent_increment</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_help_position</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">24</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">width</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/meersolar/pipeline/basic_func.html#SmartDefaultsHelpFormatter"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#meersolar.pipeline.basic_func.SmartDefaultsHelpFormatter" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">ArgumentDefaultsHelpFormatter</span></code></p>
 </dd></dl>
 
 <dl class="py function">
@@ -2556,7 +2569,7 @@ but while creating the MS, UVW values are estimated using the first phasecenter 
 <li><p><strong>timerange</strong> (<em>str</em><em>, </em><em>optional</em>) – Time range</p></li>
 <li><p><strong>datacolumn</strong> (<em>str</em><em>, </em><em>optional</em>) – Data column</p></li>
 <li><p><strong>freqres</strong> (<em>float</em><em>, </em><em>optional</em>) – Frequency resolution of spectral chunk in MHz</p></li>
-<li><p><strong>timeres</strong> (<em>float</em><em>, </em><em>optional</em>) – Time resolution of temporal chunk in MHz</p></li>
+<li><p><strong>timeres</strong> (<em>float</em><em>, </em><em>optional</em>) – Time resolution of temporal chunk in seconds</p></li>
 <li><p><strong>weight</strong> (<em>str</em><em>, </em><em>optional</em>) – Image weighting</p></li>
 <li><p><strong>robust</strong> (<em>float</em><em>, </em><em>optional</em>) – Briggs weighting robust parameter</p></li>
 <li><p><strong>minuv</strong> (<em>float</em><em>, </em><em>optional</em>) – Minimum UV-lambda to use in imaging</p></li>
@@ -3318,8 +3331,8 @@ but while creating the MS, UVW values are estimated using the first phasecenter 
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>mslist</strong> (<em>list</em>) – Target measurement set list</p></li>
 <li><p><strong>workdir</strong> (<em>str</em>) – Working directory</p></li>
-<li><p><strong>freqrange</strong> (<em>str</em><em>, </em><em>optional</em>) – Frequency range to image</p></li>
-<li><p><strong>timerange</strong> (<em>str</em><em>, </em><em>optional</em>) – Time range to image</p></li>
+<li><p><strong>freqrange</strong> (<em>str</em><em>, </em><em>optional</em>) – Frequency range to image in MHz</p></li>
+<li><p><strong>timerange</strong> (<em>str</em><em>, </em><em>optional</em>) – Time range to image (YYYY/MM/DD/hh:mm:ss~YYYY/MM/DD/hh:mm:ss)</p></li>
 <li><p><strong>cpu_frac</strong> (<em>float</em><em>, </em><em>optional</em>) – CPU fraction to use</p></li>
 <li><p><strong>mem_frac</strong> (<em>float</em><em>, </em><em>optional</em>) – Memory fraction to use</p></li>
 <li><p><strong>minuv</strong> (<em>float</em><em>, </em><em>optionial</em>) – Minimum UV-lambda to use in imaging</p></li>
@@ -4015,6 +4028,7 @@ arguments is the optional sequence of the names of the signal’s arguments.</p>
 <li><a class="reference internal" href="#meersolar.pipeline.basic_func.RemoteLogger.emit"><code class="docutils literal notranslate"><span class="pre">RemoteLogger.emit()</span></code></a></li>
 </ul>
 </li>
+<li><a class="reference internal" href="#meersolar.pipeline.basic_func.SmartDefaultsHelpFormatter"><code class="docutils literal notranslate"><span class="pre">SmartDefaultsHelpFormatter</span></code></a></li>
 <li><a class="reference internal" href="#meersolar.pipeline.basic_func.angular_separation_equatorial"><code class="docutils literal notranslate"><span class="pre">angular_separation_equatorial()</span></code></a></li>
 <li><a class="reference internal" href="#meersolar.pipeline.basic_func.average_timestamp"><code class="docutils literal notranslate"><span class="pre">average_timestamp()</span></code></a></li>
 <li><a class="reference internal" href="#meersolar.pipeline.basic_func.baseline_names"><code class="docutils literal notranslate"><span class="pre">baseline_names()</span></code></a></li>
@@ -4277,5 +4291,11 @@ arguments is the optional sequence of the names of the signal’s arguments.</p>
     <script src="_static/scripts/furo.js?v=32e29ea5"></script>
     <script src="_static/clipboard.min.js?v=a7894cd8"></script>
     <script src="_static/copybutton.js?v=f281be69"></script>
+    <script>let toggleHintShow = 'Click to show';</script>
+    <script>let toggleHintHide = 'Click to hide';</script>
+    <script>let toggleOpenOnPrint = 'true';</script>
+    <script src="_static/togglebutton.js?v=4a39c7ea"></script>
+    <script>var togglebuttonSelector = '.toggle, .admonition.dropdown';</script>
+    <script>var togglebuttonSelector = '.toggle, .admonition.dropdown';</script>
     </body>
 </html>

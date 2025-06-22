@@ -3,10 +3,10 @@
   <head><meta charset="utf-8"/>
     <meta name="viewport" content="width=device-width,initial-scale=1"/>
     <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
-<link rel="index" title="Index" href="genindex.html" /><link rel="search" title="Search" href="search.html" /><link rel="next" title="API Reference" href="meersolar.html" /><link rel="prev" title="Run MeerSOLAR pipeline" href="runpipeline.html" />
+<link rel="index" title="Index" href="genindex.html" /><link rel="search" title="Search" href="search.html" /><link rel="next" title="Command line tools" href="cli.html" /><link rel="prev" title="MeerSOLAR Flowchart" href="flowchart.html" />
 
     <!-- Generated with Sphinx 7.4.7 and Furo 2024.01.29 -->
-        <title>Command line tools - MeerSOLAR</title>
+        <title>Run MeerSOLAR pipeline - MeerSOLAR</title>
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=a746c00c" />
     <link rel="stylesheet" type="text/css" href="_static/styles/furo.css?v=135e06be" />
     <link rel="stylesheet" type="text/css" href="_static/copybutton.css?v=76b2166b" />
@@ -138,7 +138,7 @@
           <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
         </button>
       </div>
-      <label class="toc-overlay-icon toc-header-icon no-toc" for="__toc">
+      <label class="toc-overlay-icon toc-header-icon" for="__toc">
         <div class="visually-hidden">Toggle table of contents sidebar</div>
         <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
       </label>
@@ -171,12 +171,12 @@
 <li class="toctree-l2"><a class="reference internal" href="initial_setup.html">Initial setup</a></li>
 </ul>
 </li>
-<li class="toctree-l1 has-children"><a class="reference internal" href="tutorial.html">Tutorial</a><input class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" role="switch" type="checkbox"/><label for="toctree-checkbox-2"><div class="visually-hidden">Toggle navigation of Tutorial</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l1 current has-children"><a class="reference internal" href="tutorial.html">Tutorial</a><input checked="" class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" role="switch" type="checkbox"/><label for="toctree-checkbox-2"><div class="visually-hidden">Toggle navigation of Tutorial</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="current">
 <li class="toctree-l2"><a class="reference internal" href="flowchart.html">MeerSOLAR Flowchart</a></li>
-<li class="toctree-l2"><a class="reference internal" href="runpipeline.html">Run MeerSOLAR pipeline</a></li>
+<li class="toctree-l2 current current-page"><a class="current reference internal" href="#">Run MeerSOLAR pipeline</a></li>
 </ul>
 </li>
-<li class="toctree-l1 current current-page"><a class="current reference internal" href="#">Command line tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="cli.html">Command line tools</a></li>
 <li class="toctree-l1 has-children"><a class="reference internal" href="meersolar.html">API Reference</a><input class="toctree-checkbox" id="toctree-checkbox-3" name="toctree-checkbox-3" role="switch" type="checkbox"/><label for="toctree-checkbox-3"><div class="visually-hidden">Toggle navigation of API Reference</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
 <li class="toctree-l2"><a class="reference internal" href="meersolar.pipeline.html">Meersolar Pipeline Module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="meersolar.crystalball.html">Crystalball Module</a></li>
@@ -210,15 +210,29 @@
               <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
             </button>
           </div>
-          <label class="toc-overlay-icon toc-content-icon no-toc" for="__toc">
+          <label class="toc-overlay-icon toc-content-icon" for="__toc">
             <div class="visually-hidden">Toggle table of contents sidebar</div>
             <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
           </label>
         </div>
         <article role="main">
-          <section id="command-line-tools">
-<h1>Command line tools<a class="headerlink" href="#command-line-tools" title="Link to this heading">¶</a></h1>
-<p>MeerSOLAR have several command line interface (CLI), which allows advanced users to</p>
+          <section id="run-meersolar-pipeline">
+<h1>Run MeerSOLAR pipeline<a class="headerlink" href="#run-meersolar-pipeline" title="Link to this heading">¶</a></h1>
+<section id="basic-run">
+<h2>Basic run<a class="headerlink" href="#basic-run" title="Link to this heading">¶</a></h2>
+<p>To run MeerSOLAR pipeline, with default settings for full analysis, run the following command from terminal. Work directory needs not to be created before hand, but the path where it will be created should exist.</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>run_meersolar<span class="w"> </span>&lt;/path/to/measurement_set&gt;<span class="w"> </span>--workdir<span class="w"> </span>&lt;/path/to/work_directory&gt;
+</pre></div>
+</div>
+</section>
+<section id="advanced-run">
+<h2>Advanced run<a class="headerlink" href="#advanced-run" title="Link to this heading">¶</a></h2>
+<p>For advanced run, user is requested to first check the parameters of <strong>run_meersolar</strong>.</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>run_meersolar<span class="w"> </span>-h
+</pre></div>
+</div>
+<div class="dropdown admonition">
+<p class="admonition-title">Click here to see parameters</p>
 <div class="highlight-text notranslate"><div class="highlight"><pre><span></span>usage: run_meersolar [-h] --workdir WORKDIR [--solint SOLINT]
                      [--cal_uvrange CAL_UVRANGE] [--no_polcal]
                      [--target_scans [TARGET_SCANS ...]]
@@ -341,6 +355,91 @@ Advanced HPC settings
                         (default: 0)
 </pre></div>
 </div>
+</div>
+<p>Multiple options demonstrated below can be combined to have all of them together.</p>
+<ol class="arabic simple">
+<li><p>To view details of measurement set:</p></li>
+</ol>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>run_meersolar_showms<span class="w"> </span>&lt;/path/to/measurement_set&gt;
+</pre></div>
+</div>
+<section id="runs-with-advanced-calibration-paramaters">
+<h3>Runs with advanced calibration paramaters<a class="headerlink" href="#runs-with-advanced-calibration-paramaters" title="Link to this heading">¶</a></h3>
+<ol class="arabic simple">
+<li><p>Do calibration with custom calibration parameters. There are two parameters: <strong>cal_uvrange</strong> and <strong>solint</strong> which can be changed. Example, run the following command to perform gain solutions at 10second interval and &gt;200lambda data:</p></li>
+</ol>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>run_meersolar<span class="w"> </span>&lt;/path/to/measurement_set&gt;<span class="w"> </span>--workdir<span class="w"> </span>&lt;/path/to/work_directory&gt;<span class="w"> </span>--solint<span class="w"> </span><span class="s2">&quot;10s&quot;</span><span class="w"> </span>--uvrange<span class="w"> </span><span class="s2">&quot;&gt;200lambda&quot;</span>
+</pre></div>
+</div>
+<ol class="arabic simple" start="2">
+<li><p>By default for full-polar data, polarization calibration will be performed. To disable it:</p></li>
+</ol>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>run_meersolar<span class="w"> </span>&lt;/path/to/measurement_set&gt;<span class="w"> </span>--workdir<span class="w"> </span>&lt;/path/to/work_directory&gt;<span class="w"> </span>--no_polcal
+</pre></div>
+</div>
+</section>
+<section id="runs-with-advanced-imaging-paramaters">
+<h3>Runs with advanced imaging paramaters<a class="headerlink" href="#runs-with-advanced-imaging-paramaters" title="Link to this heading">¶</a></h3>
+<ol class="arabic simple">
+<li><p>Run pipeline to image specific target scans. Default is to use all. Users are requested to check target scan number using <strong>run_meersolar_showms</strong> first. Example, run the following command to image only target scans 3,8,13 from all available target scans:</p></li>
+</ol>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>run_meersolar<span class="w"> </span>&lt;/path/to/measurement_set&gt;<span class="w"> </span>--workdir<span class="w"> </span>&lt;/path/to/work_directory&gt;<span class="w"> </span>--target_scans<span class="w"> </span><span class="m">3</span><span class="w"> </span><span class="m">8</span><span class="w"> </span><span class="m">13</span>
+</pre></div>
+</div>
+<ol class="arabic simple" start="2">
+<li><p>Run pipeline to image specific time and frequency range. Default is to use entire time and frequency range. Example for imaging two time ranges given in UTC and frequency ranges given in MHz:</p></li>
+</ol>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>run_meersolar<span class="w"> </span>&lt;/path/to/measurement_set&gt;<span class="w"> </span>--workdir<span class="w"> </span>&lt;/path/to/work_directory&gt;<span class="w"> </span>--timerange<span class="w"> </span><span class="m">2024</span>/06/10/09:00:00~2024/06/10/09:30:00,2024/06/10/10:15:00~2024/06/10/10:45:00<span class="w"> </span>--freqrange<span class="w"> </span><span class="m">600</span>~650,700~800
+</pre></div>
+</div>
+<ol class="arabic simple" start="3">
+<li><p>Run imaging with custom time and frequency resolution. Default is to use entire observing band and maximum 2 hours (or maximum scan duration) of integration to avoid smearing due to differential rotation of the Sun. Example run for imaging at 2 minutes (120 seconds) time resolution and 10 MHz frequency resolution:</p></li>
+</ol>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>run_meersolar<span class="w"> </span>&lt;/path/to/measurement_set&gt;<span class="w"> </span>--workdir<span class="w"> </span>&lt;/path/to/work_directory&gt;<span class="w"> </span>--image_timeres<span class="w"> </span><span class="m">120</span><span class="w"> </span>--image_freqres<span class="w"> </span><span class="m">10</span>
+</pre></div>
+</div>
+<ol class="arabic simple" start="4">
+<li><p>Default is to make only Stokes I images. To run full polar imaging:</p></li>
+</ol>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>run_meersolar<span class="w"> </span>&lt;/path/to/measurement_set&gt;<span class="w"> </span>--workdir<span class="w"> </span>&lt;/path/to/work_directory&gt;<span class="w"> </span>--pol<span class="w"> </span>IQUV
+</pre></div>
+</div>
+<p>Similarly, all other advanced imaging parameters can be used.</p>
+</section>
+<section id="switching-off-particular-pipeline-step-s">
+<h3>Switching off particular pipeline step(s)<a class="headerlink" href="#switching-off-particular-pipeline-step-s" title="Link to this heading">¶</a></h3>
+<p>By default, all steps will be performed by pipeline. Even pipeline was run upto certain stages and then stopped, all steps from beginning will be performed to avoid any potential issue in failure in previous runs. If user is certain that previous run was successful upto certain stages, those stages can be switched.</p>
+<div class="admonition caution">
+<p class="admonition-title">Caution</p>
+<p>User should not modify and file and directory structure in the work directory. Switching off certain parameters will only allow to run the pipeline forward, if the expected output products from those steps are present with appropriate name in appropriate directory. Otherwise, it will fail.</p>
+</div>
+<p>Take a look at the <strong>Advanced pipeline parameters</strong> in the help page of <strong>run_meersolar</strong>. Each parameters are self explanatory. Some examples are given below:</p>
+<ol class="arabic simple">
+<li><p>To switch on noise-diode based flux calibration:</p></li>
+</ol>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>run_meersolar<span class="w"> </span>&lt;/path/to/measurement_set&gt;<span class="w"> </span>--workdir<span class="w"> </span>&lt;/path/to/work_directory&gt;<span class="w"> </span>--no_noise_cal
+</pre></div>
+</div>
+<ol class="arabic simple" start="2">
+<li><p>To switch off self-calibration:</p></li>
+</ol>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>run_meersolar<span class="w"> </span>&lt;/path/to/measurement_set&gt;<span class="w"> </span>--workdir<span class="w"> </span>&lt;/path/to/work_directory&gt;<span class="w"> </span>--no_selfcal
+</pre></div>
+</div>
+<ol class="arabic simple" start="3">
+<li><p>To stop final imaging:</p></li>
+</ol>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>run_meersolar<span class="w"> </span>&lt;/path/to/measurement_set&gt;<span class="w"> </span>--workdir<span class="w"> </span>&lt;/path/to/work_directory&gt;<span class="w"> </span>--no_imaging
+</pre></div>
+</div>
+<ol class="arabic simple" start="4">
+<li><p>To switch off self-calibration and final imaging</p></li>
+</ol>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>run_meersolar<span class="w"> </span>&lt;/path/to/measurement_set&gt;<span class="w"> </span>--workdir<span class="w"> </span>&lt;/path/to/work_directory&gt;<span class="w"> </span>--no_selfcal<span class="w"> </span>--no_imaging
+</pre></div>
+</div>
+</section>
+</section>
 </section>
 
         </article>
@@ -348,23 +447,23 @@ Advanced HPC settings
       <footer>
         
         <div class="related-pages">
-          <a class="next-page" href="meersolar.html">
+          <a class="next-page" href="cli.html">
               <div class="page-info">
                 <div class="context">
                   <span>Next</span>
                 </div>
-                <div class="title">API Reference</div>
+                <div class="title">Command line tools</div>
               </div>
               <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
             </a>
-          <a class="prev-page" href="runpipeline.html">
+          <a class="prev-page" href="flowchart.html">
               <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
               <div class="page-info">
                 <div class="context">
                   <span>Previous</span>
                 </div>
                 
-                <div class="title">Run MeerSOLAR pipeline</div>
+                <div class="title">MeerSOLAR Flowchart</div>
                 
               </div>
             </a>
@@ -386,8 +485,33 @@ Advanced HPC settings
         
       </footer>
     </div>
-    <aside class="toc-drawer no-toc">
+    <aside class="toc-drawer">
       
+      
+      <div class="toc-sticky toc-scroll">
+        <div class="toc-title-container">
+          <span class="toc-title">
+            On this page
+          </span>
+        </div>
+        <div class="toc-tree-container">
+          <div class="toc-tree">
+            <ul>
+<li><a class="reference internal" href="#">Run MeerSOLAR pipeline</a><ul>
+<li><a class="reference internal" href="#basic-run">Basic run</a></li>
+<li><a class="reference internal" href="#advanced-run">Advanced run</a><ul>
+<li><a class="reference internal" href="#runs-with-advanced-calibration-paramaters">Runs with advanced calibration paramaters</a></li>
+<li><a class="reference internal" href="#runs-with-advanced-imaging-paramaters">Runs with advanced imaging paramaters</a></li>
+<li><a class="reference internal" href="#switching-off-particular-pipeline-step-s">Switching off particular pipeline step(s)</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+          </div>
+        </div>
+      </div>
       
       
     </aside>
