@@ -19,9 +19,15 @@ from PyQt5.QtCore import Qt, QTimer, pyqtSignal, QObject
 from PyQt5.QtGui import QTextCursor
 from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
-from meersolar.pipeline.basic_func import *
 
 LOG_DIR = None
+
+class SmartDefaultsHelpFormatter(argparse.ArgumentDefaultsHelpFormatter):
+    def _get_help_string(self, action):
+        # Don't show default for boolean flags
+        if isinstance(action, argparse._StoreTrueAction) or isinstance(action, argparse._StoreFalseAction):
+            return action.help
+        return super()._get_help_string(action)
 
 def get_logid(logfile):
     name = os.path.basename(logfile)
