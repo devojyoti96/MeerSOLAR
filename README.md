@@ -6,6 +6,8 @@
 
 ## Introduction
 
+<!-- start elevator-pitch -->
+
 Solar radio data presents unique challenges due to the high variability and brightness of the Sun, as well as the need for high time-frequency resolution. The MeerSOLAR pipeline addresses these challenges by:
 
 - Automating the calibration of interferometric data, including flux, phase, and polarization calibrations
@@ -13,6 +15,7 @@ Solar radio data presents unique challenges due to the high variability and brig
 - Leveraging Dask for scalable parallel processing
 - Providing hooks for integration with contextual data from other wavelegths for enhanced solar analysis
 
+<!-- end elevator-pitch -->
 
 ## Quickstart
 
@@ -22,10 +25,10 @@ MeerSOLAR is distributed on [PyPI]. To use it:
 
 1. Install conda with python 3.10
 
-    ```text
+    
     conda create -n meersolar_env python=3.10
     conda activate meersolar_env
-    ```
+    
 
 2. Install MeerSOLAR in conda environment
 
