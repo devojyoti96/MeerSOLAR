@@ -2,6 +2,7 @@ import os, glob, psutil, copy, time, traceback, argparse, socket
 from multiprocessing import Process, Event
 from meersolar.pipeline.basic_func import *
 from meersolar.pipeline.init_data import init_meersolar_data
+from meersolar.data.sendmail import send_paircars_notification as send_notification
 from casatasks import casalog
 
 try:
@@ -79,7 +80,7 @@ def run_flag(
     flagging_cmd += f" --logfile {logfile}"
     if os.path.isdir(workdir + "/logs") == False:
         os.makedirs(workdir + "/logs")
-    batch_file = create_batch_script_nonhpc(flagging_cmd, workdir, flag_basename, jobid)
+    batch_file = create_batch_script_nonhpc(flagging_cmd, workdir, flag_basename)
     print(flagging_cmd + "\n")
     os.system("bash " + batch_file)
     print("Waiting to finish flagging...\n")
@@ -138,9 +139,7 @@ def run_import_model(msname, workdir, jobid=0, cpu_frac=0.8, mem_frac=0.8):
     import_model_cmd += f" --logfile {logfile}"
     if os.path.isdir(workdir + "/logs") == False:
         os.makedirs(workdir + "/logs")
-    batch_file = create_batch_script_nonhpc(
-        import_model_cmd, workdir, model_basename, jobid
-    )
+    batch_file = create_batch_script_nonhpc(import_model_cmd, workdir, model_basename)
     print(import_model_cmd + "\n")
     os.system("bash " + batch_file)
     print("Waiting to finish visibility simulation for calibrators...\n")
@@ -210,14 +209,14 @@ def run_basic_cal_jobs(
         + str(jobid)
     )
     if perform_polcal:
-        basic_cal_cmd+=" --perform_polcal"
+        basic_cal_cmd += " --perform_polcal"
     if keep_backup:
-        basic_cal_cmd+=" --keep_backup"
+        basic_cal_cmd += " --keep_backup"
     logfile = workdir + "/logs/" + cal_basename + ".log"
     basic_cal_cmd += f" --logfile {logfile}"
     if os.path.isdir(workdir + "/logs") == False:
         os.makedirs(workdir + "/logs")
-    batch_file = create_batch_script_nonhpc(basic_cal_cmd, workdir, cal_basename, jobid)
+    batch_file = create_batch_script_nonhpc(basic_cal_cmd, workdir, cal_basename)
     print(basic_cal_cmd + "\n")
     os.system("bash " + batch_file)
     print("Waiting to finish calibration...\n")
@@ -235,7 +234,9 @@ def run_basic_cal_jobs(
     return success_index_cal
 
 
-def run_noise_diode_cal(msname, workdir, keep_backup=False, jobid=0, cpu_frac=0.8, mem_frac=0.8):
+def run_noise_diode_cal(
+    msname, workdir, keep_backup=False, jobid=0, cpu_frac=0.8, mem_frac=0.8
+):
     """
     Perform noise diode based flux calibration
 
@@ -279,7 +280,7 @@ def run_noise_diode_cal(msname, workdir, keep_backup=False, jobid=0, cpu_frac=0.
         if os.path.isdir(workdir + "/logs") == False:
             os.makedirs(workdir + "/logs")
         batch_file = create_batch_script_nonhpc(
-            noise_cal_cmd, workdir, noisecal_basename, jobid
+            noise_cal_cmd, workdir, noisecal_basename
         )
         print(noise_cal_cmd + "\n")
         os.system("bash " + batch_file)
@@ -360,7 +361,7 @@ def run_partion(
     calibrator_ms = workdir + "/calibrator.ms"
     split_cmd = f"run_partition {msname} --outputms {calibrator_ms} --scans {cal_scans} --timebin {timebin} --width {width} --cpu_frac {cpu_frac} --mem_frac {mem_frac} --workdir {workdir} --jobid {jobid}"
     if split_fullpol:
-        split_cmd+=" --split_fullpol"
+        split_cmd += " --split_fullpol"
     ####################################
     # Partition fields
     ####################################
@@ -370,9 +371,7 @@ def run_partion(
     split_cmd += f" --logfile {logfile}"
     if os.path.isdir(workdir + "/logs") == False:
         os.makedirs(workdir + "/logs")
-    batch_file = create_batch_script_nonhpc(
-        split_cmd, workdir, partition_basename, jobid
-    )
+    batch_file = create_batch_script_nonhpc(split_cmd, workdir, partition_basename)
     print(split_cmd + "\n")
     os.system("bash " + batch_file)
     print("Waiting to finish partitioning...\n")
@@ -493,9 +492,9 @@ def run_target_split_jobs(
             + str(jobid)
         )
         if split_fullpol:
-            split_cmd+=" --split_fullpol"
+            split_cmd += " --split_fullpol"
         if merge_spws:
-            split_cmd+=" --merge_spws"
+            split_cmd += " --merge_spws"
         if spw != "":
             split_cmd = split_cmd + " --spw " + str(spw)
         if len(target_scans) > 0:
@@ -506,9 +505,7 @@ def run_target_split_jobs(
         split_cmd += f" --logfile {logfile}"
         if os.path.isdir(workdir + "/logs") == False:
             os.makedirs(workdir + "/logs")
-        batch_file = create_batch_script_nonhpc(
-            split_cmd, workdir, split_basename, jobid
-        )
+        batch_file = create_batch_script_nonhpc(split_cmd, workdir, split_basename)
         print(split_cmd + "\n")
         os.system("bash " + batch_file)
         return 0
@@ -578,7 +575,7 @@ def run_solar_siderealcor_jobs(
         logfile = workdir + "/logs/" + sidereal_basename + ".log"
         sidereal_cor_cmd += f" --logfile {logfile}"
         batch_file = create_batch_script_nonhpc(
-            sidereal_cor_cmd, workdir, sidereal_basename, jobid
+            sidereal_cor_cmd, workdir, sidereal_basename
         )
         print(sidereal_cor_cmd + "\n")
         os.system("bash " + batch_file)
@@ -646,14 +643,14 @@ def run_apply_pbcor(
             + " --jobid "
             + str(jobid)
         )
-        if apply_parang==False:
-            applypbcor_cmd+=" --no_apply_parang"
+        if apply_parang == False:
+            applypbcor_cmd += " --no_apply_parang"
         if os.path.isdir(workdir + "/logs") == False:
             os.makedirs(workdir + "/logs")
         logfile = workdir + "/logs/" + applypbcor_basename + ".log"
         applypbcor_cmd += f" --logfile {logfile}"
         batch_file = create_batch_script_nonhpc(
-            applypbcor_cmd, workdir, applypbcor_basename, jobid
+            applypbcor_cmd, workdir, applypbcor_basename
         )
         print(applypbcor_cmd + "\n")
         os.system("bash " + batch_file)
@@ -720,7 +717,7 @@ def run_apply_basiccal_sol(
         print("Applying basic calibration solutions on target scans .....")
         print("###########################\n")
         applycal_basename = "apply_basiccal"
-        mslist=",".join(target_mslist)
+        mslist = ",".join(target_mslist)
         applycal_cmd = (
             f"run_apply_basiccal {mslist}"
             + " --workdir "
@@ -737,15 +734,15 @@ def run_apply_basiccal_sol(
             + str(jobid)
         )
         if use_only_bandpass:
-            applycal_cmd+=" --use_only_bandpass"
+            applycal_cmd += " --use_only_bandpass"
         if overwrite_datacolumn:
-            applycal_cmd+=" --overwrite_datacolumn"
+            applycal_cmd += " --overwrite_datacolumn"
         if os.path.isdir(workdir + "/logs") == False:
             os.makedirs(workdir + "/logs")
         logfile = workdir + "/logs/" + applycal_basename + ".log"
         applycal_cmd += f" --logfile {logfile}"
         batch_file = create_batch_script_nonhpc(
-            applycal_cmd, workdir, applycal_basename, jobid
+            applycal_cmd, workdir, applycal_basename
         )
         print(applycal_cmd + "\n")
         os.system("bash " + batch_file)
@@ -809,7 +806,7 @@ def run_apply_selfcal_sol(
         print("Applying self-calibration solutions on target scans .....")
         print("###########################\n")
         applycal_basename = "apply_selfcal"
-        mslist=",".join(target_mslist)
+        mslist = ",".join(target_mslist)
         applycal_cmd = (
             f"run_apply_selfcal {mslist}"
             + " --workdir "
@@ -826,13 +823,13 @@ def run_apply_selfcal_sol(
             + str(jobid)
         )
         if overwrite_datacolumn:
-            applycal_cmd+=" --overwrite_datacolumn"
+            applycal_cmd += " --overwrite_datacolumn"
         if os.path.isdir(workdir + "/logs") == False:
             os.makedirs(workdir + "/logs")
         logfile = workdir + "/logs/" + applycal_basename + ".log"
         applycal_cmd += f" --logfile {logfile}"
         batch_file = create_batch_script_nonhpc(
-            applycal_cmd, workdir, applycal_basename, jobid
+            applycal_cmd, workdir, applycal_basename
         )
         print(applycal_cmd + "\n")
         os.system("bash " + batch_file)
@@ -931,7 +928,7 @@ def run_selfcal_jobs(
         print("Performing self-calibration of target scans .....")
         print("###########################\n")
         selfcal_basename = "selfcal_targets"
-        mslist=",".join(mslist)
+        mslist = ",".join(mslist)
         selfcal_cmd = (
             f"run_selfcal {mslist}"
             + " --workdir "
@@ -969,7 +966,7 @@ def run_selfcal_jobs(
             selfcal_cmd += " --weight " + str(weight)
         if robust != "":
             selfcal_cmd += " --robust " + str(robust)
-        if do_apcal==False:
+        if do_apcal == False:
             selfcal_cmd += " --no_apcal"
         if solar_selfcal == False:
             selfcal_cmd += " --no_solar_selfcal"
@@ -977,9 +974,7 @@ def run_selfcal_jobs(
             selfcal_cmd += " --keep_backup"
         if os.path.isdir(workdir + "/logs") == False:
             os.makedirs(workdir + "/logs")
-        batch_file = create_batch_script_nonhpc(
-            selfcal_cmd, workdir, selfcal_basename, jobid
-        )
+        batch_file = create_batch_script_nonhpc(selfcal_cmd, workdir, selfcal_basename)
         print(selfcal_cmd + "\n")
         os.system("bash " + batch_file)
         print("Waiting to finish self-calibration...\n")
@@ -1080,7 +1075,7 @@ def run_imaging_jobs(
         print("Performing imaging of target scans .....")
         print("###########################\n")
         imaging_basename = "imaging_targets"
-        mslist=",".join(mslist)
+        mslist = ",".join(mslist)
         imaging_cmd = (
             f"run_imaging {mslist}"
             + " --workdir "
@@ -1108,16 +1103,16 @@ def run_imaging_jobs(
             + " --jobid "
             + str(jobid)
         )
-        if use_solar_mask==False:
-            imaging_cmd+=" --no_solar_mask"
-        if savemodel==False:
-            imaging_cmd+=" --no_savemodel"
-        if saveres==False:
-            imaging_cmd+=" --no_saveres"
-        if use_multiscale==False:
-            imaging_cmd+=" --no_multiscale"
-        if make_overlay==False:
-            imaging_cmd+=" --no_make_overlay"        
+        if use_solar_mask == False:
+            imaging_cmd += " --no_solar_mask"
+        if savemodel == False:
+            imaging_cmd += " --no_savemodel"
+        if saveres == False:
+            imaging_cmd += " --no_saveres"
+        if use_multiscale == False:
+            imaging_cmd += " --no_multiscale"
+        if make_overlay == False:
+            imaging_cmd += " --no_make_overlay"
         if freqrange != "":
             imaging_cmd += " --freqrange " + str(freqrange)
         if timerange != "":
@@ -1126,9 +1121,7 @@ def run_imaging_jobs(
             imaging_cmd += " --band " + str(band)
         if os.path.isdir(workdir + "/logs") == False:
             os.makedirs(workdir + "/logs")
-        batch_file = create_batch_script_nonhpc(
-            imaging_cmd, workdir, imaging_basename, jobid
-        )
+        batch_file = create_batch_script_nonhpc(imaging_cmd, workdir, imaging_basename)
         print(imaging_cmd + "\n")
         os.system("bash " + batch_file)
         print("Waiting to finish imaging...\n")
@@ -1421,6 +1414,19 @@ def master_control(
         print(
             "#############################################################################"
         )
+        emails = get_emails()
+        if emails != "":
+            email_subject = f"MeerSOLAR Remote Logger Details: {timestamp}"
+
+            email_msg = (
+                f"MeerSOLAR user,\n\n"
+                f"Remote logger Job ID: {job_name}\n"
+                f"Remote access password: {password}\n\n"
+                f"Best,\n"
+                f"MeerSOLAR"
+            )
+
+            success_msg, error_msg = send_notification(emails, email_subject, email_msg)
 
     #####################################
     # Settings for solar data
@@ -1523,9 +1529,11 @@ def master_control(
     ##############################
     # Run partitioning jobs
     ##############################
-    # If do partition or calibrator ms is not present in case of basic calibration is requested 
+    # If do partition or calibrator ms is not present in case of basic calibration is requested
     calibrator_msname = workdir + "/calibrator.ms"
-    if do_basic_cal and (do_cal_partition or os.path.exists(calibrator_msname) == False):
+    if do_basic_cal and (
+        do_cal_partition or os.path.exists(calibrator_msname) == False
+    ):
         msg = run_partion(
             msname,
             workdir,
@@ -1677,9 +1685,11 @@ def master_control(
         if do_selfcal_split == False:
             selfcal_target_mslist = glob.glob(workdir + "/selfcals_scan*.ms")
             if len(selfcal_target_mslist) == 0:
-                print("No measurement set is present for self-calibration. Spliting them..")
+                print(
+                    "No measurement set is present for self-calibration. Spliting them.."
+                )
                 do_selfcal_split = True
-                
+
         if do_selfcal_split:
             prefix = "selfcals"
             try:
@@ -2104,21 +2114,31 @@ def master_control(
 def main():
     try:
         parser = argparse.ArgumentParser(
-            description="Run MeerSOLAR for calibration and imaging of solar observations.",formatter_class=argparse.ArgumentDefaultsHelpFormatter
+            description="Run MeerSOLAR for calibration and imaging of solar observations.",
+            formatter_class=argparse.ArgumentDefaultsHelpFormatter,
         )
         # === Essential parameters ===
         essential = parser.add_argument_group(
             "###################\nEssential parameters\n###################"
         )
-        essential.add_argument("msname", type=str,  help="Measurement set name")
-        essential.add_argument("--workdir", type=str, dest="workdir",required=True, help="Working directory")
+        essential.add_argument("msname", type=str, help="Measurement set name")
         essential.add_argument(
-            "--non_solar_data", action="store_false", dest="solar_data", help="Enable non-solar data mode"
+            "--workdir",
+            type=str,
+            dest="workdir",
+            required=True,
+            help="Working directory",
         )
-
+       
         # === Advanced options ===
         advanced = parser.add_argument_group(
             "###################\nAdvanced pipeline parameters\n###################"
+        )
+        advanced.add_argument(
+            "--non_solar_data",
+            action="store_false",
+            dest="solar_data",
+            help="Disable solar data mode",
         )
         # Default true
         advanced.add_argument(
@@ -2336,13 +2356,21 @@ def main():
             "###################\nAdvanced hardware resource parameters for local system or per node on HPC cluster\n###################"
         )
         advanced_resource.add_argument(
-            "--cpu_frac", type=float, default=0.8, help="Fraction of CPU usuage per node"
+            "--cpu_frac",
+            type=float,
+            default=0.8,
+            help="Fraction of CPU usuage per node",
         )
         advanced_resource.add_argument(
-            "--mem_frac", type=float, default=0.8, help="Fraction of memory usuage per node"
+            "--mem_frac",
+            type=float,
+            default=0.8,
+            help="Fraction of memory usuage per node",
         )
         advanced_resource.add_argument(
-            "--keep_backup", action="store_true", help="Keep backup of intermediate steps"
+            "--keep_backup",
+            action="store_true",
+            help="Keep backup of intermediate steps",
         )
         advanced_resource.add_argument(
             "--remote_logger", action="store_true", help="Use remote logger"
@@ -2370,10 +2398,10 @@ def main():
             sys.exit(1)
 
         args = parser.parse_args()
-        
+
         print("\n########################################")
-        print ("Starting MeerSOLAR Pipeline....")
-        print ("#########################################\n")
+        print("Starting MeerSOLAR Pipeline....")
+        print("#########################################\n")
 
         msg = master_control(
             msname=args.msname,

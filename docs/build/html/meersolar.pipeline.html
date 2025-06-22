@@ -11,6 +11,7 @@
     <link rel="stylesheet" type="text/css" href="_static/styles/furo.css?v=135e06be" />
     <link rel="stylesheet" type="text/css" href="_static/copybutton.css?v=76b2166b" />
     <link rel="stylesheet" type="text/css" href="_static/styles/furo-extensions.css?v=36a5483c" />
+    <link rel="stylesheet" type="text/css" href="_static/custom.css?v=db239b2d" />
     
     
 
@@ -167,6 +168,8 @@
 <li class="toctree-l2"><a class="reference internal" href="initial_setup.html">Initial setup</a></li>
 </ul>
 </li>
+<li class="toctree-l1"><a class="reference internal" href="tutorial.html">Basic Tutorial</a></li>
+<li class="toctree-l1"><a class="reference internal" href="cli.html">Command line tools</a></li>
 <li class="toctree-l1 current has-children"><a class="reference internal" href="meersolar.html">API Reference</a><input checked="" class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" role="switch" type="checkbox"/><label for="toctree-checkbox-2"><div class="visually-hidden">Toggle navigation of API Reference</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="current">
 <li class="toctree-l2 current current-page"><a class="current reference internal" href="#">Meersolar Pipeline Module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="meersolar.crystalball.html">Crystalball Module</a></li>
@@ -767,7 +770,7 @@ raises a NotImplementedError.</p>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="meersolar.pipeline.basic_func.create_batch_script_nonhpc">
-<span class="sig-prename descclassname"><span class="pre">meersolar.pipeline.basic_func.</span></span><span class="sig-name descname"><span class="pre">create_batch_script_nonhpc</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cmd</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">workdir</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">basename</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">jobid</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">write_logfile</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/meersolar/pipeline/basic_func.html#create_batch_script_nonhpc"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#meersolar.pipeline.basic_func.create_batch_script_nonhpc" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">meersolar.pipeline.basic_func.</span></span><span class="sig-name descname"><span class="pre">create_batch_script_nonhpc</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cmd</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">workdir</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">basename</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">write_logfile</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/meersolar/pipeline/basic_func.html#create_batch_script_nonhpc"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#meersolar.pipeline.basic_func.create_batch_script_nonhpc" title="Link to this definition">¶</a></dt>
 <dd><p>Function to make a batch script not non-HPC environment</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -775,7 +778,6 @@ raises a NotImplementedError.</p>
 <li><p><strong>cmd</strong> (<em>str</em>) – Command to run</p></li>
 <li><p><strong>workdir</strong> (<em>str</em>) – Work directory of the measurement set</p></li>
 <li><p><strong>basename</strong> (<em>str</em>) – Base name of the batch files</p></li>
-<li><p><strong>jobid</strong> (<em>int</em>) – MeerSOLAR Job ID</p></li>
 <li><p><strong>write_logfile</strong> (<em>bool</em><em>, </em><em>optional</em>) – Write log file or not</p></li>
 </ul>
 </dd>
@@ -1178,6 +1180,11 @@ where each worker is a separate process that can use multiple threads internally
 <span class="sig-prename descclassname"><span class="pre">meersolar.pipeline.basic_func.</span></span><span class="sig-name descname"><span class="pre">get_datadir</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/meersolar/pipeline/basic_func.html#get_datadir"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#meersolar.pipeline.basic_func.get_datadir" title="Link to this definition">¶</a></dt>
 <dd><p>Get package data directory</p>
 </dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="meersolar.pipeline.basic_func.get_emails">
+<span class="sig-prename descclassname"><span class="pre">meersolar.pipeline.basic_func.</span></span><span class="sig-name descname"><span class="pre">get_emails</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/meersolar/pipeline/basic_func.html#get_emails"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#meersolar.pipeline.basic_func.get_emails" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="meersolar.pipeline.basic_func.get_fluxcals">
@@ -1601,12 +1608,6 @@ where each worker is a separate process that can use multiple threads internally
 <dd class="field-odd"><p>bool</p>
 </dd>
 </dl>
-</dd></dl>
-
-<dl class="py function">
-<dt class="sig sig-object py" id="meersolar.pipeline.basic_func.kill_job">
-<span class="sig-prename descclassname"><span class="pre">meersolar.pipeline.basic_func.</span></span><span class="sig-name descname"><span class="pre">kill_job</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/meersolar/pipeline/basic_func.html#kill_job"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#meersolar.pipeline.basic_func.kill_job" title="Link to this definition">¶</a></dt>
-<dd><p>Kill MeerSOLAR Job</p>
 </dd></dl>
 
 <dl class="py function">
@@ -3077,13 +3078,14 @@ but while creating the MS, UVW values are estimated using the first phasecenter 
 
 <dl class="py function">
 <dt class="sig sig-object py" id="meersolar.pipeline.init_data.init_meersolar_data">
-<span class="sig-prename descclassname"><span class="pre">meersolar.pipeline.init_data.</span></span><span class="sig-name descname"><span class="pre">init_meersolar_data</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">update</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">remote_link</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/meersolar/pipeline/init_data.html#init_meersolar_data"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#meersolar.pipeline.init_data.init_meersolar_data" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">meersolar.pipeline.init_data.</span></span><span class="sig-name descname"><span class="pre">init_meersolar_data</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">update</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">remote_link</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">emails</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/meersolar/pipeline/init_data.html#init_meersolar_data"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#meersolar.pipeline.init_data.init_meersolar_data" title="Link to this definition">¶</a></dt>
 <dd><p>Initiate MeerSOLAR data</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>update</strong> (<em>bool</em><em>, </em><em>optional</em>) – Update data, if already exists</p></li>
 <li><p><strong>remote_link</strong> (<em>str</em><em>, </em><em>optional</em>) – Remote logger link to save in database</p></li>
+<li><p><strong>emails</strong> (<em>str</em><em>, </em><em>optional</em>) – Email addresses to send remote logger JobID and password</p></li>
 </ul>
 </dd>
 </dl>
@@ -4057,6 +4059,7 @@ arguments is the optional sequence of the names of the signal’s arguments.</p>
 <li><a class="reference internal" href="#meersolar.pipeline.basic_func.get_common_spw"><code class="docutils literal notranslate"><span class="pre">get_common_spw()</span></code></a></li>
 <li><a class="reference internal" href="#meersolar.pipeline.basic_func.get_dask_client"><code class="docutils literal notranslate"><span class="pre">get_dask_client()</span></code></a></li>
 <li><a class="reference internal" href="#meersolar.pipeline.basic_func.get_datadir"><code class="docutils literal notranslate"><span class="pre">get_datadir()</span></code></a></li>
+<li><a class="reference internal" href="#meersolar.pipeline.basic_func.get_emails"><code class="docutils literal notranslate"><span class="pre">get_emails()</span></code></a></li>
 <li><a class="reference internal" href="#meersolar.pipeline.basic_func.get_fluxcals"><code class="docutils literal notranslate"><span class="pre">get_fluxcals()</span></code></a></li>
 <li><a class="reference internal" href="#meersolar.pipeline.basic_func.get_good_chans"><code class="docutils literal notranslate"><span class="pre">get_good_chans()</span></code></a></li>
 <li><a class="reference internal" href="#meersolar.pipeline.basic_func.get_jobid"><code class="docutils literal notranslate"><span class="pre">get_jobid()</span></code></a></li>
@@ -4081,7 +4084,6 @@ arguments is the optional sequence of the names of the signal’s arguments.</p>
 <li><a class="reference internal" href="#meersolar.pipeline.basic_func.init_logger"><code class="docutils literal notranslate"><span class="pre">init_logger()</span></code></a></li>
 <li><a class="reference internal" href="#meersolar.pipeline.basic_func.init_udocker"><code class="docutils literal notranslate"><span class="pre">init_udocker()</span></code></a></li>
 <li><a class="reference internal" href="#meersolar.pipeline.basic_func.initialize_wsclean_container"><code class="docutils literal notranslate"><span class="pre">initialize_wsclean_container()</span></code></a></li>
-<li><a class="reference internal" href="#meersolar.pipeline.basic_func.kill_job"><code class="docutils literal notranslate"><span class="pre">kill_job()</span></code></a></li>
 <li><a class="reference internal" href="#meersolar.pipeline.basic_func.limit_threads"><code class="docutils literal notranslate"><span class="pre">limit_threads()</span></code></a></li>
 <li><a class="reference internal" href="#meersolar.pipeline.basic_func.make_ds_plot"><code class="docutils literal notranslate"><span class="pre">make_ds_plot()</span></code></a></li>
 <li><a class="reference internal" href="#meersolar.pipeline.basic_func.make_freqavg_image"><code class="docutils literal notranslate"><span class="pre">make_freqavg_image()</span></code></a></li>

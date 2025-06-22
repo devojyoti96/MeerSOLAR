@@ -1,0 +1,6 @@
+/* Force justification for body text in main content */
+article {
+    text-align: justify;
+    text-justify: inter-word;
+}
+

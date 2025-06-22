@@ -24,6 +24,7 @@ extensions = [
     "sphinx_copybutton",            # Optional: copy-paste button for code blocks
     "sphinx.ext.autosummary",
     "sphinx.ext.doctest",
+    "sphinxcontrib.programoutput",  
 ]
 
 templates_path = ['_templates']
@@ -35,6 +36,7 @@ exclude_patterns = []
 html_theme = "furo"
 html_static_path = ['_static']
 html_title = "MeerSOLAR"
+html_css_files = ['custom.css']
 
 html_theme_options = {
     "light_logo": "yourlogo-light.png",

@@ -3,7 +3,7 @@
   <head><meta charset="utf-8"/>
     <meta name="viewport" content="width=device-width,initial-scale=1"/>
     <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
-<link rel="index" title="Index" href="genindex.html" /><link rel="search" title="Search" href="search.html" /><link rel="next" title="API Reference" href="meersolar.html" /><link rel="prev" title="Install MeerSOLAR" href="install_meersolar.html" />
+<link rel="index" title="Index" href="genindex.html" /><link rel="search" title="Search" href="search.html" /><link rel="next" title="Basic Tutorial" href="tutorial.html" /><link rel="prev" title="Install MeerSOLAR" href="install_meersolar.html" />
 
     <!-- Generated with Sphinx 7.4.7 and Furo 2024.01.29 -->
         <title>Initial setup - MeerSOLAR</title>
@@ -11,6 +11,7 @@
     <link rel="stylesheet" type="text/css" href="_static/styles/furo.css?v=135e06be" />
     <link rel="stylesheet" type="text/css" href="_static/copybutton.css?v=76b2166b" />
     <link rel="stylesheet" type="text/css" href="_static/styles/furo-extensions.css?v=36a5483c" />
+    <link rel="stylesheet" type="text/css" href="_static/custom.css?v=db239b2d" />
     
     
 
@@ -167,6 +168,8 @@
 <li class="toctree-l2 current current-page"><a class="current reference internal" href="#">Initial setup</a></li>
 </ul>
 </li>
+<li class="toctree-l1"><a class="reference internal" href="tutorial.html">Basic Tutorial</a></li>
+<li class="toctree-l1"><a class="reference internal" href="cli.html">Command line tools</a></li>
 <li class="toctree-l1 has-children"><a class="reference internal" href="meersolar.html">API Reference</a><input class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" role="switch" type="checkbox"/><label for="toctree-checkbox-2"><div class="visually-hidden">Toggle navigation of API Reference</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
 <li class="toctree-l2"><a class="reference internal" href="meersolar.pipeline.html">Meersolar Pipeline Module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="meersolar.crystalball.html">Crystalball Module</a></li>
@@ -224,6 +227,14 @@
 </pre></div>
 </div>
 </section>
+<section id="setup-e-mail-ids">
+<h2>Setup e-mail ids<a class="headerlink" href="#setup-e-mail-ids" title="Link to this heading">¶</a></h2>
+<p>To receive remote logger Job ID and password, use can setup their e-mail id(s) in MeerSOLAR.</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>init_meersolar_data<span class="w"> </span>--init<span class="w"> </span>--emails<span class="w"> </span>&lt;youremail1@email1.id1&gt;,&lt;youremail2@email2.id2&gt;
+</pre></div>
+</div>
+<p>If you setup a remote logger as described below, you will receive a Job ID and auto-generated six-character password to access logs of a particular pipeline run from the remote logger. Without this password, one can not access logs of that particular pipeline run. This added security as well as privacy when multiple user uses the same remote logger link, for example, an institute based remote logger link.</p>
+</section>
 <section id="setup-remote-logger-link">
 <h2>Setup remote logger link<a class="headerlink" href="#setup-remote-logger-link" title="Link to this heading">¶</a></h2>
 <p>If remote logger is intended to be used, setup the remote link in MeerSOLAR metadata.</p>
@@ -232,8 +243,40 @@
 </div>
 <p>Before doing this, create your own remote logger on free-tier cloud platform, <a class="reference external" href="https://render.com">https://render.com</a>. One can use, same <strong>remotelink</strong> in multiple machines and users. However, free-tier link has some limitations on bandwidth. If you want to use <strong>remotelink</strong> for your institution, we suggest to purchase suitable paid version or setup seperate <strong>remotelink</strong> for different users.</p>
 </section>
-<section id="tutorial-to-setup-remotelink">
-<h2>Tutorial to setup <strong>remotelink</strong><a class="headerlink" href="#tutorial-to-setup-remotelink" title="Link to this heading">¶</a></h2>
+<section id="update-remote-logger-link-and-or-e-mail-ids">
+<h2>Update remote logger link and/or e-mail ids<a class="headerlink" href="#update-remote-logger-link-and-or-e-mail-ids" title="Link to this heading">¶</a></h2>
+<p>If user wants to update the already provided remote logger link or e-mail id(s), simply run the above commands with new values. MeerSOLAR will automatically update the database with these new values.</p>
+</section>
+<section id="tutorial-to-setup-remote-lor-link">
+<h2>Tutorial to setup remote lor link<a class="headerlink" href="#tutorial-to-setup-remote-lor-link" title="Link to this heading">¶</a></h2>
+<ol class="arabic simple">
+<li><p>Go to <a class="reference external" href="https://dashboard.render.com/">https://dashboard.render.com/</a>. It will take you to the login page. If you do not have an ccount on <a class="reference external" href="https://render.com">https://render.com</a>, create an account and login.</p></li>
+<li><p>After login, you will land up in the following page. Click on <strong>Add new</strong> and then <strong>Web Service</strong>.</p></li>
+</ol>
+<img alt="_images/ss1.png" src="_images/ss1.png" />
+<ol class="arabic simple" start="3">
+<li><p>Then the following page will open. Select <strong>Exisiting image</strong> table and put <strong>docker.io/devojyoti96/meerlogger:latest</strong> in the <strong>Image URL</strong> box. If the image link is correct, a blue tock will appear the right corner of the box as hown in the image below. Then click on black <strong>Connect–&gt;</strong> button at the bottom of the page.</p></li>
+</ol>
+<img alt="_images/ss2.png" src="_images/ss2.png" />
+<ol class="arabic simple" start="4">
+<li><p>Next, you will land up in the following page. In the name box, type your custom remote logger name, <strong>&lt;remote-logger-name&gt;</strong>. If the name is in use by anyone else and not available, a red text will appear below the box showing <strong>Name is already in use</strong>. Modify the name to have a unique available name. Once done, scroll down to the middle of the page.</p></li>
+</ol>
+<img alt="_images/ss3.png" src="_images/ss3.png" />
+<ol class="arabic simple" start="5">
+<li><p>In the middle of the page, select the user-plan. For individual user, you can choose <strong>Free</strong> as shown in the image below. If you want any paid version, choose the appropriate one.</p></li>
+</ol>
+<img alt="_images/ss5.png" src="_images/ss5.png" />
+<ol class="arabic simple" start="6">
+<li><p>Then go down to the bottom of the page. Click of <strong>Deploy</strong> button.</p></li>
+</ol>
+<img alt="_images/ss4.png" src="_images/ss4.png" />
+<ol class="arabic simple" start="7">
+<li><p>In the next page, you will see web-service is being started. Once you see, <strong>==&gt; Your service is live 🎉</strong> as shown in the image below, you remote logger is ready to use. You remote logger link is also shown just above the black window, and it will be <strong>https://&lt;remote-logger-name&gt;.onrender.com</strong>.</p></li>
+</ol>
+<img alt="_images/ss6.png" src="_images/ss6.png" />
+<ol class="arabic simple" start="8">
+<li><p>Now use this link to setup as remote logger link as described above. This link is persistent and can be used in multiple machines. You MeerSOLAR job logs will appear in <strong>https://&lt;remote-logger-name&gt;.onrender.com</strong>. How to access</p></li>
+</ol>
 </section>
 </section>
 
@@ -242,12 +285,12 @@
       <footer>
         
         <div class="related-pages">
-          <a class="next-page" href="meersolar.html">
+          <a class="next-page" href="tutorial.html">
               <div class="page-info">
                 <div class="context">
                   <span>Next</span>
                 </div>
-                <div class="title">API Reference</div>
+                <div class="title">Basic Tutorial</div>
               </div>
               <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
             </a>
@@ -294,8 +337,10 @@
             <ul>
 <li><a class="reference internal" href="#">Initial setup</a><ul>
 <li><a class="reference internal" href="#download-meersolar-metadata">Download MeerSOLAR metadata</a></li>
+<li><a class="reference internal" href="#setup-e-mail-ids">Setup e-mail ids</a></li>
 <li><a class="reference internal" href="#setup-remote-logger-link">Setup remote logger link</a></li>
-<li><a class="reference internal" href="#tutorial-to-setup-remotelink">Tutorial to setup <strong>remotelink</strong></a></li>
+<li><a class="reference internal" href="#update-remote-logger-link-and-or-e-mail-ids">Update remote logger link and/or e-mail ids</a></li>
+<li><a class="reference internal" href="#tutorial-to-setup-remote-lor-link">Tutorial to setup remote lor link</a></li>
 </ul>
 </li>
 </ul>

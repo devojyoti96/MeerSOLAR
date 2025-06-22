@@ -30,6 +30,8 @@ Contents
    :maxdepth: 2
    
    install
+   tutorial
+   cli
    meersolar
 
 Indices

@@ -125,6 +125,18 @@ def get_remote_logger_link():
     except Exception:
         return ""
 
+def get_emails():
+    datadir = get_datadir()
+    email_file = os.path.join(datadir, "emails.txt")
+    try:
+        with open(email_file, "r") as f:
+            lines = [line.strip() for line in f if line.strip()]
+    except FileNotFoundError:
+        return ""
+    if not lines:
+        return ""
+    else:
+        return lines[0]
 
 class RemoteLogger(logging.Handler):
     """
@@ -3778,48 +3790,6 @@ def merge_caltables(caltables, merged_caltable, append=False, keepcopy=False):
                     os.system("rm -rf " + caltable)
     return merged_caltable
 
-
-def kill_job():
-    """
-    Kill MeerSOLAR Job
-    """
-    import signal, argparse
-
-    parser = argparse.ArgumentParser(description="Kill MeerSOLAR Job")
-    parser.add_argument(
-        "--jobid", type=str, required=True, help="MeerSOLAR Job ID to kill"
-    )
-    if len(sys.argv) == 1:
-        parser.print_help(sys.stderr)
-        sys.exit(1)
-    args = parser.parse_args()
-    datadir = get_datadir()
-    jobfile_name = datadir + f"/main_pids_{args.jobid}.txt"
-    results = np.loadtxt(jobfile_name, dtype="str", unpack=True)
-    basedir = results[2]
-    main_pid = results[1]
-    pid_file = datadir + f"/pids_{args.jobid}.txt"
-    try:
-        os.kill(int(main_pid), signal.SIGKILL)
-    except:
-        pass
-    if os.path.exists(pid_file):
-        pids = np.loadtxt(pid_file, unpack=True, dtype="int")
-        if pids.size == 0:
-            pass
-        elif pids.size == 1:
-            try:
-                os.kill(int(pids), signal.SIGKILL)
-            except:
-                pass
-        else:
-            for pid in pids:
-                try:
-                    os.kill(int(pid), signal.SIGKILL)
-                except:
-                    pass
-
-
 def get_nprocess_meersolar(jobid):
     """
     Get numbers of MeerSOLAR processes currently running
@@ -3930,7 +3900,7 @@ def save_main_process_info(pid, jobid, basedir, cpu_frac, mem_frac):
     return main_job_file
 
 
-def create_batch_script_nonhpc(cmd, workdir, basename, jobid, write_logfile=True):
+def create_batch_script_nonhpc(cmd, workdir, basename, write_logfile=True):
     """
     Function to make a batch script not non-HPC environment
 
@@ -3942,8 +3912,6 @@ def create_batch_script_nonhpc(cmd, workdir, basename, jobid, write_logfile=True
         Work directory of the measurement set
     basename : str
         Base name of the batch files
-    jobid : int
-        MeerSOLAR Job ID
     write_logfile : bool, optional
         Write log file or not
 
@@ -3957,7 +3925,6 @@ def create_batch_script_nonhpc(cmd, workdir, basename, jobid, write_logfile=True
     datadir = get_datadir()
     batch_file = workdir + "/" + basename + ".batch"
     cmd_batch = workdir + "/" + basename + "_cmd.batch"
-    pid_file = datadir + f"/pids/pids_{jobid}.txt"
     finished_touch_file = workdir + "/.Finished_" + basename
     os.system("rm -rf " + finished_touch_file + "*")
     finished_touch_file_error = finished_touch_file + "_1"
@@ -3969,7 +3936,7 @@ def create_batch_script_nonhpc(cmd, workdir, basename, jobid, write_logfile=True
         outputfile = workdir + "/logs/" + basename + ".log"
     else:
         outputfile = "/dev/null"
-    batch_file_content = f"""export PYTHONUNBUFFERED=1\nnohup sh {cmd_batch}> {outputfile} 2>&1 &\necho $! >> {pid_file}\nsleep 2\n rm -rf {batch_file}\n rm -rf {cmd_batch}"""
+    batch_file_content = f"""export PYTHONUNBUFFERED=1\nnohup sh {cmd_batch}> {outputfile} 2>&1 &\nsleep 2\n rm -rf {batch_file}\n rm -rf {cmd_batch}"""
     if os.path.exists(cmd_batch):
         os.system("rm -rf " + cmd_batch)
     if os.path.exists(batch_file):

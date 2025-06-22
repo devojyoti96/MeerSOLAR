@@ -1,1 +1,76 @@
-# meerkat_solar_pipeline
+<h1 align="center">MeerSOLAR</h1>
+<p align="center">
+  An automated calibration and imaging pipeline designed for solar radio observations using **MeerKAT** radio telescope. It performs end-to-end calibration, flagging, and imaging with a focus on dynamic solar data, supporting both spectral and temporal flexibility in imaging products.
+</p>
+</a>
+
+## Introduction
+
+Solar radio data presents unique challenges due to the high variability and brightness of the Sun, as well as the need for high time-frequency resolution. The MeerSOLAR pipeline addresses these challenges by:
+
+- Automating the calibration of interferometric data, including flux, phase, and polarization calibrations
+- Supporting time-sliced and frequency-sliced imaging workflows
+- Leveraging Dask for scalable parallel processing
+- Providing hooks for integration with contextual data from other wavelegths for enhanced solar analysis
+
+
+## Quickstart
+
+<!-- start quickstart -->
+
+MeerSOLAR is distributed on [PyPI]. To use it:
+
+1. Install conda with python 3.10
+
+    ```text
+    conda create -n meersolar_env python=3.10
+    conda activate meersolar_env
+    ```
+
+2. Install MeerSOLAR in conda environment
+
+   ```text
+   pip install meersolar
+   ```
+
+3. Initiate necessary metadata
+
+    ```text
+    init_meersolar_data --init
+    ```
+    
+4. Run MeerSOLAR pipeline
+
+    ```text
+    run_meersolar <path of measurement set> --workdir <path of work directory>
+    ```    
+
+That's all. You started MeerSOLAR pipeline for analysing your MeerKAT solar observation 🎉
+
+[pypi]: https://pypi.org/project/meersolar/
+
+<!-- end quickstart -->
+
+For more information, visit [MeerSOLAR's documentation][quickstart-docs].
+
+[quickstart-docs]: https://readthedocs.io/meersolar/quickstart
+
+## Acknowledgements
+
+MeerSOLAR is developed by Devojyoti Kansabanik (CPAESS-UCAR, Boulder, USA) and Deepan Patra (NCRA-TIFR, Pune, India). If you use **MeerSOLAR** for analysing your MeerKAT solar observations, include the following statement in your paper
+
+```text
+This MeerKAT solar observations are analysed using MeerSOLAR pipeline.
+```
+
+and cite the following papers.
+
+1. [First MeerSOLAR paper] [kansabanik2025]
+[Kansabanik2025]: https://kansabanik-meersolar.org
+
+2. [Second MeerSOLAR paper] [Patra2025]
+[Patra2025]: https://patra-meersolar.org
+
+## License
+
+This project is licensed under the MIT License.

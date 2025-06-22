@@ -10,6 +10,7 @@
     <link rel="stylesheet" type="text/css" href="../../../_static/styles/furo.css?v=135e06be" />
     <link rel="stylesheet" type="text/css" href="../../../_static/copybutton.css?v=76b2166b" />
     <link rel="stylesheet" type="text/css" href="../../../_static/styles/furo-extensions.css?v=36a5483c" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/custom.css?v=db239b2d" />
     
     
 
@@ -166,6 +167,8 @@
 <li class="toctree-l2"><a class="reference internal" href="../../../initial_setup.html">Initial setup</a></li>
 </ul>
 </li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorial.html">Basic Tutorial</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../cli.html">Command line tools</a></li>
 <li class="toctree-l1 has-children"><a class="reference internal" href="../../../meersolar.html">API Reference</a><input class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" role="switch" type="checkbox"/><label for="toctree-checkbox-2"><div class="visually-hidden">Toggle navigation of API Reference</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
 <li class="toctree-l2"><a class="reference internal" href="../../../meersolar.pipeline.html">Meersolar Pipeline Module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../meersolar.crystalball.html">Crystalball Module</a></li>
@@ -209,6 +212,7 @@
 <span class="kn">from</span> <span class="nn">multiprocessing</span> <span class="kn">import</span> <span class="n">Process</span><span class="p">,</span> <span class="n">Event</span>
 <span class="kn">from</span> <span class="nn">meersolar.pipeline.basic_func</span> <span class="kn">import</span> <span class="o">*</span>
 <span class="kn">from</span> <span class="nn">meersolar.pipeline.init_data</span> <span class="kn">import</span> <span class="n">init_meersolar_data</span>
+<span class="kn">from</span> <span class="nn">meersolar.data.sendmail</span> <span class="kn">import</span> <span class="n">send_paircars_notification</span> <span class="k">as</span> <span class="n">send_notification</span>
 <span class="kn">from</span> <span class="nn">casatasks</span> <span class="kn">import</span> <span class="n">casalog</span>
 
 <span class="k">try</span><span class="p">:</span>
@@ -288,7 +292,7 @@
     <span class="n">flagging_cmd</span> <span class="o">+=</span> <span class="sa">f</span><span class="s2">&quot; --logfile </span><span class="si">{</span><span class="n">logfile</span><span class="si">}</span><span class="s2">&quot;</span>
     <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isdir</span><span class="p">(</span><span class="n">workdir</span> <span class="o">+</span> <span class="s2">&quot;/logs&quot;</span><span class="p">)</span> <span class="o">==</span> <span class="kc">False</span><span class="p">:</span>
         <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">workdir</span> <span class="o">+</span> <span class="s2">&quot;/logs&quot;</span><span class="p">)</span>
-    <span class="n">batch_file</span> <span class="o">=</span> <span class="n">create_batch_script_nonhpc</span><span class="p">(</span><span class="n">flagging_cmd</span><span class="p">,</span> <span class="n">workdir</span><span class="p">,</span> <span class="n">flag_basename</span><span class="p">,</span> <span class="n">jobid</span><span class="p">)</span>
+    <span class="n">batch_file</span> <span class="o">=</span> <span class="n">create_batch_script_nonhpc</span><span class="p">(</span><span class="n">flagging_cmd</span><span class="p">,</span> <span class="n">workdir</span><span class="p">,</span> <span class="n">flag_basename</span><span class="p">)</span>
     <span class="nb">print</span><span class="p">(</span><span class="n">flagging_cmd</span> <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
     <span class="n">os</span><span class="o">.</span><span class="n">system</span><span class="p">(</span><span class="s2">&quot;bash &quot;</span> <span class="o">+</span> <span class="n">batch_file</span><span class="p">)</span>
     <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Waiting to finish flagging...</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
@@ -350,9 +354,7 @@
     <span class="n">import_model_cmd</span> <span class="o">+=</span> <span class="sa">f</span><span class="s2">&quot; --logfile </span><span class="si">{</span><span class="n">logfile</span><span class="si">}</span><span class="s2">&quot;</span>
     <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isdir</span><span class="p">(</span><span class="n">workdir</span> <span class="o">+</span> <span class="s2">&quot;/logs&quot;</span><span class="p">)</span> <span class="o">==</span> <span class="kc">False</span><span class="p">:</span>
         <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">workdir</span> <span class="o">+</span> <span class="s2">&quot;/logs&quot;</span><span class="p">)</span>
-    <span class="n">batch_file</span> <span class="o">=</span> <span class="n">create_batch_script_nonhpc</span><span class="p">(</span>
-        <span class="n">import_model_cmd</span><span class="p">,</span> <span class="n">workdir</span><span class="p">,</span> <span class="n">model_basename</span><span class="p">,</span> <span class="n">jobid</span>
-    <span class="p">)</span>
+    <span class="n">batch_file</span> <span class="o">=</span> <span class="n">create_batch_script_nonhpc</span><span class="p">(</span><span class="n">import_model_cmd</span><span class="p">,</span> <span class="n">workdir</span><span class="p">,</span> <span class="n">model_basename</span><span class="p">)</span>
     <span class="nb">print</span><span class="p">(</span><span class="n">import_model_cmd</span> <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
     <span class="n">os</span><span class="o">.</span><span class="n">system</span><span class="p">(</span><span class="s2">&quot;bash &quot;</span> <span class="o">+</span> <span class="n">batch_file</span><span class="p">)</span>
     <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Waiting to finish visibility simulation for calibrators...</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
@@ -425,14 +427,14 @@
         <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">jobid</span><span class="p">)</span>
     <span class="p">)</span>
     <span class="k">if</span> <span class="n">perform_polcal</span><span class="p">:</span>
-        <span class="n">basic_cal_cmd</span><span class="o">+=</span><span class="s2">&quot; --perform_polcal&quot;</span>
+        <span class="n">basic_cal_cmd</span> <span class="o">+=</span> <span class="s2">&quot; --perform_polcal&quot;</span>
     <span class="k">if</span> <span class="n">keep_backup</span><span class="p">:</span>
-        <span class="n">basic_cal_cmd</span><span class="o">+=</span><span class="s2">&quot; --keep_backup&quot;</span>
+        <span class="n">basic_cal_cmd</span> <span class="o">+=</span> <span class="s2">&quot; --keep_backup&quot;</span>
     <span class="n">logfile</span> <span class="o">=</span> <span class="n">workdir</span> <span class="o">+</span> <span class="s2">&quot;/logs/&quot;</span> <span class="o">+</span> <span class="n">cal_basename</span> <span class="o">+</span> <span class="s2">&quot;.log&quot;</span>
     <span class="n">basic_cal_cmd</span> <span class="o">+=</span> <span class="sa">f</span><span class="s2">&quot; --logfile </span><span class="si">{</span><span class="n">logfile</span><span class="si">}</span><span class="s2">&quot;</span>
     <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isdir</span><span class="p">(</span><span class="n">workdir</span> <span class="o">+</span> <span class="s2">&quot;/logs&quot;</span><span class="p">)</span> <span class="o">==</span> <span class="kc">False</span><span class="p">:</span>
         <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">workdir</span> <span class="o">+</span> <span class="s2">&quot;/logs&quot;</span><span class="p">)</span>
-    <span class="n">batch_file</span> <span class="o">=</span> <span class="n">create_batch_script_nonhpc</span><span class="p">(</span><span class="n">basic_cal_cmd</span><span class="p">,</span> <span class="n">workdir</span><span class="p">,</span> <span class="n">cal_basename</span><span class="p">,</span> <span class="n">jobid</span><span class="p">)</span>
+    <span class="n">batch_file</span> <span class="o">=</span> <span class="n">create_batch_script_nonhpc</span><span class="p">(</span><span class="n">basic_cal_cmd</span><span class="p">,</span> <span class="n">workdir</span><span class="p">,</span> <span class="n">cal_basename</span><span class="p">)</span>
     <span class="nb">print</span><span class="p">(</span><span class="n">basic_cal_cmd</span> <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
     <span class="n">os</span><span class="o">.</span><span class="n">system</span><span class="p">(</span><span class="s2">&quot;bash &quot;</span> <span class="o">+</span> <span class="n">batch_file</span><span class="p">)</span>
     <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Waiting to finish calibration...</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
@@ -453,7 +455,9 @@
 
 <div class="viewcode-block" id="run_noise_diode_cal">
 <a class="viewcode-back" href="../../../meersolar.pipeline.html#meersolar.pipeline.master_controller.run_noise_diode_cal">[docs]</a>
-<span class="k">def</span> <span class="nf">run_noise_diode_cal</span><span class="p">(</span><span class="n">msname</span><span class="p">,</span> <span class="n">workdir</span><span class="p">,</span> <span class="n">keep_backup</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">jobid</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">cpu_frac</span><span class="o">=</span><span class="mf">0.8</span><span class="p">,</span> <span class="n">mem_frac</span><span class="o">=</span><span class="mf">0.8</span><span class="p">):</span>
+<span class="k">def</span> <span class="nf">run_noise_diode_cal</span><span class="p">(</span>
+    <span class="n">msname</span><span class="p">,</span> <span class="n">workdir</span><span class="p">,</span> <span class="n">keep_backup</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">jobid</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">cpu_frac</span><span class="o">=</span><span class="mf">0.8</span><span class="p">,</span> <span class="n">mem_frac</span><span class="o">=</span><span class="mf">0.8</span>
+<span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Perform noise diode based flux calibration</span>
 
@@ -497,7 +501,7 @@
         <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isdir</span><span class="p">(</span><span class="n">workdir</span> <span class="o">+</span> <span class="s2">&quot;/logs&quot;</span><span class="p">)</span> <span class="o">==</span> <span class="kc">False</span><span class="p">:</span>
             <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">workdir</span> <span class="o">+</span> <span class="s2">&quot;/logs&quot;</span><span class="p">)</span>
         <span class="n">batch_file</span> <span class="o">=</span> <span class="n">create_batch_script_nonhpc</span><span class="p">(</span>
-            <span class="n">noise_cal_cmd</span><span class="p">,</span> <span class="n">workdir</span><span class="p">,</span> <span class="n">noisecal_basename</span><span class="p">,</span> <span class="n">jobid</span>
+            <span class="n">noise_cal_cmd</span><span class="p">,</span> <span class="n">workdir</span><span class="p">,</span> <span class="n">noisecal_basename</span>
         <span class="p">)</span>
         <span class="nb">print</span><span class="p">(</span><span class="n">noise_cal_cmd</span> <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
         <span class="n">os</span><span class="o">.</span><span class="n">system</span><span class="p">(</span><span class="s2">&quot;bash &quot;</span> <span class="o">+</span> <span class="n">batch_file</span><span class="p">)</span>
@@ -581,7 +585,7 @@
     <span class="n">calibrator_ms</span> <span class="o">=</span> <span class="n">workdir</span> <span class="o">+</span> <span class="s2">&quot;/calibrator.ms&quot;</span>
     <span class="n">split_cmd</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;run_partition </span><span class="si">{</span><span class="n">msname</span><span class="si">}</span><span class="s2"> --outputms </span><span class="si">{</span><span class="n">calibrator_ms</span><span class="si">}</span><span class="s2"> --scans </span><span class="si">{</span><span class="n">cal_scans</span><span class="si">}</span><span class="s2"> --timebin </span><span class="si">{</span><span class="n">timebin</span><span class="si">}</span><span class="s2"> --width </span><span class="si">{</span><span class="n">width</span><span class="si">}</span><span class="s2"> --cpu_frac </span><span class="si">{</span><span class="n">cpu_frac</span><span class="si">}</span><span class="s2"> --mem_frac </span><span class="si">{</span><span class="n">mem_frac</span><span class="si">}</span><span class="s2"> --workdir </span><span class="si">{</span><span class="n">workdir</span><span class="si">}</span><span class="s2"> --jobid </span><span class="si">{</span><span class="n">jobid</span><span class="si">}</span><span class="s2">&quot;</span>
     <span class="k">if</span> <span class="n">split_fullpol</span><span class="p">:</span>
-        <span class="n">split_cmd</span><span class="o">+=</span><span class="s2">&quot; --split_fullpol&quot;</span>
+        <span class="n">split_cmd</span> <span class="o">+=</span> <span class="s2">&quot; --split_fullpol&quot;</span>
     <span class="c1">####################################</span>
     <span class="c1"># Partition fields</span>
     <span class="c1">####################################</span>
@@ -591,9 +595,7 @@
     <span class="n">split_cmd</span> <span class="o">+=</span> <span class="sa">f</span><span class="s2">&quot; --logfile </span><span class="si">{</span><span class="n">logfile</span><span class="si">}</span><span class="s2">&quot;</span>
     <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isdir</span><span class="p">(</span><span class="n">workdir</span> <span class="o">+</span> <span class="s2">&quot;/logs&quot;</span><span class="p">)</span> <span class="o">==</span> <span class="kc">False</span><span class="p">:</span>
         <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">workdir</span> <span class="o">+</span> <span class="s2">&quot;/logs&quot;</span><span class="p">)</span>
-    <span class="n">batch_file</span> <span class="o">=</span> <span class="n">create_batch_script_nonhpc</span><span class="p">(</span>
-        <span class="n">split_cmd</span><span class="p">,</span> <span class="n">workdir</span><span class="p">,</span> <span class="n">partition_basename</span><span class="p">,</span> <span class="n">jobid</span>
-    <span class="p">)</span>
+    <span class="n">batch_file</span> <span class="o">=</span> <span class="n">create_batch_script_nonhpc</span><span class="p">(</span><span class="n">split_cmd</span><span class="p">,</span> <span class="n">workdir</span><span class="p">,</span> <span class="n">partition_basename</span><span class="p">)</span>
     <span class="nb">print</span><span class="p">(</span><span class="n">split_cmd</span> <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
     <span class="n">os</span><span class="o">.</span><span class="n">system</span><span class="p">(</span><span class="s2">&quot;bash &quot;</span> <span class="o">+</span> <span class="n">batch_file</span><span class="p">)</span>
     <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Waiting to finish partitioning...</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
@@ -717,9 +719,9 @@
             <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">jobid</span><span class="p">)</span>
         <span class="p">)</span>
         <span class="k">if</span> <span class="n">split_fullpol</span><span class="p">:</span>
-            <span class="n">split_cmd</span><span class="o">+=</span><span class="s2">&quot; --split_fullpol&quot;</span>
+            <span class="n">split_cmd</span> <span class="o">+=</span> <span class="s2">&quot; --split_fullpol&quot;</span>
         <span class="k">if</span> <span class="n">merge_spws</span><span class="p">:</span>
-            <span class="n">split_cmd</span><span class="o">+=</span><span class="s2">&quot; --merge_spws&quot;</span>
+            <span class="n">split_cmd</span> <span class="o">+=</span> <span class="s2">&quot; --merge_spws&quot;</span>
         <span class="k">if</span> <span class="n">spw</span> <span class="o">!=</span> <span class="s2">&quot;&quot;</span><span class="p">:</span>
             <span class="n">split_cmd</span> <span class="o">=</span> <span class="n">split_cmd</span> <span class="o">+</span> <span class="s2">&quot; --spw &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">spw</span><span class="p">)</span>
         <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">target_scans</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
@@ -730,9 +732,7 @@
         <span class="n">split_cmd</span> <span class="o">+=</span> <span class="sa">f</span><span class="s2">&quot; --logfile </span><span class="si">{</span><span class="n">logfile</span><span class="si">}</span><span class="s2">&quot;</span>
         <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isdir</span><span class="p">(</span><span class="n">workdir</span> <span class="o">+</span> <span class="s2">&quot;/logs&quot;</span><span class="p">)</span> <span class="o">==</span> <span class="kc">False</span><span class="p">:</span>
             <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">workdir</span> <span class="o">+</span> <span class="s2">&quot;/logs&quot;</span><span class="p">)</span>
-        <span class="n">batch_file</span> <span class="o">=</span> <span class="n">create_batch_script_nonhpc</span><span class="p">(</span>
-            <span class="n">split_cmd</span><span class="p">,</span> <span class="n">workdir</span><span class="p">,</span> <span class="n">split_basename</span><span class="p">,</span> <span class="n">jobid</span>
-        <span class="p">)</span>
+        <span class="n">batch_file</span> <span class="o">=</span> <span class="n">create_batch_script_nonhpc</span><span class="p">(</span><span class="n">split_cmd</span><span class="p">,</span> <span class="n">workdir</span><span class="p">,</span> <span class="n">split_basename</span><span class="p">)</span>
         <span class="nb">print</span><span class="p">(</span><span class="n">split_cmd</span> <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
         <span class="n">os</span><span class="o">.</span><span class="n">system</span><span class="p">(</span><span class="s2">&quot;bash &quot;</span> <span class="o">+</span> <span class="n">batch_file</span><span class="p">)</span>
         <span class="k">return</span> <span class="mi">0</span>
@@ -805,7 +805,7 @@
         <span class="n">logfile</span> <span class="o">=</span> <span class="n">workdir</span> <span class="o">+</span> <span class="s2">&quot;/logs/&quot;</span> <span class="o">+</span> <span class="n">sidereal_basename</span> <span class="o">+</span> <span class="s2">&quot;.log&quot;</span>
         <span class="n">sidereal_cor_cmd</span> <span class="o">+=</span> <span class="sa">f</span><span class="s2">&quot; --logfile </span><span class="si">{</span><span class="n">logfile</span><span class="si">}</span><span class="s2">&quot;</span>
         <span class="n">batch_file</span> <span class="o">=</span> <span class="n">create_batch_script_nonhpc</span><span class="p">(</span>
-            <span class="n">sidereal_cor_cmd</span><span class="p">,</span> <span class="n">workdir</span><span class="p">,</span> <span class="n">sidereal_basename</span><span class="p">,</span> <span class="n">jobid</span>
+            <span class="n">sidereal_cor_cmd</span><span class="p">,</span> <span class="n">workdir</span><span class="p">,</span> <span class="n">sidereal_basename</span>
         <span class="p">)</span>
         <span class="nb">print</span><span class="p">(</span><span class="n">sidereal_cor_cmd</span> <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
         <span class="n">os</span><span class="o">.</span><span class="n">system</span><span class="p">(</span><span class="s2">&quot;bash &quot;</span> <span class="o">+</span> <span class="n">batch_file</span><span class="p">)</span>
@@ -876,14 +876,14 @@
             <span class="o">+</span> <span class="s2">&quot; --jobid &quot;</span>
             <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">jobid</span><span class="p">)</span>
         <span class="p">)</span>
-        <span class="k">if</span> <span class="n">apply_parang</span><span class="o">==</span><span class="kc">False</span><span class="p">:</span>
-            <span class="n">applypbcor_cmd</span><span class="o">+=</span><span class="s2">&quot; --no_apply_parang&quot;</span>
+        <span class="k">if</span> <span class="n">apply_parang</span> <span class="o">==</span> <span class="kc">False</span><span class="p">:</span>
+            <span class="n">applypbcor_cmd</span> <span class="o">+=</span> <span class="s2">&quot; --no_apply_parang&quot;</span>
         <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isdir</span><span class="p">(</span><span class="n">workdir</span> <span class="o">+</span> <span class="s2">&quot;/logs&quot;</span><span class="p">)</span> <span class="o">==</span> <span class="kc">False</span><span class="p">:</span>
             <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">workdir</span> <span class="o">+</span> <span class="s2">&quot;/logs&quot;</span><span class="p">)</span>
         <span class="n">logfile</span> <span class="o">=</span> <span class="n">workdir</span> <span class="o">+</span> <span class="s2">&quot;/logs/&quot;</span> <span class="o">+</span> <span class="n">applypbcor_basename</span> <span class="o">+</span> <span class="s2">&quot;.log&quot;</span>
         <span class="n">applypbcor_cmd</span> <span class="o">+=</span> <span class="sa">f</span><span class="s2">&quot; --logfile </span><span class="si">{</span><span class="n">logfile</span><span class="si">}</span><span class="s2">&quot;</span>
         <span class="n">batch_file</span> <span class="o">=</span> <span class="n">create_batch_script_nonhpc</span><span class="p">(</span>
-            <span class="n">applypbcor_cmd</span><span class="p">,</span> <span class="n">workdir</span><span class="p">,</span> <span class="n">applypbcor_basename</span><span class="p">,</span> <span class="n">jobid</span>
+            <span class="n">applypbcor_cmd</span><span class="p">,</span> <span class="n">workdir</span><span class="p">,</span> <span class="n">applypbcor_basename</span>
         <span class="p">)</span>
         <span class="nb">print</span><span class="p">(</span><span class="n">applypbcor_cmd</span> <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
         <span class="n">os</span><span class="o">.</span><span class="n">system</span><span class="p">(</span><span class="s2">&quot;bash &quot;</span> <span class="o">+</span> <span class="n">batch_file</span><span class="p">)</span>
@@ -953,7 +953,7 @@
         <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Applying basic calibration solutions on target scans .....&quot;</span><span class="p">)</span>
         <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;###########################</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
         <span class="n">applycal_basename</span> <span class="o">=</span> <span class="s2">&quot;apply_basiccal&quot;</span>
-        <span class="n">mslist</span><span class="o">=</span><span class="s2">&quot;,&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">target_mslist</span><span class="p">)</span>
+        <span class="n">mslist</span> <span class="o">=</span> <span class="s2">&quot;,&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">target_mslist</span><span class="p">)</span>
         <span class="n">applycal_cmd</span> <span class="o">=</span> <span class="p">(</span>
             <span class="sa">f</span><span class="s2">&quot;run_apply_basiccal </span><span class="si">{</span><span class="n">mslist</span><span class="si">}</span><span class="s2">&quot;</span>
             <span class="o">+</span> <span class="s2">&quot; --workdir &quot;</span>
@@ -970,15 +970,15 @@
             <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">jobid</span><span class="p">)</span>
         <span class="p">)</span>
         <span class="k">if</span> <span class="n">use_only_bandpass</span><span class="p">:</span>
-            <span class="n">applycal_cmd</span><span class="o">+=</span><span class="s2">&quot; --use_only_bandpass&quot;</span>
+            <span class="n">applycal_cmd</span> <span class="o">+=</span> <span class="s2">&quot; --use_only_bandpass&quot;</span>
         <span class="k">if</span> <span class="n">overwrite_datacolumn</span><span class="p">:</span>
-            <span class="n">applycal_cmd</span><span class="o">+=</span><span class="s2">&quot; --overwrite_datacolumn&quot;</span>
+            <span class="n">applycal_cmd</span> <span class="o">+=</span> <span class="s2">&quot; --overwrite_datacolumn&quot;</span>
         <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isdir</span><span class="p">(</span><span class="n">workdir</span> <span class="o">+</span> <span class="s2">&quot;/logs&quot;</span><span class="p">)</span> <span class="o">==</span> <span class="kc">False</span><span class="p">:</span>
             <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">workdir</span> <span class="o">+</span> <span class="s2">&quot;/logs&quot;</span><span class="p">)</span>
         <span class="n">logfile</span> <span class="o">=</span> <span class="n">workdir</span> <span class="o">+</span> <span class="s2">&quot;/logs/&quot;</span> <span class="o">+</span> <span class="n">applycal_basename</span> <span class="o">+</span> <span class="s2">&quot;.log&quot;</span>
         <span class="n">applycal_cmd</span> <span class="o">+=</span> <span class="sa">f</span><span class="s2">&quot; --logfile </span><span class="si">{</span><span class="n">logfile</span><span class="si">}</span><span class="s2">&quot;</span>
         <span class="n">batch_file</span> <span class="o">=</span> <span class="n">create_batch_script_nonhpc</span><span class="p">(</span>
-            <span class="n">applycal_cmd</span><span class="p">,</span> <span class="n">workdir</span><span class="p">,</span> <span class="n">applycal_basename</span><span class="p">,</span> <span class="n">jobid</span>
+            <span class="n">applycal_cmd</span><span class="p">,</span> <span class="n">workdir</span><span class="p">,</span> <span class="n">applycal_basename</span>
         <span class="p">)</span>
         <span class="nb">print</span><span class="p">(</span><span class="n">applycal_cmd</span> <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
         <span class="n">os</span><span class="o">.</span><span class="n">system</span><span class="p">(</span><span class="s2">&quot;bash &quot;</span> <span class="o">+</span> <span class="n">batch_file</span><span class="p">)</span>
@@ -1045,7 +1045,7 @@
         <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Applying self-calibration solutions on target scans .....&quot;</span><span class="p">)</span>
         <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;###########################</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
         <span class="n">applycal_basename</span> <span class="o">=</span> <span class="s2">&quot;apply_selfcal&quot;</span>
-        <span class="n">mslist</span><span class="o">=</span><span class="s2">&quot;,&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">target_mslist</span><span class="p">)</span>
+        <span class="n">mslist</span> <span class="o">=</span> <span class="s2">&quot;,&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">target_mslist</span><span class="p">)</span>
         <span class="n">applycal_cmd</span> <span class="o">=</span> <span class="p">(</span>
             <span class="sa">f</span><span class="s2">&quot;run_apply_selfcal </span><span class="si">{</span><span class="n">mslist</span><span class="si">}</span><span class="s2">&quot;</span>
             <span class="o">+</span> <span class="s2">&quot; --workdir &quot;</span>
@@ -1062,13 +1062,13 @@
             <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">jobid</span><span class="p">)</span>
         <span class="p">)</span>
         <span class="k">if</span> <span class="n">overwrite_datacolumn</span><span class="p">:</span>
-            <span class="n">applycal_cmd</span><span class="o">+=</span><span class="s2">&quot; --overwrite_datacolumn&quot;</span>
+            <span class="n">applycal_cmd</span> <span class="o">+=</span> <span class="s2">&quot; --overwrite_datacolumn&quot;</span>
         <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isdir</span><span class="p">(</span><span class="n">workdir</span> <span class="o">+</span> <span class="s2">&quot;/logs&quot;</span><span class="p">)</span> <span class="o">==</span> <span class="kc">False</span><span class="p">:</span>
             <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">workdir</span> <span class="o">+</span> <span class="s2">&quot;/logs&quot;</span><span class="p">)</span>
         <span class="n">logfile</span> <span class="o">=</span> <span class="n">workdir</span> <span class="o">+</span> <span class="s2">&quot;/logs/&quot;</span> <span class="o">+</span> <span class="n">applycal_basename</span> <span class="o">+</span> <span class="s2">&quot;.log&quot;</span>
         <span class="n">applycal_cmd</span> <span class="o">+=</span> <span class="sa">f</span><span class="s2">&quot; --logfile </span><span class="si">{</span><span class="n">logfile</span><span class="si">}</span><span class="s2">&quot;</span>
         <span class="n">batch_file</span> <span class="o">=</span> <span class="n">create_batch_script_nonhpc</span><span class="p">(</span>
-            <span class="n">applycal_cmd</span><span class="p">,</span> <span class="n">workdir</span><span class="p">,</span> <span class="n">applycal_basename</span><span class="p">,</span> <span class="n">jobid</span>
+            <span class="n">applycal_cmd</span><span class="p">,</span> <span class="n">workdir</span><span class="p">,</span> <span class="n">applycal_basename</span>
         <span class="p">)</span>
         <span class="nb">print</span><span class="p">(</span><span class="n">applycal_cmd</span> <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
         <span class="n">os</span><span class="o">.</span><span class="n">system</span><span class="p">(</span><span class="s2">&quot;bash &quot;</span> <span class="o">+</span> <span class="n">batch_file</span><span class="p">)</span>
@@ -1170,7 +1170,7 @@
         <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Performing self-calibration of target scans .....&quot;</span><span class="p">)</span>
         <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;###########################</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
         <span class="n">selfcal_basename</span> <span class="o">=</span> <span class="s2">&quot;selfcal_targets&quot;</span>
-        <span class="n">mslist</span><span class="o">=</span><span class="s2">&quot;,&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">mslist</span><span class="p">)</span>
+        <span class="n">mslist</span> <span class="o">=</span> <span class="s2">&quot;,&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">mslist</span><span class="p">)</span>
         <span class="n">selfcal_cmd</span> <span class="o">=</span> <span class="p">(</span>
             <span class="sa">f</span><span class="s2">&quot;run_selfcal </span><span class="si">{</span><span class="n">mslist</span><span class="si">}</span><span class="s2">&quot;</span>
             <span class="o">+</span> <span class="s2">&quot; --workdir &quot;</span>
@@ -1208,7 +1208,7 @@
             <span class="n">selfcal_cmd</span> <span class="o">+=</span> <span class="s2">&quot; --weight &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">weight</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">robust</span> <span class="o">!=</span> <span class="s2">&quot;&quot;</span><span class="p">:</span>
             <span class="n">selfcal_cmd</span> <span class="o">+=</span> <span class="s2">&quot; --robust &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">robust</span><span class="p">)</span>
-        <span class="k">if</span> <span class="n">do_apcal</span><span class="o">==</span><span class="kc">False</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">do_apcal</span> <span class="o">==</span> <span class="kc">False</span><span class="p">:</span>
             <span class="n">selfcal_cmd</span> <span class="o">+=</span> <span class="s2">&quot; --no_apcal&quot;</span>
         <span class="k">if</span> <span class="n">solar_selfcal</span> <span class="o">==</span> <span class="kc">False</span><span class="p">:</span>
             <span class="n">selfcal_cmd</span> <span class="o">+=</span> <span class="s2">&quot; --no_solar_selfcal&quot;</span>
@@ -1216,9 +1216,7 @@
             <span class="n">selfcal_cmd</span> <span class="o">+=</span> <span class="s2">&quot; --keep_backup&quot;</span>
         <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isdir</span><span class="p">(</span><span class="n">workdir</span> <span class="o">+</span> <span class="s2">&quot;/logs&quot;</span><span class="p">)</span> <span class="o">==</span> <span class="kc">False</span><span class="p">:</span>
             <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">workdir</span> <span class="o">+</span> <span class="s2">&quot;/logs&quot;</span><span class="p">)</span>
-        <span class="n">batch_file</span> <span class="o">=</span> <span class="n">create_batch_script_nonhpc</span><span class="p">(</span>
-            <span class="n">selfcal_cmd</span><span class="p">,</span> <span class="n">workdir</span><span class="p">,</span> <span class="n">selfcal_basename</span><span class="p">,</span> <span class="n">jobid</span>
-        <span class="p">)</span>
+        <span class="n">batch_file</span> <span class="o">=</span> <span class="n">create_batch_script_nonhpc</span><span class="p">(</span><span class="n">selfcal_cmd</span><span class="p">,</span> <span class="n">workdir</span><span class="p">,</span> <span class="n">selfcal_basename</span><span class="p">)</span>
         <span class="nb">print</span><span class="p">(</span><span class="n">selfcal_cmd</span> <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
         <span class="n">os</span><span class="o">.</span><span class="n">system</span><span class="p">(</span><span class="s2">&quot;bash &quot;</span> <span class="o">+</span> <span class="n">batch_file</span><span class="p">)</span>
         <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Waiting to finish self-calibration...</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
@@ -1322,7 +1320,7 @@
         <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Performing imaging of target scans .....&quot;</span><span class="p">)</span>
         <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;###########################</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
         <span class="n">imaging_basename</span> <span class="o">=</span> <span class="s2">&quot;imaging_targets&quot;</span>
-        <span class="n">mslist</span><span class="o">=</span><span class="s2">&quot;,&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">mslist</span><span class="p">)</span>
+        <span class="n">mslist</span> <span class="o">=</span> <span class="s2">&quot;,&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">mslist</span><span class="p">)</span>
         <span class="n">imaging_cmd</span> <span class="o">=</span> <span class="p">(</span>
             <span class="sa">f</span><span class="s2">&quot;run_imaging </span><span class="si">{</span><span class="n">mslist</span><span class="si">}</span><span class="s2">&quot;</span>
             <span class="o">+</span> <span class="s2">&quot; --workdir &quot;</span>
@@ -1350,16 +1348,16 @@
             <span class="o">+</span> <span class="s2">&quot; --jobid &quot;</span>
             <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">jobid</span><span class="p">)</span>
         <span class="p">)</span>
-        <span class="k">if</span> <span class="n">use_solar_mask</span><span class="o">==</span><span class="kc">False</span><span class="p">:</span>
-            <span class="n">imaging_cmd</span><span class="o">+=</span><span class="s2">&quot; --no_solar_mask&quot;</span>
-        <span class="k">if</span> <span class="n">savemodel</span><span class="o">==</span><span class="kc">False</span><span class="p">:</span>
-            <span class="n">imaging_cmd</span><span class="o">+=</span><span class="s2">&quot; --no_savemodel&quot;</span>
-        <span class="k">if</span> <span class="n">saveres</span><span class="o">==</span><span class="kc">False</span><span class="p">:</span>
-            <span class="n">imaging_cmd</span><span class="o">+=</span><span class="s2">&quot; --no_saveres&quot;</span>
-        <span class="k">if</span> <span class="n">use_multiscale</span><span class="o">==</span><span class="kc">False</span><span class="p">:</span>
-            <span class="n">imaging_cmd</span><span class="o">+=</span><span class="s2">&quot; --no_multiscale&quot;</span>
-        <span class="k">if</span> <span class="n">make_overlay</span><span class="o">==</span><span class="kc">False</span><span class="p">:</span>
-            <span class="n">imaging_cmd</span><span class="o">+=</span><span class="s2">&quot; --no_make_overlay&quot;</span>        
+        <span class="k">if</span> <span class="n">use_solar_mask</span> <span class="o">==</span> <span class="kc">False</span><span class="p">:</span>
+            <span class="n">imaging_cmd</span> <span class="o">+=</span> <span class="s2">&quot; --no_solar_mask&quot;</span>
+        <span class="k">if</span> <span class="n">savemodel</span> <span class="o">==</span> <span class="kc">False</span><span class="p">:</span>
+            <span class="n">imaging_cmd</span> <span class="o">+=</span> <span class="s2">&quot; --no_savemodel&quot;</span>
+        <span class="k">if</span> <span class="n">saveres</span> <span class="o">==</span> <span class="kc">False</span><span class="p">:</span>
+            <span class="n">imaging_cmd</span> <span class="o">+=</span> <span class="s2">&quot; --no_saveres&quot;</span>
+        <span class="k">if</span> <span class="n">use_multiscale</span> <span class="o">==</span> <span class="kc">False</span><span class="p">:</span>
+            <span class="n">imaging_cmd</span> <span class="o">+=</span> <span class="s2">&quot; --no_multiscale&quot;</span>
+        <span class="k">if</span> <span class="n">make_overlay</span> <span class="o">==</span> <span class="kc">False</span><span class="p">:</span>
+            <span class="n">imaging_cmd</span> <span class="o">+=</span> <span class="s2">&quot; --no_make_overlay&quot;</span>
         <span class="k">if</span> <span class="n">freqrange</span> <span class="o">!=</span> <span class="s2">&quot;&quot;</span><span class="p">:</span>
             <span class="n">imaging_cmd</span> <span class="o">+=</span> <span class="s2">&quot; --freqrange &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">freqrange</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">timerange</span> <span class="o">!=</span> <span class="s2">&quot;&quot;</span><span class="p">:</span>
@@ -1368,9 +1366,7 @@
             <span class="n">imaging_cmd</span> <span class="o">+=</span> <span class="s2">&quot; --band &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">band</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isdir</span><span class="p">(</span><span class="n">workdir</span> <span class="o">+</span> <span class="s2">&quot;/logs&quot;</span><span class="p">)</span> <span class="o">==</span> <span class="kc">False</span><span class="p">:</span>
             <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">workdir</span> <span class="o">+</span> <span class="s2">&quot;/logs&quot;</span><span class="p">)</span>
-        <span class="n">batch_file</span> <span class="o">=</span> <span class="n">create_batch_script_nonhpc</span><span class="p">(</span>
-            <span class="n">imaging_cmd</span><span class="p">,</span> <span class="n">workdir</span><span class="p">,</span> <span class="n">imaging_basename</span><span class="p">,</span> <span class="n">jobid</span>
-        <span class="p">)</span>
+        <span class="n">batch_file</span> <span class="o">=</span> <span class="n">create_batch_script_nonhpc</span><span class="p">(</span><span class="n">imaging_cmd</span><span class="p">,</span> <span class="n">workdir</span><span class="p">,</span> <span class="n">imaging_basename</span><span class="p">)</span>
         <span class="nb">print</span><span class="p">(</span><span class="n">imaging_cmd</span> <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
         <span class="n">os</span><span class="o">.</span><span class="n">system</span><span class="p">(</span><span class="s2">&quot;bash &quot;</span> <span class="o">+</span> <span class="n">batch_file</span><span class="p">)</span>
         <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Waiting to finish imaging...</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
@@ -1675,6 +1671,19 @@
         <span class="nb">print</span><span class="p">(</span>
             <span class="s2">&quot;#############################################################################&quot;</span>
         <span class="p">)</span>
+        <span class="n">emails</span> <span class="o">=</span> <span class="n">get_emails</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">emails</span> <span class="o">!=</span> <span class="s2">&quot;&quot;</span><span class="p">:</span>
+            <span class="n">email_subject</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;MeerSOLAR Remote Logger Details: </span><span class="si">{</span><span class="n">timestamp</span><span class="si">}</span><span class="s2">&quot;</span>
+
+            <span class="n">email_msg</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;MeerSOLAR user,</span><span class="se">\n\n</span><span class="s2">&quot;</span>
+                <span class="sa">f</span><span class="s2">&quot;Remote logger Job ID: </span><span class="si">{</span><span class="n">job_name</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span>
+                <span class="sa">f</span><span class="s2">&quot;Remote access password: </span><span class="si">{</span><span class="n">password</span><span class="si">}</span><span class="se">\n\n</span><span class="s2">&quot;</span>
+                <span class="sa">f</span><span class="s2">&quot;Best,</span><span class="se">\n</span><span class="s2">&quot;</span>
+                <span class="sa">f</span><span class="s2">&quot;MeerSOLAR&quot;</span>
+            <span class="p">)</span>
+
+            <span class="n">success_msg</span><span class="p">,</span> <span class="n">error_msg</span> <span class="o">=</span> <span class="n">send_notification</span><span class="p">(</span><span class="n">emails</span><span class="p">,</span> <span class="n">email_subject</span><span class="p">,</span> <span class="n">email_msg</span><span class="p">)</span>
 
     <span class="c1">#####################################</span>
     <span class="c1"># Settings for solar data</span>
@@ -1777,9 +1786,11 @@
     <span class="c1">##############################</span>
     <span class="c1"># Run partitioning jobs</span>
     <span class="c1">##############################</span>
-    <span class="c1"># If do partition or calibrator ms is not present in case of basic calibration is requested </span>
+    <span class="c1"># If do partition or calibrator ms is not present in case of basic calibration is requested</span>
     <span class="n">calibrator_msname</span> <span class="o">=</span> <span class="n">workdir</span> <span class="o">+</span> <span class="s2">&quot;/calibrator.ms&quot;</span>
-    <span class="k">if</span> <span class="n">do_basic_cal</span> <span class="ow">and</span> <span class="p">(</span><span class="n">do_cal_partition</span> <span class="ow">or</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">calibrator_msname</span><span class="p">)</span> <span class="o">==</span> <span class="kc">False</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">do_basic_cal</span> <span class="ow">and</span> <span class="p">(</span>
+        <span class="n">do_cal_partition</span> <span class="ow">or</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">calibrator_msname</span><span class="p">)</span> <span class="o">==</span> <span class="kc">False</span>
+    <span class="p">):</span>
         <span class="n">msg</span> <span class="o">=</span> <span class="n">run_partion</span><span class="p">(</span>
             <span class="n">msname</span><span class="p">,</span>
             <span class="n">workdir</span><span class="p">,</span>
@@ -1931,9 +1942,11 @@
         <span class="k">if</span> <span class="n">do_selfcal_split</span> <span class="o">==</span> <span class="kc">False</span><span class="p">:</span>
             <span class="n">selfcal_target_mslist</span> <span class="o">=</span> <span class="n">glob</span><span class="o">.</span><span class="n">glob</span><span class="p">(</span><span class="n">workdir</span> <span class="o">+</span> <span class="s2">&quot;/selfcals_scan*.ms&quot;</span><span class="p">)</span>
             <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">selfcal_target_mslist</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
-                <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;No measurement set is present for self-calibration. Spliting them..&quot;</span><span class="p">)</span>
+                <span class="nb">print</span><span class="p">(</span>
+                    <span class="s2">&quot;No measurement set is present for self-calibration. Spliting them..&quot;</span>
+                <span class="p">)</span>
                 <span class="n">do_selfcal_split</span> <span class="o">=</span> <span class="kc">True</span>
-                
+
         <span class="k">if</span> <span class="n">do_selfcal_split</span><span class="p">:</span>
             <span class="n">prefix</span> <span class="o">=</span> <span class="s2">&quot;selfcals&quot;</span>
             <span class="k">try</span><span class="p">:</span>
@@ -2361,16 +2374,26 @@
 <span class="k">def</span> <span class="nf">main</span><span class="p">():</span>
     <span class="k">try</span><span class="p">:</span>
         <span class="n">parser</span> <span class="o">=</span> <span class="n">argparse</span><span class="o">.</span><span class="n">ArgumentParser</span><span class="p">(</span>
-            <span class="n">description</span><span class="o">=</span><span class="s2">&quot;Run MeerSOLAR for calibration and imaging of solar observations.&quot;</span><span class="p">,</span><span class="n">formatter_class</span><span class="o">=</span><span class="n">argparse</span><span class="o">.</span><span class="n">ArgumentDefaultsHelpFormatter</span>
+            <span class="n">description</span><span class="o">=</span><span class="s2">&quot;Run MeerSOLAR for calibration and imaging of solar observations.&quot;</span><span class="p">,</span>
+            <span class="n">formatter_class</span><span class="o">=</span><span class="n">argparse</span><span class="o">.</span><span class="n">ArgumentDefaultsHelpFormatter</span><span class="p">,</span>
         <span class="p">)</span>
         <span class="c1"># === Essential parameters ===</span>
         <span class="n">essential</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">add_argument_group</span><span class="p">(</span>
             <span class="s2">&quot;###################</span><span class="se">\n</span><span class="s2">Essential parameters</span><span class="se">\n</span><span class="s2">###################&quot;</span>
         <span class="p">)</span>
-        <span class="n">essential</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s2">&quot;msname&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span>  <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Measurement set name&quot;</span><span class="p">)</span>
-        <span class="n">essential</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s2">&quot;--workdir&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span> <span class="n">dest</span><span class="o">=</span><span class="s2">&quot;workdir&quot;</span><span class="p">,</span><span class="n">required</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Working directory&quot;</span><span class="p">)</span>
+        <span class="n">essential</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s2">&quot;msname&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Measurement set name&quot;</span><span class="p">)</span>
         <span class="n">essential</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
-            <span class="s2">&quot;--non_solar_data&quot;</span><span class="p">,</span> <span class="n">action</span><span class="o">=</span><span class="s2">&quot;store_false&quot;</span><span class="p">,</span> <span class="n">dest</span><span class="o">=</span><span class="s2">&quot;solar_data&quot;</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Enable non-solar data mode&quot;</span>
+            <span class="s2">&quot;--workdir&quot;</span><span class="p">,</span>
+            <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span>
+            <span class="n">dest</span><span class="o">=</span><span class="s2">&quot;workdir&quot;</span><span class="p">,</span>
+            <span class="n">required</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Working directory&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">essential</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+            <span class="s2">&quot;--non_solar_data&quot;</span><span class="p">,</span>
+            <span class="n">action</span><span class="o">=</span><span class="s2">&quot;store_false&quot;</span><span class="p">,</span>
+            <span class="n">dest</span><span class="o">=</span><span class="s2">&quot;solar_data&quot;</span><span class="p">,</span>
+            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Enable non-solar data mode&quot;</span><span class="p">,</span>
         <span class="p">)</span>
 
         <span class="c1"># === Advanced options ===</span>
@@ -2593,13 +2616,21 @@
             <span class="s2">&quot;###################</span><span class="se">\n</span><span class="s2">Advanced hardware resource parameters for local system or per node on HPC cluster</span><span class="se">\n</span><span class="s2">###################&quot;</span>
         <span class="p">)</span>
         <span class="n">advanced_resource</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
-            <span class="s2">&quot;--cpu_frac&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">float</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="mf">0.8</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Fraction of CPU usuage per node&quot;</span>
+            <span class="s2">&quot;--cpu_frac&quot;</span><span class="p">,</span>
+            <span class="nb">type</span><span class="o">=</span><span class="nb">float</span><span class="p">,</span>
+            <span class="n">default</span><span class="o">=</span><span class="mf">0.8</span><span class="p">,</span>
+            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Fraction of CPU usuage per node&quot;</span><span class="p">,</span>
         <span class="p">)</span>
         <span class="n">advanced_resource</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
-            <span class="s2">&quot;--mem_frac&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">float</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="mf">0.8</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Fraction of memory usuage per node&quot;</span>
+            <span class="s2">&quot;--mem_frac&quot;</span><span class="p">,</span>
+            <span class="nb">type</span><span class="o">=</span><span class="nb">float</span><span class="p">,</span>
+            <span class="n">default</span><span class="o">=</span><span class="mf">0.8</span><span class="p">,</span>
+            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Fraction of memory usuage per node&quot;</span><span class="p">,</span>
         <span class="p">)</span>
         <span class="n">advanced_resource</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
-            <span class="s2">&quot;--keep_backup&quot;</span><span class="p">,</span> <span class="n">action</span><span class="o">=</span><span class="s2">&quot;store_true&quot;</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Keep backup of intermediate steps&quot;</span>
+            <span class="s2">&quot;--keep_backup&quot;</span><span class="p">,</span>
+            <span class="n">action</span><span class="o">=</span><span class="s2">&quot;store_true&quot;</span><span class="p">,</span>
+            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Keep backup of intermediate steps&quot;</span><span class="p">,</span>
         <span class="p">)</span>
         <span class="n">advanced_resource</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
             <span class="s2">&quot;--remote_logger&quot;</span><span class="p">,</span> <span class="n">action</span><span class="o">=</span><span class="s2">&quot;store_true&quot;</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Use remote logger&quot;</span>
@@ -2627,10 +2658,10 @@
             <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
 
         <span class="n">args</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">parse_args</span><span class="p">()</span>
-        
+
         <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">########################################&quot;</span><span class="p">)</span>
-        <span class="nb">print</span> <span class="p">(</span><span class="s2">&quot;Starting MeerSOLAR Pipeline....&quot;</span><span class="p">)</span>
-        <span class="nb">print</span> <span class="p">(</span><span class="s2">&quot;#########################################</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Starting MeerSOLAR Pipeline....&quot;</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;#########################################</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
 
         <span class="n">msg</span> <span class="o">=</span> <span class="n">master_control</span><span class="p">(</span>
             <span class="n">msname</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">msname</span><span class="p">,</span>

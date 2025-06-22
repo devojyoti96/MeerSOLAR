@@ -10,6 +10,7 @@
     <link rel="stylesheet" type="text/css" href="../../../_static/styles/furo.css?v=135e06be" />
     <link rel="stylesheet" type="text/css" href="../../../_static/copybutton.css?v=76b2166b" />
     <link rel="stylesheet" type="text/css" href="../../../_static/styles/furo-extensions.css?v=36a5483c" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/custom.css?v=db239b2d" />
     
     
 
@@ -166,6 +167,8 @@
 <li class="toctree-l2"><a class="reference internal" href="../../../initial_setup.html">Initial setup</a></li>
 </ul>
 </li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorial.html">Basic Tutorial</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../cli.html">Command line tools</a></li>
 <li class="toctree-l1 has-children"><a class="reference internal" href="../../../meersolar.html">API Reference</a><input class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" role="switch" type="checkbox"/><label for="toctree-checkbox-2"><div class="visually-hidden">Toggle navigation of API Reference</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
 <li class="toctree-l2"><a class="reference internal" href="../../../meersolar.pipeline.html">Meersolar Pipeline Module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../meersolar.crystalball.html">Crystalball Module</a></li>
@@ -352,6 +355,21 @@
     <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
         <span class="k">return</span> <span class="s2">&quot;&quot;</span></div>
 
+
+<div class="viewcode-block" id="get_emails">
+<a class="viewcode-back" href="../../../meersolar.pipeline.html#meersolar.pipeline.basic_func.get_emails">[docs]</a>
+<span class="k">def</span> <span class="nf">get_emails</span><span class="p">():</span>
+    <span class="n">datadir</span> <span class="o">=</span> <span class="n">get_datadir</span><span class="p">()</span>
+    <span class="n">email_file</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">datadir</span><span class="p">,</span> <span class="s2">&quot;emails.txt&quot;</span><span class="p">)</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">email_file</span><span class="p">,</span> <span class="s2">&quot;r&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+            <span class="n">lines</span> <span class="o">=</span> <span class="p">[</span><span class="n">line</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span> <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">f</span> <span class="k">if</span> <span class="n">line</span><span class="o">.</span><span class="n">strip</span><span class="p">()]</span>
+    <span class="k">except</span> <span class="ne">FileNotFoundError</span><span class="p">:</span>
+        <span class="k">return</span> <span class="s2">&quot;&quot;</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">lines</span><span class="p">:</span>
+        <span class="k">return</span> <span class="s2">&quot;&quot;</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">lines</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span></div>
 
 
 <div class="viewcode-block" id="RemoteLogger">
@@ -4219,51 +4237,6 @@
     <span class="k">return</span> <span class="n">merged_caltable</span></div>
 
 
-
-<div class="viewcode-block" id="kill_job">
-<a class="viewcode-back" href="../../../meersolar.pipeline.html#meersolar.pipeline.basic_func.kill_job">[docs]</a>
-<span class="k">def</span> <span class="nf">kill_job</span><span class="p">():</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Kill MeerSOLAR Job</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-    <span class="kn">import</span> <span class="nn">signal</span><span class="o">,</span> <span class="nn">argparse</span>
-
-    <span class="n">parser</span> <span class="o">=</span> <span class="n">argparse</span><span class="o">.</span><span class="n">ArgumentParser</span><span class="p">(</span><span class="n">description</span><span class="o">=</span><span class="s2">&quot;Kill MeerSOLAR Job&quot;</span><span class="p">)</span>
-    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
-        <span class="s2">&quot;--jobid&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span> <span class="n">required</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s2">&quot;MeerSOLAR Job ID to kill&quot;</span>
-    <span class="p">)</span>
-    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">sys</span><span class="o">.</span><span class="n">argv</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
-        <span class="n">parser</span><span class="o">.</span><span class="n">print_help</span><span class="p">(</span><span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="p">)</span>
-        <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
-    <span class="n">args</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">parse_args</span><span class="p">()</span>
-    <span class="n">datadir</span> <span class="o">=</span> <span class="n">get_datadir</span><span class="p">()</span>
-    <span class="n">jobfile_name</span> <span class="o">=</span> <span class="n">datadir</span> <span class="o">+</span> <span class="sa">f</span><span class="s2">&quot;/main_pids_</span><span class="si">{</span><span class="n">args</span><span class="o">.</span><span class="n">jobid</span><span class="si">}</span><span class="s2">.txt&quot;</span>
-    <span class="n">results</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">loadtxt</span><span class="p">(</span><span class="n">jobfile_name</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="s2">&quot;str&quot;</span><span class="p">,</span> <span class="n">unpack</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-    <span class="n">basedir</span> <span class="o">=</span> <span class="n">results</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span>
-    <span class="n">main_pid</span> <span class="o">=</span> <span class="n">results</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
-    <span class="n">pid_file</span> <span class="o">=</span> <span class="n">datadir</span> <span class="o">+</span> <span class="sa">f</span><span class="s2">&quot;/pids_</span><span class="si">{</span><span class="n">args</span><span class="o">.</span><span class="n">jobid</span><span class="si">}</span><span class="s2">.txt&quot;</span>
-    <span class="k">try</span><span class="p">:</span>
-        <span class="n">os</span><span class="o">.</span><span class="n">kill</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">main_pid</span><span class="p">),</span> <span class="n">signal</span><span class="o">.</span><span class="n">SIGKILL</span><span class="p">)</span>
-    <span class="k">except</span><span class="p">:</span>
-        <span class="k">pass</span>
-    <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">pid_file</span><span class="p">):</span>
-        <span class="n">pids</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">loadtxt</span><span class="p">(</span><span class="n">pid_file</span><span class="p">,</span> <span class="n">unpack</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="s2">&quot;int&quot;</span><span class="p">)</span>
-        <span class="k">if</span> <span class="n">pids</span><span class="o">.</span><span class="n">size</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
-            <span class="k">pass</span>
-        <span class="k">elif</span> <span class="n">pids</span><span class="o">.</span><span class="n">size</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
-            <span class="k">try</span><span class="p">:</span>
-                <span class="n">os</span><span class="o">.</span><span class="n">kill</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">pids</span><span class="p">),</span> <span class="n">signal</span><span class="o">.</span><span class="n">SIGKILL</span><span class="p">)</span>
-            <span class="k">except</span><span class="p">:</span>
-                <span class="k">pass</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="k">for</span> <span class="n">pid</span> <span class="ow">in</span> <span class="n">pids</span><span class="p">:</span>
-                <span class="k">try</span><span class="p">:</span>
-                    <span class="n">os</span><span class="o">.</span><span class="n">kill</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">pid</span><span class="p">),</span> <span class="n">signal</span><span class="o">.</span><span class="n">SIGKILL</span><span class="p">)</span>
-                <span class="k">except</span><span class="p">:</span>
-                    <span class="k">pass</span></div>
-
-
-
 <div class="viewcode-block" id="get_nprocess_meersolar">
 <a class="viewcode-back" href="../../../meersolar.pipeline.html#meersolar.pipeline.basic_func.get_nprocess_meersolar">[docs]</a>
 <span class="k">def</span> <span class="nf">get_nprocess_meersolar</span><span class="p">(</span><span class="n">jobid</span><span class="p">):</span>
@@ -4388,7 +4361,7 @@
 
 <div class="viewcode-block" id="create_batch_script_nonhpc">
 <a class="viewcode-back" href="../../../meersolar.pipeline.html#meersolar.pipeline.basic_func.create_batch_script_nonhpc">[docs]</a>
-<span class="k">def</span> <span class="nf">create_batch_script_nonhpc</span><span class="p">(</span><span class="n">cmd</span><span class="p">,</span> <span class="n">workdir</span><span class="p">,</span> <span class="n">basename</span><span class="p">,</span> <span class="n">jobid</span><span class="p">,</span> <span class="n">write_logfile</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+<span class="k">def</span> <span class="nf">create_batch_script_nonhpc</span><span class="p">(</span><span class="n">cmd</span><span class="p">,</span> <span class="n">workdir</span><span class="p">,</span> <span class="n">basename</span><span class="p">,</span> <span class="n">write_logfile</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Function to make a batch script not non-HPC environment</span>
 
@@ -4400,8 +4373,6 @@
 <span class="sd">        Work directory of the measurement set</span>
 <span class="sd">    basename : str</span>
 <span class="sd">        Base name of the batch files</span>
-<span class="sd">    jobid : int</span>
-<span class="sd">        MeerSOLAR Job ID</span>
 <span class="sd">    write_logfile : bool, optional</span>
 <span class="sd">        Write log file or not</span>
 
@@ -4415,7 +4386,6 @@
     <span class="n">datadir</span> <span class="o">=</span> <span class="n">get_datadir</span><span class="p">()</span>
     <span class="n">batch_file</span> <span class="o">=</span> <span class="n">workdir</span> <span class="o">+</span> <span class="s2">&quot;/&quot;</span> <span class="o">+</span> <span class="n">basename</span> <span class="o">+</span> <span class="s2">&quot;.batch&quot;</span>
     <span class="n">cmd_batch</span> <span class="o">=</span> <span class="n">workdir</span> <span class="o">+</span> <span class="s2">&quot;/&quot;</span> <span class="o">+</span> <span class="n">basename</span> <span class="o">+</span> <span class="s2">&quot;_cmd.batch&quot;</span>
-    <span class="n">pid_file</span> <span class="o">=</span> <span class="n">datadir</span> <span class="o">+</span> <span class="sa">f</span><span class="s2">&quot;/pids/pids_</span><span class="si">{</span><span class="n">jobid</span><span class="si">}</span><span class="s2">.txt&quot;</span>
     <span class="n">finished_touch_file</span> <span class="o">=</span> <span class="n">workdir</span> <span class="o">+</span> <span class="s2">&quot;/.Finished_&quot;</span> <span class="o">+</span> <span class="n">basename</span>
     <span class="n">os</span><span class="o">.</span><span class="n">system</span><span class="p">(</span><span class="s2">&quot;rm -rf &quot;</span> <span class="o">+</span> <span class="n">finished_touch_file</span> <span class="o">+</span> <span class="s2">&quot;*&quot;</span><span class="p">)</span>
     <span class="n">finished_touch_file_error</span> <span class="o">=</span> <span class="n">finished_touch_file</span> <span class="o">+</span> <span class="s2">&quot;_1&quot;</span>
@@ -4427,7 +4397,7 @@
         <span class="n">outputfile</span> <span class="o">=</span> <span class="n">workdir</span> <span class="o">+</span> <span class="s2">&quot;/logs/&quot;</span> <span class="o">+</span> <span class="n">basename</span> <span class="o">+</span> <span class="s2">&quot;.log&quot;</span>
     <span class="k">else</span><span class="p">:</span>
         <span class="n">outputfile</span> <span class="o">=</span> <span class="s2">&quot;/dev/null&quot;</span>
-    <span class="n">batch_file_content</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;&quot;&quot;export PYTHONUNBUFFERED=1</span><span class="se">\n</span><span class="s2">nohup sh </span><span class="si">{</span><span class="n">cmd_batch</span><span class="si">}</span><span class="s2">&gt; </span><span class="si">{</span><span class="n">outputfile</span><span class="si">}</span><span class="s2"> 2&gt;&amp;1 &amp;</span><span class="se">\n</span><span class="s2">echo $! &gt;&gt; </span><span class="si">{</span><span class="n">pid_file</span><span class="si">}</span><span class="se">\n</span><span class="s2">sleep 2</span><span class="se">\n</span><span class="s2"> rm -rf </span><span class="si">{</span><span class="n">batch_file</span><span class="si">}</span><span class="se">\n</span><span class="s2"> rm -rf </span><span class="si">{</span><span class="n">cmd_batch</span><span class="si">}</span><span class="s2">&quot;&quot;&quot;</span>
+    <span class="n">batch_file_content</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;&quot;&quot;export PYTHONUNBUFFERED=1</span><span class="se">\n</span><span class="s2">nohup sh </span><span class="si">{</span><span class="n">cmd_batch</span><span class="si">}</span><span class="s2">&gt; </span><span class="si">{</span><span class="n">outputfile</span><span class="si">}</span><span class="s2"> 2&gt;&amp;1 &amp;</span><span class="se">\n</span><span class="s2">sleep 2</span><span class="se">\n</span><span class="s2"> rm -rf </span><span class="si">{</span><span class="n">batch_file</span><span class="si">}</span><span class="se">\n</span><span class="s2"> rm -rf </span><span class="si">{</span><span class="n">cmd_batch</span><span class="si">}</span><span class="s2">&quot;&quot;&quot;</span>
     <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">cmd_batch</span><span class="p">):</span>
         <span class="n">os</span><span class="o">.</span><span class="n">system</span><span class="p">(</span><span class="s2">&quot;rm -rf &quot;</span> <span class="o">+</span> <span class="n">cmd_batch</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">batch_file</span><span class="p">):</span>

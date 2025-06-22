@@ -10,6 +10,7 @@
     <link rel="stylesheet" type="text/css" href="../../../_static/styles/furo.css?v=135e06be" />
     <link rel="stylesheet" type="text/css" href="../../../_static/copybutton.css?v=76b2166b" />
     <link rel="stylesheet" type="text/css" href="../../../_static/styles/furo-extensions.css?v=36a5483c" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/custom.css?v=db239b2d" />
     
     
 
@@ -166,6 +167,8 @@
 <li class="toctree-l2"><a class="reference internal" href="../../../initial_setup.html">Initial setup</a></li>
 </ul>
 </li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorial.html">Basic Tutorial</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../cli.html">Command line tools</a></li>
 <li class="toctree-l1 has-children"><a class="reference internal" href="../../../meersolar.html">API Reference</a><input class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" role="switch" type="checkbox"/><label for="toctree-checkbox-2"><div class="visually-hidden">Toggle navigation of API Reference</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
 <li class="toctree-l2"><a class="reference internal" href="../../../meersolar.pipeline.html">Meersolar Pipeline Module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../meersolar.crystalball.html">Crystalball Module</a></li>
@@ -257,7 +260,7 @@
 
 <div class="viewcode-block" id="init_meersolar_data">
 <a class="viewcode-back" href="../../../meersolar.pipeline.html#meersolar.pipeline.init_data.init_meersolar_data">[docs]</a>
-<span class="k">def</span> <span class="nf">init_meersolar_data</span><span class="p">(</span><span class="n">update</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span><span class="n">remote_link</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="k">def</span> <span class="nf">init_meersolar_data</span><span class="p">(</span><span class="n">update</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span><span class="n">remote_link</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span><span class="n">emails</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Initiate MeerSOLAR data</span>
 <span class="sd">    </span>
@@ -267,10 +270,13 @@
 <span class="sd">        Update data, if already exists</span>
 <span class="sd">    remote_link : str, optional</span>
 <span class="sd">        Remote logger link to save in database</span>
+<span class="sd">    emails : str, optional</span>
+<span class="sd">        Email addresses to send remote logger JobID and password</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">datadir</span> <span class="o">=</span> <span class="n">get_datadir</span><span class="p">()</span>
     <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">datadir</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
     <span class="n">linkfile</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">datadir</span><span class="si">}</span><span class="s2">/remotelink.txt&quot;</span>
+    <span class="n">emailfile</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">datadir</span><span class="si">}</span><span class="s2">/emails.txt&quot;</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">linkfile</span><span class="p">):</span>
         <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">linkfile</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
             <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;&quot;</span><span class="p">)</span>
@@ -278,7 +284,11 @@
     <span class="k">if</span> <span class="n">remote_link</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
         <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">linkfile</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
             <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">remote_link</span><span class="p">))</span>
-
+       
+    <span class="k">if</span> <span class="n">emails</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">emailfile</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">emails</span><span class="p">))</span>     
+    
     <span class="n">unavailable_files</span> <span class="o">=</span> <span class="p">[</span>
         <span class="n">f</span> <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">all_filenames</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">datadir</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="n">f</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
     <span class="p">]</span>
@@ -301,13 +311,16 @@
     <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
         <span class="s2">&quot;--remotelink&quot;</span><span class="p">,</span> <span class="n">dest</span><span class="o">=</span><span class="s2">&quot;link&quot;</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Set remote log link&quot;</span>
     <span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;--emails&quot;</span><span class="p">,</span> <span class="n">dest</span><span class="o">=</span><span class="s2">&quot;emails&quot;</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Email addresses (comma seperated) to send Job ID and password for remote logger&quot;</span>
+    <span class="p">)</span>
 
     <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">sys</span><span class="o">.</span><span class="n">argv</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
         <span class="n">parser</span><span class="o">.</span><span class="n">print_help</span><span class="p">(</span><span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="p">)</span>
         <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
     <span class="n">args</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">parse_args</span><span class="p">()</span>
     <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">init</span><span class="p">:</span>
-        <span class="n">init_meersolar_data</span><span class="p">(</span><span class="n">update</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">update</span><span class="p">,</span><span class="n">remote_link</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">link</span><span class="p">)</span>
+        <span class="n">init_meersolar_data</span><span class="p">(</span><span class="n">update</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">update</span><span class="p">,</span><span class="n">remote_link</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">link</span><span class="p">,</span><span class="n">emails</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">emails</span><span class="p">)</span>
         <span class="nb">print</span> <span class="p">(</span><span class="sa">f</span><span class="s2">&quot;MeerSOLAR data are initiated.&quot;</span><span class="p">)</span></div>
 
 
