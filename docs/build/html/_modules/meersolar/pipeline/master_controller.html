@@ -174,10 +174,13 @@
 <li class="toctree-l2"><a class="reference internal" href="../../../flowchart.html">MeerSOLAR Flowchart</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../runpipeline.html">Run MeerSOLAR Pipeline</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../output.html">Directory Structure and Data Products</a></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../../../logger.html">Monitoring MeerSOLAR Pipeline Jobs</a><input class="toctree-checkbox" id="toctree-checkbox-3" name="toctree-checkbox-3" role="switch" type="checkbox"/><label for="toctree-checkbox-3"><div class="visually-hidden">Toggle navigation of Monitoring MeerSOLAR Pipeline Jobs</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="simple">
+</ul>
+</li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../../../cli.html">Command line tools</a></li>
-<li class="toctree-l1 has-children"><a class="reference internal" href="../../../meersolar.html">API Reference</a><input class="toctree-checkbox" id="toctree-checkbox-3" name="toctree-checkbox-3" role="switch" type="checkbox"/><label for="toctree-checkbox-3"><div class="visually-hidden">Toggle navigation of API Reference</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../../../meersolar.html">API Reference</a><input class="toctree-checkbox" id="toctree-checkbox-4" name="toctree-checkbox-4" role="switch" type="checkbox"/><label for="toctree-checkbox-4"><div class="visually-hidden">Toggle navigation of API Reference</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
 <li class="toctree-l2"><a class="reference internal" href="../../../meersolar.pipeline.html">Meersolar Pipeline Module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../meersolar.crystalball.html">Crystalball Module</a></li>
 </ul>
@@ -1395,6 +1398,63 @@
         <span class="k">return</span> <span class="mi">1</span></div>
 
 
+<div class="viewcode-block" id="run_ds_jobs">
+<a class="viewcode-back" href="../../../meersolar.pipeline.html#meersolar.pipeline.master_controller.run_ds_jobs">[docs]</a>
+<span class="k">def</span> <span class="nf">run_ds_jobs</span><span class="p">(</span><span class="n">msname</span><span class="p">,</span><span class="n">workdir</span><span class="p">,</span><span class="n">target_scans</span><span class="o">=</span><span class="p">[],</span><span class="n">jobid</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span><span class="n">cpu_frac</span><span class="o">=</span><span class="mf">0.8</span><span class="p">,</span><span class="n">mem_frac</span><span class="o">=</span><span class="mf">0.8</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Make dynamic spectra of the target scans</span>
+<span class="sd">    </span>
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    msname : str</span>
+<span class="sd">        Name of the measurement set</span>
+<span class="sd">    workdir : str</span>
+<span class="sd">        Name of the work directory</span>
+<span class="sd">    target_scans : list, optional</span>
+<span class="sd">        Target scans </span>
+<span class="sd">    cpu_frac : float, optional</span>
+<span class="sd">        CPU fraction to use</span>
+<span class="sd">    mem_frac : float, optional</span>
+<span class="sd">        Memory fraction to use</span>
+<span class="sd">        </span>
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    int</span>
+<span class="sd">        Success message</span>
+<span class="sd">    &quot;&quot;&quot;</span> 
+    <span class="k">try</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;###########################&quot;</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Making dynamic spectra of target scans .....&quot;</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;###########################</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="n">ds_basename</span> <span class="o">=</span> <span class="s2">&quot;ds_targets&quot;</span>
+        <span class="n">target_scans</span><span class="o">=</span><span class="s2">&quot; &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="nb">str</span><span class="p">(</span><span class="n">s</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">target_scans</span><span class="p">])</span>
+        <span class="n">ds_cmd</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;run_makeds </span><span class="si">{</span><span class="n">msname</span><span class="si">}</span><span class="s2"> --workdir </span><span class="si">{</span><span class="n">workdir</span><span class="si">}</span><span class="s2"> --cpu_frac </span><span class="si">{</span><span class="n">cpu_frac</span><span class="si">}</span><span class="s2"> --mem_frac </span><span class="si">{</span><span class="n">mem_frac</span><span class="si">}</span><span class="s2"> --jobid </span><span class="si">{</span><span class="n">jobid</span><span class="si">}</span><span class="s2"> --target_scans </span><span class="si">{</span><span class="n">target_scans</span><span class="si">}</span><span class="s2">&quot;</span>
+        <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isdir</span><span class="p">(</span><span class="n">workdir</span> <span class="o">+</span> <span class="s2">&quot;/logs&quot;</span><span class="p">)</span> <span class="o">==</span> <span class="kc">False</span><span class="p">:</span>
+            <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">workdir</span> <span class="o">+</span> <span class="s2">&quot;/logs&quot;</span><span class="p">)</span>
+        <span class="n">logfile</span> <span class="o">=</span> <span class="n">workdir</span> <span class="o">+</span> <span class="s2">&quot;/logs/&quot;</span> <span class="o">+</span> <span class="n">ds_basename</span> <span class="o">+</span> <span class="s2">&quot;.log&quot;</span>
+        <span class="n">ds_cmd</span> <span class="o">+=</span> <span class="sa">f</span><span class="s2">&quot; --logfile </span><span class="si">{</span><span class="n">logfile</span><span class="si">}</span><span class="s2">&quot;</span>
+        <span class="n">batch_file</span> <span class="o">=</span> <span class="n">create_batch_script_nonhpc</span><span class="p">(</span>
+            <span class="n">ds_cmd</span><span class="p">,</span> <span class="n">workdir</span><span class="p">,</span> <span class="n">ds_basename</span>
+        <span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="n">ds_cmd</span> <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="n">os</span><span class="o">.</span><span class="n">system</span><span class="p">(</span><span class="s2">&quot;bash &quot;</span> <span class="o">+</span> <span class="n">batch_file</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Waiting to finish making of dynamic spectra...</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+            <span class="n">finished_file</span> <span class="o">=</span> <span class="n">glob</span><span class="o">.</span><span class="n">glob</span><span class="p">(</span><span class="n">workdir</span> <span class="o">+</span> <span class="s2">&quot;/.Finished_&quot;</span> <span class="o">+</span> <span class="n">ds_basename</span> <span class="o">+</span> <span class="s2">&quot;*&quot;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">finished_file</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="k">break</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">success_index_cal</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">finished_file</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;_&quot;</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+        <span class="k">if</span> <span class="n">success_index_cal</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Dynamic spectra are successfully made.</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Dynamic spectra are not made successfully.</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">success_index_cal</span>
+    <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="n">traceback</span><span class="o">.</span><span class="n">print_exc</span><span class="p">()</span>
+        <span class="k">return</span> <span class="mi">1</span></div>
+
 
 <div class="viewcode-block" id="check_status">
 <a class="viewcode-back" href="../../../meersolar.pipeline.html#meersolar.pipeline.master_controller.check_status">[docs]</a>
@@ -1485,26 +1545,35 @@
     <span class="n">msname</span><span class="p">,</span>
     <span class="n">workdir</span><span class="p">,</span>
     <span class="n">solar_data</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="c1"># Pre-calibration</span>
     <span class="n">do_forcereset_weightflag</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
     <span class="n">do_cal_partition</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
     <span class="n">do_cal_flag</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
     <span class="n">do_import_model</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="c1"># Basic calibration</span>
     <span class="n">do_basic_cal</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
     <span class="n">do_noise_cal</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
     <span class="n">do_applycal</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="c1"># Target data preparation</span>
     <span class="n">do_target_split</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="n">target_scans</span><span class="o">=</span><span class="p">[],</span>
+    <span class="n">freqrange</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span>
+    <span class="n">timerange</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span>
+    <span class="n">uvrange</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span>
+    <span class="c1"># Polarization calibration</span>
     <span class="n">do_polcal</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+    <span class="c1"># Self-calibration</span>
     <span class="n">do_selfcal</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
     <span class="n">do_selfcal_split</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
     <span class="n">do_apply_selfcal</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
     <span class="n">do_ap_selfcal</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
     <span class="n">solar_selfcal</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-    <span class="n">do_sidereal_cor</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-    <span class="n">target_scans</span><span class="o">=</span><span class="p">[],</span>
-    <span class="n">freqrange</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span>
-    <span class="n">timerange</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span>
-    <span class="n">uvrange</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span>
     <span class="n">solint</span><span class="o">=</span><span class="s2">&quot;5min&quot;</span><span class="p">,</span>
+    <span class="c1"># Sidereal correction</span>
+    <span class="n">do_sidereal_cor</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="c1"># Dynamic spectra</span>
+    <span class="n">make_ds</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="c1"># Imaging</span>
     <span class="n">do_imaging</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
     <span class="n">do_pbcor</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
     <span class="n">weight</span><span class="o">=</span><span class="s2">&quot;briggs&quot;</span><span class="p">,</span>
@@ -1519,10 +1588,12 @@
     <span class="n">use_solar_mask</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
     <span class="n">cutout_rsun</span><span class="o">=</span><span class="mf">2.5</span><span class="p">,</span>
     <span class="n">make_overlay</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="c1"># Resource settings</span>
     <span class="n">cpu_frac</span><span class="o">=</span><span class="mf">0.8</span><span class="p">,</span>
     <span class="n">mem_frac</span><span class="o">=</span><span class="mf">0.8</span><span class="p">,</span>
     <span class="n">n_nodes</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
     <span class="n">keep_backup</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+    <span class="c1"># Remote logging</span>
     <span class="n">remote_logger</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
     <span class="n">remote_logger_waittime</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
 <span class="p">):</span>
@@ -1537,6 +1608,7 @@
 <span class="sd">        Work directory path</span>
 <span class="sd">    solar_data : bool, optional</span>
 <span class="sd">        Whether it is solar data or not</span>
+
 <span class="sd">    do_forcereset_weightflag : bool, optional</span>
 <span class="sd">        Reset weights and flags of the input ms</span>
 <span class="sd">    do_cal_partition : bool, optional</span>
@@ -1545,24 +1617,16 @@
 <span class="sd">        Perform flagging on calibrator</span>
 <span class="sd">    do_import_model : bool, optional</span>
 <span class="sd">        Import model visibilities of flux and polarization calibrators</span>
+
 <span class="sd">    do_basic_cal : bool, optional</span>
 <span class="sd">        Perform basic calibration</span>
 <span class="sd">    do_noise_cal : bool, optional</span>
 <span class="sd">        Peform calibration of solar attenuators using noise diode (only used if solar_data=True)</span>
 <span class="sd">    do_applycal : bool, optional</span>
 <span class="sd">        Apply basic calibration on target scans</span>
+
 <span class="sd">    do_target_split : bool, optional</span>
 <span class="sd">        Split target scans into chunks</span>
-<span class="sd">    do_polcal : bool, optional</span>
-<span class="sd">        Perform full-polarization calibration and imaging</span>
-<span class="sd">    do_selfcal : bool, optional</span>
-<span class="sd">        Perform self-calibration</span>
-<span class="sd">    do_apply_selfcal : bool, optonal</span>
-<span class="sd">        Apply self-calibration solutions</span>
-<span class="sd">    do_ap_selfcal : bool, optional</span>
-<span class="sd">        Perform amplitude-phase self-cal or not</span>
-<span class="sd">    solar_selfcal : bool, optional</span>
-<span class="sd">        Whether self-calibration is performing on solar observation or not</span>
 <span class="sd">    target_scans : list, optional</span>
 <span class="sd">        Target scans to self-cal and image</span>
 <span class="sd">    freqrange : str, optional</span>
@@ -1571,8 +1635,29 @@
 <span class="sd">        Time range to image in YYYY/MM/DD/hh:mm:ss format (tt1~tt2,tt3~tt4,...)</span>
 <span class="sd">    uvrange : str, optional</span>
 <span class="sd">        UV-range for calibration</span>
+
+<span class="sd">    do_polcal : bool, optional</span>
+<span class="sd">        Perform full-polarization calibration and imaging</span>
+
+<span class="sd">    do_selfcal : bool, optional</span>
+<span class="sd">        Perform self-calibration</span>
+<span class="sd">    do_selfcal_split : bool, optional</span>
+<span class="sd">        Split data after each round of self-calibration</span>
+<span class="sd">    do_apply_selfcal : bool, optional</span>
+<span class="sd">        Apply self-calibration solutions</span>
+<span class="sd">    do_ap_selfcal : bool, optional</span>
+<span class="sd">        Perform amplitude-phase self-cal or not</span>
+<span class="sd">    solar_selfcal : bool, optional</span>
+<span class="sd">        Whether self-calibration is performing on solar observation or not</span>
 <span class="sd">    solint : str, optional</span>
 <span class="sd">        Solution intervals in self-cal</span>
+
+<span class="sd">    do_sidereal_cor : bool, optional</span>
+<span class="sd">        Perform solar sidereal motion correction or not</span>
+
+<span class="sd">    make_ds : bool, optional</span>
+<span class="sd">        Make dynamic spectra</span>
+
 <span class="sd">    do_imaging : bool, optional</span>
 <span class="sd">        Perform final imaging</span>
 <span class="sd">    do_pbcor : bool, optional</span>
@@ -1584,9 +1669,9 @@
 <span class="sd">    minuv : float, optional</span>
 <span class="sd">        Minimum UV-lambda for final imaging</span>
 <span class="sd">    image_freqres : float, optional</span>
-<span class="sd">        Image frequency resolution in MHz</span>
+<span class="sd">        Image frequency resolution in MHz (-1 means full bandwidth)</span>
 <span class="sd">    image_timeres : float, optional</span>
-<span class="sd">        Image temporal resolution in seconds</span>
+<span class="sd">        Image temporal resolution in seconds (-1 means full scan duration)</span>
 <span class="sd">    pol : str, optional</span>
 <span class="sd">        Stokes parameters of final imaging</span>
 <span class="sd">    apply_parang : bool, optional</span>
@@ -1601,20 +1686,27 @@
 <span class="sd">        Cutout image size from center in solar radii (default : 2.5 solar radii)</span>
 <span class="sd">    make_overlay : bool, optional</span>
 <span class="sd">        Make SUVI MeerKAT overlay</span>
+
 <span class="sd">    cpu_frac : float, optional</span>
 <span class="sd">        CPU fraction to use</span>
 <span class="sd">    mem_frac : float, optional</span>
 <span class="sd">        Memory fraction to use</span>
 <span class="sd">    n_nodes: int, optional</span>
-<span class="sd">        Number of nodes to use (Only for cluster architechture)</span>
+<span class="sd">        Number of nodes to use (Only for cluster architecture)</span>
 <span class="sd">    keep_backup : bool, optional</span>
 <span class="sd">        Keep backup of self-cal rounds and final models and residual images</span>
+
+<span class="sd">    remote_logger : bool, optional</span>
+<span class="sd">        Enable remote logging of the pipeline status</span>
+<span class="sd">    remote_logger_waittime : int, optional</span>
+<span class="sd">        Wait time (in seconds) before connecting to remote logger</span>
 
 <span class="sd">    Returns</span>
 <span class="sd">    -------</span>
 <span class="sd">    int</span>
 <span class="sd">        Success message</span>
 <span class="sd">    &quot;&quot;&quot;</span>
+
     <span class="n">init_meersolar_data</span><span class="p">()</span>
     <span class="n">msname</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="n">msname</span><span class="o">.</span><span class="n">rstrip</span><span class="p">(</span><span class="s2">&quot;/&quot;</span><span class="p">))</span>
     <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">msname</span><span class="p">)</span> <span class="o">==</span> <span class="kc">False</span><span class="p">:</span>
@@ -1786,6 +1878,16 @@
         <span class="n">msname</span><span class="p">,</span> <span class="n">n_threads</span><span class="o">=</span><span class="n">available_cpus</span><span class="p">,</span> <span class="n">force_reset</span><span class="o">=</span><span class="n">do_forcereset_weightflag</span>
     <span class="p">)</span>
 
+    <span class="c1">#######################################</span>
+    <span class="c1"># Run dynamic spectra making</span>
+    <span class="c1">#######################################</span>
+    <span class="k">if</span> <span class="n">make_ds</span><span class="p">:</span>
+        <span class="n">msg</span> <span class="o">=</span> <span class="n">run_ds_jobs</span><span class="p">(</span><span class="n">msname</span><span class="p">,</span><span class="n">workdir</span><span class="p">,</span><span class="n">jobid</span><span class="o">=</span><span class="n">jobid</span><span class="p">,</span><span class="n">target_scans</span><span class="o">=</span><span class="n">target_scans</span><span class="p">,</span><span class="n">cpu_frac</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">cpu_frac</span><span class="p">,</span><span class="mi">2</span><span class="p">),</span><span class="n">mem_frac</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">mem_frac</span><span class="p">,</span><span class="mi">2</span><span class="p">))</span>
+        <span class="k">if</span> <span class="n">msg</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span>
+                <span class="s2">&quot;!!!! WARNING: Dynamic spectra could not be made. !!!!&quot;</span>
+            <span class="p">)</span>
+    
     <span class="c1">########################################</span>
     <span class="c1"># Run noise-diode based flux calibration</span>
     <span class="c1">########################################</span>
@@ -2545,6 +2647,12 @@
             <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Disable solar data mode&quot;</span><span class="p">,</span>
         <span class="p">)</span>
         <span class="n">advanced</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+            <span class="s2">&quot;--non_ds&quot;</span><span class="p">,</span>
+            <span class="n">action</span><span class="o">=</span><span class="s2">&quot;store_false&quot;</span><span class="p">,</span>
+            <span class="n">dest</span><span class="o">=</span><span class="s2">&quot;make_ds&quot;</span><span class="p">,</span>
+            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Disable making solar dynamic spectra&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">advanced</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
             <span class="s2">&quot;--do_forcereset_weightflag&quot;</span><span class="p">,</span>
             <span class="n">action</span><span class="o">=</span><span class="s2">&quot;store_true&quot;</span><span class="p">,</span>
             <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Force reset of weights and flags (disabled by default)&quot;</span><span class="p">,</span>
@@ -2690,26 +2798,43 @@
             <span class="n">msname</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">msname</span><span class="p">,</span>
             <span class="n">workdir</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">workdir</span><span class="p">,</span>
             <span class="n">solar_data</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">solar_data</span><span class="p">,</span>
+
+            <span class="c1"># Pre-calibration</span>
             <span class="n">do_forcereset_weightflag</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">do_forcereset_weightflag</span><span class="p">,</span>
             <span class="n">do_cal_partition</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">do_cal_partition</span><span class="p">,</span>
             <span class="n">do_cal_flag</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">do_cal_flag</span><span class="p">,</span>
             <span class="n">do_import_model</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">do_import_model</span><span class="p">,</span>
+
+            <span class="c1"># Basic calibration</span>
             <span class="n">do_basic_cal</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">do_basic_cal</span><span class="p">,</span>
             <span class="n">do_noise_cal</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">do_noise_cal</span><span class="p">,</span>
             <span class="n">do_applycal</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">do_applycal</span><span class="p">,</span>
+
+            <span class="c1"># Target data preparation</span>
             <span class="n">do_target_split</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">do_target_split</span><span class="p">,</span>
-            <span class="n">do_polcal</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">do_polcal</span><span class="p">,</span>
-            <span class="n">do_selfcal</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">do_selfcal</span><span class="p">,</span>
-            <span class="n">do_selfcal_split</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">do_selfcal_split</span><span class="p">,</span>
-            <span class="n">do_apply_selfcal</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">do_apply_selfcal</span><span class="p">,</span>
-            <span class="n">do_ap_selfcal</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">do_ap_selfcal</span><span class="p">,</span>
-            <span class="n">do_sidereal_cor</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">do_sidereal_cor</span><span class="p">,</span>
-            <span class="n">solar_selfcal</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">solar_selfcal</span><span class="p">,</span>
             <span class="n">target_scans</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">target_scans</span><span class="p">,</span>
             <span class="n">freqrange</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">freqrange</span><span class="p">,</span>
             <span class="n">timerange</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">timerange</span><span class="p">,</span>
             <span class="n">uvrange</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">cal_uvrange</span><span class="p">,</span>
+
+            <span class="c1"># Polarization calibration</span>
+            <span class="n">do_polcal</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">do_polcal</span><span class="p">,</span>
+
+            <span class="c1"># Self-calibration</span>
+            <span class="n">do_selfcal</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">do_selfcal</span><span class="p">,</span>
+            <span class="n">do_selfcal_split</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">do_selfcal_split</span><span class="p">,</span>
+            <span class="n">do_apply_selfcal</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">do_apply_selfcal</span><span class="p">,</span>
+            <span class="n">do_ap_selfcal</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">do_ap_selfcal</span><span class="p">,</span>
+            <span class="n">solar_selfcal</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">solar_selfcal</span><span class="p">,</span>
             <span class="n">solint</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">solint</span><span class="p">,</span>
+
+            <span class="c1"># Sidereal correction</span>
+            <span class="n">do_sidereal_cor</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">do_sidereal_cor</span><span class="p">,</span>
+
+            <span class="c1"># Dynamic spectra</span>
+            <span class="n">make_ds</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">make_ds</span><span class="p">,</span>
+
+            <span class="c1"># Imaging</span>
             <span class="n">do_imaging</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">do_imaging</span><span class="p">,</span>
             <span class="n">do_pbcor</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">do_pbcor</span><span class="p">,</span>
             <span class="n">weight</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">weight</span><span class="p">,</span>
@@ -2724,10 +2849,14 @@
             <span class="n">use_solar_mask</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">use_solar_mask</span><span class="p">,</span>
             <span class="n">cutout_rsun</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">cutout_rsun</span><span class="p">,</span>
             <span class="n">make_overlay</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">make_overlay</span><span class="p">,</span>
+
+            <span class="c1"># Resource settings</span>
             <span class="n">cpu_frac</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">cpu_frac</span><span class="p">,</span>
             <span class="n">mem_frac</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">mem_frac</span><span class="p">,</span>
             <span class="n">n_nodes</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">n_nodes</span><span class="p">,</span>
             <span class="n">keep_backup</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">keep_backup</span><span class="p">,</span>
+
+            <span class="c1"># Remote logging</span>
             <span class="n">remote_logger</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">remote_logger</span><span class="p">,</span>
             <span class="n">remote_logger_waittime</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">logger_alivetime</span><span class="p">,</span>
         <span class="p">)</span>
@@ -2782,5 +2911,13 @@
     <script src="../../../_static/togglebutton.js?v=4a39c7ea"></script>
     <script>var togglebuttonSelector = '.toggle, .admonition.dropdown';</script>
     <script>var togglebuttonSelector = '.toggle, .admonition.dropdown';</script>
+    <script type="module" src="https://cdn.jsdelivr.net/npm/mermaid@11.2.0/dist/mermaid.esm.min.mjs"></script>
+    <script type="module" src="https://cdn.jsdelivr.net/npm/@mermaid-js/layout-elk@0.1.4/dist/mermaid-layout-elk.esm.min.mjs"></script>
+    <script type="module">import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11.2.0/dist/mermaid.esm.min.mjs";import elkLayouts from "https://cdn.jsdelivr.net/npm/@mermaid-js/layout-elk@0.1.4/dist/mermaid-layout-elk.esm.min.mjs";mermaid.registerLayoutLoaders(elkLayouts);mermaid.initialize({startOnLoad:false});</script>
+    <script src="https://cdn.jsdelivr.net/npm/d3@7.9.0/dist/d3.min.js"></script>
+    <script type="module">
+import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11.2.0/dist/mermaid.esm.min.mjs";
+window.addEventListener("load", () => mermaid.run());
+</script>
     </body>
 </html>

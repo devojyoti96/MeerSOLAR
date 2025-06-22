@@ -1,0 +1,24 @@
+Local GUI Logger
+================
+
+To start and view local GUI logger, run:
+
+.. code-block :: bash
+    
+    run_meerlogger --jobid <jobid>
+    
+If user forget MeerSOLAR <jobid>, but knows the log directory, run:
+
+.. code-block :: bash
+    
+    run_meerlogger --logdir <logdir>
+    
+.. note ::
+
+    Log directory is generally at `<workdir>/logs`.
+
+This will open the local GUI logger as shown below:
+
+.. image :: 
+
+    _static/ss_logger.png

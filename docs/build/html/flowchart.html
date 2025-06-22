@@ -175,10 +175,13 @@
 <li class="toctree-l2 current current-page"><a class="current reference internal" href="#">MeerSOLAR Flowchart</a></li>
 <li class="toctree-l2"><a class="reference internal" href="runpipeline.html">Run MeerSOLAR Pipeline</a></li>
 <li class="toctree-l2"><a class="reference internal" href="output.html">Directory Structure and Data Products</a></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="logger.html">Monitoring MeerSOLAR Pipeline Jobs</a><input class="toctree-checkbox" id="toctree-checkbox-3" name="toctree-checkbox-3" role="switch" type="checkbox"/><label for="toctree-checkbox-3"><div class="visually-hidden">Toggle navigation of Monitoring MeerSOLAR Pipeline Jobs</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="simple">
+</ul>
+</li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="cli.html">Command line tools</a></li>
-<li class="toctree-l1 has-children"><a class="reference internal" href="meersolar.html">API Reference</a><input class="toctree-checkbox" id="toctree-checkbox-3" name="toctree-checkbox-3" role="switch" type="checkbox"/><label for="toctree-checkbox-3"><div class="visually-hidden">Toggle navigation of API Reference</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l1 has-children"><a class="reference internal" href="meersolar.html">API Reference</a><input class="toctree-checkbox" id="toctree-checkbox-4" name="toctree-checkbox-4" role="switch" type="checkbox"/><label for="toctree-checkbox-4"><div class="visually-hidden">Toggle navigation of API Reference</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
 <li class="toctree-l2"><a class="reference internal" href="meersolar.pipeline.html">Meersolar Pipeline Module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="meersolar.crystalball.html">Crystalball Module</a></li>
 </ul>
@@ -219,58 +222,66 @@
         <article role="main">
           <section id="meersolar-flowchart">
 <h1>MeerSOLAR Flowchart<a class="headerlink" href="#meersolar-flowchart" title="Link to this heading">¶</a></h1>
-<p>The pipeline follows these following steps:</p>
-<div class="graphviz"><img src="_images/graphviz-e9adee92ec693c98bf35e698c325387656e77239.png" alt="digraph G {
-    rankdir=TB;  // Top to Bottom
+<p>The pipeline follows several steps. By default, all steps are done. If user want, they can switch off any step. However, it will work only if the pipeline logic is still maintained.</p>
+<p>For example, if user switch off spliting the target scans, there will not be any target directory, if not present alreayd. In that case, no imaging will be performed. But, if user switched off self-calibration, pipeline will not perform self-calibration. Pipeline now only apply basic calibration and make the final images.</p>
+<div class="tip admonition">
+<p class="admonition-title">Recommendation</p>
+<p>It is recommended to go through the flowchart of the pipeline and understand before playing with the pipeline keys.</p>
+</div>
+<div class="dropdown admonition">
+<p class="admonition-title">Click here to see the MeerSOLAR pipeline flowchart</p>
+<div class="graphviz"><img src="_images/graphviz-7839f0bd6c252236f69d6e3b2f50cf391f0e68e1.png" alt="digraph G {
+     rankdir=TB;  // Top to Bottom
 
-    Start [label=&quot;Start&quot;, shape=ellipse];
-    Decision1 [label=&quot;HPC?&quot;, shape=diamond];
-    Process1 [label=&quot;Fluxcal with\nnoise-diode&quot;, shape=box];
-    Process2 [label=&quot;Target spliting\nin parallel&quot;, shape=box];
-    Decision2 [label=&quot;Do basic\ncalibration?&quot;, shape=diamond];
-    Process3 [label=&quot;Make multi-ms using\ncalibrator scans&quot;, shape=box];
-    Process4 [label=&quot;Perform flagging\non calibrators&quot;, shape=box];
-    Process4a [label=&quot;Simulate\ncalibrator\nvisibilities&quot;, shape=box];
-    Process5 [label=&quot;Perform basic\ncalibration&quot;, shape=box];
-    Decision2a [label=&quot;Calibration\ntable\npresent?&quot;, shape=diamond];
-    Decision3 [label=&quot;Do\nself\ncalibration?&quot;, shape=diamond];
-    Process6 [label=&quot;Apply basic\ncalibrations&quot;, shape=box];
-    Decision1a [label=&quot;HPC?&quot;, shape=diamond];
-    Process7 [label=&quot;Target spliting\nin parallel&quot;, shape=box];
-    Process8 [label=&quot;Perform\nself-calibration&quot;, shape=box];
-    Process9 [label=&quot;Stop with\nbasic calibrated\nvisibilities&quot;, shape=ellipse];
-    Decision4 [label=&quot;Self\ncalibration\nsuccessful?&quot;, shape=diamond];
-    Process10 [label=&quot;Apply\nself-calibration&quot;, shape=box];
-    Process11 [label=&quot;Stop with\nbasic calibrated\nvisibilities&quot;, shape=ellipse];
-    Process12 [label=&quot;Split raw\ndata of\ntarget scans\nfor imaging&quot;, shape=box];
-    Process13 [label=&quot;Apply\nbasic calibrations&quot;, shape=box];
-    Process14 [label=&quot;Apply\nself calibrations&quot;, shape=box];
-    Process15 [label=&quot;Perform imaging&quot;, shape=box];
-    Process16 [label=&quot;Finished with\nfinal imaging\nproducts&quot;, shape=ellipse];
-    Stop [label=&quot;Pipeline end&quot;, shape=ellipse];
+     Start [label=&quot;Start&quot;, shape=ellipse];
+     Decision1 [label=&quot;HPC?&quot;, shape=diamond];
+     Process1 [label=&quot;Fluxcal with\nnoise-diode&quot;, shape=box];
+     Process2 [label=&quot;Target spliting\nin parallel&quot;, shape=box];
+     Decision2 [label=&quot;Do basic\ncalibration?&quot;, shape=diamond];
+     Process3 [label=&quot;Make multi-ms using\ncalibrator scans&quot;, shape=box];
+     Process4 [label=&quot;Perform flagging\non calibrators&quot;, shape=box];
+     Process4a [label=&quot;Simulate\ncalibrator\nvisibilities&quot;, shape=box];
+     Process5 [label=&quot;Perform basic\ncalibration&quot;, shape=box];
+     Decision2a [label=&quot;Calibration\ntable\npresent?&quot;, shape=diamond];
+     Decision3 [label=&quot;Do\nself\ncalibration?&quot;, shape=diamond];
+     Process6 [label=&quot;Apply basic\ncalibrations&quot;, shape=box];
+     Decision1a [label=&quot;HPC?&quot;, shape=diamond];
+     Process7 [label=&quot;Target spliting\nin parallel&quot;, shape=box];
+     Process8 [label=&quot;Perform\nself-calibration&quot;, shape=box];
+     Process9 [label=&quot;Stop with\nbasic calibrated\nvisibilities&quot;, shape=ellipse];
+     Decision4 [label=&quot;Self\ncalibration\nsuccessful?&quot;, shape=diamond];
+     Process10 [label=&quot;Apply\nself-calibration&quot;, shape=box];
+     Process11 [label=&quot;Stop with\nbasic calibrated\nvisibilities&quot;, shape=ellipse];
+     Process12 [label=&quot;Split raw\ndata of\ntarget scans\nfor imaging&quot;, shape=box];
+     Process13 [label=&quot;Apply\nbasic calibrations&quot;, shape=box];
+     Process14 [label=&quot;Apply\nself calibrations&quot;, shape=box];
+     Process15 [label=&quot;Perform imaging&quot;, shape=box];
+     Process16 [label=&quot;Finished with\nfinal imaging\nproducts&quot;, shape=ellipse];
+     Stop [label=&quot;Pipeline end&quot;, shape=ellipse];
 
 
-    Start -&gt; Decision1;
-    Decision1 -&gt; Process1 [label=&quot; Y/N&quot;, tailport=s, headport=n, rank=same];
-    Process1 -&gt; Decision2 [tailport=s, headport=n, rank=same];
-    Decision1-&gt; Process2 [label=&quot; Y&quot;, tailport=e, headport=n, rank=same];
-    Decision2 -&gt; Process3 [label=&quot; Y&quot;, tailport=w, headport=n, rank=same];
-    Process3 -&gt; Process4 -&gt; Process4a-&gt; Process5 [tailport=s, headport=n, rank=same];
-    Process5 -&gt; Decision2a [tailport=s, headport=w, rank=same];
-    Decision2 -&gt; Decision2a [label=&quot; N&quot;, tailport=s, headport=n, rank=same];
-    Decision2a -&gt; Process6 [tailport=s, headport=n, rank=same];
-    Decision2a -&gt; Stop [tailport=e, headport=n, rank=same];
-    Process6 -&gt; Decision3 [tailport=s, headport=n, rank=same];
-    Decision3 -&gt; Decision1a [label=&quot; Y&quot;, tailport=w, headport=n, rank=same];
-    Decision1a -&gt; Process8 [label=&quot; Y&quot;, tailport=e, headport=n, rank=same];
-    Decision1a -&gt; Process7 [label=&quot; N&quot;, tailport=s, headport=n, rank=same];
-    Process7 -&gt; Process8 [tailport=s, headport=w, rank=same];
-    Process8 -&gt; Decision4 [tailport=s, headport=n, rank=same];
-    Decision3 -&gt; Process9 [label=&quot; N&quot;, tailport=e, headport=n, rank=same];
-    Decision4 -&gt; Process10 [label=&quot; Y&quot;, tailport=s, headport=n, rank=same]
-    Decision4 -&gt; Process11 [label=&quot; N&quot;, tailport=e, headport=n, rank=same];
-    Process10 -&gt; Process12 -&gt; Process13 -&gt; Process14 -&gt; Process15 -&gt; Process16 [tailport=s, headport=n, rank=same];
-}" class="graphviz" /></div>
+     Start -&gt; Decision1;
+     Decision1 -&gt; Process1 [label=&quot; Y/N&quot;, tailport=s, headport=n, rank=same];
+     Process1 -&gt; Decision2 [tailport=s, headport=n, rank=same];
+     Decision1-&gt; Process2 [label=&quot; Y&quot;, tailport=e, headport=n, rank=same];
+     Decision2 -&gt; Process3 [label=&quot; Y&quot;, tailport=w, headport=n, rank=same];
+     Process3 -&gt; Process4 -&gt; Process4a-&gt; Process5 [tailport=s, headport=n, rank=same];
+     Process5 -&gt; Decision2a [tailport=s, headport=w, rank=same];
+     Decision2 -&gt; Decision2a [label=&quot; N&quot;, tailport=s, headport=n, rank=same];
+     Decision2a -&gt; Process6 [tailport=s, headport=n, rank=same];
+     Decision2a -&gt; Stop [tailport=e, headport=n, rank=same];
+     Process6 -&gt; Decision3 [tailport=s, headport=n, rank=same];
+     Decision3 -&gt; Decision1a [label=&quot; Y&quot;, tailport=w, headport=n, rank=same];
+     Decision1a -&gt; Process8 [label=&quot; Y&quot;, tailport=e, headport=n, rank=same];
+     Decision1a -&gt; Process7 [label=&quot; N&quot;, tailport=s, headport=n, rank=same];
+     Process7 -&gt; Process8 [tailport=s, headport=w, rank=same];
+     Process8 -&gt; Decision4 [tailport=s, headport=n, rank=same];
+     Decision3 -&gt; Process9 [label=&quot; N&quot;, tailport=e, headport=n, rank=same];
+     Decision4 -&gt; Process10 [label=&quot; Y&quot;, tailport=s, headport=n, rank=same]
+     Decision4 -&gt; Process11 [label=&quot; N&quot;, tailport=e, headport=n, rank=same];
+     Process10 -&gt; Process12 -&gt; Process13 -&gt; Process14 -&gt; Process15 -&gt; Process16 [tailport=s, headport=n, rank=same];
+ }" class="graphviz" /></div>
+</div>
 </section>
 
         </article>

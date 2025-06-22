@@ -174,10 +174,13 @@
 <li class="toctree-l2"><a class="reference internal" href="../../../flowchart.html">MeerSOLAR Flowchart</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../runpipeline.html">Run MeerSOLAR Pipeline</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../output.html">Directory Structure and Data Products</a></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../../../logger.html">Monitoring MeerSOLAR Pipeline Jobs</a><input class="toctree-checkbox" id="toctree-checkbox-3" name="toctree-checkbox-3" role="switch" type="checkbox"/><label for="toctree-checkbox-3"><div class="visually-hidden">Toggle navigation of Monitoring MeerSOLAR Pipeline Jobs</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="simple">
+</ul>
+</li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../../../cli.html">Command line tools</a></li>
-<li class="toctree-l1 has-children"><a class="reference internal" href="../../../meersolar.html">API Reference</a><input class="toctree-checkbox" id="toctree-checkbox-3" name="toctree-checkbox-3" role="switch" type="checkbox"/><label for="toctree-checkbox-3"><div class="visually-hidden">Toggle navigation of API Reference</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../../../meersolar.html">API Reference</a><input class="toctree-checkbox" id="toctree-checkbox-4" name="toctree-checkbox-4" role="switch" type="checkbox"/><label for="toctree-checkbox-4"><div class="visually-hidden">Toggle navigation of API Reference</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
 <li class="toctree-l2"><a class="reference internal" href="../../../meersolar.pipeline.html">Meersolar Pipeline Module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../meersolar.crystalball.html">Crystalball Module</a></li>
 </ul>
@@ -840,6 +843,7 @@
     <span class="n">workdir</span><span class="p">,</span>
     <span class="n">ds_file_name</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span>
     <span class="n">extension</span><span class="o">=</span><span class="s2">&quot;png&quot;</span><span class="p">,</span>
+    <span class="n">target_scans</span><span class="o">=</span><span class="p">[],</span>
     <span class="n">scans</span><span class="o">=</span><span class="p">[],</span>
     <span class="n">merge_scan</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
     <span class="n">showgui</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
@@ -859,6 +863,8 @@
 <span class="sd">        DS file name prefix</span>
 <span class="sd">    extension : str, optional</span>
 <span class="sd">        Image file extension</span>
+<span class="sd">    target_scans : list, optional</span>
+<span class="sd">        Target scans</span>
 <span class="sd">    scans : list, optional</span>
 <span class="sd">        Scan list</span>
 <span class="sd">    merge_scan : bool, optional</span>
@@ -873,8 +879,15 @@
     <span class="kn">import</span> <span class="nn">warnings</span>
 
     <span class="n">warnings</span><span class="o">.</span><span class="n">filterwarnings</span><span class="p">(</span><span class="s2">&quot;ignore&quot;</span><span class="p">,</span> <span class="n">category</span><span class="o">=</span><span class="ne">RuntimeWarning</span><span class="p">)</span>
-    <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">workdir</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-
+    <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">workdir</span><span class="si">}</span><span class="s2">/dynamic_spectra&quot;</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="nb">print</span> <span class="p">(</span><span class="s2">&quot;##############################################&quot;</span><span class="p">)</span>
+    <span class="nb">print</span> <span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Start making dynamic spectra for ms: </span><span class="si">{</span><span class="n">msname</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="nb">print</span> <span class="p">(</span><span class="s2">&quot;##############################################&quot;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">target_scans</span><span class="p">)</span><span class="o">&gt;</span><span class="mi">0</span><span class="p">:</span>
+        <span class="n">temp_target_scans</span><span class="o">=</span><span class="p">[]</span>
+        <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">target_scans</span><span class="p">:</span>
+            <span class="n">temp_target_scans</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">s</span><span class="p">))</span>
+        <span class="n">target_scans</span><span class="o">=</span><span class="n">temp_target_scans</span>
     <span class="c1">##############################</span>
     <span class="c1"># Extract dynamic spectrum</span>
     <span class="c1">##############################</span>
@@ -966,17 +979,21 @@
     <span class="n">mstool</span> <span class="o">=</span> <span class="n">casamstool</span><span class="p">()</span>
     <span class="k">for</span> <span class="n">scan</span> <span class="ow">in</span> <span class="n">scans</span><span class="p">:</span>
         <span class="k">if</span> <span class="n">scan</span> <span class="ow">in</span> <span class="n">valid_scans</span><span class="p">:</span>
-            <span class="n">final_scans</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">scan</span><span class="p">))</span>
-            <span class="n">msmd</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">msname</span><span class="p">)</span>
-            <span class="n">nchan</span> <span class="o">=</span> <span class="n">msmd</span><span class="o">.</span><span class="n">nchan</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
-            <span class="n">nant</span> <span class="o">=</span> <span class="n">msmd</span><span class="o">.</span><span class="n">nantennas</span><span class="p">()</span>
-            <span class="n">msmd</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
-            <span class="n">mstool</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">msname</span><span class="p">)</span>
-            <span class="n">mstool</span><span class="o">.</span><span class="n">select</span><span class="p">({</span><span class="s2">&quot;scan_number&quot;</span><span class="p">:</span> <span class="nb">int</span><span class="p">(</span><span class="n">scan</span><span class="p">)})</span>
-            <span class="n">nrow</span> <span class="o">=</span> <span class="n">mstool</span><span class="o">.</span><span class="n">nrow</span><span class="p">(</span><span class="kc">True</span><span class="p">)</span>
-            <span class="n">mstool</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
-            <span class="n">nbaselines</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">nant</span> <span class="o">+</span> <span class="p">(</span><span class="n">nant</span> <span class="o">*</span> <span class="p">(</span><span class="n">nant</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">/</span> <span class="mi">2</span><span class="p">))</span>
-            <span class="n">scan_size_list</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="mi">5</span> <span class="o">*</span> <span class="p">(</span><span class="n">nrow</span> <span class="o">/</span> <span class="n">nbaselines</span><span class="p">)</span> <span class="o">*</span> <span class="mi">16</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="mi">1024</span><span class="o">**</span><span class="mi">3</span><span class="p">))</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">target_scans</span><span class="p">)</span><span class="o">==</span><span class="mi">0</span> <span class="ow">or</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">target_scans</span><span class="p">)</span><span class="o">&gt;</span><span class="mi">0</span> <span class="ow">and</span> <span class="nb">int</span><span class="p">(</span><span class="n">scan</span><span class="p">)</span> <span class="ow">in</span> <span class="n">target_scans</span><span class="p">):</span>
+                <span class="n">final_scans</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">scan</span><span class="p">))</span>
+                <span class="n">msmd</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">msname</span><span class="p">)</span>
+                <span class="n">nchan</span> <span class="o">=</span> <span class="n">msmd</span><span class="o">.</span><span class="n">nchan</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+                <span class="n">nant</span> <span class="o">=</span> <span class="n">msmd</span><span class="o">.</span><span class="n">nantennas</span><span class="p">()</span>
+                <span class="n">msmd</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+                <span class="n">mstool</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">msname</span><span class="p">)</span>
+                <span class="n">mstool</span><span class="o">.</span><span class="n">select</span><span class="p">({</span><span class="s2">&quot;scan_number&quot;</span><span class="p">:</span> <span class="nb">int</span><span class="p">(</span><span class="n">scan</span><span class="p">)})</span>
+                <span class="n">nrow</span> <span class="o">=</span> <span class="n">mstool</span><span class="o">.</span><span class="n">nrow</span><span class="p">(</span><span class="kc">True</span><span class="p">)</span>
+                <span class="n">mstool</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+                <span class="n">nbaselines</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">nant</span> <span class="o">+</span> <span class="p">(</span><span class="n">nant</span> <span class="o">*</span> <span class="p">(</span><span class="n">nant</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">/</span> <span class="mi">2</span><span class="p">))</span>
+                <span class="n">scan_size_list</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="mi">5</span> <span class="o">*</span> <span class="p">(</span><span class="n">nrow</span> <span class="o">/</span> <span class="n">nbaselines</span><span class="p">)</span> <span class="o">*</span> <span class="mi">16</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="mi">1024</span><span class="o">**</span><span class="mi">3</span><span class="p">))</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">final_scans</span><span class="p">)</span><span class="o">==</span><span class="mi">0</span><span class="p">:</span>
+        <span class="nb">print</span> <span class="p">(</span><span class="s2">&quot;No scans to make dynamic spectra.&quot;</span><span class="p">)</span>
+        <span class="k">return</span>
     <span class="k">del</span> <span class="n">scans</span>
     <span class="n">scans</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">final_scans</span><span class="p">)</span>
     <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Scans: </span><span class="si">{</span><span class="n">scans</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
@@ -1001,13 +1018,13 @@
     <span class="k">for</span> <span class="n">scan</span> <span class="ow">in</span> <span class="n">scans</span><span class="p">:</span>
         <span class="n">tasks</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
             <span class="n">delayed</span><span class="p">(</span><span class="n">make_ds_file_per_scan</span><span class="p">)(</span>
-                <span class="n">msname</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">workdir</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="n">ds_file_name</span><span class="si">}</span><span class="s2">_scan_</span><span class="si">{</span><span class="n">scan</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">scan</span><span class="p">,</span> <span class="n">datacolumn</span>
+                <span class="n">msname</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">workdir</span><span class="si">}</span><span class="s2">/dynamic_spectra/</span><span class="si">{</span><span class="n">ds_file_name</span><span class="si">}</span><span class="s2">_scan_</span><span class="si">{</span><span class="n">scan</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">scan</span><span class="p">,</span> <span class="n">datacolumn</span>
             <span class="p">)</span>
         <span class="p">)</span>
     <span class="n">compute</span><span class="p">(</span><span class="o">*</span><span class="n">tasks</span><span class="p">)</span>
     <span class="n">dask_client</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
     <span class="n">dask_cluster</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
-    <span class="n">ds_files</span> <span class="o">=</span> <span class="p">[</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">workdir</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="n">ds_file_name</span><span class="si">}</span><span class="s2">_scan_</span><span class="si">{</span><span class="n">scan</span><span class="si">}</span><span class="s2">.npy&quot;</span> <span class="k">for</span> <span class="n">scan</span> <span class="ow">in</span> <span class="n">scans</span><span class="p">]</span>
+    <span class="n">ds_files</span> <span class="o">=</span> <span class="p">[</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">workdir</span><span class="si">}</span><span class="s2">/dynamic_spectra/</span><span class="si">{</span><span class="n">ds_file_name</span><span class="si">}</span><span class="s2">_scan_</span><span class="si">{</span><span class="n">scan</span><span class="si">}</span><span class="s2">.npy&quot;</span> <span class="k">for</span> <span class="n">scan</span> <span class="ow">in</span> <span class="n">scans</span><span class="p">]</span>
     <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;DS files: </span><span class="si">{</span><span class="n">ds_files</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">merge_scan</span> <span class="o">==</span> <span class="kc">False</span><span class="p">:</span>
         <span class="n">plots</span> <span class="o">=</span> <span class="p">[]</span>
@@ -1020,10 +1037,10 @@
             <span class="n">plots</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">plot_file</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
         <span class="n">plot_file</span> <span class="o">=</span> <span class="n">make_ds_plot</span><span class="p">(</span>
-            <span class="n">ds_files</span><span class="p">,</span> <span class="n">plot_file</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">workdir</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="n">ds_file_name</span><span class="si">}</span><span class="s2">.</span><span class="si">{</span><span class="n">extension</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">showgui</span><span class="o">=</span><span class="n">showgui</span>
+            <span class="n">ds_files</span><span class="p">,</span> <span class="n">plot_file</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">workdir</span><span class="si">}</span><span class="s2">/dynamic_spectra/</span><span class="si">{</span><span class="n">ds_file_name</span><span class="si">}</span><span class="s2">.</span><span class="si">{</span><span class="n">extension</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">showgui</span><span class="o">=</span><span class="n">showgui</span>
         <span class="p">)</span>
     <span class="n">gc</span><span class="o">.</span><span class="n">collect</span><span class="p">()</span>
-    <span class="n">goes_files</span> <span class="o">=</span> <span class="n">glob</span><span class="o">.</span><span class="n">glob</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">workdir</span><span class="si">}</span><span class="s2">/sci*.nc&quot;</span><span class="p">)</span>
+    <span class="n">goes_files</span> <span class="o">=</span> <span class="n">glob</span><span class="o">.</span><span class="n">glob</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">workdir</span><span class="si">}</span><span class="s2">/dynamic_spectra/sci*.nc&quot;</span><span class="p">)</span>
     <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">goes_files</span><span class="p">:</span>
         <span class="n">os</span><span class="o">.</span><span class="n">system</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;rm -rf </span><span class="si">{</span><span class="n">f</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
     <span class="n">os</span><span class="o">.</span><span class="n">system</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;rm -rf </span><span class="si">{</span><span class="n">workdir</span><span class="si">}</span><span class="s2">/dask-scratch-space </span><span class="si">{</span><span class="n">workdir</span><span class="si">}</span><span class="s2">/tmp&quot;</span><span class="p">)</span>
@@ -4335,7 +4352,7 @@
         <span class="n">filtered_prev_jobids</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="k">for</span> <span class="n">job_id</span> <span class="ow">in</span> <span class="n">prev_jobids</span><span class="p">:</span>
             <span class="n">job_time</span> <span class="o">=</span> <span class="n">dt</span><span class="o">.</span><span class="n">strptime</span><span class="p">(</span><span class="n">job_id</span><span class="o">.</span><span class="n">ljust</span><span class="p">(</span><span class="mi">20</span><span class="p">,</span> <span class="s1">&#39;0&#39;</span><span class="p">),</span> <span class="n">FORMAT</span><span class="p">)</span>  <span class="c1"># pad if truncated</span>
-            <span class="k">if</span> <span class="n">job_time</span> <span class="o">&gt;=</span> <span class="n">CUTOFF</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">job_time</span> <span class="o">&gt;=</span> <span class="n">CUTOFF</span> <span class="ow">or</span> <span class="n">job_id</span><span class="o">==</span><span class="mi">0</span><span class="p">:</span> <span class="c1"># Job ID 0 is always kept</span>
                 <span class="n">filtered_prev_jobids</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">job_id</span><span class="p">)</span>
         <span class="n">prev_jobids</span> <span class="o">=</span> <span class="n">filtered_prev_jobids</span>
 
@@ -4384,7 +4401,7 @@
         <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">prev_jobids</span><span class="p">)):</span>
             <span class="n">job_id</span><span class="o">=</span><span class="n">prev_jobids</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
             <span class="n">job_time</span> <span class="o">=</span> <span class="n">dt</span><span class="o">.</span><span class="n">strptime</span><span class="p">(</span><span class="n">job_id</span><span class="o">.</span><span class="n">ljust</span><span class="p">(</span><span class="mi">20</span><span class="p">,</span> <span class="s1">&#39;0&#39;</span><span class="p">),</span> <span class="n">FORMAT</span><span class="p">)</span>  <span class="c1"># pad if truncated</span>
-            <span class="k">if</span> <span class="n">job_time</span> <span class="o">&lt;</span> <span class="n">CUTOFF</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">job_time</span> <span class="o">&lt;</span> <span class="n">CUTOFF</span> <span class="ow">or</span> <span class="n">job_id</span><span class="o">==</span><span class="mi">0</span><span class="p">:</span> <span class="c1"># Job ID 0 is always kept</span>
                 <span class="n">filtered_prev_jobids</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">job_id</span><span class="p">)</span>
             <span class="k">else</span><span class="p">:</span>
                 <span class="n">os</span><span class="o">.</span><span class="n">system</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;rm -rf </span><span class="si">{</span><span class="n">prev_main_pids</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
@@ -5496,5 +5513,13 @@
     <script src="../../../_static/togglebutton.js?v=4a39c7ea"></script>
     <script>var togglebuttonSelector = '.toggle, .admonition.dropdown';</script>
     <script>var togglebuttonSelector = '.toggle, .admonition.dropdown';</script>
+    <script type="module" src="https://cdn.jsdelivr.net/npm/mermaid@11.2.0/dist/mermaid.esm.min.mjs"></script>
+    <script type="module" src="https://cdn.jsdelivr.net/npm/@mermaid-js/layout-elk@0.1.4/dist/mermaid-layout-elk.esm.min.mjs"></script>
+    <script type="module">import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11.2.0/dist/mermaid.esm.min.mjs";import elkLayouts from "https://cdn.jsdelivr.net/npm/@mermaid-js/layout-elk@0.1.4/dist/mermaid-layout-elk.esm.min.mjs";mermaid.registerLayoutLoaders(elkLayouts);mermaid.initialize({startOnLoad:false});</script>
+    <script src="https://cdn.jsdelivr.net/npm/d3@7.9.0/dist/d3.min.js"></script>
+    <script type="module">
+import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11.2.0/dist/mermaid.esm.min.mjs";
+window.addEventListener("load", () => mermaid.run());
+</script>
     </body>
 </html>

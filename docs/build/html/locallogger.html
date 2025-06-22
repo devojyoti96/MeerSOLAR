@@ -3,10 +3,10 @@
   <head><meta charset="utf-8"/>
     <meta name="viewport" content="width=device-width,initial-scale=1"/>
     <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
-<link rel="index" title="Index" href="genindex.html" /><link rel="search" title="Search" href="search.html" /><link rel="next" title="Local GUI Logger" href="locallogger.html" /><link rel="prev" title="Directory Structure and Data Products" href="output.html" />
+<link rel="index" title="Index" href="genindex.html" /><link rel="search" title="Search" href="search.html" /><link rel="next" title="Command line tools" href="cli.html" /><link rel="prev" title="Monitoring MeerSOLAR Pipeline Jobs" href="logger.html" />
 
     <!-- Generated with Sphinx 7.4.7 and Furo 2024.01.29 -->
-        <title>Monitoring MeerSOLAR Pipeline Jobs - MeerSOLAR</title>
+        <title>Local GUI Logger - MeerSOLAR</title>
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=a746c00c" />
     <link rel="stylesheet" type="text/css" href="_static/styles/furo.css?v=135e06be" />
     <link rel="stylesheet" type="text/css" href="_static/copybutton.css?v=76b2166b" />
@@ -175,8 +175,8 @@
 <li class="toctree-l2"><a class="reference internal" href="flowchart.html">MeerSOLAR Flowchart</a></li>
 <li class="toctree-l2"><a class="reference internal" href="runpipeline.html">Run MeerSOLAR Pipeline</a></li>
 <li class="toctree-l2"><a class="reference internal" href="output.html">Directory Structure and Data Products</a></li>
-<li class="toctree-l2 current has-children current-page"><a class="current reference internal" href="#">Monitoring MeerSOLAR Pipeline Jobs</a><input checked="" class="toctree-checkbox" id="toctree-checkbox-3" name="toctree-checkbox-3" role="switch" type="checkbox"/><label for="toctree-checkbox-3"><div class="visually-hidden">Toggle navigation of Monitoring MeerSOLAR Pipeline Jobs</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
-<li class="toctree-l3"><a class="reference internal" href="locallogger.html">Local GUI Logger</a></li>
+<li class="toctree-l2 current has-children"><a class="reference internal" href="logger.html">Monitoring MeerSOLAR Pipeline Jobs</a><input checked="" class="toctree-checkbox" id="toctree-checkbox-3" name="toctree-checkbox-3" role="switch" type="checkbox"/><label for="toctree-checkbox-3"><div class="visually-hidden">Toggle navigation of Monitoring MeerSOLAR Pipeline Jobs</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="current">
+<li class="toctree-l3 current current-page"><a class="current reference internal" href="#">Local GUI Logger</a></li>
 </ul>
 </li>
 </ul>
@@ -221,23 +221,32 @@
           </label>
         </div>
         <article role="main">
-          <section id="monitoring-meersolar-pipeline-jobs">
-<h1>Monitoring MeerSOLAR Pipeline Jobs<a class="headerlink" href="#monitoring-meersolar-pipeline-jobs" title="Link to this heading">¶</a></h1>
-<p>MeerSOLAR pipeline jobs are run in background and in parallel. Hence, it will not pring directly on terminal the outputs. Instead user needs to use MeerSOLAR logger to monitor the logs of the MeerSOLAR jobs.</p>
-<p>MeerSOLAR provide a local logger GUI as well as a remote logger.</p>
-<div class="tip admonition">
-<p class="admonition-title">Recommendation</p>
-<p>We recommend using remote logger.</p>
+          <section id="local-gui-logger">
+<h1>Local GUI Logger<a class="headerlink" href="#local-gui-logger" title="Link to this heading">¶</a></h1>
+<ol class="arabic">
+<li><p>To start and view local GUI logger, run:</p>
+<blockquote>
+<div><div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>run_meerlogger<span class="w"> </span>--jobid<span class="w"> </span>&lt;jobid&gt;
+</pre></div>
 </div>
-<div class="admonition warning">
-<p class="admonition-title">Warning</p>
-<p>If you are working on a headless machine, such as work station, remote server or high-performace computing node, we recommend not to use local GUI logger, as it may encounter issue in deploying the PyQT based GUI window.</p>
+<p>If user forget MeerSOLAR &lt;jobid&gt;, but knows the log directory, run:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>run_meerlogger<span class="w"> </span>--logdir<span class="w"> </span>&lt;logdir&gt;
+</pre></div>
 </div>
-<div class="toctree-wrapper compound">
-<ul>
-<li class="toctree-l1"><a class="reference internal" href="locallogger.html">Local GUI Logger</a></li>
-</ul>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Log directory is generally at <cite>&lt;workdir&gt;/logs</cite>.</p>
 </div>
+</div></blockquote>
+</li>
+</ol>
+<p>This will open the local GUI logger as shown below:</p>
+<img alt="_images/ss_logger.png" src="_images/ss_logger.png" />
+<ol class="arabic simple" start="2">
+<li><p>Different logs are shown in the left panels. Once new jobs are started, this list will automatically updated.</p></li>
+<li><p>To view any of these logs, click on the name. It will display the current log in the right panel and continuously updating it. To view another log, simply click on the other log name and the right panel will be updated with that log. A demonstration is shown below.</p></li>
+</ol>
+<img alt="_images/ss_logger1.png" src="_images/ss_logger1.png" />
 </section>
 
         </article>
@@ -245,23 +254,23 @@
       <footer>
         
         <div class="related-pages">
-          <a class="next-page" href="locallogger.html">
+          <a class="next-page" href="cli.html">
               <div class="page-info">
                 <div class="context">
                   <span>Next</span>
                 </div>
-                <div class="title">Local GUI Logger</div>
+                <div class="title">Command line tools</div>
               </div>
               <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
             </a>
-          <a class="prev-page" href="output.html">
+          <a class="prev-page" href="logger.html">
               <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
               <div class="page-info">
                 <div class="context">
                   <span>Previous</span>
                 </div>
                 
-                <div class="title">Directory Structure and Data Products</div>
+                <div class="title">Monitoring MeerSOLAR Pipeline Jobs</div>
                 
               </div>
             </a>

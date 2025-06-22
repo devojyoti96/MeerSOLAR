@@ -3,7 +3,7 @@
   <head><meta charset="utf-8"/>
     <meta name="viewport" content="width=device-width,initial-scale=1"/>
     <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
-<link rel="index" title="Index" href="genindex.html" /><link rel="search" title="Search" href="search.html" /><link rel="next" title="Command line tools" href="cli.html" /><link rel="prev" title="Run MeerSOLAR Pipeline" href="runpipeline.html" />
+<link rel="index" title="Index" href="genindex.html" /><link rel="search" title="Search" href="search.html" /><link rel="next" title="Monitoring MeerSOLAR Pipeline Jobs" href="logger.html" /><link rel="prev" title="Run MeerSOLAR Pipeline" href="runpipeline.html" />
 
     <!-- Generated with Sphinx 7.4.7 and Furo 2024.01.29 -->
         <title>Directory Structure and Data Products - MeerSOLAR</title>
@@ -175,10 +175,13 @@
 <li class="toctree-l2"><a class="reference internal" href="flowchart.html">MeerSOLAR Flowchart</a></li>
 <li class="toctree-l2"><a class="reference internal" href="runpipeline.html">Run MeerSOLAR Pipeline</a></li>
 <li class="toctree-l2 current current-page"><a class="current reference internal" href="#">Directory Structure and Data Products</a></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="logger.html">Monitoring MeerSOLAR Pipeline Jobs</a><input class="toctree-checkbox" id="toctree-checkbox-3" name="toctree-checkbox-3" role="switch" type="checkbox"/><label for="toctree-checkbox-3"><div class="visually-hidden">Toggle navigation of Monitoring MeerSOLAR Pipeline Jobs</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="simple">
+</ul>
+</li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="cli.html">Command line tools</a></li>
-<li class="toctree-l1 has-children"><a class="reference internal" href="meersolar.html">API Reference</a><input class="toctree-checkbox" id="toctree-checkbox-3" name="toctree-checkbox-3" role="switch" type="checkbox"/><label for="toctree-checkbox-3"><div class="visually-hidden">Toggle navigation of API Reference</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l1 has-children"><a class="reference internal" href="meersolar.html">API Reference</a><input class="toctree-checkbox" id="toctree-checkbox-4" name="toctree-checkbox-4" role="switch" type="checkbox"/><label for="toctree-checkbox-4"><div class="visually-hidden">Toggle navigation of API Reference</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
 <li class="toctree-l2"><a class="reference internal" href="meersolar.pipeline.html">Meersolar Pipeline Module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="meersolar.crystalball.html">Crystalball Module</a></li>
 </ul>
@@ -232,24 +235,64 @@ Note down the Job ID to view the logger.</p>
 <span class="gp">#</span><span class="c1">##########################</span>
 </pre></div>
 </div>
+<section id="directory-structure">
+<h2>Directory structure<a class="headerlink" href="#directory-structure" title="Link to this heading">¶</a></h2>
 <p>All data intermediate and final data products will be saved in &lt;workdir&gt;.</p>
-<section id="work-directory-structure">
-<h2>Work directory structure<a class="headerlink" href="#work-directory-structure" title="Link to this heading">¶</a></h2>
-<div class="graphviz"><img src="_images/graphviz-ed43c72924efc84e177ee36b4acf0bca74d90786.png" alt="digraph G {
-    rankdir=TB;
-    &quot;workdir&quot; -&gt; &quot;logs&quot;
-    &quot;workdir&quot; -&gt; &quot;caltables&quot;
-    &quot;workdir&quot; -&gt; &quot;images&quot;
-    &quot;logs&quot; -&gt; &quot;job_001.log&quot;
-    &quot;logs&quot; -&gt; &quot;job_002.log&quot;
-    &quot;caltables&quot; -&gt; &quot;bandpass.cal&quot;
-    &quot;caltables&quot; -&gt; &quot;gain.cal&quot;
-    &quot;images&quot; -&gt; &quot;20250621&quot;
-    &quot;images&quot; -&gt; &quot;20250622&quot;
-    &quot;20250621&quot; -&gt; &quot;image_I.fits&quot;
-    &quot;20250621&quot; -&gt; &quot;image_V.fits&quot;
-    &quot;20250622&quot; -&gt; &quot;image_I.fits&quot;
-}" class="graphviz" /></div>
+<div class="dropdown admonition">
+<p class="admonition-title">Click here to see directory structure in work directory</p>
+<pre  class="mermaid">
+        graph LR
+    WD[&quot;Work directory:&lt;br&gt;{workdir}&quot;] --&gt; CAL[&quot;Calibrator ms:&lt;br&gt;calibrator.ms&quot;]
+    WD --&gt; SCMS[&quot;`Self-cal ms(s):&lt;br&gt;selfcals_scan_*_spw_*.ms`&quot;]
+    WD --&gt; SCDIR[&quot;`Self-cal directories:&lt;br&gt;selfcals_scan_*_spw_*_selfcal`&quot;]
+    WD --&gt; TMS[&quot;`Target ms(s):&lt;br&gt;targets_scan_*_spw_*.ms`&quot;]
+    WD --&gt; BACK[&quot;Backup directory:&lt;br&gt;backup&quot;]
+    WD --&gt; DS[&quot;`Dynamic spectra:&lt;br&gt;dynamic_spectra`&quot;]
+    WD --&gt; LOG[&quot;Log directory:&lt;br&gt;logs&quot;]
+    WD --&gt; CALTABLE[&quot;Caltable directory:&lt;br&gt;caltables&quot;]
+    WD --&gt; IMG[&quot;`Image directory:&lt;br&gt;imagedir_f_*_t_*_w_briggs_*`&quot;]
+
+    LOG --&gt; LOGF[&quot;*.log&quot;]
+    CALTABLE --&gt; ATT[&quot;`Attenuator values:&lt;br&gt;*_attval_scan_*.npy`&quot;]
+    CALTABLE --&gt; CTBL[&quot;`Caltables:&lt;br&gt;calibrator_caltable.bcal/gcal/kcal`&quot;]
+    CALTABLE --&gt; BPTBL[&quot;`Bandpass tables scaled:&lt;br&gt;calibrator_caltable_scan_*.bcal`&quot;]
+    CALTABLE --&gt; SCTBL[&quot;`Self-cal tables:&lt;br&gt;selfcal_scan_*.gcal`&quot;]
+
+    IMG --&gt; IMAGE[&quot;Fits image:&lt;br&gt;images&quot;]
+    IMG --&gt; MODEL[&quot;Fits models:&lt;br&gt;models&quot;]
+    IMG --&gt; RES[&quot;Firs residual:&lt;br&gt;residuals&quot;]
+    IMG --&gt; PBDIR[&quot;Primary beams:&lt;br&gt;pbdir&quot;]
+    IMG --&gt; PBCOR[&quot;`Primary beam&lt;br&gt;corrected images:&lt;br&gt;pbcor_images`&quot;]
+    IMG --&gt; TBIMG[&quot;`Brightness temperature images:&lt;br&gt;tb_images`&quot;]
+    IMG --&gt; OVRPDF[&quot;Overlays of EUV:&lt;br&gt;PDF format:&lt;br&gt;overlays_pdfs&quot;]
+    IMG --&gt; OVRPNG[&quot;Overlays of EUV:&lt;br&gt;PNG format:&lt;br&gt;overlays_pngs&quot;]
+    IMG --&gt; RADPNG[&quot;Radio images in HPC coordinate:&lt;br&gt;PNG format:&lt;br&gt;images_pngs&quot;]
+    IMG --&gt; RADPDF[&quot;Radio images in HPC coordinate:&lt;br&gt;PDF format:&lt;br&gt;images_pdfs&quot;]
+    </pre></div>
+</section>
+<section id="data-products">
+<h2>Data products<a class="headerlink" href="#data-products" title="Link to this heading">¶</a></h2>
+<p>Pipeline produces calibrated visibilities as well as several imaging products.</p>
+<section id="dynamic-spectrum">
+<h3>Dynamic spectrum<a class="headerlink" href="#dynamic-spectrum" title="Link to this heading">¶</a></h3>
+<p>Dynamic spectra for all (or the ones selected) target scans are available in <code class="docutils literal notranslate"><span class="pre">dynamic_spectra</span></code> directory inside the work directory.</p>
+</section>
+<section id="calibrated-visibilities">
+<h3>Calibrated visibilities<a class="headerlink" href="#calibrated-visibilities" title="Link to this heading">¶</a></h3>
+<p>Calibrated measurements sets for all (or the ones selected) target scans will be available in workdir with naming format, <code class="docutils literal notranslate"><span class="pre">targets_scan_&lt;scan_number&gt;_spw_&lt;channel_range&gt;.ms</span></code>.</p>
+</section>
+<section id="imaging-products">
+<h3>Imaging products<a class="headerlink" href="#imaging-products" title="Link to this heading">¶</a></h3>
+<p>Imaging products are available in <code class="docutils literal notranslate"><span class="pre">imagedir_f_&lt;freqres&gt;_t_&lt;timeres&gt;_w_&lt;weight&gt;_&lt;robust&gt;</span></code> directory inside work directory. If imaging is pereformed with different time and frequency resolutions or different weighting schemes, seperate image directories with corresponding parameters will have the corresponding images.</p>
+<ol class="arabic simple">
+<li><p><strong>Image fits in RA/DEC</strong> - Fits images in RA/DEC coordinate are available in <code class="docutils literal notranslate"><span class="pre">imagedir_f_&lt;freqres&gt;_t_&lt;timeres&gt;_w_&lt;weight&gt;_&lt;robust&gt;/images</span></code> directory inside work directory. These are not primary beam corrected.</p></li>
+<li><p><strong>Primary beam corrected image fits</strong> - Primary beam corrected fits images are available in <code class="docutils literal notranslate"><span class="pre">imagedir_f_&lt;freqres&gt;_t_&lt;timeres&gt;_w_&lt;weight&gt;_&lt;robust&gt;/pbcor_images</span></code> directory inside work directory.</p></li>
+<li><p><strong>Brightness temperature image fits</strong> - Brightness temperature fits images are available in <code class="docutils literal notranslate"><span class="pre">imagedir_f_&lt;freqres&gt;_t_&lt;timeres&gt;_w_&lt;weight&gt;_&lt;robust&gt;/tb_images</span></code> directory inside work directory.</p></li>
+<li><p><strong>CLEAN model and residual fits</strong> - CLEAN model and residual images are available in <code class="docutils literal notranslate"><span class="pre">imagedir_f_&lt;freqres&gt;_t_&lt;timeres&gt;_w_&lt;weight&gt;_&lt;robust&gt;/models</span></code> and <code class="docutils literal notranslate"><span class="pre">imagedir_f_&lt;freqres&gt;_t_&lt;timeres&gt;_w_&lt;weight&gt;_&lt;robust&gt;/residuals</span></code> directory inside work directory. These are not saved only if <code class="docutils literal notranslate"><span class="pre">keep_backup</span></code> option is switched on.</p></li>
+<li><p><strong>Radio images in helioprojective coordinates</strong> - Directories like, <code class="docutils literal notranslate"><span class="pre">images,</span> <span class="pre">pbcor_images,</span> <span class="pre">tb_images</span></code> inside the image directory will have the helioprojective maps of corresponding images in PNG and PDF formats in <code class="docutils literal notranslate"><span class="pre">pngs</span></code> and <code class="docutils literal notranslate"><span class="pre">pdfs</span></code> directories inside the parent ones.</p></li>
+<li><p><strong>Overlays on GOES-SUVI EUV images</strong> - Overlays on GOES SUVI EUV images are saved in PNG and PDF formats in <code class="docutils literal notranslate"><span class="pre">imagedir_f_&lt;freqres&gt;_t_&lt;timeres&gt;_w_&lt;weight&gt;_&lt;robust&gt;/overlays_pngs</span></code> and <code class="docutils literal notranslate"><span class="pre">imagedir_f_&lt;freqres&gt;_t_&lt;timeres&gt;_w_&lt;weight&gt;_&lt;robust&gt;/overlays_pngs</span></code>, respectively.</p></li>
+</ol>
+</section>
 </section>
 </section>
 
@@ -258,12 +301,12 @@ Note down the Job ID to view the logger.</p>
       <footer>
         
         <div class="related-pages">
-          <a class="next-page" href="cli.html">
+          <a class="next-page" href="logger.html">
               <div class="page-info">
                 <div class="context">
                   <span>Next</span>
                 </div>
-                <div class="title">Command line tools</div>
+                <div class="title">Monitoring MeerSOLAR Pipeline Jobs</div>
               </div>
               <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
             </a>
@@ -309,7 +352,13 @@ Note down the Job ID to view the logger.</p>
           <div class="toc-tree">
             <ul>
 <li><a class="reference internal" href="#">Directory Structure and Data Products</a><ul>
-<li><a class="reference internal" href="#work-directory-structure">Work directory structure</a></li>
+<li><a class="reference internal" href="#directory-structure">Directory structure</a></li>
+<li><a class="reference internal" href="#data-products">Data products</a><ul>
+<li><a class="reference internal" href="#dynamic-spectrum">Dynamic spectrum</a></li>
+<li><a class="reference internal" href="#calibrated-visibilities">Calibrated visibilities</a></li>
+<li><a class="reference internal" href="#imaging-products">Imaging products</a></li>
+</ul>
+</li>
 </ul>
 </li>
 </ul>
@@ -333,5 +382,13 @@ Note down the Job ID to view the logger.</p>
     <script src="_static/togglebutton.js?v=4a39c7ea"></script>
     <script>var togglebuttonSelector = '.toggle, .admonition.dropdown';</script>
     <script>var togglebuttonSelector = '.toggle, .admonition.dropdown';</script>
+    <script type="module" src="https://cdn.jsdelivr.net/npm/mermaid@11.2.0/dist/mermaid.esm.min.mjs"></script>
+    <script type="module" src="https://cdn.jsdelivr.net/npm/@mermaid-js/layout-elk@0.1.4/dist/mermaid-layout-elk.esm.min.mjs"></script>
+    <script type="module">import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11.2.0/dist/mermaid.esm.min.mjs";import elkLayouts from "https://cdn.jsdelivr.net/npm/@mermaid-js/layout-elk@0.1.4/dist/mermaid-layout-elk.esm.min.mjs";mermaid.registerLayoutLoaders(elkLayouts);mermaid.initialize({startOnLoad:false});</script>
+    <script src="https://cdn.jsdelivr.net/npm/d3@7.9.0/dist/d3.min.js"></script>
+    <script type="module">
+import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11.2.0/dist/mermaid.esm.min.mjs";
+window.addEventListener("load", () => mermaid.run());
+</script>
     </body>
 </html>

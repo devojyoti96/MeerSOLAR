@@ -10,6 +10,7 @@ Seperate command line interfaces (CLI) are only needed for users who want to tes
    flowchart
    runpipeline
    output
+   logger
    
 
         

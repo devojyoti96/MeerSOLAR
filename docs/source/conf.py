@@ -28,6 +28,7 @@ extensions = [
     "sphinx_togglebutton",
     "myst_parser",
     'sphinx.ext.graphviz',
+    "sphinxcontrib.mermaid"
 
 ]
 
