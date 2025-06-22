@@ -1141,6 +1141,60 @@ def run_imaging_jobs(
         traceback.print_exc()
         return 1
 
+def run_ds_jobs(msname,workdir,target_scans=[],jobid=0,cpu_frac=0.8,mem_frac=0.8):
+    """
+    Make dynamic spectra of the target scans
+    
+    Parameters
+    ----------
+    msname : str
+        Name of the measurement set
+    workdir : str
+        Name of the work directory
+    target_scans : list, optional
+        Target scans 
+    cpu_frac : float, optional
+        CPU fraction to use
+    mem_frac : float, optional
+        Memory fraction to use
+        
+    Returns
+    -------
+    int
+        Success message
+    """ 
+    try:
+        print("###########################")
+        print("Making dynamic spectra of target scans .....")
+        print("###########################\n")
+        ds_basename = "ds_targets"
+        target_scans=" ".join([str(s) for i in target_scans])
+        ds_cmd = f"run_makeds {msname} --workdir {workdir} --cpu_frac {cpu_frac} --mem_frac {mem_frac} --jobid {jobid} --target_scans {target_scans}"
+        if os.path.isdir(workdir + "/logs") == False:
+            os.makedirs(workdir + "/logs")
+        logfile = workdir + "/logs/" + ds_basename + ".log"
+        ds_cmd += f" --logfile {logfile}"
+        batch_file = create_batch_script_nonhpc(
+            ds_cmd, workdir, ds_basename
+        )
+        print(ds_cmd + "\n")
+        os.system("bash " + batch_file)
+        print("Waiting to finish making of dynamic spectra...\n")
+        while True:
+            finished_file = glob.glob(workdir + "/.Finished_" + ds_basename + "*")
+            if len(finished_file) > 0:
+                break
+            else:
+                time.sleep(1)
+        success_index_cal = int(finished_file[0].split("_")[-1])
+        if success_index_cal == 0:
+            print("Dynamic spectra are successfully made.\n")
+        else:
+            print("Dynamic spectra are not made successfully.\n")
+        return success_index_cal
+    except Exception as e:
+        traceback.print_exc()
+        return 1
 
 def check_status(workdir, basename):
     """
@@ -1220,26 +1274,35 @@ def master_control(
     msname,
     workdir,
     solar_data=True,
+    # Pre-calibration
     do_forcereset_weightflag=False,
     do_cal_partition=True,
     do_cal_flag=True,
     do_import_model=True,
+    # Basic calibration
     do_basic_cal=True,
     do_noise_cal=True,
     do_applycal=True,
+    # Target data preparation
     do_target_split=True,
+    target_scans=[],
+    freqrange="",
+    timerange="",
+    uvrange="",
+    # Polarization calibration
     do_polcal=False,
+    # Self-calibration
     do_selfcal=True,
     do_selfcal_split=True,
     do_apply_selfcal=True,
     do_ap_selfcal=True,
     solar_selfcal=True,
-    do_sidereal_cor=True,
-    target_scans=[],
-    freqrange="",
-    timerange="",
-    uvrange="",
     solint="5min",
+    # Sidereal correction
+    do_sidereal_cor=True,
+    # Dynamic spectra
+    make_ds=True,
+    # Imaging
     do_imaging=True,
     do_pbcor=True,
     weight="briggs",
@@ -1254,10 +1317,12 @@ def master_control(
     use_solar_mask=True,
     cutout_rsun=2.5,
     make_overlay=True,
+    # Resource settings
     cpu_frac=0.8,
     mem_frac=0.8,
     n_nodes=0,
     keep_backup=False,
+    # Remote logging
     remote_logger=False,
     remote_logger_waittime=0,
 ):
@@ -1272,6 +1337,7 @@ def master_control(
         Work directory path
     solar_data : bool, optional
         Whether it is solar data or not
+
     do_forcereset_weightflag : bool, optional
         Reset weights and flags of the input ms
     do_cal_partition : bool, optional
@@ -1280,24 +1346,16 @@ def master_control(
         Perform flagging on calibrator
     do_import_model : bool, optional
         Import model visibilities of flux and polarization calibrators
+
     do_basic_cal : bool, optional
         Perform basic calibration
     do_noise_cal : bool, optional
         Peform calibration of solar attenuators using noise diode (only used if solar_data=True)
     do_applycal : bool, optional
         Apply basic calibration on target scans
+
     do_target_split : bool, optional
         Split target scans into chunks
-    do_polcal : bool, optional
-        Perform full-polarization calibration and imaging
-    do_selfcal : bool, optional
-        Perform self-calibration
-    do_apply_selfcal : bool, optonal
-        Apply self-calibration solutions
-    do_ap_selfcal : bool, optional
-        Perform amplitude-phase self-cal or not
-    solar_selfcal : bool, optional
-        Whether self-calibration is performing on solar observation or not
     target_scans : list, optional
         Target scans to self-cal and image
     freqrange : str, optional
@@ -1306,8 +1364,29 @@ def master_control(
         Time range to image in YYYY/MM/DD/hh:mm:ss format (tt1~tt2,tt3~tt4,...)
     uvrange : str, optional
         UV-range for calibration
+
+    do_polcal : bool, optional
+        Perform full-polarization calibration and imaging
+
+    do_selfcal : bool, optional
+        Perform self-calibration
+    do_selfcal_split : bool, optional
+        Split data after each round of self-calibration
+    do_apply_selfcal : bool, optional
+        Apply self-calibration solutions
+    do_ap_selfcal : bool, optional
+        Perform amplitude-phase self-cal or not
+    solar_selfcal : bool, optional
+        Whether self-calibration is performing on solar observation or not
     solint : str, optional
         Solution intervals in self-cal
+
+    do_sidereal_cor : bool, optional
+        Perform solar sidereal motion correction or not
+
+    make_ds : bool, optional
+        Make dynamic spectra
+
     do_imaging : bool, optional
         Perform final imaging
     do_pbcor : bool, optional
@@ -1319,9 +1398,9 @@ def master_control(
     minuv : float, optional
         Minimum UV-lambda for final imaging
     image_freqres : float, optional
-        Image frequency resolution in MHz
+        Image frequency resolution in MHz (-1 means full bandwidth)
     image_timeres : float, optional
-        Image temporal resolution in seconds
+        Image temporal resolution in seconds (-1 means full scan duration)
     pol : str, optional
         Stokes parameters of final imaging
     apply_parang : bool, optional
@@ -1336,20 +1415,27 @@ def master_control(
         Cutout image size from center in solar radii (default : 2.5 solar radii)
     make_overlay : bool, optional
         Make SUVI MeerKAT overlay
+
     cpu_frac : float, optional
         CPU fraction to use
     mem_frac : float, optional
         Memory fraction to use
     n_nodes: int, optional
-        Number of nodes to use (Only for cluster architechture)
+        Number of nodes to use (Only for cluster architecture)
     keep_backup : bool, optional
         Keep backup of self-cal rounds and final models and residual images
+
+    remote_logger : bool, optional
+        Enable remote logging of the pipeline status
+    remote_logger_waittime : int, optional
+        Wait time (in seconds) before connecting to remote logger
 
     Returns
     -------
     int
         Success message
     """
+
     init_meersolar_data()
     msname = os.path.abspath(msname.rstrip("/"))
     if os.path.exists(msname) == False:
@@ -1521,6 +1607,16 @@ def master_control(
         msname, n_threads=available_cpus, force_reset=do_forcereset_weightflag
     )
 
+    #######################################
+    # Run dynamic spectra making
+    #######################################
+    if make_ds:
+        msg = run_ds_jobs(msname,workdir,jobid=jobid,target_scans=target_scans,cpu_frac=float(cpu_frac,2),mem_frac=float(mem_frac,2))
+        if msg != 0:
+            print(
+                "!!!! WARNING: Dynamic spectra could not be made. !!!!"
+            )
+    
     ########################################
     # Run noise-diode based flux calibration
     ########################################
@@ -2277,6 +2373,12 @@ def main():
             help="Disable solar data mode",
         )
         advanced.add_argument(
+            "--non_ds",
+            action="store_false",
+            dest="make_ds",
+            help="Disable making solar dynamic spectra",
+        )
+        advanced.add_argument(
             "--do_forcereset_weightflag",
             action="store_true",
             help="Force reset of weights and flags (disabled by default)",
@@ -2388,7 +2490,7 @@ def main():
             help="Keep backup of intermediate steps",
         )
         advanced_resource.add_argument(
-            "--remote_logger", action="store_true", help="Use remote logger"
+            "--no_remote_logger", action="store_false", dest="remote_logger", help="Disable remote logger"
         )
         advanced_resource.add_argument(
             "--logger_alivetime",
@@ -2422,26 +2524,43 @@ def main():
             msname=args.msname,
             workdir=args.workdir,
             solar_data=args.solar_data,
+
+            # Pre-calibration
             do_forcereset_weightflag=args.do_forcereset_weightflag,
             do_cal_partition=args.do_cal_partition,
             do_cal_flag=args.do_cal_flag,
             do_import_model=args.do_import_model,
+
+            # Basic calibration
             do_basic_cal=args.do_basic_cal,
             do_noise_cal=args.do_noise_cal,
             do_applycal=args.do_applycal,
+
+            # Target data preparation
             do_target_split=args.do_target_split,
-            do_polcal=args.do_polcal,
-            do_selfcal=args.do_selfcal,
-            do_selfcal_split=args.do_selfcal_split,
-            do_apply_selfcal=args.do_apply_selfcal,
-            do_ap_selfcal=args.do_ap_selfcal,
-            do_sidereal_cor=args.do_sidereal_cor,
-            solar_selfcal=args.solar_selfcal,
             target_scans=args.target_scans,
             freqrange=args.freqrange,
             timerange=args.timerange,
             uvrange=args.cal_uvrange,
+
+            # Polarization calibration
+            do_polcal=args.do_polcal,
+
+            # Self-calibration
+            do_selfcal=args.do_selfcal,
+            do_selfcal_split=args.do_selfcal_split,
+            do_apply_selfcal=args.do_apply_selfcal,
+            do_ap_selfcal=args.do_ap_selfcal,
+            solar_selfcal=args.solar_selfcal,
             solint=args.solint,
+
+            # Sidereal correction
+            do_sidereal_cor=args.do_sidereal_cor,
+
+            # Dynamic spectra
+            make_ds=args.make_ds,
+
+            # Imaging
             do_imaging=args.do_imaging,
             do_pbcor=args.do_pbcor,
             weight=args.weight,
@@ -2456,10 +2575,14 @@ def main():
             use_solar_mask=args.use_solar_mask,
             cutout_rsun=args.cutout_rsun,
             make_overlay=args.make_overlay,
+
+            # Resource settings
             cpu_frac=args.cpu_frac,
             mem_frac=args.mem_frac,
             n_nodes=args.n_nodes,
             keep_backup=args.keep_backup,
+
+            # Remote logging
             remote_logger=args.remote_logger,
             remote_logger_waittime=args.logger_alivetime,
         )
