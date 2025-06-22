@@ -2424,7 +2424,7 @@ def main():
             target_scans=args.target_scans,
             freqrange=args.freqrange,
             timerange=args.timerange,
-            uvrange=args.uvrange,
+            uvrange=args.cal_uvrange,
             solint=args.solint,
             do_imaging=args.do_imaging,
             do_pbcor=args.do_pbcor,
