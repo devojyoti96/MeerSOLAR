@@ -1,4 +1,4 @@
-Initial setup
+Initial Setup
 =============
 
 After installation of **MeerSOLAR**, before running the pipeline, some initial setup is needed. These include downloading some required metadata for the pipeline and setup of remote logger.

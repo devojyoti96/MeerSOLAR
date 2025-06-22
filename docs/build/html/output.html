@@ -2,9 +2,12 @@
 <html class="no-js" lang="en" data-content_root="./">
   <head><meta charset="utf-8"/>
     <meta name="viewport" content="width=device-width,initial-scale=1"/>
-    <meta name="color-scheme" content="light dark"><link rel="index" title="Index" href="genindex.html" /><link rel="search" title="Search" href="#" />
+    <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="index" title="Index" href="genindex.html" /><link rel="search" title="Search" href="search.html" /><link rel="next" title="Command line tools" href="cli.html" /><link rel="prev" title="Run MeerSOLAR Pipeline" href="runpipeline.html" />
 
-    <!-- Generated with Sphinx 7.4.7 and Furo 2024.01.29 --><title>Search - MeerSOLAR</title><link rel="stylesheet" type="text/css" href="_static/pygments.css?v=a746c00c" />
+    <!-- Generated with Sphinx 7.4.7 and Furo 2024.01.29 -->
+        <title>Directory Structure and Data Products - MeerSOLAR</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=a746c00c" />
     <link rel="stylesheet" type="text/css" href="_static/styles/furo.css?v=135e06be" />
     <link rel="stylesheet" type="text/css" href="_static/copybutton.css?v=76b2166b" />
     <link rel="stylesheet" type="text/css" href="_static/togglebutton.css?v=13237357" />
@@ -135,7 +138,7 @@
           <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
         </button>
       </div>
-      <label class="toc-overlay-icon toc-header-icon no-toc" for="__toc">
+      <label class="toc-overlay-icon toc-header-icon" for="__toc">
         <div class="visually-hidden">Toggle table of contents sidebar</div>
         <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
       </label>
@@ -153,13 +156,13 @@
   
   <span class="sidebar-brand-text">MeerSOLAR</span>
   
-</a><form class="sidebar-search-container" method="get" action="#" role="search">
+</a><form class="sidebar-search-container" method="get" action="search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
   <input type="hidden" name="check_keywords" value="yes">
   <input type="hidden" name="area" value="default">
 </form>
 <div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
-  <ul>
+  <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="quickstart.html">Quickstart</a></li>
 <li class="toctree-l1 has-children"><a class="reference internal" href="install.html">Installation and Initial Setup</a><input class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><div class="visually-hidden">Toggle navigation of Installation and Initial Setup</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
 <li class="toctree-l2"><a class="reference internal" href="install_conda.html">Installing Conda: Anaconda or Miniconda</a></li>
@@ -168,10 +171,10 @@
 <li class="toctree-l2"><a class="reference internal" href="initial_setup.html">Initial Setup</a></li>
 </ul>
 </li>
-<li class="toctree-l1 has-children"><a class="reference internal" href="tutorial.html">Tutorial</a><input class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" role="switch" type="checkbox"/><label for="toctree-checkbox-2"><div class="visually-hidden">Toggle navigation of Tutorial</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l1 current has-children"><a class="reference internal" href="tutorial.html">Tutorial</a><input checked="" class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" role="switch" type="checkbox"/><label for="toctree-checkbox-2"><div class="visually-hidden">Toggle navigation of Tutorial</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="current">
 <li class="toctree-l2"><a class="reference internal" href="flowchart.html">MeerSOLAR Flowchart</a></li>
 <li class="toctree-l2"><a class="reference internal" href="runpipeline.html">Run MeerSOLAR Pipeline</a></li>
-<li class="toctree-l2"><a class="reference internal" href="output.html">Directory Structure and Data Products</a></li>
+<li class="toctree-l2 current current-page"><a class="current reference internal" href="#">Directory Structure and Data Products</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="cli.html">Command line tools</a></li>
@@ -199,7 +202,8 @@
           <span>Back to top</span>
         </a>
         <div class="content-icon-container">
-          <div class="theme-toggle-container theme-toggle-content">
+          
+<div class="theme-toggle-container theme-toggle-content">
             <button class="theme-toggle">
               <div class="visually-hidden">Toggle Light / Dark / Auto color theme</div>
               <svg class="theme-icon-when-auto"><use href="#svg-sun-half"></use></svg>
@@ -207,31 +211,73 @@
               <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
             </button>
           </div>
-          <label class="toc-overlay-icon toc-content-icon no-toc" for="__toc">
+          <label class="toc-overlay-icon toc-content-icon" for="__toc">
             <div class="visually-hidden">Toggle table of contents sidebar</div>
             <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
           </label>
         </div>
         <article role="main">
-          
-<noscript>
-<div class="admonition error">
-  <p class="admonition-title">Error</p>
-  <p>
-    Please activate JavaScript to enable the search functionality.
-  </p>
-</div>
-</noscript>
+          <section id="directory-structure-and-data-products">
+<h1>Directory Structure and Data Products<a class="headerlink" href="#directory-structure-and-data-products" title="Link to this heading">¶</a></h1>
+<p>Once user started a MeerSOLAR pipeline job, MeerSOLAR assign a unique JobID based on current time in millisecond precision in YYYYMMDDHHMMSSmmm format.
+Note down the Job ID to view the logger.</p>
+<p>The following output will appear in terminal:</p>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="gp">#</span><span class="c1">#######################################</span>
+<span class="go">Starting MeerSOLAR Pipeline....</span>
+<span class="gp">#</span><span class="c1">########################################</span>
 
-<div id="search-results"></div>
+<span class="gp">#</span><span class="c1">##########################</span>
+<span class="go">MeerSOLAR Job ID: &lt;YYYYMMDDHHMMSSmmm&gt;</span>
+<span class="go">Work directory: &lt;workdir&gt;</span>
+<span class="gp">#</span><span class="c1">##########################</span>
+</pre></div>
+</div>
+<p>All data intermediate and final data products will be saved in &lt;workdir&gt;.</p>
+<section id="work-directory-structure">
+<h2>Work directory structure<a class="headerlink" href="#work-directory-structure" title="Link to this heading">¶</a></h2>
+<div class="graphviz"><img src="_images/graphviz-ed43c72924efc84e177ee36b4acf0bca74d90786.png" alt="digraph G {
+    rankdir=TB;
+    &quot;workdir&quot; -&gt; &quot;logs&quot;
+    &quot;workdir&quot; -&gt; &quot;caltables&quot;
+    &quot;workdir&quot; -&gt; &quot;images&quot;
+    &quot;logs&quot; -&gt; &quot;job_001.log&quot;
+    &quot;logs&quot; -&gt; &quot;job_002.log&quot;
+    &quot;caltables&quot; -&gt; &quot;bandpass.cal&quot;
+    &quot;caltables&quot; -&gt; &quot;gain.cal&quot;
+    &quot;images&quot; -&gt; &quot;20250621&quot;
+    &quot;images&quot; -&gt; &quot;20250622&quot;
+    &quot;20250621&quot; -&gt; &quot;image_I.fits&quot;
+    &quot;20250621&quot; -&gt; &quot;image_V.fits&quot;
+    &quot;20250622&quot; -&gt; &quot;image_I.fits&quot;
+}" class="graphviz" /></div>
+</section>
+</section>
 
         </article>
       </div>
       <footer>
         
         <div class="related-pages">
-          
-          
+          <a class="next-page" href="cli.html">
+              <div class="page-info">
+                <div class="context">
+                  <span>Next</span>
+                </div>
+                <div class="title">Command line tools</div>
+              </div>
+              <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
+            </a>
+          <a class="prev-page" href="runpipeline.html">
+              <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
+              <div class="page-info">
+                <div class="context">
+                  <span>Previous</span>
+                </div>
+                
+                <div class="title">Run MeerSOLAR Pipeline</div>
+                
+              </div>
+            </a>
         </div>
         <div class="bottom-of-page">
           <div class="left-details">
@@ -250,8 +296,27 @@
         
       </footer>
     </div>
-    <aside class="toc-drawer no-toc">
+    <aside class="toc-drawer">
       
+      
+      <div class="toc-sticky toc-scroll">
+        <div class="toc-title-container">
+          <span class="toc-title">
+            On this page
+          </span>
+        </div>
+        <div class="toc-tree-container">
+          <div class="toc-tree">
+            <ul>
+<li><a class="reference internal" href="#">Directory Structure and Data Products</a><ul>
+<li><a class="reference internal" href="#work-directory-structure">Work directory structure</a></li>
+</ul>
+</li>
+</ul>
+
+          </div>
+        </div>
+      </div>
       
       
     </aside>
@@ -268,8 +333,5 @@
     <script src="_static/togglebutton.js?v=4a39c7ea"></script>
     <script>var togglebuttonSelector = '.toggle, .admonition.dropdown';</script>
     <script>var togglebuttonSelector = '.toggle, .admonition.dropdown';</script>
-    
-<script src="_static/searchtools.js"></script>
-<script src="_static/language_data.js"></script>
-<script src="searchindex.js"></script></body>
+    </body>
 </html>

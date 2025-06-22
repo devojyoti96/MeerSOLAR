@@ -19,6 +19,7 @@ from PyQt5.QtCore import Qt, QTimer, pyqtSignal, QObject
 from PyQt5.QtGui import QTextCursor
 from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
+from meersolar.pipeline.basic_func import *
 
 LOG_DIR = None
 

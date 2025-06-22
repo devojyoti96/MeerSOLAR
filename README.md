@@ -48,7 +48,19 @@ MeerSOLAR is distributed on [PyPI]. To use it:
     run_meersolar <path of measurement set> --workdir <path of work directory>
     ```    
 
-That's all. You started MeerSOLAR pipeline for analysing your MeerKAT solar observation 🎉
+That's all. You started MeerSOLAR pipeline for analysing your MeerKAT solar observation 🎉.
+
+5. To see all running MeerSOLAR jobs
+
+    ```text
+    show_meersolar_status --show
+    ```
+       
+6. To see local log of any job using the <jobid>
+
+   ```text
+   run_meersolar_log --jobid <jobid>
+   ```
 
 [pypi]: https://pypi.org/project/meersolar/
 

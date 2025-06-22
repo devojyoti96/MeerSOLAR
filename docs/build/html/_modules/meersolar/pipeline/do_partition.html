@@ -167,12 +167,13 @@
 <li class="toctree-l2"><a class="reference internal" href="../../../install_conda.html">Installing Conda: Anaconda or Miniconda</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../activate_conda.html">Creating and Activating Conda Environment</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../install_meersolar.html">Install MeerSOLAR</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../../initial_setup.html">Initial setup</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../initial_setup.html">Initial Setup</a></li>
 </ul>
 </li>
 <li class="toctree-l1 has-children"><a class="reference internal" href="../../../tutorial.html">Tutorial</a><input class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" role="switch" type="checkbox"/><label for="toctree-checkbox-2"><div class="visually-hidden">Toggle navigation of Tutorial</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
 <li class="toctree-l2"><a class="reference internal" href="../../../flowchart.html">MeerSOLAR Flowchart</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../../runpipeline.html">Run MeerSOLAR pipeline</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../runpipeline.html">Run MeerSOLAR Pipeline</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../output.html">Directory Structure and Data Products</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../../../cli.html">Command line tools</a></li>
@@ -325,6 +326,7 @@
 <span class="k">def</span> <span class="nf">partion_ms</span><span class="p">(</span>
     <span class="n">msname</span><span class="p">,</span>
     <span class="n">outputms</span><span class="p">,</span>
+    <span class="n">workdir</span><span class="p">,</span>
     <span class="n">fields</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span>
     <span class="n">scans</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span>
     <span class="n">width</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
@@ -343,6 +345,8 @@
 <span class="sd">        Name of the measurement set</span>
 <span class="sd">    outputms : str</span>
 <span class="sd">        Output ms name</span>
+<span class="sd">    workdir : str</span>
+<span class="sd">        Work directory</span>
 <span class="sd">    field : str, optional</span>
 <span class="sd">        Fields to be splited</span>
 <span class="sd">    scans : str, optional</span>
@@ -373,8 +377,6 @@
     <span class="n">valid_scans</span> <span class="o">=</span> <span class="n">get_valid_scans</span><span class="p">(</span><span class="n">msname</span><span class="p">,</span> <span class="n">min_scan_time</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
     <span class="n">msmd</span> <span class="o">=</span> <span class="n">msmetadata</span><span class="p">()</span>
     <span class="n">msname</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="n">msname</span><span class="o">.</span><span class="n">rstrip</span><span class="p">(</span><span class="s2">&quot;/&quot;</span><span class="p">))</span>
-    <span class="n">mspath</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">msname</span><span class="p">)</span>
-    <span class="n">os</span><span class="o">.</span><span class="n">chdir</span><span class="p">(</span><span class="n">mspath</span><span class="p">)</span>
     <span class="n">msmd</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">msname</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">scans</span> <span class="o">!=</span> <span class="s2">&quot;&quot;</span><span class="p">:</span>
         <span class="n">scan_list</span> <span class="o">=</span> <span class="n">scans</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;,&quot;</span><span class="p">)</span>
@@ -427,10 +429,10 @@
     <span class="c1"># Dask local cluster setup</span>
     <span class="c1">###########################</span>
     <span class="n">task</span> <span class="o">=</span> <span class="n">delayed</span><span class="p">(</span><span class="n">single_mstransform</span><span class="p">)(</span><span class="n">dry_run</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-    <span class="n">mem_limit</span> <span class="o">=</span> <span class="n">run_limited_memory_task</span><span class="p">(</span><span class="n">task</span><span class="p">,</span> <span class="n">dask_dir</span><span class="o">=</span><span class="n">mspath</span><span class="p">)</span>
+    <span class="n">mem_limit</span> <span class="o">=</span> <span class="n">run_limited_memory_task</span><span class="p">(</span><span class="n">task</span><span class="p">,</span> <span class="n">dask_dir</span><span class="o">=</span><span class="n">workdir</span><span class="p">)</span>
     <span class="n">dask_client</span><span class="p">,</span> <span class="n">dask_cluster</span><span class="p">,</span> <span class="n">n_jobs</span><span class="p">,</span> <span class="n">n_threads</span><span class="p">,</span> <span class="n">mem_limit</span> <span class="o">=</span> <span class="n">get_dask_client</span><span class="p">(</span>
         <span class="nb">len</span><span class="p">(</span><span class="n">scan_list</span><span class="p">),</span>
-        <span class="n">dask_dir</span><span class="o">=</span><span class="n">mspath</span><span class="p">,</span>
+        <span class="n">dask_dir</span><span class="o">=</span><span class="n">workdir</span><span class="p">,</span>
         <span class="n">cpu_frac</span><span class="o">=</span><span class="n">cpu_frac</span><span class="p">,</span>
         <span class="n">mem_frac</span><span class="o">=</span><span class="n">mem_frac</span><span class="p">,</span>
         <span class="n">min_mem_per_job</span><span class="o">=</span><span class="n">mem_limit</span> <span class="o">/</span> <span class="mf">0.6</span><span class="p">,</span>
@@ -438,7 +440,7 @@
     <span class="n">tasks</span> <span class="o">=</span> <span class="p">[]</span>
     <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">scan_list</span><span class="p">)):</span>
         <span class="n">scan</span> <span class="o">=</span> <span class="n">scan_list</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
-        <span class="n">outputvis</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">msname</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot;/scan_&quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">scan</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot;.ms&quot;</span>
+        <span class="n">outputvis</span> <span class="o">=</span> <span class="n">workdir</span> <span class="o">+</span> <span class="s2">&quot;/scan_&quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">scan</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot;.ms&quot;</span>
         <span class="n">task</span> <span class="o">=</span> <span class="n">delayed</span><span class="p">(</span><span class="n">single_mstransform</span><span class="p">)(</span>
             <span class="n">msname</span><span class="p">,</span>
             <span class="n">outputvis</span><span class="p">,</span>
@@ -609,6 +611,7 @@
             <span class="n">outputms</span> <span class="o">=</span> <span class="n">partion_ms</span><span class="p">(</span>
                 <span class="n">args</span><span class="o">.</span><span class="n">msname</span><span class="p">,</span>
                 <span class="n">args</span><span class="o">.</span><span class="n">outputms</span><span class="p">,</span>
+                <span class="n">args</span><span class="o">.</span><span class="n">workdir</span><span class="p">,</span>
                 <span class="n">fields</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">fields</span><span class="p">,</span>
                 <span class="n">scans</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">scans</span><span class="p">,</span>
                 <span class="n">width</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">width</span><span class="p">,</span>

@@ -168,12 +168,13 @@
 <li class="toctree-l2"><a class="reference internal" href="install_conda.html">Installing Conda: Anaconda or Miniconda</a></li>
 <li class="toctree-l2"><a class="reference internal" href="activate_conda.html">Creating and Activating Conda Environment</a></li>
 <li class="toctree-l2"><a class="reference internal" href="install_meersolar.html">Install MeerSOLAR</a></li>
-<li class="toctree-l2"><a class="reference internal" href="initial_setup.html">Initial setup</a></li>
+<li class="toctree-l2"><a class="reference internal" href="initial_setup.html">Initial Setup</a></li>
 </ul>
 </li>
 <li class="toctree-l1 has-children"><a class="reference internal" href="tutorial.html">Tutorial</a><input class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" role="switch" type="checkbox"/><label for="toctree-checkbox-2"><div class="visually-hidden">Toggle navigation of Tutorial</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
 <li class="toctree-l2"><a class="reference internal" href="flowchart.html">MeerSOLAR Flowchart</a></li>
-<li class="toctree-l2"><a class="reference internal" href="runpipeline.html">Run MeerSOLAR pipeline</a></li>
+<li class="toctree-l2"><a class="reference internal" href="runpipeline.html">Run MeerSOLAR Pipeline</a></li>
+<li class="toctree-l2"><a class="reference internal" href="output.html">Directory Structure and Data Products</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="cli.html">Command line tools</a></li>
@@ -1237,10 +1238,10 @@ where each worker is a separate process that can use multiple threads internally
 <dl class="py function">
 <dt class="sig sig-object py" id="meersolar.pipeline.basic_func.get_jobid">
 <span class="sig-prename descclassname"><span class="pre">meersolar.pipeline.basic_func.</span></span><span class="sig-name descname"><span class="pre">get_jobid</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/meersolar/pipeline/basic_func.html#get_jobid"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#meersolar.pipeline.basic_func.get_jobid" title="Link to this definition">¶</a></dt>
-<dd><p>Get MeerSOLAR Job ID</p>
+<dd><p>Get MeerSOLAR Job ID with millisecond-level uniqueness.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Returns<span class="colon">:</span></dt>
-<dd class="field-odd"><p>Job ID</p>
+<dd class="field-odd"><p>Job ID in the format YYYYMMDDHHMMSSmmm (milliseconds)</p>
 </dd>
 <dt class="field-even">Return type<span class="colon">:</span></dt>
 <dd class="field-even"><p>int</p>
@@ -2606,13 +2607,14 @@ but while creating the MS, UVW values are estimated using the first phasecenter 
 
 <dl class="py function">
 <dt class="sig sig-object py" id="meersolar.pipeline.do_partition.partion_ms">
-<span class="sig-prename descclassname"><span class="pre">meersolar.pipeline.do_partition.</span></span><span class="sig-name descname"><span class="pre">partion_ms</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">msname</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">outputms</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fields</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scans</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">width</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">timebin</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fullpol</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">datacolumn</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'DATA'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cpu_frac</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.8</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mem_frac</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.8</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/meersolar/pipeline/do_partition.html#partion_ms"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#meersolar.pipeline.do_partition.partion_ms" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">meersolar.pipeline.do_partition.</span></span><span class="sig-name descname"><span class="pre">partion_ms</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">msname</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">outputms</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">workdir</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fields</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scans</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">width</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">timebin</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fullpol</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">datacolumn</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'DATA'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cpu_frac</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.8</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mem_frac</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.8</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/meersolar/pipeline/do_partition.html#partion_ms"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#meersolar.pipeline.do_partition.partion_ms" title="Link to this definition">¶</a></dt>
 <dd><p>Perform mstransform of a single scan</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>msname</strong> (<em>str</em>) – Name of the measurement set</p></li>
 <li><p><strong>outputms</strong> (<em>str</em>) – Output ms name</p></li>
+<li><p><strong>workdir</strong> (<em>str</em>) – Work directory</p></li>
 <li><p><strong>field</strong> (<em>str</em><em>, </em><em>optional</em>) – Fields to be splited</p></li>
 <li><p><strong>scans</strong> (<em>str</em><em>, </em><em>optional</em>) – Scans to split</p></li>
 <li><p><strong>width</strong> (<em>int</em><em>, </em><em>optional</em>) – Number of channels to average</p></li>

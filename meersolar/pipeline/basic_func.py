@@ -3843,36 +3843,43 @@ def save_pid(pid, pid_file):
 
 def get_jobid():
     """
-    Get MeerSOLAR Job ID
+    Get MeerSOLAR Job ID with millisecond-level uniqueness.
 
     Returns
     -------
     int
-        Job ID
+        Job ID in the format YYYYMMDDHHMMSSmmm (milliseconds)
     """
     datadir = get_datadir()
-    jobid_file = datadir + f"/jobids.txt"
+    jobid_file = os.path.join(datadir, "jobids.txt")
     if os.path.exists(jobid_file):
-        prev_jobids = np.loadtxt(jobid_file, unpack=True, dtype="int")
+        prev_jobids = np.loadtxt(jobid_file, unpack=True, dtype="int64")
         if prev_jobids.size == 0:
             prev_jobids = []
-        elif prev_jobids.size == 1:
-            prev_jobids = [int(prev_jobids)]
+        elif np.isscalar(prev_jobids):
+            prev_jobids = [str(prev_jobids)]
+        else:
+            prev_jobids = [str(jid) for jid in prev_jobids]
     else:
         prev_jobids = []
+
     if len(prev_jobids) > 0:
-        FORMAT = "%Y%m%d%H%M%S"
-        CUTOFF = dt.utcnow() - timedelta(days=30)
+        FORMAT = "%Y%m%d%H%M%S%f"
+        CUTOFF = dt.utcnow() - timedelta(days=15)
         filtered_prev_jobids = []
         for job_id in prev_jobids:
-            job_time = dt.strptime(str(job_id), FORMAT)
+            job_time = dt.strptime(job_id.ljust(20, '0'), FORMAT)  # pad if truncated
             if job_time >= CUTOFF:
                 filtered_prev_jobids.append(job_id)
         prev_jobids = filtered_prev_jobids
-    cur_jobid = dt.utcnow().strftime("%Y%m%d%H%M%S")
+
+    now = dt.utcnow()
+    cur_jobid = now.strftime("%Y%m%d%H%M%S") + f"{int(now.microsecond/1000):03d}"  # ms = first 3 digits of microseconds
     prev_jobids.append(cur_jobid)
+
     job_ids_int = np.array(prev_jobids, dtype=np.int64)
     np.savetxt(jobid_file, job_ids_int, fmt="%d")
+
     return int(cur_jobid)
 
 
@@ -3899,6 +3906,21 @@ def save_main_process_info(pid, jobid, basedir, cpu_frac, mem_frac):
         Job info file name
     """
     datadir = get_datadir()
+    prev_main_pids=glob.glob(f"{datadir}/main_pids_*.txt")
+    prev_jobids=[str(os.path.basename(i).rstrip(".txt").split("main_pids_")[-1]) for i in prev_main_pids]
+    if len(prev_jobids) > 0:
+        FORMAT = "%Y%m%d%H%M%S%f"
+        CUTOFF = dt.utcnow() - timedelta(days=15)
+        filtered_prev_jobids = []
+        for i in range(len(prev_jobids)):
+            job_id=prev_jobids[i]
+            job_time = dt.strptime(job_id.ljust(20, '0'), FORMAT)  # pad if truncated
+            if job_time < CUTOFF:
+                filtered_prev_jobids.append(job_id)
+            else:
+                os.system(f"rm -rf {prev_main_pids[i]}")
+                if os.path.exists(f"{datadir}/pids/pids_{job_id}.txt"):
+                    os.system(f"rm -rf {datadir}/pids/pids_{job_id}.txt")    
     main_job_file = datadir + f"/main_pids_{jobid}.txt"
     main_str = f"{jobid} {pid} {basedir} {cpu_frac} {mem_frac}"
     with open(main_job_file, "w") as f:

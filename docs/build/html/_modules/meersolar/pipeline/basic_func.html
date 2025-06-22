@@ -167,12 +167,13 @@
 <li class="toctree-l2"><a class="reference internal" href="../../../install_conda.html">Installing Conda: Anaconda or Miniconda</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../activate_conda.html">Creating and Activating Conda Environment</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../install_meersolar.html">Install MeerSOLAR</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../../initial_setup.html">Initial setup</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../initial_setup.html">Initial Setup</a></li>
 </ul>
 </li>
 <li class="toctree-l1 has-children"><a class="reference internal" href="../../../tutorial.html">Tutorial</a><input class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" role="switch" type="checkbox"/><label for="toctree-checkbox-2"><div class="visually-hidden">Toggle navigation of Tutorial</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
 <li class="toctree-l2"><a class="reference internal" href="../../../flowchart.html">MeerSOLAR Flowchart</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../../runpipeline.html">Run MeerSOLAR pipeline</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../runpipeline.html">Run MeerSOLAR Pipeline</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../output.html">Directory Structure and Data Products</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../../../cli.html">Command line tools</a></li>
@@ -4308,36 +4309,43 @@
 <a class="viewcode-back" href="../../../meersolar.pipeline.html#meersolar.pipeline.basic_func.get_jobid">[docs]</a>
 <span class="k">def</span> <span class="nf">get_jobid</span><span class="p">():</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Get MeerSOLAR Job ID</span>
+<span class="sd">    Get MeerSOLAR Job ID with millisecond-level uniqueness.</span>
 
 <span class="sd">    Returns</span>
 <span class="sd">    -------</span>
 <span class="sd">    int</span>
-<span class="sd">        Job ID</span>
+<span class="sd">        Job ID in the format YYYYMMDDHHMMSSmmm (milliseconds)</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">datadir</span> <span class="o">=</span> <span class="n">get_datadir</span><span class="p">()</span>
-    <span class="n">jobid_file</span> <span class="o">=</span> <span class="n">datadir</span> <span class="o">+</span> <span class="sa">f</span><span class="s2">&quot;/jobids.txt&quot;</span>
+    <span class="n">jobid_file</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">datadir</span><span class="p">,</span> <span class="s2">&quot;jobids.txt&quot;</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">jobid_file</span><span class="p">):</span>
-        <span class="n">prev_jobids</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">loadtxt</span><span class="p">(</span><span class="n">jobid_file</span><span class="p">,</span> <span class="n">unpack</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="s2">&quot;int&quot;</span><span class="p">)</span>
+        <span class="n">prev_jobids</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">loadtxt</span><span class="p">(</span><span class="n">jobid_file</span><span class="p">,</span> <span class="n">unpack</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="s2">&quot;int64&quot;</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">prev_jobids</span><span class="o">.</span><span class="n">size</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
             <span class="n">prev_jobids</span> <span class="o">=</span> <span class="p">[]</span>
-        <span class="k">elif</span> <span class="n">prev_jobids</span><span class="o">.</span><span class="n">size</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
-            <span class="n">prev_jobids</span> <span class="o">=</span> <span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">prev_jobids</span><span class="p">)]</span>
+        <span class="k">elif</span> <span class="n">np</span><span class="o">.</span><span class="n">isscalar</span><span class="p">(</span><span class="n">prev_jobids</span><span class="p">):</span>
+            <span class="n">prev_jobids</span> <span class="o">=</span> <span class="p">[</span><span class="nb">str</span><span class="p">(</span><span class="n">prev_jobids</span><span class="p">)]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">prev_jobids</span> <span class="o">=</span> <span class="p">[</span><span class="nb">str</span><span class="p">(</span><span class="n">jid</span><span class="p">)</span> <span class="k">for</span> <span class="n">jid</span> <span class="ow">in</span> <span class="n">prev_jobids</span><span class="p">]</span>
     <span class="k">else</span><span class="p">:</span>
         <span class="n">prev_jobids</span> <span class="o">=</span> <span class="p">[]</span>
+
     <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">prev_jobids</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
-        <span class="n">FORMAT</span> <span class="o">=</span> <span class="s2">&quot;%Y%m</span><span class="si">%d</span><span class="s2">%H%M%S&quot;</span>
-        <span class="n">CUTOFF</span> <span class="o">=</span> <span class="n">dt</span><span class="o">.</span><span class="n">utcnow</span><span class="p">()</span> <span class="o">-</span> <span class="n">timedelta</span><span class="p">(</span><span class="n">days</span><span class="o">=</span><span class="mi">30</span><span class="p">)</span>
+        <span class="n">FORMAT</span> <span class="o">=</span> <span class="s2">&quot;%Y%m</span><span class="si">%d</span><span class="s2">%H%M%S</span><span class="si">%f</span><span class="s2">&quot;</span>
+        <span class="n">CUTOFF</span> <span class="o">=</span> <span class="n">dt</span><span class="o">.</span><span class="n">utcnow</span><span class="p">()</span> <span class="o">-</span> <span class="n">timedelta</span><span class="p">(</span><span class="n">days</span><span class="o">=</span><span class="mi">15</span><span class="p">)</span>
         <span class="n">filtered_prev_jobids</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="k">for</span> <span class="n">job_id</span> <span class="ow">in</span> <span class="n">prev_jobids</span><span class="p">:</span>
-            <span class="n">job_time</span> <span class="o">=</span> <span class="n">dt</span><span class="o">.</span><span class="n">strptime</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">job_id</span><span class="p">),</span> <span class="n">FORMAT</span><span class="p">)</span>
+            <span class="n">job_time</span> <span class="o">=</span> <span class="n">dt</span><span class="o">.</span><span class="n">strptime</span><span class="p">(</span><span class="n">job_id</span><span class="o">.</span><span class="n">ljust</span><span class="p">(</span><span class="mi">20</span><span class="p">,</span> <span class="s1">&#39;0&#39;</span><span class="p">),</span> <span class="n">FORMAT</span><span class="p">)</span>  <span class="c1"># pad if truncated</span>
             <span class="k">if</span> <span class="n">job_time</span> <span class="o">&gt;=</span> <span class="n">CUTOFF</span><span class="p">:</span>
                 <span class="n">filtered_prev_jobids</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">job_id</span><span class="p">)</span>
         <span class="n">prev_jobids</span> <span class="o">=</span> <span class="n">filtered_prev_jobids</span>
-    <span class="n">cur_jobid</span> <span class="o">=</span> <span class="n">dt</span><span class="o">.</span><span class="n">utcnow</span><span class="p">()</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="s2">&quot;%Y%m</span><span class="si">%d</span><span class="s2">%H%M%S&quot;</span><span class="p">)</span>
+
+    <span class="n">now</span> <span class="o">=</span> <span class="n">dt</span><span class="o">.</span><span class="n">utcnow</span><span class="p">()</span>
+    <span class="n">cur_jobid</span> <span class="o">=</span> <span class="n">now</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="s2">&quot;%Y%m</span><span class="si">%d</span><span class="s2">%H%M%S&quot;</span><span class="p">)</span> <span class="o">+</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="nb">int</span><span class="p">(</span><span class="n">now</span><span class="o">.</span><span class="n">microsecond</span><span class="o">/</span><span class="mi">1000</span><span class="p">)</span><span class="si">:</span><span class="s2">03d</span><span class="si">}</span><span class="s2">&quot;</span>  <span class="c1"># ms = first 3 digits of microseconds</span>
     <span class="n">prev_jobids</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">cur_jobid</span><span class="p">)</span>
+
     <span class="n">job_ids_int</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">prev_jobids</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
     <span class="n">np</span><span class="o">.</span><span class="n">savetxt</span><span class="p">(</span><span class="n">jobid_file</span><span class="p">,</span> <span class="n">job_ids_int</span><span class="p">,</span> <span class="n">fmt</span><span class="o">=</span><span class="s2">&quot;</span><span class="si">%d</span><span class="s2">&quot;</span><span class="p">)</span>
+
     <span class="k">return</span> <span class="nb">int</span><span class="p">(</span><span class="n">cur_jobid</span><span class="p">)</span></div>
 
 
@@ -4367,6 +4375,21 @@
 <span class="sd">        Job info file name</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">datadir</span> <span class="o">=</span> <span class="n">get_datadir</span><span class="p">()</span>
+    <span class="n">prev_main_pids</span><span class="o">=</span><span class="n">glob</span><span class="o">.</span><span class="n">glob</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">datadir</span><span class="si">}</span><span class="s2">/main_pids_*.txt&quot;</span><span class="p">)</span>
+    <span class="n">prev_jobids</span><span class="o">=</span><span class="p">[</span><span class="nb">str</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">i</span><span class="p">)</span><span class="o">.</span><span class="n">rstrip</span><span class="p">(</span><span class="s2">&quot;.txt&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;main_pids_&quot;</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">prev_main_pids</span><span class="p">]</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">prev_jobids</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">FORMAT</span> <span class="o">=</span> <span class="s2">&quot;%Y%m</span><span class="si">%d</span><span class="s2">%H%M%S</span><span class="si">%f</span><span class="s2">&quot;</span>
+        <span class="n">CUTOFF</span> <span class="o">=</span> <span class="n">dt</span><span class="o">.</span><span class="n">utcnow</span><span class="p">()</span> <span class="o">-</span> <span class="n">timedelta</span><span class="p">(</span><span class="n">days</span><span class="o">=</span><span class="mi">15</span><span class="p">)</span>
+        <span class="n">filtered_prev_jobids</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">prev_jobids</span><span class="p">)):</span>
+            <span class="n">job_id</span><span class="o">=</span><span class="n">prev_jobids</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+            <span class="n">job_time</span> <span class="o">=</span> <span class="n">dt</span><span class="o">.</span><span class="n">strptime</span><span class="p">(</span><span class="n">job_id</span><span class="o">.</span><span class="n">ljust</span><span class="p">(</span><span class="mi">20</span><span class="p">,</span> <span class="s1">&#39;0&#39;</span><span class="p">),</span> <span class="n">FORMAT</span><span class="p">)</span>  <span class="c1"># pad if truncated</span>
+            <span class="k">if</span> <span class="n">job_time</span> <span class="o">&lt;</span> <span class="n">CUTOFF</span><span class="p">:</span>
+                <span class="n">filtered_prev_jobids</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">job_id</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">os</span><span class="o">.</span><span class="n">system</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;rm -rf </span><span class="si">{</span><span class="n">prev_main_pids</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">datadir</span><span class="si">}</span><span class="s2">/pids/pids_</span><span class="si">{</span><span class="n">job_id</span><span class="si">}</span><span class="s2">.txt&quot;</span><span class="p">):</span>
+                    <span class="n">os</span><span class="o">.</span><span class="n">system</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;rm -rf </span><span class="si">{</span><span class="n">datadir</span><span class="si">}</span><span class="s2">/pids/pids_</span><span class="si">{</span><span class="n">job_id</span><span class="si">}</span><span class="s2">.txt&quot;</span><span class="p">)</span>    
     <span class="n">main_job_file</span> <span class="o">=</span> <span class="n">datadir</span> <span class="o">+</span> <span class="sa">f</span><span class="s2">&quot;/main_pids_</span><span class="si">{</span><span class="n">jobid</span><span class="si">}</span><span class="s2">.txt&quot;</span>
     <span class="n">main_str</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">jobid</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">pid</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">basedir</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">cpu_frac</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">mem_frac</span><span class="si">}</span><span class="s2">&quot;</span>
     <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">main_job_file</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>

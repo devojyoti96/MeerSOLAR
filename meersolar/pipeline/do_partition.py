@@ -103,6 +103,7 @@ def single_mstransform(
 def partion_ms(
     msname,
     outputms,
+    workdir,
     fields="",
     scans="",
     width=1,
@@ -121,6 +122,8 @@ def partion_ms(
         Name of the measurement set
     outputms : str
         Output ms name
+    workdir : str
+        Work directory
     field : str, optional
         Fields to be splited
     scans : str, optional
@@ -151,8 +154,6 @@ def partion_ms(
     valid_scans = get_valid_scans(msname, min_scan_time=1)
     msmd = msmetadata()
     msname = os.path.abspath(msname.rstrip("/"))
-    mspath = os.path.dirname(msname)
-    os.chdir(mspath)
     msmd.open(msname)
     if scans != "":
         scan_list = scans.split(",")
@@ -205,10 +206,10 @@ def partion_ms(
     # Dask local cluster setup
     ###########################
     task = delayed(single_mstransform)(dry_run=True)
-    mem_limit = run_limited_memory_task(task, dask_dir=mspath)
+    mem_limit = run_limited_memory_task(task, dask_dir=workdir)
     dask_client, dask_cluster, n_jobs, n_threads, mem_limit = get_dask_client(
         len(scan_list),
-        dask_dir=mspath,
+        dask_dir=workdir,
         cpu_frac=cpu_frac,
         mem_frac=mem_frac,
         min_mem_per_job=mem_limit / 0.6,
@@ -216,7 +217,7 @@ def partion_ms(
     tasks = []
     for i in range(len(scan_list)):
         scan = scan_list[i]
-        outputvis = os.path.dirname(msname) + "/scan_" + str(scan) + ".ms"
+        outputvis = workdir + "/scan_" + str(scan) + ".ms"
         task = delayed(single_mstransform)(
             msname,
             outputvis,
@@ -384,6 +385,7 @@ def main():
             outputms = partion_ms(
                 args.msname,
                 args.outputms,
+                args.workdir,
                 fields=args.fields,
                 scans=args.scans,
                 width=args.width,

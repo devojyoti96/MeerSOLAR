@@ -1351,14 +1351,6 @@ def master_control(
         Success message
     """
     init_meersolar_data()
-    pid = os.getpid()
-    jobid = get_jobid()
-    main_job_file = save_main_process_info(pid, jobid, workdir, cpu_frac, mem_frac)
-    start_time = time.time()
-    print("###########################")
-    print("Starting the pipeline .....")
-    print(f"MeerSOLAR Job ID: {jobid}")
-    print("###########################\n")
     msname = os.path.abspath(msname.rstrip("/"))
     if os.path.exists(msname) == False:
         print("Please provide a valid measurement set location.\n")
@@ -1379,6 +1371,20 @@ def master_control(
         os.system("rm -rf " + mspath + "/dask-scratch-space " + mspath + "/tmp")
     if workdir != "" and os.path.exists(workdir + "/dask-scratch-space"):
         os.system("rm -rf " + workdir + "/dask-scratch-space " + workdir + "/tmp")
+    ####################################
+    # Job and process IDs
+    ####################################
+    pid = os.getpid()
+    jobid = get_jobid()
+    main_job_file = save_main_process_info(pid, jobid, workdir, cpu_frac, mem_frac)
+    start_time = time.time()
+    print("###########################")
+    print(f"MeerSOLAR Job ID: {jobid}")
+    print (f"Work directory: {workdir}")
+    print("###########################\n")
+    #####################################
+    # Moving into work directory
+    #####################################    
     os.chdir(workdir)
     caldir = workdir + "/caltables"
     cpu_frac_bkp = copy.deepcopy(cpu_frac)
@@ -1389,7 +1395,18 @@ def master_control(
             print("Please provide a valid remote link.")
             remote_logger = False
 
-    if remote_logger:
+    if remote_logger==False:
+        emails = get_emails()
+        if emails != "":
+            email_subject = f"MeerSOLAR Logger Details: {timestamp}"
+
+            email_msg=(f"MeerSOLAR user,\n\n"
+                       f"MeerSOLAR Job ID: {jobid}\n\n"
+                       f"Best,\n"
+                       f"MeerSOLAR"
+            )
+        success_msg, error_msg = send_notification(emails, email_subject, email_msg)
+    else:
         ####################################
         # Job name and logging password
         ####################################
@@ -1416,17 +1433,16 @@ def master_control(
         )
         emails = get_emails()
         if emails != "":
-            email_subject = f"MeerSOLAR Remote Logger Details: {timestamp}"
+            email_subject = f"MeerSOLAR Logger Details: {timestamp}"
 
-            email_msg = (
-                f"MeerSOLAR user,\n\n"
-                f"Remote logger Job ID: {job_name}\n"
-                f"Remote access password: {password}\n\n"
-                f"Best,\n"
-                f"MeerSOLAR"
+            email_msg=(f"MeerSOLAR user,\n\n"
+                       f"MeerSOLAR Job ID: {jobid}\n\n"
+                       f"Remote logger Job ID: {job_name}\n"
+                       f"Remote access password: {password}\n\n"
+                       f"Best,\n"
+                       f"MeerSOLAR"
             )
-
-            success_msg, error_msg = send_notification(emails, email_subject, email_msg)
+        success_msg, error_msg = send_notification(emails, email_subject, email_msg)        
 
     #####################################
     # Settings for solar data

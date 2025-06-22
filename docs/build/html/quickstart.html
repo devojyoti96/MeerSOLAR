@@ -168,12 +168,13 @@
 <li class="toctree-l2"><a class="reference internal" href="install_conda.html">Installing Conda: Anaconda or Miniconda</a></li>
 <li class="toctree-l2"><a class="reference internal" href="activate_conda.html">Creating and Activating Conda Environment</a></li>
 <li class="toctree-l2"><a class="reference internal" href="install_meersolar.html">Install MeerSOLAR</a></li>
-<li class="toctree-l2"><a class="reference internal" href="initial_setup.html">Initial setup</a></li>
+<li class="toctree-l2"><a class="reference internal" href="initial_setup.html">Initial Setup</a></li>
 </ul>
 </li>
 <li class="toctree-l1 has-children"><a class="reference internal" href="tutorial.html">Tutorial</a><input class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" role="switch" type="checkbox"/><label for="toctree-checkbox-2"><div class="visually-hidden">Toggle navigation of Tutorial</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
 <li class="toctree-l2"><a class="reference internal" href="flowchart.html">MeerSOLAR Flowchart</a></li>
-<li class="toctree-l2"><a class="reference internal" href="runpipeline.html">Run MeerSOLAR pipeline</a></li>
+<li class="toctree-l2"><a class="reference internal" href="runpipeline.html">Run MeerSOLAR Pipeline</a></li>
+<li class="toctree-l2"><a class="reference internal" href="output.html">Directory Structure and Data Products</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="cli.html">Command line tools</a></li>
@@ -243,7 +244,19 @@ conda<span class="w"> </span>activate<span class="w"> </span>meersolar_env
 </div>
 </li>
 </ol>
-<p>That’s all. You started MeerSOLAR pipeline for analysing your MeerKAT solar observation 🎉</p>
+<p>That’s all. You started MeerSOLAR pipeline for analysing your MeerKAT solar observation 🎉.</p>
+<ol class="arabic" start="5">
+<li><p>To see all running MeerSOLAR jobs</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>show_meersolar_status<span class="w"> </span>--show
+</pre></div>
+</div>
+</li>
+<li><p>To see local log of any job using the &lt;jobid&gt;</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>run_meersolar_log<span class="w"> </span>--jobid<span class="w"> </span>&lt;jobid&gt;
+</pre></div>
+</div>
+</li>
+</ol>
 </section>
 
         </article>

@@ -28,5 +28,17 @@ MeerSOLAR is distributed on
 
       run_meersolar <path of measurement set> --workdir <path of work directory>
 
-That’s all. You started MeerSOLAR pipeline for analysing your MeerKAT solar observation 🎉
+That’s all. You started MeerSOLAR pipeline for analysing your MeerKAT solar observation 🎉.
+
+5. To see all running MeerSOLAR jobs
+
+   .. code-block :: bash
+        
+      show_meersolar_status --show
+       
+6. To see local log of any job using the <jobid>
+
+   .. code-block :: bash
+    
+      run_meersolar_log --jobid <jobid>
 

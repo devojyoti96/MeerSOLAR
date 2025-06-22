@@ -1,4 +1,4 @@
-Run MeerSOLAR pipeline
+Run MeerSOLAR Pipeline
 =======================
 
 Basic run

@@ -204,7 +204,8 @@ crystalball = "meersolar.crystalball.crystalball:predict"
 init_meersolar_data = "meersolar.pipeline.init_data:main"
 kill_meersolar_job = "meersolar.pipeline.kill_job:kill_meerjob"
 run_meersolar = "meersolar.pipeline.master_controller:main"
-run_meersolar_showms="meersolar.pipeline.show_msdetails:main"
+show_meersolar_ms="meersolar.pipeline.show_msdetails:main"
+show_meersolar_status = "meersolar.pipeline.show_status:main"
 
 [tool.setuptools]
 packages = ["meersolar", "meersolar.pipeline", "meersolar.crystalball"]
