@@ -228,7 +228,7 @@ def get_datadir():
 def main():
     global LOG_DIR
     parser = argparse.ArgumentParser(description="MeerSOLAR Logger",
-                                     formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+                                     formatter_class=SmartDefaultsHelpFormatter)
     parser.add_argument("--jobid", type=str, default=None, help="MeerSOLAR Job ID", metavar="Integer")
     parser.add_argument("--logdir", type=str, default=None, help="Name of log directory", metavar="String")
     args = parser.parse_args()

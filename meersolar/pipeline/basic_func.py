@@ -1,4 +1,4 @@
-import os, sys, glob, time, gc, tempfile, copy, traceback, resource, requests, threading, socket
+import os, sys, glob, time, gc, tempfile, copy, traceback, resource, requests, threading, socket, argparse
 os.environ["QT_OPENGL"] = "software"
 os.environ["QT_QPA_PLATFORM"] = "offscreen"
 import matplotlib.ticker as ticker, matplotlib.pyplot as plt, matplotlib, subprocess, contextlib
@@ -58,7 +58,13 @@ udocker_dir = datadir + "/udocker"
 os.environ["UDOCKER_DIR"] = udocker_dir
 os.environ["UDOCKER_TARBALL"] = datadir + "/udocker-englib-1.2.11.tar.gz"
 
-
+class SmartDefaultsHelpFormatter(argparse.ArgumentDefaultsHelpFormatter):
+    def _get_help_string(self, action):
+        # Don't show default for boolean flags
+        if isinstance(action, argparse._StoreTrueAction) or isinstance(action, argparse._StoreFalseAction):
+            return action.help
+        return super()._get_help_string(action)
+        
 def init_udocker():
     os.system("udocker install")
 

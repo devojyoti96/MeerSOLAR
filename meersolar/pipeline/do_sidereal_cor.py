@@ -82,7 +82,7 @@ def cor_sidereal_motion(
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Correct measurement sets for sidereal motion",formatter_class=argparse.ArgumentDefaultsHelpFormatter
+        description="Correct measurement sets for sidereal motion",formatter_class=SmartDefaultsHelpFormatter
     )
     
     ## Essential parameters

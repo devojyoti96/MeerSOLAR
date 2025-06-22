@@ -84,7 +84,7 @@ def init_meersolar_data(update=False,remote_link=None,emails=None):
 
 def main():
     usage = "Initiate MeerSOLAR data"
-    parser = argparse.ArgumentParser(description=usage,formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    parser = argparse.ArgumentParser(description=usage,formatter_class=SmartDefaultsHelpFormatter)
     parser.add_argument("--init", action="store_true", help="Initiate data")
     parser.add_argument("--update", action="store_true", help="Update existing data")
     parser.add_argument(

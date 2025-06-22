@@ -423,7 +423,7 @@ def split_target_scans(
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Split target scans",formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    parser = argparse.ArgumentParser(description="Split target scans",formatter_class=SmartDefaultsHelpFormatter)
     
     ## Essential parameters
     basic_args = parser.add_argument_group(

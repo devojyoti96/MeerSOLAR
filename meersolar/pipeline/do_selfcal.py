@@ -1041,7 +1041,7 @@ def do_selfcal(
 
 def main():
     starttime = time.time()
-    parser = argparse.ArgumentParser(description="Self-calibration",formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    parser = argparse.ArgumentParser(description="Self-calibration",formatter_class=SmartDefaultsHelpFormatter)
     
     ## Essential parameters
     basic_args = parser.add_argument_group(

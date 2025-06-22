@@ -194,7 +194,7 @@ def pbcor_all_images(
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Correct all images for MeerKAT full-pol averaged primary beam",formatter_class=argparse.ArgumentDefaultsHelpFormatter
+        description="Correct all images for MeerKAT full-pol averaged primary beam",formatter_class=SmartDefaultsHelpFormatter
     )
     
     ## Essential parameters

@@ -418,7 +418,7 @@ def import_all_models(msname, workdir, cpu_frac=0.8, mem_frac=0.8):
 
 def main():
     usage = "Import calibrator models"
-    parser = argparse.ArgumentParser(description=usage,formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    parser = argparse.ArgumentParser(description=usage,formatter_class=SmartDefaultsHelpFormatter)
     
     ## Essential parameters
     basic_args = parser.add_argument_group(

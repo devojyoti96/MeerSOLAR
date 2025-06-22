@@ -1210,7 +1210,7 @@ def run_basic_cal_rounds(
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Basic calibration using calibrators",formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    parser = argparse.ArgumentParser(description="Basic calibration using calibrators",formatter_class=SmartDefaultsHelpFormatter)
 
     ## Essential parameters
     basic_args = parser.add_argument_group(

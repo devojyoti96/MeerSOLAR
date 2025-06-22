@@ -647,7 +647,7 @@ def get_pbcor_image(
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Correct image for full-polar antenna averaged MeerKAT primary beam",formatter_class=argparse.ArgumentDefaultsHelpFormatter
+        description="Correct image for full-polar antenna averaged MeerKAT primary beam",formatter_class=SmartDefaultsHelpFormatter
     )
     
     ## Essential parameters

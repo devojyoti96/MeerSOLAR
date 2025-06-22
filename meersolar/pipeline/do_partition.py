@@ -259,7 +259,7 @@ def partion_ms(
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Partition measurement set in multi-MS format",formatter_class=argparse.ArgumentDefaultsHelpFormatter
+        description="Partition measurement set in multi-MS format",formatter_class=SmartDefaultsHelpFormatter
     )
 
     ## Essential parameters

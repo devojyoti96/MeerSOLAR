@@ -745,7 +745,7 @@ def run_noise_cal(
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Basic calibration using calibrators",formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    parser = argparse.ArgumentParser(description="Basic calibration using calibrators",formatter_class=SmartDefaultsHelpFormatter)
 
     ## Essential parameters
     basic_args = parser.add_argument_group(

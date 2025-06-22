@@ -627,7 +627,7 @@ def run_all_imaging(
     freqres : float, optional
         Frequency resolution of spectral chunk in MHz
     timeres : float, optional
-        Time resolution of temporal chunk in MHz
+        Time resolution of temporal chunk in seconds
     weight : str, optional
         Image weighting
     robust : float, optional
@@ -897,7 +897,7 @@ def run_all_imaging(
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Perform spectropolarimetric snapshot imaging",formatter_class=argparse.ArgumentDefaultsHelpFormatter
+        description="Perform spectropolarimetric snapshot imaging",formatter_class=SmartDefaultsHelpFormatter
     )
 
     ## Essential parameters

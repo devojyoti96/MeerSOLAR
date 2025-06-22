@@ -492,7 +492,7 @@ def run_all_applysol(
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Apply basic calibration solutions to target scans",formatter_class=argparse.ArgumentDefaultsHelpFormatter
+        description="Apply basic calibration solutions to target scans",formatter_class=SmartDefaultsHelpFormatter
     )
 
     ## Essential parameters
