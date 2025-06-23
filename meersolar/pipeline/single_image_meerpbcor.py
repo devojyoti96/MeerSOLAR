@@ -8,7 +8,7 @@ from scipy.interpolate import RectBivariateSpline
 from dask import delayed, compute
 from joblib import Parallel, delayed
 from astropy.wcs import FITSFixedWarning
-from meersolar.pipeline.basic_func import get_datadir
+from meersolar.pipeline.basic_func import get_datadir, SmartDefaultsHelpFormatter
 
 from casatasks import casalog
 try:

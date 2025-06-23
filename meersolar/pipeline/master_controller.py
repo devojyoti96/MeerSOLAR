@@ -1168,7 +1168,7 @@ def run_ds_jobs(msname,workdir,target_scans=[],jobid=0,cpu_frac=0.8,mem_frac=0.8
         print("Making dynamic spectra of target scans .....")
         print("###########################\n")
         ds_basename = "ds_targets"
-        target_scans=" ".join([str(s) for i in target_scans])
+        target_scans=" ".join([str(s) for s in target_scans])
         ds_cmd = f"run_makeds {msname} --workdir {workdir} --cpu_frac {cpu_frac} --mem_frac {mem_frac} --jobid {jobid} --target_scans {target_scans}"
         if os.path.isdir(workdir + "/logs") == False:
             os.makedirs(workdir + "/logs")

@@ -44,8 +44,8 @@ html_title = "MeerSOLAR"
 html_css_files = ['custom.css']
 
 html_theme_options = {
-    "light_logo": "yourlogo-light.png",
-    "dark_logo": "yourlogo-dark.png",
+    "light_logo": "light_logo.png",
+    "dark_logo": "dark_logo.png",
     "sidebar_hide_name": False,
     "navigation_with_keys": True,
 }

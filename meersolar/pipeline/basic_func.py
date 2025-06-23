@@ -563,6 +563,7 @@ def make_solar_DS(
     workdir,
     ds_file_name="",
     extension="png",
+    target_scans=[],
     scans=[],
     merge_scan=False,
     showgui=False,
@@ -582,6 +583,8 @@ def make_solar_DS(
         DS file name prefix
     extension : str, optional
         Image file extension
+    target_scans : list, optional
+        Target scans
     scans : list, optional
         Scan list
     merge_scan : bool, optional
@@ -596,8 +599,15 @@ def make_solar_DS(
     import warnings
 
     warnings.filterwarnings("ignore", category=RuntimeWarning)
-    os.makedirs(workdir, exist_ok=True)
-
+    os.makedirs(f"{workdir}/dynamic_spectra", exist_ok=True)
+    print ("##############################################")
+    print (f"Start making dynamic spectra for ms: {msname}")
+    print ("##############################################")
+    if len(target_scans)>0:
+        temp_target_scans=[]
+        for s in target_scans:
+            temp_target_scans.append(int(s))
+        target_scans=temp_target_scans
     ##############################
     # Extract dynamic spectrum
     ##############################
@@ -689,17 +699,21 @@ def make_solar_DS(
     mstool = casamstool()
     for scan in scans:
         if scan in valid_scans:
-            final_scans.append(int(scan))
-            msmd.open(msname)
-            nchan = msmd.nchan(0)
-            nant = msmd.nantennas()
-            msmd.close()
-            mstool.open(msname)
-            mstool.select({"scan_number": int(scan)})
-            nrow = mstool.nrow(True)
-            mstool.close()
-            nbaselines = int(nant + (nant * (nant - 1) / 2))
-            scan_size_list.append((5 * (nrow / nbaselines) * 16) / (1024**3))
+            if len(target_scans)==0 or (len(target_scans)>0 and int(scan) in target_scans):
+                final_scans.append(int(scan))
+                msmd.open(msname)
+                nchan = msmd.nchan(0)
+                nant = msmd.nantennas()
+                msmd.close()
+                mstool.open(msname)
+                mstool.select({"scan_number": int(scan)})
+                nrow = mstool.nrow(True)
+                mstool.close()
+                nbaselines = int(nant + (nant * (nant - 1) / 2))
+                scan_size_list.append((5 * (nrow / nbaselines) * 16) / (1024**3))
+    if len(final_scans)==0:
+        print ("No scans to make dynamic spectra.")
+        return
     del scans
     scans = sorted(final_scans)
     print(f"Scans: {scans}")
@@ -724,13 +738,13 @@ def make_solar_DS(
     for scan in scans:
         tasks.append(
             delayed(make_ds_file_per_scan)(
-                msname, f"{workdir}/{ds_file_name}_scan_{scan}", scan, datacolumn
+                msname, f"{workdir}/dynamic_spectra/{ds_file_name}_scan_{scan}", scan, datacolumn
             )
         )
     compute(*tasks)
     dask_client.close()
     dask_cluster.close()
-    ds_files = [f"{workdir}/{ds_file_name}_scan_{scan}.npy" for scan in scans]
+    ds_files = [f"{workdir}/dynamic_spectra/{ds_file_name}_scan_{scan}.npy" for scan in scans]
     print(f"DS files: {ds_files}")
     if merge_scan == False:
         plots = []
@@ -743,10 +757,10 @@ def make_solar_DS(
             plots.append(plot_file)
     else:
         plot_file = make_ds_plot(
-            ds_files, plot_file=f"{workdir}/{ds_file_name}.{extension}", showgui=showgui
+            ds_files, plot_file=f"{workdir}/dynamic_spectra/{ds_file_name}.{extension}", showgui=showgui
         )
     gc.collect()
-    goes_files = glob.glob(f"{workdir}/sci*.nc")
+    goes_files = glob.glob(f"{workdir}/dynamic_spectra/sci*.nc")
     for f in goes_files:
         os.system(f"rm -rf {f}")
     os.system(f"rm -rf {workdir}/dask-scratch-space {workdir}/tmp")
@@ -3869,7 +3883,7 @@ def get_jobid():
         filtered_prev_jobids = []
         for job_id in prev_jobids:
             job_time = dt.strptime(job_id.ljust(20, '0'), FORMAT)  # pad if truncated
-            if job_time >= CUTOFF:
+            if job_time >= CUTOFF or job_id==0: # Job ID 0 is always kept
                 filtered_prev_jobids.append(job_id)
         prev_jobids = filtered_prev_jobids
 
@@ -3915,7 +3929,7 @@ def save_main_process_info(pid, jobid, basedir, cpu_frac, mem_frac):
         for i in range(len(prev_jobids)):
             job_id=prev_jobids[i]
             job_time = dt.strptime(job_id.ljust(20, '0'), FORMAT)  # pad if truncated
-            if job_time < CUTOFF:
+            if job_time < CUTOFF or job_id==0: # Job ID 0 is always kept
                 filtered_prev_jobids.append(job_id)
             else:
                 os.system(f"rm -rf {prev_main_pids[i]}")

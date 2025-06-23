@@ -76,8 +76,8 @@ def rename_image(
     os.system("mv " + imagename + " " + new_name)
     if make_plots:
         try:
-            pngdir = f"{os.path.dirname(imagedir)}/images_pngs"
-            pdfdir = f"{os.path.dirname(imagedir)}/images_pdfs"
+            pngdir = f"{os.path.dirname(imagedir)}/images/pngs"
+            pdfdir = f"{os.path.dirname(imagedir)}/images/pdfs"
             os.makedirs(pngdir, exist_ok=True)
             os.makedirs(pdfdir, exist_ok=True)
             plot_in_hpc(

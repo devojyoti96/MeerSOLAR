@@ -32,6 +32,7 @@ Contents
    quickstart
    install
    tutorial
+   kill
    cli
    meersolar
 
