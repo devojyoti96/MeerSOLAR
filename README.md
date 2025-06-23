@@ -82,11 +82,13 @@ This MeerKAT solar observations are analysed using MeerSOLAR pipeline.
 
 and cite the following papers.
 
+%
 1. [First MeerSOLAR paper] [kansabanik2025]
 [Kansabanik2025]: https://kansabanik-meersolar.org
 
 2. [Second MeerSOLAR paper] [Patra2025]
 [Patra2025]: https://patra-meersolar.org
+%
 
 ## License
 
