@@ -1,0 +1,13 @@
+/* Force justification for body text in main content */
+article {
+    text-align: justify;
+    text-justify: inter-word;
+}
+.toggle-button .toggle-header {
+    visibility: hidden;
+    height: 0;
+    margin: 0;
+}
+
+/* _static/custom.css */
+
