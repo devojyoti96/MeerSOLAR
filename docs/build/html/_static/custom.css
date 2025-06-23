@@ -1,0 +1,30 @@
+/* Force justification for body text in main content */
+article {
+    text-align: justify;
+    text-justify: inter-word;
+}
+.toggle-button .toggle-header {
+    visibility: hidden;
+    height: 0;
+    margin: 0;
+}
+
+/* _static/custom.css */
+
+.sidebar, .sidebar-scroll {
+    background-image: url("_static/rl1.png");
+    background-size: cover;         /* Fit to sidebar */
+    background-repeat: no-repeat;
+    background-position: center;
+    background-attachment: fixed;   /* Optional for sticky background */
+}
+
+/* Optional: Make text more readable over background */
+.sidebar a,
+.sidebar p,
+.sidebar h1,
+.sidebar h2,
+.sidebar h3 {
+    color: white !important;
+}
+
