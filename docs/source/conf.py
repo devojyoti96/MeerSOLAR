@@ -28,28 +28,26 @@ extensions = [
     "sphinx_togglebutton",
     "myst_parser",
     'sphinx.ext.graphviz',
-    "sphinxcontrib.mermaid"
+    "sphinxcontrib.mermaid",
 
 ]
+html_theme_options = {
+    "source_repository": "https://github.com/devojyoti96/MeerSOLAR/",
+    "source_branch": "master",
+    "source_directory": "docs/source/",
+    "light_logo": "logo.png",
+    "dark_logo": "logo.png",
+    "sidebar_hide_name": False,
+    "navigation_with_keys": True,
+}
 
 templates_path = ['_templates']
 exclude_patterns = []
-
-# -- Options for HTML output -------------------------------------------------
-# https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
 
 html_theme = "furo"
 html_static_path = ['_static']
 html_title = "MeerSOLAR"
 html_css_files = ['custom.css']
-
-html_theme_options = {
-    "light_logo": "light_logo.png",
-    "dark_logo": "dark_logo.png",
-    "sidebar_hide_name": False,
-    "navigation_with_keys": True,
-}
-
 sphinx_togglebutton_selector = ".toggle-this-element, #my-special-id"
 napoleon_google_docstring = True
 napoleon_numpy_docstring = True
