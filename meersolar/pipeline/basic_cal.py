@@ -568,6 +568,10 @@ def single_round_cal_and_flag(
         # Delay calibration
         ##############################
         if len(fluxcal_mslist) > 0:
+            if len(phasecal_mslist)>0:
+                delaycal_mslist=fluxcal_mslist+phasecal_mslist
+            else:
+                delaycal_mslist=fluxcal_mslist
             #############################################
             # Memory limit
             #############################################
@@ -576,7 +580,7 @@ def single_round_cal_and_flag(
             ms_size_list = [get_ms_size(ms) + mem_limit for ms in fluxcal_mslist]
             mem_limit = max(ms_size_list)
             dask_client, dask_cluster, n_jobs, n_threads, mem_limit = get_dask_client(
-                len(fluxcal_mslist),
+                len(delaycal_mslist),
                 dask_dir=workdir,
                 cpu_frac=cpu_frac,
                 mem_frac=mem_frac,
@@ -586,7 +590,7 @@ def single_round_cal_and_flag(
                 delayed(run_delaycal)(
                     sub_msname, refant=refant, solint="inf", n_threads=n_threads
                 )
-                for sub_msname in fluxcal_mslist
+                for sub_msname in delaycal_mslist
             ]
             delaycal_tables = list(compute(*tasks))
             delay_caltable = merge_caltables(
@@ -604,7 +608,7 @@ def single_round_cal_and_flag(
                 tb.close()
                 applycal_gaintable.append(delay_caltable)
                 applycal_gainfield.append("")
-                applycal_interp.append("nearest")
+                applycal_interp.append("linear")
         else:
             print("No flux calibrator or phase calibrator is present.")
             return 1, []
