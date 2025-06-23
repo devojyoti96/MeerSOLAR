@@ -1,9 +1,10 @@
 import os, sys, glob, time, gc, tempfile, copy, traceback, resource, requests, threading, socket, argparse
 os.environ["QT_OPENGL"] = "software"
 os.environ["QT_QPA_PLATFORM"] = "offscreen"
-import matplotlib.ticker as ticker, matplotlib.pyplot as plt, matplotlib, subprocess, contextlib
-import numpy as np, dask, psutil, logging, sunpy
+import matplotlib.ticker as ticker, matplotlib.pyplot as plt, matplotlib, subprocess, contextlib, ctypes
+import numpy as np, dask, psutil, logging, sunpy, tempfile , shutil
 import astropy.units as u, string, secrets
+from contextlib import contextmanager
 from astropy.coordinates import EarthLocation, SkyCoord
 from sunpy.map import Map
 from sunpy.coordinates import frames, sun
@@ -57,6 +58,8 @@ datadir = get_datadir()
 udocker_dir = datadir + "/udocker"
 os.environ["UDOCKER_DIR"] = udocker_dir
 os.environ["UDOCKER_TARBALL"] = datadir + "/udocker-englib-1.2.11.tar.gz"
+POSIX_FADV_DONTNEED = 4
+libc = ctypes.CDLL("libc.so.6")
 
 class SmartDefaultsHelpFormatter(argparse.ArgumentDefaultsHelpFormatter):
     def _get_help_string(self, action):
@@ -67,7 +70,7 @@ class SmartDefaultsHelpFormatter(argparse.ArgumentDefaultsHelpFormatter):
         
 def init_udocker():
     os.system("udocker install")
-
+    
 @contextlib.contextmanager
 def suppress_casa_output():
     with open(os.devnull, 'w') as fnull:
@@ -87,6 +90,122 @@ def clean_shutdown(observer):
         observer.join(timeout=5)
 
 
+#####################################
+# Resource management
+#####################################
+def drop_file_cache(filepath,verbose=False):
+    """
+    Advise the OS to drop the given file from the page cache.
+    Safe, per-file, no sudo required.
+    """
+    try:
+        if not os.path.isfile(filepath):
+            return
+        fd = os.open(filepath, os.O_RDONLY)
+        result = libc.posix_fadvise(fd, 0, 0, POSIX_FADV_DONTNEED)
+        os.close(fd)
+        if verbose:
+            if result == 0:
+                print(f"[cache drop] Released: {filepath}")
+            else:
+                print(f"[cache drop] Failed ({result}) for: {filepath}")
+    except Exception as e:
+        if verbose:
+            print(f"[cache drop] Error for {filepath}: {e}")
+            traceback.print_exc()
+        
+def drop_cache(path,verbose=False):
+    """
+    Drop file cache for a file or all files under a directory.
+
+    Parameters
+    ----------
+    path : str
+        File or directory path
+    """
+    if os.path.isfile(path):
+        drop_file_cache(path,verbose=verbose)
+    elif os.path.isdir(path):
+        for root, _, files in os.walk(path):
+            for f in files:
+                full_path = os.path.join(root, f)
+                drop_file_cache(full_path,verbose=verbose)
+    else:
+        if verbose:
+            print(f"[cache drop] Path does not exist or is not valid: {path}")
+
+def has_space(path, required_gb):
+    try:
+        stat = shutil.disk_usage(path)
+        return (stat.free / 1e9) >= required_gb
+    except:
+        return False
+
+@contextmanager
+def shm_or_tmp(required_gb=2.0, prefix="meersolar_"):
+    """
+    Create a temporary working directory:
+    1. Try /dev/shm if it has required space
+    2. Else TMPDIR if set and has space
+    3. Else /tmp if it has space
+    4. Else current directory
+
+    Temporarily sets TMPDIR to the selected path during the context.
+    Cleans up after use.
+    """
+    def has_space(path, required_gb):
+        try:
+            stat = shutil.disk_usage(path)
+            return (stat.free / 1e9) >= required_gb
+        except:
+            return False
+    candidates = []
+    if has_space("/dev/shm", required_gb):
+        candidates.append("/dev/shm")
+    tmpdir_env = os.environ.get("TMPDIR")
+    if tmpdir_env and has_space(tmpdir_env, required_gb):
+        candidates.append(tmpdir_env)
+    if has_space("/tmp", required_gb):
+        candidates.append("/tmp")
+    candidates.append(os.getcwd())
+    for base_dir in candidates:
+        try:
+            temp_dir = tempfile.mkdtemp(dir=base_dir, prefix=prefix)
+            break
+        except Exception as e:
+            print(f"[shm_or_tmp] Failed to create temp dir in {base_dir}: {e}")
+    else:
+        raise RuntimeError("Could not create a temporary directory in any fallback location.")
+    # Override TMPDIR
+    old_tmpdir = os.environ.get("TMPDIR")
+    os.environ["TMPDIR"] = temp_dir
+    try:
+        yield temp_dir
+    finally:
+        # Restore TMPDIR
+        if old_tmpdir is not None:
+            os.environ["TMPDIR"] = old_tmpdir
+        else:
+            os.environ.pop("TMPDIR", None)
+        # Clean up the temp directory
+        try:
+            shutil.rmtree(temp_dir)
+        except Exception as e:
+            print(f"[cleanup] Warning: could not delete {temp_dir}: {e}")
+
+@contextmanager
+def tmp_with_cache_rel(required_gb=2.0, prefix="meersolar_"):
+    """
+    Combined context manager:
+    - Uses shm_or_tmp() for workspace
+    - Drops kernel page cache for all files in that directory on exit
+    """
+    with shm_or_tmp(required_gb=required_gb, prefix=prefix) as tempdir:
+        try:
+            yield tempdir
+        finally:
+            drop_cache(tempdir)
+
 def limit_threads(n_threads=-1):
     """
     Limit number of threads usuage
@@ -101,6 +220,8 @@ def limit_threads(n_threads=-1):
         os.environ["OPENBLAS_NUM_THREADS"] = str(n_threads)
         os.environ["MKL_NUM_THREADS"] = str(n_threads)
         os.environ["VECLIB_MAXIMUM_THREADS"] = str(n_threads)
+
+##################################
 
 
 def generate_password(length=6):
@@ -710,7 +831,8 @@ def make_solar_DS(
                 nrow = mstool.nrow(True)
                 mstool.close()
                 nbaselines = int(nant + (nant * (nant - 1) / 2))
-                scan_size_list.append((5 * (nrow / nbaselines) * 16) / (1024**3))
+                scan_size=(5 * (nrow / nbaselines) * 16) / (1024**3)
+                scan_size_list.append(scan_size)
     if len(final_scans)==0:
         print ("No scans to make dynamic spectra.")
         return
@@ -4277,7 +4399,6 @@ def baseline_names(msname):
         baseline_names.append(str(ant1) + "&&" + str(ant2))
     return baseline_names
 
-
 def get_ms_size(msname):
     """
     Get measurement set total size
@@ -4297,7 +4418,6 @@ def get_ms_size(msname):
             fp = os.path.join(dirpath, f)
             total_size += os.path.getsize(fp)
     return total_size / (1024**3)  # in GB
-
 
 def get_column_size(msname):
     """
@@ -4322,6 +4442,34 @@ def get_column_size(msname):
     datasize = nrow * nchan * npol * 16 / (1024.0**3)
     return datasize
 
+def get_ms_scan_size(msname,scan):
+    """
+    Get measurement set scan size
+    
+    Parameters
+    ----------
+    msname : str
+        Measurement set
+    scan : int
+        Scan number
+        
+    Returns
+    -------
+    float
+        Size in GB
+    """
+    tb=table()
+    tb.open(msname)
+    nrow=tb.nrows()
+    tb.close()
+    mstool=casamstool()
+    mstool.open(msname)
+    mstool.select({"scan_number": int(scan)})
+    scan_nrow = mstool.nrow(True)
+    mstool.close()
+    ms_size=get_ms_size(msname)
+    scan_size=scan_nrow*(ms_size/nrow)
+    return scan_size
 
 def get_chunk_size(msname, memory_limit=-1):
     """
