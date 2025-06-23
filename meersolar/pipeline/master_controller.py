@@ -1611,7 +1611,7 @@ def master_control(
     # Run dynamic spectra making
     #######################################
     if make_ds:
-        msg = run_ds_jobs(msname,workdir,jobid=jobid,target_scans=target_scans,cpu_frac=float(cpu_frac,2),mem_frac=float(mem_frac,2))
+        msg = run_ds_jobs(msname,workdir,jobid=jobid,target_scans=target_scans,cpu_frac=round(cpu_frac,2),mem_frac=round(mem_frac,2))
         if msg != 0:
             print(
                 "!!!! WARNING: Dynamic spectra could not be made. !!!!"
