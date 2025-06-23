@@ -34,6 +34,8 @@ Contents
    tutorial
    kill
    cli
+   ack
+   lic
    meersolar
 
 Indices
