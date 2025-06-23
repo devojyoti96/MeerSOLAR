@@ -20,7 +20,7 @@ Solar radio data presents unique challenges due to the high variability and brig
 
 ## Documentation
 
-MeerSOLAR documentation is available at: https://meersolar.readthedocs.io
+MeerSOLAR documentation is available at: meersolar.readthedocs.io
 
 ## Quickstart
 
@@ -71,9 +71,6 @@ That's all. You started MeerSOLAR pipeline for analysing your MeerKAT solar obse
 
 <!-- end quickstart -->
 
-For more information, visit [MeerSOLAR's documentation][quickstart-docs].
-
-[quickstart-docs]: https://readthedocs.io/meersolar/quickstart
 
 ## Acknowledgements
 
