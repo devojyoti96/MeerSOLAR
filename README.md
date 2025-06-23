@@ -20,9 +20,7 @@ Solar radio data presents unique challenges due to the high variability and brig
 
 ## Documentation
 
-MeerSOLAR documentation is available at: [DOC]
-
-[DOC]: https://meersolar.readthedocs.io/en/latest/ 
+MeerSOLAR documentation is available at: https://meersolar.readthedocs.io/en/latest/ 
 
 ## Quickstart
 
