@@ -5,7 +5,6 @@
   <h1>MeerSOLAR</h1> An automated calibration and imaging pipeline designed for solar radio observations using <strong>MeerKAT</strong> radio telescope. It performs end-to-end calibration, flagging, and imaging with a focus on dynamic solar data, supporting both spectral and temporal flexibility in imaging products.
 </p>
 
-
 ## Background
 
 <!-- start elevator-pitch -->
@@ -18,6 +17,12 @@ Solar radio data presents unique challenges due to the high variability and brig
 - Providing hooks for integration with contextual data from other wavelegths for enhanced solar analysis
 
 <!-- end elevator-pitch -->
+
+## Documentation
+
+MeerSOLAR documentation is available at: [DOC]
+
+[DOC]: https://meersolar.readthedocs.io/en/latest/ 
 
 ## Quickstart
 
@@ -79,16 +84,16 @@ MeerSOLAR is developed by Devojyoti Kansabanik (CPAESS-UCAR, Boulder, USA) and D
 ```text
 This MeerKAT solar observations are analysed using MeerSOLAR pipeline.
 ```
-
+<!-- will be updated one published.
 and cite the following papers.
 
-%
+
 1. [First MeerSOLAR paper] [kansabanik2025]
 [Kansabanik2025]: https://kansabanik-meersolar.org
 
 2. [Second MeerSOLAR paper] [Patra2025]
 [Patra2025]: https://patra-meersolar.org
-%
+-->
 
 ## License
 

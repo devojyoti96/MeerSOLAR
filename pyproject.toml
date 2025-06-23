@@ -9,7 +9,8 @@ description = "A package to calibrate MeerKAT solar observation"
 readme = { file = "README.md", content-type = "text/markdown" }
 license = { text = "MIT" }
 authors = [
-    { name = "Devojyoti Kansabanik", email = "devojyoti96@gmail.com" }
+    { name = "Devojyoti Kansabanik", email = "devojyoti96@gmail.com" },
+    { name = "Deepan Patra", email = "dpatra@ncra.tifr.res.in" }
 ]
 dependencies = [
     "aiapy==0.10.1",
@@ -182,7 +183,7 @@ classifiers = [
     "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent"
 ]
-urls = { "Homepage" = "https://github.com/devojyoti96/solstar" }
+urls = { "Homepage" = "https://github.com/devojyoti96/MeerSOLAR" }
 
 # Console scripts entry points
 [project.scripts]
@@ -206,6 +207,7 @@ kill_meersolar_job = "meersolar.pipeline.kill_job:kill_meerjob"
 run_meersolar = "meersolar.pipeline.master_controller:main"
 show_meersolar_ms="meersolar.pipeline.show_msdetails:main"
 show_meersolar_status = "meersolar.pipeline.show_status:main"
+run_makeds = "meersolar.pipeline.make_ds:main"
 
 [tool.setuptools]
 packages = ["meersolar", "meersolar.pipeline", "meersolar.crystalball"]
