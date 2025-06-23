@@ -6,11 +6,11 @@
 </p>
 
 
-## Introduction
+## Background
 
 <!-- start elevator-pitch -->
 
-Solar radio data presents unique challenges due to the high variability and brightness of the Sun, as well as the need for high time-frequency resolution. The MeerSOLAR pipeline addresses these challenges by:
+Solar radio data presents unique challenges due to the high variability and brightness of the Sun, as well as the need for high time-frequency resolution. The **MeerSOLAR** pipeline addresses these challenges by:
 
 - Automating the calibration of interferometric data, including flux, phase, and polarization calibrations
 - Supporting time-sliced and frequency-sliced imaging workflows
@@ -23,7 +23,7 @@ Solar radio data presents unique challenges due to the high variability and brig
 
 <!-- start quickstart -->
 
-MeerSOLAR is distributed on [PyPI]. To use it:
+**MeerSOLAR** is distributed on [PyPI]. To use it:
 
 1. Install conda with python 3.10
 
