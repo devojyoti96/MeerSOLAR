@@ -213,6 +213,6 @@ run_makeds = "meersolar.pipeline.make_ds:main"
 packages = ["meersolar", "meersolar.pipeline", "meersolar.crystalball"]
 
 [tool.setuptools.package-data]
-meersolar = ["data/*"]
+meersolar = ["data/sendmail.so"]
 
 
