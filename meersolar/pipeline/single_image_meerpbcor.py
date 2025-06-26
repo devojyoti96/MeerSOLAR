@@ -11,12 +11,13 @@ from astropy.wcs import FITSFixedWarning
 from meersolar.pipeline.basic_func import get_datadir, SmartDefaultsHelpFormatter
 
 from casatasks import casalog
+
 try:
     casalogfile = casalog.logfile()
     os.system("rm -rf " + casalogfile)
 except:
     pass
-    
+
 warnings.simplefilter("ignore", category=FITSFixedWarning)
 
 # Define MeerKAT location
@@ -647,9 +648,10 @@ def get_pbcor_image(
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Correct image for full-polar antenna averaged MeerKAT primary beam",formatter_class=SmartDefaultsHelpFormatter
+        description="Correct image for full-polar antenna averaged MeerKAT primary beam",
+        formatter_class=SmartDefaultsHelpFormatter,
     )
-    
+
     ## Essential parameters
     basic_args = parser.add_argument_group(
         "###################\nEssential parameters\n###################"
@@ -671,22 +673,28 @@ def main():
         help="Name of primary beam corrected image directory",
         metavar="String",
     )
-    
+
     ## Advanced parameters
     adv_args = parser.add_argument_group(
         "###################\nAdvanced parameters\n###################"
     )
     adv_args.add_argument(
-        "--no_save_beam", action="store_false", dest="save_beam", help="Do not save beam to disk"
+        "--no_save_beam",
+        action="store_false",
+        dest="save_beam",
+        help="Do not save beam to disk",
     )
     adv_args.add_argument(
         "--band", type=str, default="", help="Band name", metavar="String"
     )
     adv_args.add_argument(
-        "--no_apply_parang", action="store_false", dest="apply_parang", help="Do not apply parallactic angle correction"
+        "--no_apply_parang",
+        action="store_false",
+        dest="apply_parang",
+        help="Do not apply parallactic angle correction",
     )
     adv_args.add_argument("--verbose", action="store_true", help="Verbose output")
-    
+
     ## Resource management parameters
     hard_args = parser.add_argument_group(
         "###################\nHardware resource management parameters\n###################"

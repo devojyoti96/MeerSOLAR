@@ -135,9 +135,7 @@ def phasecal_setjy(msname="", field="", ismms=False, n_threads=-1, dry_run=False
     return
 
 
-def import_fluxcal_models(
-    mslist, scans, fluxcal_fields, fluxcal_scans, ncpus=1, mem_frac=0.8
-):
+def import_fluxcal_models(mslist, fluxcal_fields, fluxcal_scans, ncpus=1, mem_frac=0.8):
     """
     Import model visibilities using crystalball
 
@@ -145,8 +143,6 @@ def import_fluxcal_models(
     ----------
     mslist : list
         List of sub-MS
-    scans : list
-        Scans of each sub-ms
     fluxcal_fields : list
         Fluxcal fields
     fluxcal_scans : dict
@@ -173,30 +169,37 @@ def import_fluxcal_models(
         ncpus = max(1, ncpus)
         ncpus = min(ncpus, cpu_count - 1)
         mem_frac = max(mem_frac, 0.8)
+        scans = []
+        for ms in mslist:
+            ms_scans = get_ms_scans(ms)
+            for s in ms_scans:
+                scans.append(s)
         for fluxcal in fluxcal_fields:
             f_scan = fluxcal_scans[fluxcal]
             for s in f_scan:
-                scans = np.array(scans)
-                pos = np.argmin(np.abs(scans - s))
-                sub_msname = mslist[pos]
-                modelname = datadir + "/" + fluxcal + "_" + bandname + "_model.txt"
-                crys_cmd_args = [
-                    "-sm " + modelname,
-                    "-f " + fluxcal,
-                    "-ns 1000",
-                    "-j " + str(ncpus),
-                    "-mf " + str(mem_frac),
-                ]
-                crys_cmd = "crystalball " + " ".join(crys_cmd_args) + " " + sub_msname
-                print(crys_cmd)
-                tmpfile = f"tmp_{os.path.basename(sub_msname).split('.ms')[0]}"
-                with suppress_casa_output():    
-                    msg = os.system(crys_cmd + f" > {tmpfile}")
-                os.system(f"rm -rf {tmpfile}")
-                if msg == 0:
-                    print(f"Fluxcal model is imported successfully for scan: {s}.")
-                else:
-                    print(f"Error in importing fluxcal model for scan: {s}.")
+                if s in scans:
+                    pos = scans.index(s)
+                    sub_msname = mslist[pos]
+                    modelname = datadir + "/" + fluxcal + "_" + bandname + "_model.txt"
+                    crys_cmd_args = [
+                        "-sm " + modelname,
+                        "-f " + fluxcal,
+                        "-ns 1000",
+                        "-j " + str(ncpus),
+                        "-mf " + str(mem_frac),
+                    ]
+                    crys_cmd = (
+                        "crystalball " + " ".join(crys_cmd_args) + " " + sub_msname
+                    )
+                    print(crys_cmd)
+                    tmpfile = f"tmp_{os.path.basename(sub_msname).split('.ms')[0]}"
+                    with suppress_casa_output():
+                        msg = os.system(crys_cmd + f" > {tmpfile}")
+                    os.system(f"rm -rf {tmpfile}")
+                    if msg == 0:
+                        print(f"Fluxcal model is imported successfully for scan: {s}.")
+                    else:
+                        print(f"Error in importing fluxcal model for scan: {s}.")
         return 0
     except Exception as e:
         print("Error in importing model.")
@@ -205,7 +208,7 @@ def import_fluxcal_models(
 
 
 def import_phasecal_models(
-    mslist, scans, phasecal_fields, phasecal_scans, workdir, cpu_frac=0.8, mem_frac=0.8
+    mslist, phasecal_fields, phasecal_scans, workdir, cpu_frac=0.8, mem_frac=0.8
 ):
     """
     Import model visibilities for phasecal
@@ -214,8 +217,6 @@ def import_phasecal_models(
     ----------
     mslist : list
         List of sub-MS
-    scans : list
-        Scans of each sub-ms
     phasecal_fields : list
         Phasecal fields
     phasecal_scans : list
@@ -245,21 +246,26 @@ def import_phasecal_models(
             mem_frac=mem_frac,
             min_mem_per_job=mem_limit / 0.6,
         )
+        scans = []
+        for ms in mslist:
+            ms_scans = get_ms_scans(ms)
+            for s in ms_scans:
+                scans.append(s)
         tasks = []
         for phasecal in phasecal_fields:
             ph_scan = phasecal_scans[phasecal]
             for s in ph_scan:
-                scans = np.array(scans)
-                pos = np.argmin(np.abs(scans - s))
-                sub_msname = mslist[pos]
-                tasks.append(
-                    delayed(phasecal_setjy)(
-                        sub_msname,
-                        field=phasecal,
-                        ismms=True,
-                        n_threads=n_threads,
+                if s in scans:
+                    pos = scans.index(s)
+                    sub_msname = mslist[pos]
+                    tasks.append(
+                        delayed(phasecal_setjy)(
+                            sub_msname,
+                            field=phasecal,
+                            ismms=True,
+                            n_threads=n_threads,
+                        )
                     )
-                )
         results = compute(*tasks)
         dask_client.close()
         dask_cluster.close()
@@ -272,7 +278,7 @@ def import_phasecal_models(
 
 
 def import_polcal_model(
-    mslist, scans, polcal_fields, polcal_scans, workdir, cpu_frac=0.8, mem_frac=0.8
+    mslist, polcal_fields, polcal_scans, workdir, cpu_frac=0.8, mem_frac=0.8
 ):
     """
     Import model for polarization calibrators (3C286 or 3C138)
@@ -281,8 +287,6 @@ def import_polcal_model(
     ----------
     mslist : list
         List of sub-MS
-    scans : list
-        Scans of each sub-ms
     polcal_fields : list
         Polcal fields
     polcal_scans : list
@@ -310,18 +314,23 @@ def import_polcal_model(
             mem_frac=mem_frac,
             min_mem_per_job=mem_limit / 0.6,
         )
+        scans = []
+        for ms in mslist:
+            ms_scans = get_ms_scans(ms)
+            for s in ms_scans:
+                scans.append(s)
         tasks = []
         for polcal_field in polcal_fields:
             p_scan = polcal_scans[polcal_field]
             for s in p_scan:
-                scans = np.array(scans)
-                pos = np.argmin(np.abs(scans - s))
-                sub_msname = mslist[pos]
-                tasks.append(
-                    delayed(polcal_setjy)(
-                        sub_msname, polcal_field, ismms=True, n_threads=n_threads
+                if s in scans:
+                    pos = scans.index(s)
+                    sub_msname = mslist[pos]
+                    tasks.append(
+                        delayed(polcal_setjy)(
+                            sub_msname, polcal_field, ismms=True, n_threads=n_threads
+                        )
                     )
-                )
         results = compute(*tasks)
         dask_client.close()
         dask_cluster.close()
@@ -363,7 +372,6 @@ def import_all_models(msname, workdir, cpu_frac=0.8, mem_frac=0.8):
         result = get_submsname_scans(msname)
         if result != None:  # If multi-ms
             mslist, scans = result
-            scans = np.array(scans)
         else:
             print("Please provide a multi-MS with scans partitioned.")
             return 1, []
@@ -371,7 +379,7 @@ def import_all_models(msname, workdir, cpu_frac=0.8, mem_frac=0.8):
         phasecal_fields, phasecal_scans, phasecal_flux_list = get_phasecals(msname)
         polcal_fields, polcal_scans = get_polcals(msname)
         fluxcal_result = import_fluxcal_models(
-            mslist, scans, fluxcal_fields, fluxcal_scans, ncpus=ncpu, mem_frac=mem_frac
+            mslist, fluxcal_fields, fluxcal_scans, ncpus=ncpu, mem_frac=mem_frac
         )
         if fluxcal_result != 0:
             print("##################")
@@ -380,7 +388,6 @@ def import_all_models(msname, workdir, cpu_frac=0.8, mem_frac=0.8):
             return fluxcal_result, 1, 1
         phasecal_result = import_phasecal_models(
             mslist,
-            scans,
             phasecal_fields,
             phasecal_scans,
             workdir,
@@ -389,7 +396,6 @@ def import_all_models(msname, workdir, cpu_frac=0.8, mem_frac=0.8):
         )
         polcal_result = import_polcal_model(
             mslist,
-            scans,
             polcal_fields,
             polcal_scans,
             workdir,
@@ -414,12 +420,18 @@ def import_all_models(msname, workdir, cpu_frac=0.8, mem_frac=0.8):
         print("##################\n")
         traceback.print_exc()
         return 1, 1, 1
+    finally:
+        time.sleep(5)
+        drop_cache(msname)
+        drop_cache(workdir)
 
 
 def main():
     usage = "Import calibrator models"
-    parser = argparse.ArgumentParser(description=usage,formatter_class=SmartDefaultsHelpFormatter)
-    
+    parser = argparse.ArgumentParser(
+        description=usage, formatter_class=SmartDefaultsHelpFormatter
+    )
+
     ## Essential parameters
     basic_args = parser.add_argument_group(
         "###################\nEssential parameters\n###################"
@@ -428,7 +440,7 @@ def main():
     basic_args.add_argument(
         "--workdir", type=str, default="", help="Name of work directory"
     )
-    
+
     ## Resource management parameters
     hard_args = parser.add_argument_group(
         "###################\nHardware resource management parameters\n###################"
@@ -445,7 +457,7 @@ def main():
     if len(sys.argv) == 1:
         parser.print_help(sys.stderr)
         sys.exit(1)
-        
+
     args = parser.parse_args()
 
     pid = os.getpid()
@@ -496,8 +508,9 @@ def main():
         msg = 1
     finally:
         time.sleep(5)
+        drop_cache(args.msname)
+        drop_cache(args.workdir)
         clean_shutdown(observer)
-
     return msg
 
 

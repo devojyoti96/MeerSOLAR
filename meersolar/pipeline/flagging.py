@@ -62,144 +62,178 @@ def single_ms_flag(
         mem = round(process.memory_info().rss / 1024**3, 2)  # in GB
         return mem
     msname = msname.rstrip("/")
-    ##############################
-    # Flagging bad channels
-    ##############################
-    if badspw != "":
-        print(f"Flagging bad spectral windows: {badspw}\n")
-        try:
-            with suppress_casa_output():
-                flagdata(
-                    vis=msname,
-                    mode="manual",
-                    spw=badspw,
-                    cmdreason="badchan",
-                    flagbackup=False,
-                )
-        except:
-            pass
-
-    ##############################
-    # Flagging bad antennas
-    ##############################
-    if bad_ants_str != "":
-        print(f"Flagging bad antenna: {bad_ants_str}\n")
-        try:
-            with suppress_casa_output():
-                flagdata(
-                    vis=msname,
-                    mode="manual",
-                    antenna=bad_ants_str,
-                    cmdreason="badant",
-                    flagbackup=False,
-                )
-        except:
-            pass
-
-    #################################
-    # Clip zero amplitude data points
-    #################################
     try:
-        with suppress_casa_output():
-            flagdata(
-                vis=msname,
-                mode="clip",
-                clipzeros=True,
-                datacolumn=datacolumn,
-                autocorr=flag_autocorr,
-                flagbackup=False,
-            )
-    except:
-        pass
+        ##############################
+        # Flagging bad channels
+        ##############################
+        if badspw != "":
+            print(f"Flagging bad spectral windows: {badspw}\n")
+            try:
+                with suppress_casa_output():
+                    flagdata(
+                        vis=msname,
+                        mode="manual",
+                        spw=badspw,
+                        cmdreason="badchan",
+                        flagbackup=False,
+                    )
+            except:
+                pass
 
-    #################################
-    # Flag auto-correlations
-    #################################
-    if flag_autocorr:
+        ##############################
+        # Flagging bad antennas
+        ##############################
+        if bad_ants_str != "":
+            print(f"Flagging bad antenna: {bad_ants_str}\n")
+            try:
+                with suppress_casa_output():
+                    flagdata(
+                        vis=msname,
+                        mode="manual",
+                        antenna=bad_ants_str,
+                        cmdreason="badant",
+                        flagbackup=False,
+                    )
+            except:
+                pass
+
+        #################################
+        # Clip zero amplitude data points
+        #################################
         try:
             with suppress_casa_output():
                 flagdata(
                     vis=msname,
-                    mode="manual",
-                    autocorr=True,
+                    mode="clip",
+                    clipzeros=True,
                     datacolumn=datacolumn,
+                    autocorr=flag_autocorr,
                     flagbackup=False,
                 )
         except:
             pass
 
-    ####################################################
-    # Check if required columns are present for residual
-    ####################################################
-    if datacolumn == "residual" or datacolumn == "RESIDUAL":
-        modelcolumn_present = check_datacolumn_valid(msname, datacolumn="MODEL_DATA")
-        corcolumn_present = check_datacolumn_valid(msname, datacolumn="CORRECTED_DATA")
-        if modelcolumn_present == False or corcolumn_present == False:
-            datacolumn = "corrected"
-    elif datacolumn == "RESIDUAL_DATA":
-        modelcolumn_present = check_datacolumn_valid(msname, datacolumn="MODEL_DATA")
-        datacolumn_present = check_datacolumn_valid(msname, datacolumn="DATA")
-        if modelcolumn_present == False or datacolumn_present == False:
-            datacolumn = "corrected"
+        #################################
+        # Flag auto-correlations
+        #################################
+        if flag_autocorr:
+            try:
+                with suppress_casa_output():
+                    flagdata(
+                        vis=msname,
+                        mode="manual",
+                        autocorr=True,
+                        datacolumn=datacolumn,
+                        flagbackup=False,
+                    )
+            except:
+                pass
 
-    #################################################
-    # Whether corrected data column is present or not
-    #################################################
-    if datacolumn == "corrected" or datacolumn == "CORRECTED_DATA":
-        corcolumn_present = check_datacolumn_valid(msname, datacolumn="CORRECTED_DATA")
-        if corcolumn_present == False:
-            print(
-                "Corrected data column is chosen for flagging, but it is not present.\n"
+        ####################################################
+        # Check if required columns are present for residual
+        ####################################################
+        if datacolumn == "residual" or datacolumn == "RESIDUAL":
+            modelcolumn_present = check_datacolumn_valid(
+                msname, datacolumn="MODEL_DATA"
             )
-            return
-        else:
-            datacolumn = "corrected"
+            corcolumn_present = check_datacolumn_valid(
+                msname, datacolumn="CORRECTED_DATA"
+            )
+            if modelcolumn_present == False or corcolumn_present == False:
+                datacolumn = "corrected"
+        elif datacolumn == "RESIDUAL_DATA":
+            modelcolumn_present = check_datacolumn_valid(
+                msname, datacolumn="MODEL_DATA"
+            )
+            datacolumn_present = check_datacolumn_valid(msname, datacolumn="DATA")
+            if modelcolumn_present == False or datacolumn_present == False:
+                datacolumn = "corrected"
 
-    #################################################
-    # Whether data column is present or not
-    #################################################
-    if datacolumn == "data" or datacolumn == "DATA":
-        datacolumn_present = check_datacolumn_valid(msname, datacolumn="DATA")
-        if datacolumn_present == False:
-            print("Data column is chosen for flagging, but it is not present.\n")
-            return
-        else:
-            datacolumn = "data"
+        #################################################
+        # Whether corrected data column is present or not
+        #################################################
+        if datacolumn == "corrected" or datacolumn == "CORRECTED_DATA":
+            corcolumn_present = check_datacolumn_valid(
+                msname, datacolumn="CORRECTED_DATA"
+            )
+            if corcolumn_present == False:
+                print(
+                    "Corrected data column is chosen for flagging, but it is not present.\n"
+                )
+                return
+            else:
+                datacolumn = "corrected"
 
-    ###########################
-    # Determinign time chunking
-    ############################
-    if use_tfcrop or use_rflag:
-        nchunk = get_chunk_size(msname, memory_limit=memory_limit)
-        if nchunk <= 1:
-            ntime = "scan"
-        else:
-            msmd = msmetadata()
-            msmd.open(msname)
-            scan = np.unique(msmd.scannumbers())[0]
-            times = msmd.timesforspws(0)
-            msmd.close()
-            total_time = np.nanmax(times) - np.nanmin(times)
-            timeres = np.nanmin(np.diff(times))
-            ntime = float(total_time / nchunk)
-            if ntime < timeres:
-                ntime = timeres
+        #################################################
+        # Whether data column is present or not
+        #################################################
+        if datacolumn == "data" or datacolumn == "DATA":
+            datacolumn_present = check_datacolumn_valid(msname, datacolumn="DATA")
+            if datacolumn_present == False:
+                print("Data column is chosen for flagging, but it is not present.\n")
+                return
+            else:
+                datacolumn = "data"
 
-    ##############
-    # Tfcrop flag
-    ##############
-    if use_tfcrop:
+        ###########################
+        # Determinign time chunking
+        ############################
+        if use_tfcrop or use_rflag:
+            nchunk = get_chunk_size(msname, memory_limit=memory_limit)
+            if nchunk <= 1:
+                ntime = "scan"
+            else:
+                msmd = msmetadata()
+                msmd.open(msname)
+                scan = np.unique(msmd.scannumbers())[0]
+                times = msmd.timesforspws(0)
+                msmd.close()
+                total_time = np.nanmax(times) - np.nanmin(times)
+                timeres = np.nanmin(np.diff(times))
+                ntime = float(total_time / nchunk)
+                if ntime < timeres:
+                    ntime = timeres
+
+        ##############
+        # Tfcrop flag
+        ##############
+        if use_tfcrop:
+            try:
+                with suppress_casa_output():
+                    flagdata(
+                        vis=msname,
+                        mode="tfcrop",
+                        timefit="line",
+                        freqfit="line",
+                        extendflags=False,
+                        flagdimension=flagdimension,
+                        timecutoff=5.0,
+                        freqcutoff=5.0,
+                        extendpols=True,
+                        growaround=False,
+                        action="apply",
+                        flagbackup=False,
+                        overwrite=True,
+                        writeflags=True,
+                        datacolumn=datacolumn,
+                        ntime=ntime,
+                    )
+            except:
+                pass
+
+        #############
+        # Rflag flag
+        #############
         try:
             with suppress_casa_output():
                 flagdata(
                     vis=msname,
-                    mode="tfcrop",
+                    mode="rflag",
                     timefit="line",
                     freqfit="line",
                     extendflags=False,
-                    flagdimension=flagdimension,
-                    timecutoff=5.0,
-                    freqcutoff=5.0,
+                    timedevscale=5.0,
+                    freqdevscale=5.0,
                     extendpols=True,
                     growaround=False,
                     action="apply",
@@ -212,56 +246,36 @@ def single_ms_flag(
         except:
             pass
 
-    #############
-    # Rflag flag
-    #############
-    try:
-        with suppress_casa_output():
-            flagdata(
-                vis=msname,
-                mode="rflag",
-                timefit="line",
-                freqfit="line",
-                extendflags=False,
-                timedevscale=5.0,
-                freqdevscale=5.0,
-                extendpols=True,
-                growaround=False,
-                action="apply",
-                flagbackup=False,
-                overwrite=True,
-                writeflags=True,
-                datacolumn=datacolumn,
-                ntime=ntime,
-            )
-    except:
-        pass
-
-    ##############
-    # Extend flag
-    ##############
-    try:
-        with suppress_casa_output():
-            flagdata(
-                vis=msname,
-                mode="extend",
-                datacolumn="data",
-                clipzeros=True,
-                extendflags=False,
-                extendpols=True,
-                growtime=80.0,
-                growfreq=80.0,
-                growaround=False,
-                flagneartime=False,
-                flagnearfreq=False,
-                action="apply",
-                flagbackup=False,
-                overwrite=True,
-                writeflags=True,
-                ntime=ntime,
-            )
-    except:
-        pass
+        ##############
+        # Extend flag
+        ##############
+        try:
+            with suppress_casa_output():
+                flagdata(
+                    vis=msname,
+                    mode="extend",
+                    datacolumn="data",
+                    clipzeros=True,
+                    extendflags=False,
+                    extendpols=True,
+                    growtime=80.0,
+                    growfreq=80.0,
+                    growaround=False,
+                    flagneartime=False,
+                    flagnearfreq=False,
+                    action="apply",
+                    flagbackup=False,
+                    overwrite=True,
+                    writeflags=True,
+                    ntime=ntime,
+                )
+        except:
+            pass
+    except Exception as e:
+        traceback.print_exc()
+    finally:
+        time.sleep(5)
+        drop_cache(msname)
     return
 
 
@@ -387,11 +401,16 @@ def do_flagging(
         print("Total time taken : " + str(time.time() - start_time) + "s")
         print("##################\n")
         return 1
+    finally:
+        time.sleep(5)
+        drop_cache(msname)
 
 
 def main():
     usage = "Initial flagging of calibrator data"
-    parser = argparse.ArgumentParser(description=usage,formatter_class=SmartDefaultsHelpFormatter)
+    parser = argparse.ArgumentParser(
+        description=usage, formatter_class=SmartDefaultsHelpFormatter
+    )
 
     ## Essential parameters
     basic_args = parser.add_argument_group(
@@ -408,7 +427,7 @@ def main():
     adv_args = parser.add_argument_group(
         "###################\nAdvanced parameters\n###################"
     )
-    
+
     # Advanced switches
     adv_args.add_argument(
         "--no_flag_bad_ants",
@@ -504,8 +523,9 @@ def main():
         msg = 1
     finally:
         time.sleep(5)
+        drop_cache(args.msname)
+        drop_cache(args.workdir)
         clean_shutdown(observer)
-
     return msg
 
 

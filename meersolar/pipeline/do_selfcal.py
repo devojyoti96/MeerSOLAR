@@ -640,7 +640,6 @@ def do_selfcal(
             f"{workdir}/jobname_password.npy", allow_pickle=True
         )
         if os.path.exists(logfile):
-            print(f"Starting remote logger. Remote logger password: {password}")
             sub_observer = init_logger(
                 "remotelogger_selfcal_{os.path.basename(msname).split('.ms')[0]}",
                 logfile,
@@ -884,7 +883,6 @@ def do_selfcal(
             logger.info(
                 f"RMS of the images: " + str(RMS1) + "," + str(RMS2) + "," + str(RMS3)
             )
-            logger.info("######################################\n")
             if DR3 > 0.9 * DR2:
                 use_previous_model = True
             else:
@@ -1037,6 +1035,9 @@ def do_selfcal(
         time.sleep(5)
         clean_shutdown(sub_observer)
         return 1, []
+    finally:
+        time.sleep(5)
+        drop_cache(msname)
 
 
 def main():
@@ -1053,7 +1054,10 @@ def main():
         help="Comma-separated list of measurement sets (required positional argument)",
     )
     basic_args.add_argument(
-        "--workdir", type=str, default="", help="Working directory", metavar="String"
+        "--workdir", type=str, default="", required=True, help="Working directory", metavar="String"
+    )
+    basic_args.add_argument(
+        "--caldir", type=str, default="", required=True, help="Caltable directory", metavar="String"
     )
     
     ## Advanced parameters
@@ -1184,14 +1188,19 @@ def main():
     pid = os.getpid()
     save_pid(pid, datadir + f"/pids/pids_{args.jobid}.txt")
     if args.workdir == "" or os.path.exists(args.workdir) == False:
-        workdir = os.path.dirname(os.path.abspath(args.msname)) + "/workdir"
-        if os.path.exists(workdir) == False:
-            os.makedirs(workdir)
+        workdir = os.path.dirname(os.path.abspath(args.msname)) + "/workdir"            
     else:
         workdir = args.workdir
-    if os.path.exists(args.workdir + "/logs/") == False:
-        os.makedirs(args.workdir + "/logs/")
-    mainlog_file = args.workdir + "/logs/selfcal_targets.mainlog"
+    os.makedirs(workdir,exist_ok=True)
+    
+    if args.caldir=="" or not os.path.exists(args.caldir):
+        caldir=f"{workdir}/caltables"
+    else:
+        caldir=args.caldir
+    os.makedirs(caldir,exist_ok=True)
+        
+    os.makedirs(workdir + "/logs",exist_ok=True)
+    mainlog_file = workdir + "/logs/selfcal_targets.mainlog"
     mainlogger, mainlog_file = create_logger(
         os.path.basename(mainlog_file).split(".mainlog")[0], mainlog_file, verbose=False
     )
@@ -1217,183 +1226,179 @@ def main():
                 "Container {container_name} is not initiated. First initiate container and then run."
             )
             return 1
+    mslist = str(args.mslist).split(",")
     try:
-        if args.mslist == None:
-            mainlogger.info("Please provide a mslist.")
+        if len(mslist) == 0:
+            mainlogger.info("Please provide at-least one measurement set.")
             msg = 1
         else:
-            mslist = str(args.mslist).split(",")
-            if len(mslist) == 0:
-                mainlogger.info("Please provide at-least one measurement set.")
-                msg = 1
+            task = delayed(do_selfcal)(dry_run=True)
+            mem_limit = run_limited_memory_task(task, dask_dir=args.workdir)
+            partial_do_selfcal = partial(
+                do_selfcal,
+                start_threshold=float(args.start_thresh),
+                end_threshold=float(args.stop_thresh),
+                max_iter=int(args.max_iter),
+                max_DR=float(args.max_DR),
+                min_iter=int(args.min_iter),
+                DR_convegerence_frac=float(args.conv_frac),
+                uvrange=str(args.uvrange),
+                minuv=float(args.minuv),
+                solint=str(args.solint),
+                weight=str(args.weight),
+                robust=float(args.robust),
+                do_apcal=args.do_apcal,
+                applymode=args.applymode,
+                min_tol_factor=float(args.min_tol_factor),
+                solar_selfcal=args.solar_selfcal,
+            )
+
+            ####################################
+            # Filtering any corrupted ms
+            #####################################
+            filtered_mslist = []  # Filtering in case any ms is corrupted
+            for ms in mslist:
+                checkcol = check_datacolumn_valid(ms)
+                if checkcol:
+                    filtered_mslist.append(ms)
+                else:
+                    mainlogger.info(f"Issue in : {ms}")
+                    os.system("rm -rf {ms}")
+            mslist = filtered_mslist
+
+            chanlist = []
+            for ms in mslist:
+                channame = (
+                    os.path.basename(ms)
+                    .split(".ms")[0]
+                    .split("spw_")[-1]
+                    .split("_time")[0]
+                )
+                if channame not in chanlist:
+                    chanlist.append(channame)
+
+            available_mem = psutil.virtual_memory().available / 1024**3
+            if (mem_limit / 0.6) < 4 and available_mem > 4:
+                min_mem_per_job = 4
             else:
-                caldir = args.workdir + "/caltables"
-                if os.path.exists(caldir) == False:
-                    os.makedirs(caldir)
-                task = delayed(do_selfcal)(dry_run=True)
-                mem_limit = run_limited_memory_task(task, dask_dir=args.workdir)
-                partial_do_selfcal = partial(
-                    do_selfcal,
-                    start_threshold=float(args.start_thresh),
-                    end_threshold=float(args.stop_thresh),
-                    max_iter=int(args.max_iter),
-                    max_DR=float(args.max_DR),
-                    min_iter=int(args.min_iter),
-                    DR_convegerence_frac=float(args.conv_frac),
-                    uvrange=str(args.uvrange),
-                    minuv=float(args.minuv),
-                    solint=str(args.solint),
-                    weight=str(args.weight),
-                    robust=float(args.robust),
-                    do_apcal=args.do_apcal,
-                    applymode=args.applymode,
-                    min_tol_factor=float(args.min_tol_factor),
-                    solar_selfcal=args.solar_selfcal,
+                min_mem_per_job = mem_limit / 0.6
+
+            ######################################
+            # Resetting maximum file limit
+            ######################################
+            soft_limit, hard_limit = resource.getrlimit(resource.RLIMIT_NOFILE)
+            new_soft_limit = max(soft_limit, int(0.8 * hard_limit))
+            if soft_limit < new_soft_limit:
+                resource.setrlimit(
+                    resource.RLIMIT_NOFILE, (new_soft_limit, hard_limit)
                 )
 
-                ####################################
-                # Filtering any corrupted ms
-                #####################################
-                filtered_mslist = []  # Filtering in case any ms is corrupted
-                for ms in mslist:
-                    checkcol = check_datacolumn_valid(ms)
-                    if checkcol:
-                        filtered_mslist.append(ms)
-                    else:
-                        mainlogger.info(f"Issue in : {ms}")
-                        os.system("rm -rf {ms}")
-                mslist = filtered_mslist
+            num_fd_list = []
+            for ms in mslist:
+                msmd = msmetadata()
+                msmd.open(ms)
+                times = msmd.timesforspws(0)
+                timeres = np.diff(times)
+                pos = np.where(timeres > 3 * np.nanmedian(timeres))[0]
+                max_intervals = min(1, len(pos))
+                freqs = msmd.chanfreqs(0, unit="MHz")
+                freqres = np.diff(freqs)
+                pos = np.where(freqres > 3 * np.nanmedian(freqres))[0]
+                max_nchan = min(1, len(pos))
+                msmd.close()
+                per_job_fd = (
+                    (max_nchan + 1) * max_intervals * 4 * 2
+                )  # 4 types of images, 2 is fudge factor
+                num_fd_list.append(per_job_fd)
+            total_fd = max(num_fd_list) * len(mslist)
+            n_jobs = max(1, int(new_soft_limit / total_fd))
+            n_jobs = min(len(mslist), n_jobs)
 
-                chanlist = []
-                for ms in mslist:
-                    channame = (
-                        os.path.basename(ms)
-                        .split(".ms")[0]
-                        .split("spw_")[-1]
-                        .split("_time")[0]
-                    )
-                    if channame not in chanlist:
-                        chanlist.append(channame)
-
-                available_mem = psutil.virtual_memory().available / 1024**3
-                if (mem_limit / 0.6) < 4 and available_mem > 4:
-                    min_mem_per_job = 4
-                else:
-                    min_mem_per_job = mem_limit / 0.6
-
-                ######################################
-                # Resetting maximum file limit
-                ######################################
-                soft_limit, hard_limit = resource.getrlimit(resource.RLIMIT_NOFILE)
-                new_soft_limit = max(soft_limit, int(0.8 * hard_limit))
-                if soft_limit < new_soft_limit:
-                    resource.setrlimit(
-                        resource.RLIMIT_NOFILE, (new_soft_limit, hard_limit)
-                    )
-
-                num_fd_list = []
-                for ms in mslist:
-                    msmd = msmetadata()
-                    msmd.open(ms)
-                    times = msmd.timesforspws(0)
-                    timeres = np.diff(times)
-                    pos = np.where(timeres > 3 * np.nanmedian(timeres))[0]
-                    max_intervals = min(1, len(pos))
-                    freqs = msmd.chanfreqs(0, unit="MHz")
-                    freqres = np.diff(freqs)
-                    pos = np.where(freqres > 3 * np.nanmedian(freqres))[0]
-                    max_nchan = min(1, len(pos))
-                    msmd.close()
-                    per_job_fd = (
-                        (max_nchan + 1) * max_intervals * 4 * 2
-                    )  # 4 types of images, 2 is fudge factor
-                    num_fd_list.append(per_job_fd)
-                total_fd = max(num_fd_list) * len(mslist)
-                n_jobs = max(1, int(new_soft_limit / total_fd))
-                n_jobs = min(len(mslist), n_jobs)
-
-                dask_client, dask_cluster, n_jobs, n_threads, mem_limit = (
-                    get_dask_client(
-                        n_jobs,
-                        dask_dir=args.workdir,
-                        cpu_frac=float(args.cpu_frac),
-                        mem_frac=float(args.mem_frac),
-                        min_cpu_per_job=3,
-                        min_mem_per_job=min_mem_per_job,
-                    )
+            dask_client, dask_cluster, n_jobs, n_threads, mem_limit = (
+                get_dask_client(
+                    n_jobs,
+                    dask_dir=args.workdir,
+                    cpu_frac=float(args.cpu_frac),
+                    mem_frac=float(args.mem_frac),
+                    min_cpu_per_job=3,
+                    min_mem_per_job=min_mem_per_job,
                 )
-                tasks = []
-                for ms in mslist:
-                    logfile = (
+            )
+            tasks = []
+            for ms in mslist:
+                logfile = (
+                    args.workdir
+                    + "/logs/"
+                    + os.path.basename(ms).split(".ms")[0]
+                    + "_selfcal.log"
+                )
+                mainlogger.info(f"MS name: {ms}, Log file: {logfile}\n")
+                tasks.append(
+                    delayed(partial_do_selfcal)(
+                        ms,
+                        args.workdir,
                         args.workdir
-                        + "/logs/"
+                        + "/"
                         + os.path.basename(ms).split(".ms")[0]
-                        + "_selfcal.log"
+                        + "_selfcal",
+                        ncpu=n_threads,
+                        mem=mem_limit,
+                        logfile=logfile,
                     )
-                    mainlogger.info(f"MS name: {ms}, Log file: {logfile}\n")
-                    tasks.append(
-                        delayed(partial_do_selfcal)(
-                            ms,
-                            args.workdir,
-                            args.workdir
-                            + "/"
-                            + os.path.basename(ms).split(".ms")[0]
-                            + "_selfcal",
-                            ncpu=n_threads,
-                            mem=mem_limit,
-                            logfile=logfile,
-                        )
-                    )
-                results = compute(*tasks)
-                dask_client.close()
-                dask_cluster.close()
-                gcal_list = []
-                for i in range(len(results)):
-                    r = results[i]
-                    msg = r[0]
-                    if msg != 0:
-                        mainlogger.info(
-                            f"Self-calibration was not successful for ms: {mslist[i]}."
-                        )
-                    else:
-                        gcal = r[1]
-                        tb = table()
-                        tb.open(gcal)
-                        scan = np.unique(tb.getcol("SCAN_NUMBER"))[0]
-                        tb.close()
-                        final_gain_caltable = caldir + f"/selfcal_scan_{scan}.gcal"
-                        os.system(f"cp -r {gcal} {final_gain_caltable}")
-                        gcal_list.append(final_gain_caltable)
-                if args.keep_backup == False:
-                    for ms in mslist:
-                        selfcaldir = (
-                            args.workdir
-                            + "/"
-                            + os.path.basename(ms).split(".ms")[0]
-                            + "_selfcal"
-                        )
-                        os.system("rm -rf " + selfcaldir)
-                if len(gcal_list) > 0:
-                    mainlogger.info(f"Final selfcal caltables: {gcal_list}")
-                    mainlogger.info("################################################")
+                )
+            results = compute(*tasks)
+            dask_client.close()
+            dask_cluster.close()
+            gcal_list = []
+            for i in range(len(results)):
+                r = results[i]
+                msg = r[0]
+                if msg != 0:
                     mainlogger.info(
-                        f"Total time taken: {round(time.time()-starttime,2)}s"
+                        f"Self-calibration was not successful for ms: {mslist[i]}."
                     )
-                    mainlogger.info("################################################")
-                    msg = 0
                 else:
-                    mainlogger.info("No self-calibration is successful.")
-                    mainlogger.info("################################################")
-                    mainlogger.info(
-                        f"Total time taken: {round(time.time()-starttime,2)}s"
+                    gcal = r[1]
+                    tb = table()
+                    tb.open(gcal)
+                    scan = np.unique(tb.getcol("SCAN_NUMBER"))[0]
+                    tb.close()
+                    final_gain_caltable = caldir + f"/selfcal_scan_{scan}.gcal"
+                    os.system(f"cp -r {gcal} {final_gain_caltable}")
+                    gcal_list.append(final_gain_caltable)
+            if args.keep_backup == False:
+                for ms in mslist:
+                    selfcaldir = (
+                        args.workdir
+                        + "/"
+                        + os.path.basename(ms).split(".ms")[0]
+                        + "_selfcal"
                     )
-                    mainlogger.info("################################################")
-                    msg = 1
+                    os.system("rm -rf " + selfcaldir)
+            if len(gcal_list) > 0:
+                mainlogger.info(f"Final selfcal caltables: {gcal_list}")
+                mainlogger.info("################################################")
+                mainlogger.info(
+                    f"Total time taken: {round(time.time()-starttime,2)}s"
+                )
+                mainlogger.info("################################################")
+                msg = 0
+            else:
+                mainlogger.info("No self-calibration is successful.")
+                mainlogger.info("################################################")
+                mainlogger.info(
+                    f"Total time taken: {round(time.time()-starttime,2)}s"
+                )
+                mainlogger.info("################################################")
+                msg = 1
     except Exception as e:
         traceback.print_exc()
         msg = 1
     finally:
         time.sleep(5)
+        for ms in mslist:
+            drop_cache(ms)
+        drop_cache(args.workdir)
         clean_shutdown(observer)
     return msg
 

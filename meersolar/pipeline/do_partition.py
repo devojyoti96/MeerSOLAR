@@ -59,9 +59,9 @@ def single_mstransform(
         mem = round(process.memory_info().rss / 1024**3, 2)  # in GB
         return mem
     print(
-        f"Transforming scan : {scan}, channel averaging: {width}, time averaging: {timebin}\n"
+        f"Transforming scan : {scan}, channel averaging: {width}, time averaging: '{timebin}'\n"
     )
-    if timebin == "":
+    if timebin == "" or timebin == None:
         timeaverage = False
     else:
         timeaverage = True
@@ -205,62 +205,75 @@ def partion_ms(
     ###########################
     # Dask local cluster setup
     ###########################
+    scan_sizes = []
+    for scan in scan_list:
+        scan_sizes.append(get_ms_scan_size(msname, int(scan)))
+    total_required_size = round(2*np.nansum(scan_sizes), 2)
     task = delayed(single_mstransform)(dry_run=True)
     mem_limit = run_limited_memory_task(task, dask_dir=workdir)
-    dask_client, dask_cluster, n_jobs, n_threads, mem_limit = get_dask_client(
-        len(scan_list),
-        dask_dir=workdir,
-        cpu_frac=cpu_frac,
-        mem_frac=mem_frac,
-        min_mem_per_job=mem_limit / 0.6,
-    )
-    tasks = []
-    for i in range(len(scan_list)):
-        scan = scan_list[i]
-        outputvis = workdir + "/scan_" + str(scan) + ".ms"
-        task = delayed(single_mstransform)(
-            msname,
-            outputvis,
-            scan=str(scan),
-            field="",
-            corr=corr,
-            width=width,
-            timebin=timebin,
-            n_threads=n_threads,
+    os.environ["TMPDIR"] = workdir
+    with tmp_with_cache_rel(
+        total_required_size, workdir, prefix="tmp_meersolar_partition_"
+    ) as temp_workdir:
+        dask_client, dask_cluster, n_jobs, n_threads, mem_limit = get_dask_client(
+            len(scan_list),
+            dask_dir=temp_workdir,
+            cpu_frac=cpu_frac,
+            mem_frac=mem_frac,
+            min_mem_per_job=mem_limit / 0.6,
         )
-        tasks.append(task)
-    splited_ms_list = compute(*tasks)
-    dask_client.close()
-    dask_cluster.close()
-    splited_ms_list_copy = copy.deepcopy(splited_ms_list)
-    for ms in splited_ms_list:
-        if ms == None:
-            splited_ms_list_copy.remove(ms)
-    splited_ms_list = copy.deepcopy(splited_ms_list_copy)
-    outputms = outputms.rstrip("/")
-    if os.path.exists(outputms):
-        os.system("rm -rf " + outputms)
-    if os.path.exists(outputms + ".flagversions"):
-        os.system("rm -rf " + outputms + ".flagversions")
-    if len(splited_ms_list) == 0:
-        print("No splited ms to concat.")
-    elif len(splited_ms_list) == 1:
-        os.system(f"mv {splited_ms_list[0]} {outputms}")
-    else:
-        print("Making multi-MS ....")
-        from casatasks import virtualconcat
-        with suppress_casa_output():
-            virtualconcat(vis=splited_ms_list, concatvis=outputms)
+        tasks = []
+        for i in range(len(scan_list)):
+            scan = scan_list[i]
+            outputvis = os.path.join(temp_workdir, f"scan_{scan}.ms")
+            task = delayed(single_mstransform)(
+                msname,
+                outputvis,
+                scan=str(scan),
+                field="",
+                corr=corr,
+                width=width,
+                timebin=timebin,
+                n_threads=n_threads,
+            )
+            tasks.append(task)
+        splited_ms_list = compute(*tasks)
+        dask_client.close()
+        dask_cluster.close()
+        splited_ms_list_copy = copy.deepcopy(splited_ms_list)
+        for ms in splited_ms_list:
+            if ms == None:
+                splited_ms_list_copy.remove(ms)
+        splited_ms_list = copy.deepcopy(splited_ms_list_copy)
+        outputms = outputms.rstrip("/")
+        if os.path.exists(outputms):
+            os.system("rm -rf " + outputms)
+        if os.path.exists(outputms + ".flagversions"):
+            os.system("rm -rf " + outputms + ".flagversions")
+        if len(splited_ms_list) == 0:
+            print("No splited ms to concat.")
+        elif len(splited_ms_list) == 1:
+            os.system(f"mv {splited_ms_list[0]} {outputms}")
+        else:
+            print("Making multi-MS ....")
+            from casatasks import virtualconcat
+
+            with suppress_casa_output():
+                virtualconcat(vis=splited_ms_list, concatvis=outputms)
     print("##################")
     print("Total time taken : " + str(time.time() - start_time) + "s")
     print("##################\n")
     gc.collect()
+    time.sleep(5)
+    drop_cache(msname)
+    drop_cache(workdir)
     return outputms
 
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Partition measurement set in multi-MS format",formatter_class=SmartDefaultsHelpFormatter
+        description="Partition measurement set in multi-MS format",
+        formatter_class=SmartDefaultsHelpFormatter,
     )
 
     ## Essential parameters
@@ -275,12 +288,10 @@ def main():
     basic_args.add_argument(
         "--outputms",
         type=str,
-        default="multi.ms", 
+        default="multi.ms",
         help="Name of output multi-MS",
     )
-    basic_args.add_argument(
-        "--workdir", type=str, default="",  help="Work directory"
-    )
+    basic_args.add_argument("--workdir", type=str, required=True, help="Work directory")
 
     ## Advanced parameters
     adv_args = parser.add_argument_group(
@@ -323,7 +334,7 @@ def main():
         default=False,
         help="Split all polarizations (default: False)",
     )
-    
+
     ## Resource management parameters
     hard_args = parser.add_argument_group(
         "###################\nHardware resource management parameters\n###################"
@@ -340,9 +351,7 @@ def main():
         default=0.8,
         help="Memory fraction to use",
     )
-    hard_args.add_argument(
-        "--logfile", type=str, default=None,  help="Path to log file"
-    )
+    hard_args.add_argument("--logfile", type=str, default=None, help="Path to log file")
     hard_args.add_argument(
         "--jobid",
         type=str,
@@ -409,8 +418,9 @@ def main():
         msg = 1
     finally:
         time.sleep(5)
+        drop_cache(args.msname)
+        drop_cache(args.workdir)
         clean_shutdown(observer)
-
     return msg
 
 

@@ -39,52 +39,68 @@ def cor_sidereal_motion(
         List of sidereal motion corrected measurement sets
     """
     start_time = time.time()
-    #############################################
-    # Memory limit
-    #############################################
-    task = delayed(correct_solar_sidereal_motion)(dry_run=True)
-    mem_limit = run_limited_memory_task(task, dask_dir=workdir)
-    #############################################
-    tasks = []
-    for ms in mslist:
-        tasks.append(delayed(correct_solar_sidereal_motion)(ms))
-    total_chunks = len(tasks)
-    dask_client, dask_cluster, n_jobs, n_threads, mem_limit = get_dask_client(
-        total_chunks,
-        dask_dir=workdir,
-        cpu_frac=cpu_frac,
-        mem_frac=mem_frac,
-        min_mem_per_job=mem_limit / 0.6,
-    )
-    results = compute(*tasks)
-    dask_client.close()
-    dask_cluster.close()
-    splited_ms_list_phaserotated = []
-    for i in range(len(results)):
-        msg = results[i]
-        ms = mslist[i]
-        if msg == 0:
-            if os.path.exists(ms + "/.sidereal_cor"):
-                splited_ms_list_phaserotated.append(ms)
-    if len(splited_ms_list_phaserotated) == 0:
+    try:
+        #############################################
+        # Memory limit
+        #############################################
+        task = delayed(correct_solar_sidereal_motion)(dry_run=True)
+        mem_limit = run_limited_memory_task(task, dask_dir=workdir)
+        #############################################
+        tasks = []
+        for ms in mslist:
+            tasks.append(delayed(correct_solar_sidereal_motion)(ms))
+        total_chunks = len(tasks)
+        dask_client, dask_cluster, n_jobs, n_threads, mem_limit = get_dask_client(
+            total_chunks,
+            dask_dir=workdir,
+            cpu_frac=cpu_frac,
+            mem_frac=mem_frac,
+            min_mem_per_job=mem_limit / 0.6,
+        )
+        results = compute(*tasks)
+        dask_client.close()
+        dask_cluster.close()
+        splited_ms_list_phaserotated = []
+        for i in range(len(results)):
+            msg = results[i]
+            ms = mslist[i]
+            if msg == 0:
+                if os.path.exists(ms + "/.sidereal_cor"):
+                    splited_ms_list_phaserotated.append(ms)
+        if len(splited_ms_list_phaserotated) == 0:
+            print("##################")
+            print(
+                "Sidereal motion correction is not successful for any measurement set."
+            )
+            print("Total time taken : ", time.time() - start_time)
+            print("##################\n")
+            return 1, []
+        else:
+            print("##################")
+            print("Sidereal motion corrections are done successfully.")
+            print("Total time taken : ", time.time() - start_time)
+            print("##################\n")
+            return 0, splited_ms_list_phaserotated
+    except Exception as e:
+        traceback.print_exc()
         print("##################")
         print("Sidereal motion correction is not successful for any measurement set.")
         print("Total time taken : ", time.time() - start_time)
         print("##################\n")
         return 1, []
-    else:
-        print("##################")
-        print("Sidereal motion corrections are done successfully.")
-        print("Total time taken : ", time.time() - start_time)
-        print("##################\n")
-        return 0, splited_ms_list_phaserotated
+    finally:
+        time.sleep(5)
+        for ms in mslist:
+            drop_cache(ms)
+        drop_cache(workdir)
 
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Correct measurement sets for sidereal motion",formatter_class=SmartDefaultsHelpFormatter
+        description="Correct measurement sets for sidereal motion",
+        formatter_class=SmartDefaultsHelpFormatter,
     )
-    
+
     ## Essential parameters
     basic_args = parser.add_argument_group(
         "###################\nEssential parameters\n###################"
@@ -97,7 +113,7 @@ def main():
     basic_args.add_argument(
         "--workdir", type=str, default="", help="Working directory", metavar="String"
     )
-    
+
     ## Resource management parameters
     hard_args = parser.add_argument_group(
         "###################\nHardware resource management parameters\n###################"
@@ -166,9 +182,8 @@ def main():
             observer = init_logger(
                 "do_sidereal_cor", logfile, jobname=jobname, password=password
             )
-
+    mslist = args.mslist.split(",")
     try:
-        mslist = args.mslist.split(",")
         if len(mslist) == 0:
             print("Please provide a list of measurement sets.")
             msg = 1
@@ -189,6 +204,9 @@ def main():
         msg = 1
     finally:
         time.sleep(5)
+        for ms in mslist:
+            drop_cache(ms)
+        drop_cache(args.workdir)
         clean_shutdown(observer)
     return msg
 

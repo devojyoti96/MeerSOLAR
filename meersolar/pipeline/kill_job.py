@@ -1,6 +1,7 @@
 import os, sys, signal, argparse, numpy as np, time, psutil
 from meersolar.pipeline.basic_func import *
 
+
 def kill_process_and_children(pid):
     try:
         parent = psutil.Process(pid)
@@ -13,6 +14,7 @@ def kill_process_and_children(pid):
         parent.kill()
     except (psutil.NoSuchProcess, ProcessLookupError):
         pass
+
 
 def force_kill_pids_with_children(pids, max_tries=10, wait_time=0.5):
     """
@@ -28,13 +30,13 @@ def force_kill_pids_with_children(pids, max_tries=10, wait_time=0.5):
 
         time.sleep(wait_time)
 
-        remaining = [pid for pid in np.atleast_1d(pids)
-                     if psutil.pid_exists(int(pid))]
+        remaining = [pid for pid in np.atleast_1d(pids) if psutil.pid_exists(int(pid))]
 
         if not remaining:
             break
         else:
             pids = remaining
+
 
 def kill_meerjob():
     """
@@ -51,8 +53,9 @@ def kill_meerjob():
     datadir = get_datadir()
     jobfile_name = datadir + f"/main_pids_{args.jobid}.txt"
     results = np.loadtxt(jobfile_name, dtype="str", unpack=True)
-    basedir = results[2]
-    main_pid = results[1]
+    main_pid = int(results[1])
+    msname = str(results[2])
+    basedir = str(results[3])
     pid_file = datadir + f"/pids/pids_{args.jobid}.txt"
     try:
         os.kill(int(main_pid), signal.SIGKILL)
@@ -61,6 +64,10 @@ def kill_meerjob():
     if os.path.exists(pid_file):
         pids = np.loadtxt(pid_file, unpack=True, dtype="int")
         force_kill_pids_with_children(pids)
-       
-if __name__=="__main__":
+    os.system(f"rm -rf {basedir}/tmp_meersolar_*")
+    drop_cache(msname)
+    drop_cache(basedir)
+
+
+if __name__ == "__main__":
     kill_meerjob()

@@ -155,13 +155,19 @@ def run_all_applysol(
         print("Total time taken : ", time.time() - start_time)
         print("##################\n")
         return 1
+    finally:
+        time.sleep(5)
+        for ms in mslist:
+            drop_cache(ms)
+        drop_cache(workdir)
 
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Apply self-calibration solutions to target scans",formatter_class=SmartDefaultsHelpFormatter
+        description="Apply self-calibration solutions to target scans",
+        formatter_class=SmartDefaultsHelpFormatter,
     )
-    
+
     ## Essential parameters
     basic_args = parser.add_argument_group(
         "###################\nEssential parameters\n###################"
@@ -280,8 +286,10 @@ def main():
         msg = 1
     finally:
         time.sleep(5)
+        for ms in mslist:
+            drop_cache(ms)
+        drop_cache(args.workdir)
         clean_shutdown(observer)
-
     return msg
 
 

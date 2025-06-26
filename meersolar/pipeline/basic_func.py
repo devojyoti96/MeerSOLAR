@@ -1,8 +1,9 @@
 import os, sys, glob, time, gc, tempfile, copy, traceback, resource, requests, threading, socket, argparse
+
 os.environ["QT_OPENGL"] = "software"
 os.environ["QT_QPA_PLATFORM"] = "offscreen"
-import matplotlib.ticker as ticker, matplotlib.pyplot as plt, matplotlib, subprocess, contextlib, ctypes
-import numpy as np, dask, psutil, logging, sunpy, tempfile , shutil
+import matplotlib.ticker as ticker, matplotlib.pyplot as plt, matplotlib, subprocess, contextlib, ctypes, platform
+import numpy as np, dask, psutil, logging, sunpy, tempfile, shutil
 import astropy.units as u, string, secrets
 from contextlib import contextmanager
 from astropy.coordinates import EarthLocation, SkyCoord
@@ -42,6 +43,7 @@ try:
 except:
     pass
 
+
 def get_datadir():
     """
     Get package data directory
@@ -61,19 +63,24 @@ os.environ["UDOCKER_TARBALL"] = datadir + "/udocker-englib-1.2.11.tar.gz"
 POSIX_FADV_DONTNEED = 4
 libc = ctypes.CDLL("libc.so.6")
 
+
 class SmartDefaultsHelpFormatter(argparse.ArgumentDefaultsHelpFormatter):
     def _get_help_string(self, action):
         # Don't show default for boolean flags
-        if isinstance(action, argparse._StoreTrueAction) or isinstance(action, argparse._StoreFalseAction):
+        if isinstance(action, argparse._StoreTrueAction) or isinstance(
+            action, argparse._StoreFalseAction
+        ):
             return action.help
         return super()._get_help_string(action)
-        
+
+
 def init_udocker():
     os.system("udocker install")
-    
+
+
 @contextlib.contextmanager
 def suppress_casa_output():
-    with open(os.devnull, 'w') as fnull:
+    with open(os.devnull, "w") as fnull:
         old_stdout = os.dup(1)
         old_stderr = os.dup(2)
         os.dup2(fnull.fileno(), 1)
@@ -84,6 +91,7 @@ def suppress_casa_output():
             os.dup2(old_stdout, 1)
             os.dup2(old_stderr, 2)
 
+
 def clean_shutdown(observer):
     if observer:
         observer.stop()
@@ -93,11 +101,13 @@ def clean_shutdown(observer):
 #####################################
 # Resource management
 #####################################
-def drop_file_cache(filepath,verbose=False):
+def drop_file_cache(filepath, verbose=False):
     """
     Advise the OS to drop the given file from the page cache.
     Safe, per-file, no sudo required.
     """
+    if platform.system() != "Linux":
+        raise NotImplementedError("drop_file_cache is only supported on Linux")
     try:
         if not os.path.isfile(filepath):
             return
@@ -113,8 +123,9 @@ def drop_file_cache(filepath,verbose=False):
         if verbose:
             print(f"[cache drop] Error for {filepath}: {e}")
             traceback.print_exc()
-        
-def drop_cache(path,verbose=False):
+
+
+def drop_cache(path, verbose=False):
     """
     Drop file cache for a file or all files under a directory.
 
@@ -123,16 +134,19 @@ def drop_cache(path,verbose=False):
     path : str
         File or directory path
     """
+    if platform.system() != "Linux":
+        raise NotImplementedError("drop_file_cache is only supported on Linux")
     if os.path.isfile(path):
-        drop_file_cache(path,verbose=verbose)
+        drop_file_cache(path, verbose=verbose)
     elif os.path.isdir(path):
         for root, _, files in os.walk(path):
             for f in files:
                 full_path = os.path.join(root, f)
-                drop_file_cache(full_path,verbose=verbose)
+                drop_file_cache(full_path, verbose=verbose)
     else:
         if verbose:
             print(f"[cache drop] Path does not exist or is not valid: {path}")
+
 
 def has_space(path, required_gb):
     try:
@@ -141,41 +155,63 @@ def has_space(path, required_gb):
     except:
         return False
 
+
 @contextmanager
-def shm_or_tmp(required_gb=2.0, prefix="meersolar_"):
+def shm_or_tmp(required_gb, workdir, prefix="meersolar_", verbose=False):
     """
     Create a temporary working directory:
     1. Try /dev/shm if it has required space
     2. Else TMPDIR if set and has space
-    3. Else /tmp if it has space
-    4. Else current directory
-
+    4. Else work directory
     Temporarily sets TMPDIR to the selected path during the context.
     Cleans up after use.
+
+    Parameters
+    ----------
+    required_gb : float
+        Required disk space in GB
+    workdir : str
+        Fall back work directory
+    prefix : str, optional
+        Temp directory prefix
+    verbose : bool, optional
+        Verbose
     """
+
     def has_space(path, required_gb):
         try:
             stat = shutil.disk_usage(path)
-            return (stat.free / 1e9) >= required_gb
+            return (
+                stat.free / 1e9
+            ) >= 2 * required_gb  # At-least two times of required disk space
         except:
             return False
+
     candidates = []
     if has_space("/dev/shm", required_gb):
         candidates.append("/dev/shm")
     tmpdir_env = os.environ.get("TMPDIR")
-    if tmpdir_env and has_space(tmpdir_env, required_gb):
+    if tmpdir_env is not None and has_space(tmpdir_env, required_gb):
         candidates.append(tmpdir_env)
-    if has_space("/tmp", required_gb):
-        candidates.append("/tmp")
     candidates.append(os.getcwd())
-    for base_dir in candidates:
+    for i in range(len(candidates)):
+        base_dir = candidates[i]
         try:
             temp_dir = tempfile.mkdtemp(dir=base_dir, prefix=prefix)
+            if verbose:
+                if i == 0:
+                    print("Using RAM")
+                elif i == 1:
+                    print("Using {os.environ.get('TMPDIR')}")
+                else:
+                    print("Using {os.getcwd()}")
             break
         except Exception as e:
             print(f"[shm_or_tmp] Failed to create temp dir in {base_dir}: {e}")
     else:
-        raise RuntimeError("Could not create a temporary directory in any fallback location.")
+        raise RuntimeError(
+            "Could not create a temporary directory in any fallback location."
+        )
     # Override TMPDIR
     old_tmpdir = os.environ.get("TMPDIR")
     os.environ["TMPDIR"] = temp_dir
@@ -193,18 +229,33 @@ def shm_or_tmp(required_gb=2.0, prefix="meersolar_"):
         except Exception as e:
             print(f"[cleanup] Warning: could not delete {temp_dir}: {e}")
 
+
 @contextmanager
-def tmp_with_cache_rel(required_gb=2.0, prefix="meersolar_"):
+def tmp_with_cache_rel(required_gb, workdir, prefix="meersolar_", verbose=False):
     """
     Combined context manager:
     - Uses shm_or_tmp() for workspace
     - Drops kernel page cache for all files in that directory on exit
+    
+    Parameters
+    ----------
+    required_gb : float
+        Required disk space in GB
+    workdir : str
+        Fall back work directory
+    prefix : str, optional
+        Temp directory prefix
+    verbose : bool, optional
+        Verbose
+    
     """
-    with shm_or_tmp(required_gb=required_gb, prefix=prefix) as tempdir:
+    with shm_or_tmp(required_gb, workdir, prefix=prefix, verbose=verbose) as tempdir:
         try:
             yield tempdir
         finally:
-            drop_cache(tempdir)
+            if platform.system() == "Linux":
+                drop_cache(tempdir)
+
 
 def limit_threads(n_threads=-1):
     """
@@ -220,6 +271,7 @@ def limit_threads(n_threads=-1):
         os.environ["OPENBLAS_NUM_THREADS"] = str(n_threads)
         os.environ["MKL_NUM_THREADS"] = str(n_threads)
         os.environ["VECLIB_MAXIMUM_THREADS"] = str(n_threads)
+
 
 ##################################
 
@@ -252,6 +304,7 @@ def get_remote_logger_link():
     except Exception:
         return ""
 
+
 def get_emails():
     datadir = get_datadir()
     email_file = os.path.join(datadir, "emails.txt")
@@ -264,6 +317,7 @@ def get_emails():
         return ""
     else:
         return lines[0]
+
 
 class RemoteLogger(logging.Handler):
     """
@@ -321,19 +375,18 @@ class LogTailHandler(FileSystemEventHandler):
                 pass
 
 
-def ping_logger(jobid, stop_event, remote_link=""):
+def ping_logger(jobid, remote_jobid, stop_event, remote_link=""):
     """Ping a job-specific keep-alive endpoint periodically until stop_event is set."""
     pid = os.getpid()
-    print("PID", pid)
     datadir = get_datadir()
     save_pid(pid, datadir + f"/pids/pids_{jobid}.txt")
     interval = 10  # 10 min interval
     if remote_link != "":
-        url = f"{remote_link}/api/ping/{jobid}"
+        url = f"{remote_link}/api/ping/{remote_jobid}"
         while not stop_event.is_set():
             try:
                 print(
-                    f"[ping_logger] Ping sent for job {jobid} at {dt.now().isoformat()}"
+                    f"[ping_logger] Ping sent for job {remote_jobid} at {dt.now().isoformat()}"
                 )
                 res = requests.post(url, timeout=2)
             except Exception as e:
@@ -721,14 +774,15 @@ def make_solar_DS(
 
     warnings.filterwarnings("ignore", category=RuntimeWarning)
     os.makedirs(f"{workdir}/dynamic_spectra", exist_ok=True)
-    print ("##############################################")
-    print (f"Start making dynamic spectra for ms: {msname}")
-    print ("##############################################")
-    if len(target_scans)>0:
-        temp_target_scans=[]
+    print("##############################################")
+    print(f"Start making dynamic spectra for ms: {msname}")
+    print("##############################################")
+    if len(target_scans) > 0:
+        temp_target_scans = []
         for s in target_scans:
             temp_target_scans.append(int(s))
-        target_scans=temp_target_scans
+        target_scans = temp_target_scans
+
     ##############################
     # Extract dynamic spectrum
     ##############################
@@ -820,7 +874,9 @@ def make_solar_DS(
     mstool = casamstool()
     for scan in scans:
         if scan in valid_scans:
-            if len(target_scans)==0 or (len(target_scans)>0 and int(scan) in target_scans):
+            if len(target_scans) == 0 or (
+                len(target_scans) > 0 and int(scan) in target_scans
+            ):
                 final_scans.append(int(scan))
                 msmd.open(msname)
                 nchan = msmd.nchan(0)
@@ -831,10 +887,10 @@ def make_solar_DS(
                 nrow = mstool.nrow(True)
                 mstool.close()
                 nbaselines = int(nant + (nant * (nant - 1) / 2))
-                scan_size=(5 * (nrow / nbaselines) * 16) / (1024**3)
+                scan_size = (5 * (nrow / nbaselines) * 16) / (1024**3)
                 scan_size_list.append(scan_size)
-    if len(final_scans)==0:
-        print ("No scans to make dynamic spectra.")
+    if len(final_scans) == 0:
+        print("No scans to make dynamic spectra.")
         return
     del scans
     scans = sorted(final_scans)
@@ -860,13 +916,18 @@ def make_solar_DS(
     for scan in scans:
         tasks.append(
             delayed(make_ds_file_per_scan)(
-                msname, f"{workdir}/dynamic_spectra/{ds_file_name}_scan_{scan}", scan, datacolumn
+                msname,
+                f"{workdir}/dynamic_spectra/{ds_file_name}_scan_{scan}",
+                scan,
+                datacolumn,
             )
         )
     compute(*tasks)
     dask_client.close()
     dask_cluster.close()
-    ds_files = [f"{workdir}/dynamic_spectra/{ds_file_name}_scan_{scan}.npy" for scan in scans]
+    ds_files = [
+        f"{workdir}/dynamic_spectra/{ds_file_name}_scan_{scan}.npy" for scan in scans
+    ]
     print(f"DS files: {ds_files}")
     if merge_scan == False:
         plots = []
@@ -879,7 +940,9 @@ def make_solar_DS(
             plots.append(plot_file)
     else:
         plot_file = make_ds_plot(
-            ds_files, plot_file=f"{workdir}/dynamic_spectra/{ds_file_name}.{extension}", showgui=showgui
+            ds_files,
+            plot_file=f"{workdir}/dynamic_spectra/{ds_file_name}.{extension}",
+            showgui=showgui,
         )
     gc.collect()
     goes_files = glob.glob(f"{workdir}/dynamic_spectra/sci*.nc")
@@ -1728,6 +1791,27 @@ def get_refant(msname="", n_threads=-1, dry_run=False):
     goodrms = np.array(goodrms)
     referenceant = np.argmin(goodrms)
     return str(referenceant)
+
+
+def get_ms_scans(msname):
+    """
+    Get scans of the measurement set
+
+    Parameters
+    ----------
+    msname : str
+        Measurement set
+
+    Returns
+    -------
+    list
+        Scan list
+    """
+    msmd = msmetadata()
+    msmd.open(msname)
+    scans = msmd.scannumbers().tolist()
+    msmd.close()
+    return scans
 
 
 def get_submsname_scans(msname):
@@ -3932,6 +4016,7 @@ def merge_caltables(caltables, merged_caltable, append=False, keepcopy=False):
                     os.system("rm -rf " + caltable)
     return merged_caltable
 
+
 def get_nprocess_meersolar(jobid):
     """
     Get numbers of MeerSOLAR processes currently running
@@ -3973,7 +4058,7 @@ def save_pid(pid, pid_file):
         pids = np.loadtxt(pid_file, unpack=True, dtype="int")
         pids = np.append(pids, pid)
     else:
-        pids = np.array([pid], dtype="int")
+        pids = np.array([int(pid)])
     np.savetxt(pid_file, pids, fmt="%d")
 
 
@@ -4004,13 +4089,15 @@ def get_jobid():
         CUTOFF = dt.utcnow() - timedelta(days=15)
         filtered_prev_jobids = []
         for job_id in prev_jobids:
-            job_time = dt.strptime(job_id.ljust(20, '0'), FORMAT)  # pad if truncated
-            if job_time >= CUTOFF or job_id==0: # Job ID 0 is always kept
+            job_time = dt.strptime(job_id.ljust(20, "0"), FORMAT)  # pad if truncated
+            if job_time >= CUTOFF or job_id == 0:  # Job ID 0 is always kept
                 filtered_prev_jobids.append(job_id)
         prev_jobids = filtered_prev_jobids
 
     now = dt.utcnow()
-    cur_jobid = now.strftime("%Y%m%d%H%M%S") + f"{int(now.microsecond/1000):03d}"  # ms = first 3 digits of microseconds
+    cur_jobid = (
+        now.strftime("%Y%m%d%H%M%S") + f"{int(now.microsecond/1000):03d}"
+    )  # ms = first 3 digits of microseconds
     prev_jobids.append(cur_jobid)
 
     job_ids_int = np.array(prev_jobids, dtype=np.int64)
@@ -4019,7 +4106,7 @@ def get_jobid():
     return int(cur_jobid)
 
 
-def save_main_process_info(pid, jobid, basedir, cpu_frac, mem_frac):
+def save_main_process_info(pid, jobid, msname, basedir, cpu_frac, mem_frac):
     """
     Save MeerSOLAR main processes info
 
@@ -4029,6 +4116,8 @@ def save_main_process_info(pid, jobid, basedir, cpu_frac, mem_frac):
         Main job process id
     jobid : int
         MeerSOLAR Job ID
+    msname : str
+        Main measurement set
     basedir : str
         Base directory
     cpu_frac : float
@@ -4042,23 +4131,26 @@ def save_main_process_info(pid, jobid, basedir, cpu_frac, mem_frac):
         Job info file name
     """
     datadir = get_datadir()
-    prev_main_pids=glob.glob(f"{datadir}/main_pids_*.txt")
-    prev_jobids=[str(os.path.basename(i).rstrip(".txt").split("main_pids_")[-1]) for i in prev_main_pids]
+    prev_main_pids = glob.glob(f"{datadir}/main_pids_*.txt")
+    prev_jobids = [
+        str(os.path.basename(i).rstrip(".txt").split("main_pids_")[-1])
+        for i in prev_main_pids
+    ]
     if len(prev_jobids) > 0:
         FORMAT = "%Y%m%d%H%M%S%f"
         CUTOFF = dt.utcnow() - timedelta(days=15)
         filtered_prev_jobids = []
         for i in range(len(prev_jobids)):
-            job_id=prev_jobids[i]
-            job_time = dt.strptime(job_id.ljust(20, '0'), FORMAT)  # pad if truncated
-            if job_time < CUTOFF or job_id==0: # Job ID 0 is always kept
+            job_id = prev_jobids[i]
+            job_time = dt.strptime(job_id.ljust(20, "0"), FORMAT)  # pad if truncated
+            if job_time < CUTOFF or job_id == 0:  # Job ID 0 is always kept
                 filtered_prev_jobids.append(job_id)
             else:
                 os.system(f"rm -rf {prev_main_pids[i]}")
                 if os.path.exists(f"{datadir}/pids/pids_{job_id}.txt"):
-                    os.system(f"rm -rf {datadir}/pids/pids_{job_id}.txt")    
+                    os.system(f"rm -rf {datadir}/pids/pids_{job_id}.txt")
     main_job_file = datadir + f"/main_pids_{jobid}.txt"
-    main_str = f"{jobid} {pid} {basedir} {cpu_frac} {mem_frac}"
+    main_str = f"{jobid} {pid} {msname} {basedir} {cpu_frac} {mem_frac}"
     with open(main_job_file, "w") as f:
         f.write(main_str)
     return main_job_file
@@ -4399,13 +4491,17 @@ def baseline_names(msname):
         baseline_names.append(str(ant1) + "&&" + str(ant2))
     return baseline_names
 
-def get_ms_size(msname):
+
+def get_ms_size(msname, only_autocorr=False):
     """
     Get measurement set total size
 
     Parameters
     ----------
     msname : str
+        Measurement set name
+    only_autocorr : bool, optional
+        Only auto-correlation
 
     Returns
     -------
@@ -4417,9 +4513,18 @@ def get_ms_size(msname):
         for f in filenames:
             fp = os.path.join(dirpath, f)
             total_size += os.path.getsize(fp)
-    return total_size / (1024**3)  # in GB
+    if only_autocorr:
+        msmd = msmetadata()
+        msmd.open(msname)
+        nant = msmd.nantennas()
+        msmd.close()
+        all_baselines = (nant * nant) / 2
+        total_size /= all_baselines
+        total_size *= nant
+    return round(total_size / (1024**3), 2)  # in GB
 
-def get_column_size(msname):
+
+def get_column_size(msname, only_autocorr=False):
     """
     Get time chunk size for a memory limit
 
@@ -4427,6 +4532,8 @@ def get_column_size(msname):
     ----------
     msname : str
         Measurement set
+    only_autocorr : bool, optional
+        Only auto-correlations
 
     Returns
     -------
@@ -4438,40 +4545,49 @@ def get_column_size(msname):
     nrow = int(msmd.nrows())
     nchan = msmd.nchan(0)
     npol = msmd.ncorrforpol()[0]
+    nant = msmd.nantennas()
     msmd.close()
     datasize = nrow * nchan * npol * 16 / (1024.0**3)
-    return datasize
+    if only_autocorr:
+        all_baselines = (nant * nant) / 2
+        datasize /= all_baselines
+        datasize *= nant
+    return round(datasize, 2)
 
-def get_ms_scan_size(msname,scan):
+
+def get_ms_scan_size(msname, scan, only_autocorr=False):
     """
     Get measurement set scan size
-    
+
     Parameters
     ----------
     msname : str
         Measurement set
     scan : int
         Scan number
-        
+    only_autocorr : bool, optional
+        Only for auto-correlations
+
     Returns
     -------
     float
         Size in GB
     """
-    tb=table()
+    tb = table()
     tb.open(msname)
-    nrow=tb.nrows()
+    nrow = tb.nrows()
     tb.close()
-    mstool=casamstool()
+    mstool = casamstool()
     mstool.open(msname)
     mstool.select({"scan_number": int(scan)})
     scan_nrow = mstool.nrow(True)
     mstool.close()
-    ms_size=get_ms_size(msname)
-    scan_size=scan_nrow*(ms_size/nrow)
-    return scan_size
+    ms_size = get_ms_size(msname, only_autocorr=only_autocorr)
+    scan_size = scan_nrow * (ms_size / nrow)
+    return round(scan_size, 2)
 
-def get_chunk_size(msname, memory_limit=-1):
+
+def get_chunk_size(msname, memory_limit=-1, only_autocorr=False):
     """
     Get time chunk size for a memory limit
 
@@ -4481,6 +4597,8 @@ def get_chunk_size(msname, memory_limit=-1):
         Measurement set
     memory_limit : int, optional
         Memory limit
+    only_autocorr : bool, optional
+        Only aut-correlation
 
     Returns
     -------
@@ -4489,7 +4607,7 @@ def get_chunk_size(msname, memory_limit=-1):
     """
     if memory_limit == -1:
         memory_limit = psutil.virtual_memory().available / 1024**3  # In GB
-    col_size = get_column_size(msname)
+    col_size = get_column_size(msname, only_autocorr=only_autocorr)
     nchunk = int(col_size / memory_limit)
     if nchunk < 1:
         nchunk = 1

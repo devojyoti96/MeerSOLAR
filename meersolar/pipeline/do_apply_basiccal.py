@@ -67,7 +67,6 @@ def filter_outliers(data, threshold=5, max_iter=3):
         # Replace outliers with NaN
         filtered_data = np.where(combined_mask, data, np.nan)
         data = copy.deepcopy(filtered_data)
-
     return filtered_data
 
 
@@ -97,8 +96,8 @@ def scale_bandpass(bandpass_table, att_table, freqavg=10):
     print(f"Bandpass table: {bandpass_table}, Attenuation table: {att_table}")
     results = np.load(att_table, allow_pickle=True)
     scan, freqs, att_values, flag_ants, att_array = results
-    freqres=abs(freqs[1]-freqs[0])/10**6 # In MHz
-    n=int(freqavg/freqres)
+    freqres = abs(freqs[1] - freqs[0]) / 10**6  # In MHz
+    n = int(freqavg / freqres)
     output_table = bandpass_table.split(".bcal")[0] + "_scan_" + str(scan) + ".bcal"
     tb = table()
     tb.open(f"{bandpass_table}/SPECTRAL_WINDOW")
@@ -319,15 +318,15 @@ def run_all_applysol(
         parang = False
         os.system("rm -rf " + caldir + "/*scan*.bcal")
         att_caltables = glob.glob(caldir + "/*_attval_scan_*.npy")
-        bandpass_table = glob.glob(caldir + "/calibrator_caltable*.bcal")
-        delay_table = glob.glob(caldir + "/calibrator_caltable*.kcal")
-        gain_table = glob.glob(caldir + "/calibrator_caltable*.gcal")
-        leakage_table = glob.glob(caldir + "/calibrator_caltable*.dcal")
+        bandpass_table = glob.glob(caldir + "/calibrator_caltable.bcal")
+        delay_table = glob.glob(caldir + "/calibrator_caltable.kcal")
+        gain_table = glob.glob(caldir + "/calibrator_caltable.gcal")
+        leakage_table = glob.glob(caldir + "/calibrator_caltable.dcal")
         if len(leakage_table) > 0:
             parang = True
-            kcross_table = glob.glob(caldir + "/calibrator_caltable*.kcrosscal")
-            crossphase_table = glob.glob(caldir + "/calibrator_caltable*.xfcal")
-            pangle_table = glob.glob(caldir + "/calibrator_caltable*.panglecal")
+            kcross_table = glob.glob(caldir + "/calibrator_caltable.kcrosscal")
+            crossphase_table = glob.glob(caldir + "/calibrator_caltable.xfcal")
+            pangle_table = glob.glob(caldir + "/calibrator_caltable.panglecal")
         else:
             print(f"No polarization leakage calibration table is present in : {caldir}")
             kcross_table = []
@@ -488,11 +487,17 @@ def run_all_applysol(
         print("Total time taken : ", time.time() - start_time)
         print("##################\n")
         return 1
+    finally:
+        time.sleep(5)
+        for ms in mslist:
+            drop_cache(ms)
+        drop_cache(workdir)
 
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Apply basic calibration solutions to target scans",formatter_class=SmartDefaultsHelpFormatter
+        description="Apply basic calibration solutions to target scans",
+        formatter_class=SmartDefaultsHelpFormatter,
     )
 
     ## Essential parameters
@@ -621,8 +626,10 @@ def main():
         msg = 1
     finally:
         time.sleep(5)
+        for ms in mslist:
+            drop_cache(ms)
+        drop_cache(args.workdir)
         clean_shutdown(observer)
-
     return msg
 
 

@@ -1,4 +1,4 @@
-import os, glob, traceback, argparse
+import os, glob, traceback, argparse, time
 from meersolar.pipeline.single_image_meerpbcor import get_pbcor_image
 from meersolar.pipeline.basic_func import *
 from dask import delayed, compute
@@ -9,7 +9,8 @@ try:
     os.system("rm -rf " + casalogfile)
 except:
     pass
-    
+
+
 def get_fits_freq(image_file):
     hdr = fits.getheader(image_file)
     if hdr["CTYPE3"] == "FREQ":
@@ -25,8 +26,8 @@ def get_fits_freq(image_file):
 
 def run_pbcor(imagename, pbdir, pbcor_dir, apply_parang, jobid=0, ncpu=8):
     cmd = f"run_single_meerpbcor {imagename} --pbdir {pbdir} --pbcor_dir {pbcor_dir} --ncpu {ncpu} --jobid {jobid}"
-    if apply_parang==False:
-        cmd+=" --no_apply_parang"
+    if apply_parang == False:
+        cmd += " --no_apply_parang"
     a = os.system(f"{cmd} > {imagename}.tmp")
     os.system(f"rm -rf {imagename}.tmp")
     return a
@@ -190,34 +191,47 @@ def pbcor_all_images(
     except Exception as e:
         traceback.print_exc()
         return 1
+    finally:
+        time.sleep(5)
+        drop_cache(imagedir)
 
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Correct all images for MeerKAT full-pol averaged primary beam",formatter_class=SmartDefaultsHelpFormatter
+        description="Correct all images for MeerKAT full-pol averaged primary beam",
+        formatter_class=SmartDefaultsHelpFormatter,
     )
-    
+
     ## Essential parameters
     basic_args = parser.add_argument_group(
         "###################\nEssential parameters\n###################"
     )
     basic_args.add_argument("imagedir", help="Path to image directory")
     basic_args.add_argument("--workdir", default="", help="Path to work directory")
-    
+
     ## Advanced parameters
     adv_args = parser.add_argument_group(
         "###################\nAdvanced parameters\n###################"
     )
     adv_args.add_argument(
-        "--no_make_TB", action="store_false", dest="make_TB", help="Do not generate brightness temperature map"
+        "--no_make_TB",
+        action="store_false",
+        dest="make_TB",
+        help="Do not generate brightness temperature map",
     )
     adv_args.add_argument(
-        "--no_make_plots", action="store_false", dest="make_plots", help="Do not make png and pdf plots"
+        "--no_make_plots",
+        action="store_false",
+        dest="make_plots",
+        help="Do not make png and pdf plots",
     )
     adv_args.add_argument(
-        "--no_apply_parang", action="store_false", dest="apply_parang", help="Do not apply parallactic angle correction"
+        "--no_apply_parang",
+        action="store_false",
+        dest="apply_parang",
+        help="Do not apply parallactic angle correction",
     )
-    
+
     ## Resource management parameters
     hard_args = parser.add_argument_group(
         "###################\nHardware resource management parameters\n###################"
@@ -232,7 +246,7 @@ def main():
     hard_args.add_argument(
         "--jobid", type=int, default=0, help="Job ID for logging and PID tracking"
     )
-    
+
     if len(sys.argv) == 1:
         parser.print_help(sys.stderr)
         sys.exit(1)
@@ -280,6 +294,8 @@ def main():
         msg = 1
     finally:
         time.sleep(5)
+        drop_cache(args.imagedir)
+        drop_cache(args.workdir)
         clean_shutdown(observer)
 
     return msg

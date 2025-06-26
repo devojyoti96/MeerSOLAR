@@ -231,7 +231,6 @@ def perform_imaging(
             f"{workdir}/jobname_password.npy", allow_pickle=True
         )
         if os.path.exists(logfile):
-            print(f"Starting remote logger. Remote logger password: {password}")
             sub_observer = init_logger(
                 "remotelogger_imaging_{os.path.basename(msname).split('.ms')[0]}",
                 logfile,
@@ -579,10 +578,13 @@ def perform_imaging(
         time.sleep(5)
         clean_shutdown(sub_observer)
         return 1, []
+    finally:
+        time.sleep(5)
+        drop_cache(msname)
 
 
 def run_all_imaging(
-    mslist="",
+    mslist=[],
     mainlogger=None,
     workdir="",
     freqrange="",
@@ -893,11 +895,16 @@ def run_all_imaging(
         time.sleep(5)
         clean_shutdown(observer)
         return 1
-
-
+    finally:
+        time.sleep(5)
+        for ms in mslist:
+            drop_cache(ms)
+        drop_cache(workdir)
+            
 def main():
     parser = argparse.ArgumentParser(
-        description="Perform spectropolarimetric snapshot imaging",formatter_class=SmartDefaultsHelpFormatter
+        description="Perform spectropolarimetric snapshot imaging",
+        formatter_class=SmartDefaultsHelpFormatter,
     )
 
     ## Essential parameters
@@ -1007,10 +1014,16 @@ def main():
         help="Do not use solar disk mask for CLEANing",
     )
     adv_args.add_argument(
-        "--no_savemodel", action="store_false", dest="savemodel", help="Do no save model images"
+        "--no_savemodel",
+        action="store_false",
+        dest="savemodel",
+        help="Do no save model images",
     )
     adv_args.add_argument(
-        "--no_saveres", action="store_false", dest="saveres", help="Do not save residual images"
+        "--no_saveres",
+        action="store_false",
+        dest="saveres",
+        help="Do not save residual images",
     )
     adv_args.add_argument(
         "--no_make_overlay",
@@ -1024,7 +1037,7 @@ def main():
         dest="make_plots",
         help="Do not make generate helioprojective plots",
     )
-    
+
     ## Resource management parameters
     hard_args = parser.add_argument_group(
         "###################\nHardware resource management parameters\n###################"
@@ -1083,9 +1096,8 @@ def main():
             observer = init_logger(
                 "all_imaging", mainlog_file, jobname=jobname, password=password
             )
-
+    mslist = args.mslist.split(",")
     try:
-        mslist = args.mslist.split(",")
         if len(mslist) == 0:
             mainlogger.info("Please provide a valid measurement set list.")
             msg = 1
@@ -1120,6 +1132,9 @@ def main():
         msg = 1
     finally:
         time.sleep(5)
+        for ms in mslist:
+            drop_cache(ms)
+        drop_cache(args.workdir)
         clean_shutdown(observer)
 
     return msg

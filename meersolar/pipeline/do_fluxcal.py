@@ -24,6 +24,7 @@ def split_casatask(
         return mem
     with suppress_casa_output():
         from casatasks import split
+
         split(
             vis=msname,
             outputvis=outputvis,
@@ -32,7 +33,6 @@ def split_casatask(
             datacolumn="data",
             uvrange="0",
             correlation="XX,YY",
-            
         )
     return outputvis
 
@@ -379,6 +379,9 @@ def estimate_att(
         # All auto-corr scans spliting
         ###########################################
         all_scans = [noise_diode_flux_scan] + valid_target_scans
+        scan_sizes = []
+        for scan in all_scans:
+            scan_sizes.append(get_ms_scan_size(msname, int(scan), only_autocorr=True))
         print("Spliting auto-correlation in different scans ...")
         autocorr_mslist = split_autocorr(
             msname,
@@ -401,6 +404,7 @@ def estimate_att(
         print("Flagging auto-correlation measurement sets ...")
         task = delayed(single_ms_flag)(dry_run=True)
         mem_limit = run_limited_memory_task(task, dask_dir=workdir)
+        mem_limit += max(scan_sizes)
         dask_client, dask_cluster, n_jobs, n_threads, mem_limit = get_dask_client(
             len(autocorr_mslist),
             dask_dir=workdir,
@@ -516,6 +520,10 @@ def estimate_att(
     except Exception as e:
         traceback.print_exc()
         return 1, None, None
+    finally:
+        time.sleep(5)
+        drop_cache(msname)
+        drop_cache(workdir)
 
 
 def run_noise_cal(
@@ -555,10 +563,10 @@ def run_noise_cal(
     limit_threads(n_threads=ncpus)
     from casatasks import split, bandpass
 
+    msname = msname.rstrip("/")
+    workdir = workdir.rstrip("/")
     try:
         os.chdir(workdir)
-        msname = msname.rstrip("/")
-        workdir = workdir.rstrip("/")
         print("##############################################")
         print("Performing flux calibration using noise-diode.")
         print("##############################################")
@@ -592,6 +600,7 @@ def run_noise_cal(
         ##############################
         # Split noise cal scan
         ##############################
+        print("Spliting auto-correlation in different scans ...")
         noisecal_ms = workdir + "/noisecal.ms"
         if os.path.exists(noisecal_ms):
             os.system("rm -rf " + noisecal_ms)
@@ -630,7 +639,6 @@ def run_noise_cal(
         print("Importing calibrator models ....")
         fluxcal_result = import_fluxcal_models(
             [noisecal_ms],
-            f_scans,
             fluxcal_fields,
             fluxcal_scans,
             ncpus=ncpus,
@@ -742,10 +750,17 @@ def run_noise_cal(
         print("Total time taken : ", time.time() - start_time)
         print("##################\n")
         return 1, None, None
+    finally:
+        time.sleep(5)
+        drop_cache(msname)
+        drop_cache(workdir)
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Basic calibration using calibrators",formatter_class=SmartDefaultsHelpFormatter)
+    parser = argparse.ArgumentParser(
+        description="Basic calibration using calibrators",
+        formatter_class=SmartDefaultsHelpFormatter,
+    )
 
     ## Essential parameters
     basic_args = parser.add_argument_group(
@@ -759,8 +774,16 @@ def main():
     basic_args.add_argument(
         "--workdir",
         type=str,
+        required=True,
         default="",
-        help="Working directory for calibration products",
+        help="Working directory (default: auto-created next to MS)",
+    )
+    basic_args.add_argument(
+        "--caldir",
+        type=str,
+        required=True,
+        default="",
+        help="Directory for calibration products (default: auto-created in the workdir MS)",
     )
 
     ## Advanced parameters
@@ -800,11 +823,16 @@ def main():
 
     # === Set up workdir ===
     if args.workdir == "" or not os.path.exists(args.workdir):
-        workdir = os.path.dirname(os.path.abspath(args.msname)) + "/workdir"
-        if not os.path.exists(workdir):
-            os.makedirs(workdir)
+        workdir = os.path.dirname(os.path.abspath(args.msname)) + "/workdir"            
     else:
         workdir = args.workdir
+    os.makedirs(workdir,exist_ok=True)
+    
+    if args.caldir=="" or not os.path.exists(args.caldir):
+        caldir=f"{workdir}/caltables"
+    else:
+        caldir=args.caldir
+    os.makedirs(caldir,exist_ok=True)
 
     logfile = args.logfile
     observer = None
@@ -825,10 +853,6 @@ def main():
             print("Starting flux calibration using noise-diode.")
             print("###################################\n")
 
-            caldir = os.path.join(workdir, "caltables")
-            if not os.path.exists(caldir):
-                os.makedirs(caldir)
-
             msg, att_level, all_scaling_files = run_noise_cal(
                 args.msname,
                 workdir,
@@ -848,8 +872,9 @@ def main():
         msg = 1
     finally:
         time.sleep(5)
+        drop_cache(args.msname)
+        drop_cache(args.workdir)
         clean_shutdown(observer)
-
     return msg
 
 

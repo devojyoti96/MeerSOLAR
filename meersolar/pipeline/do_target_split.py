@@ -93,7 +93,6 @@ def split_scan(
         print(
             f"split(vis='{msname}',outputvis='{outputvis}',field='{fields_str}',scan='{scan}',spw='{spw}',correlation='{corr}',timerange='{timerange}',width={width},timebin='{timebin}',datacolumn='{datacolumn}')\n"
         )
-        s = time.time()
         with suppress_casa_output():
             split(
                 vis=msname,
@@ -420,11 +419,17 @@ def split_target_scans(
         print("Total time taken : ", time.time() - start_time)
         print("##################\n")
         return 1, []
+    finally:
+        time.sleep(5)
+        drop_cache(msname)
+        drop_cache(workdir)
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Split target scans",formatter_class=SmartDefaultsHelpFormatter)
-    
+    parser = argparse.ArgumentParser(
+        description="Split target scans", formatter_class=SmartDefaultsHelpFormatter
+    )
+
     ## Essential parameters
     basic_args = parser.add_argument_group(
         "###################\nEssential parameters\n###################"
@@ -441,7 +446,7 @@ def main():
         help="Name of work directory",
         metavar="String",
     )
-    
+
     ## Advanced parameters
     adv_args = parser.add_argument_group(
         "###################\nAdvanced parameters\n###################"
@@ -525,7 +530,7 @@ def main():
     adv_args.add_argument(
         "--merge_spws", action="store_true", help="Merge spectral windows"
     )
-    
+
     ## Resource management parameters
     hard_args = parser.add_argument_group(
         "###################\nHardware resource management parameters\n###################"
@@ -628,6 +633,8 @@ def main():
         msg = 1
     finally:
         time.sleep(5)
+        drop_cache(args.msname)
+        drop_cache(args.workdir)
         clean_shutdown(observer)
 
     return msg

@@ -568,10 +568,7 @@ def single_round_cal_and_flag(
         # Delay calibration
         ##############################
         if len(fluxcal_mslist) > 0:
-            if len(phasecal_mslist)>0:
-                delaycal_mslist=fluxcal_mslist+phasecal_mslist
-            else:
-                delaycal_mslist=fluxcal_mslist
+            delaycal_mslist = fluxcal_mslist
             #############################################
             # Memory limit
             #############################################
@@ -593,11 +590,11 @@ def single_round_cal_and_flag(
                 for sub_msname in delaycal_mslist
             ]
             delaycal_tables = list(compute(*tasks))
+            dask_client.close()
+            dask_cluster.close()
             delay_caltable = merge_caltables(
                 delaycal_tables, delay_caltable, keepcopy=False
             )
-            dask_client.close()
-            dask_cluster.close()
             if delay_caltable != None and os.path.exists(delay_caltable):
                 tb = table()
                 tb.open(delay_caltable, nomodify=False)
@@ -608,7 +605,7 @@ def single_round_cal_and_flag(
                 tb.close()
                 applycal_gaintable.append(delay_caltable)
                 applycal_gainfield.append("")
-                applycal_interp.append("linear")
+                applycal_interp.append("nearest")
         else:
             print("No flux calibrator or phase calibrator is present.")
             return 1, []
@@ -641,11 +638,11 @@ def single_round_cal_and_flag(
                 for sub_msname in fluxcal_mslist
             ]
             bandpass_tables = list(compute(*tasks))
+            dask_client.close()
+            dask_cluster.close()
             bpass_caltable = merge_caltables(
                 bandpass_tables, bpass_caltable, keepcopy=False
             )
-            dask_client.close()
-            dask_cluster.close()
             if bpass_caltable != None and os.path.exists(bpass_caltable):
                 applycal_gaintable.append(bpass_caltable)
                 applycal_gainfield.append("")
@@ -690,9 +687,9 @@ def single_round_cal_and_flag(
                 for sub_msname in gaincal_mslist
             ]
             gain_tables = list(compute(*tasks))
-            gain_caltable = merge_caltables(gain_tables, gain_caltable, keepcopy=False)
             dask_client.close()
             dask_cluster.close()
+            gain_caltable = merge_caltables(gain_tables, gain_caltable, keepcopy=False)
 
         ######################################
         # Gain calibrations on phasecals
@@ -746,12 +743,11 @@ def single_round_cal_and_flag(
                     for sub_msname in phasecal_mslist
                 ]
                 gain_tables = list(compute(*tasks))
+                dask_client.close()
+                dask_cluster.close()
                 gain_caltable = merge_caltables(
                     gain_tables, gain_caltable, append=True, keepcopy=False
                 )
-                dask_client.close()
-                dask_cluster.close()
-
                 #################################
                 # Flux scaling
                 #################################
@@ -832,11 +828,11 @@ def single_round_cal_and_flag(
                     for sub_msname in fluxcal_mslist
                 ]
                 leakage_tables = list(compute(*tasks))
+                dask_client.close()
+                dask_cluster.close()
                 leakage_caltable = merge_caltables(
                     leakage_tables, leakage_caltable, keepcopy=False
                 )
-                dask_client.close()
-                dask_cluster.close()
                 if leakage_caltable != None and os.path.exists(leakage_caltable):
                     applycal_gaintable.append(leakage_caltable)
                     applycal_gainfield.append("")
@@ -887,6 +883,8 @@ def single_round_cal_and_flag(
                     for sub_msname in polcal_mslist
                 ]
                 results = list(compute(*tasks))
+                dask_client.close()
+                dask_cluster.close()
                 kcross_tables = []
                 crossphase_tables = []
                 pangle_tables = []
@@ -903,8 +901,7 @@ def single_round_cal_and_flag(
                 pangle_caltable = merge_caltables(
                     pangle_tables, pangle_caltable, keepcopy=False
                 )
-                dask_client.close()
-                dask_cluster.close()
+
                 if kcross_caltable != None and os.path.exists(kcross_caltable):
                     applycal_gaintable.append(kcross_caltable)
                     applycal_gainfield.append("")
@@ -1060,6 +1057,10 @@ def single_round_cal_and_flag(
     except Exception as e:
         traceback.print_exc()
         return 1, []
+    finally:
+        time.sleep(5)
+        drop_cache(msname)
+        drop_cache(workdir)
 
 
 def run_basic_cal_rounds(
@@ -1211,10 +1212,17 @@ def run_basic_cal_rounds(
         print("Total time taken : ", time.time() - start_time)
         print("##################\n")
         return 1, []
+    finally:
+        time.sleep(5)
+        drop_cache(msname)
+        drop_cache(workdir)
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Basic calibration using calibrators",formatter_class=SmartDefaultsHelpFormatter)
+    parser = argparse.ArgumentParser(
+        description="Basic calibration using calibrators",
+        formatter_class=SmartDefaultsHelpFormatter,
+    )
 
     ## Essential parameters
     basic_args = parser.add_argument_group(
@@ -1225,14 +1233,21 @@ def main():
         type=str,
         help="Name of measurement set (required positional argument)",
     )
-
     basic_args.add_argument(
         "--workdir",
         type=str,
         default="",
+        required=True,
         help="Working directory for calibration outputs (default: auto-created next to MS)",
     )
-    
+    basic_args.add_argument(
+        "--caldir",
+        type=str,
+        default="",
+        required=True,
+        help="Caltables directory (default: auto-created in the workdir MS)",
+    )
+
     ## Advanced parameters
     adv_args = parser.add_argument_group(
         "###################\nAdvanced calibration parameters\n###################"
@@ -1281,10 +1296,15 @@ def main():
 
     if args.workdir == "" or not os.path.exists(args.workdir):
         workdir = os.path.dirname(os.path.abspath(args.msname)) + "/workdir"
-        if not os.path.exists(workdir):
-            os.makedirs(workdir)
     else:
         workdir = args.workdir
+    os.makedirs(workdir,exist_ok=True)
+        
+    if args.caldir=="" or not os.path.exists(args.caldir):
+        caldir=f"{workdir}/caltables"
+    else:
+        caldir=args.caldir
+    os.makedirs(caldir,exist_ok=True)
 
     logfile = args.logfile
     observer = None
@@ -1304,11 +1324,6 @@ def main():
             print("\n###################################")
             print("Starting initial calibration.")
             print("###################################\n")
-
-            caldir = workdir + "/caltables"
-            if not os.path.exists(caldir):
-                os.makedirs(caldir)
-
             msg, caltables = run_basic_cal_rounds(
                 args.msname,
                 workdir,
@@ -1334,8 +1349,9 @@ def main():
         msg = 1
     finally:
         time.sleep(5)
+        drop_cache(args.msname)
+        drop_cache(args.workdir)
         clean_shutdown(observer)
-
     return msg
 
 

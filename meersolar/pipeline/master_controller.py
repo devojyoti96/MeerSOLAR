@@ -1141,10 +1141,11 @@ def run_imaging_jobs(
         traceback.print_exc()
         return 1
 
-def run_ds_jobs(msname,workdir,target_scans=[],jobid=0,cpu_frac=0.8,mem_frac=0.8):
+
+def run_ds_jobs(msname, workdir, target_scans=[], jobid=0, cpu_frac=0.8, mem_frac=0.8):
     """
     Make dynamic spectra of the target scans
-    
+
     Parameters
     ----------
     msname : str
@@ -1152,31 +1153,29 @@ def run_ds_jobs(msname,workdir,target_scans=[],jobid=0,cpu_frac=0.8,mem_frac=0.8
     workdir : str
         Name of the work directory
     target_scans : list, optional
-        Target scans 
+        Target scans
     cpu_frac : float, optional
         CPU fraction to use
     mem_frac : float, optional
         Memory fraction to use
-        
+
     Returns
     -------
     int
         Success message
-    """ 
+    """
     try:
         print("###########################")
         print("Making dynamic spectra of target scans .....")
         print("###########################\n")
         ds_basename = "ds_targets"
-        target_scans=" ".join([str(s) for s in target_scans])
+        target_scans = " ".join([str(s) for s in target_scans])
         ds_cmd = f"run_makeds {msname} --workdir {workdir} --cpu_frac {cpu_frac} --mem_frac {mem_frac} --jobid {jobid} --target_scans {target_scans}"
         if os.path.isdir(workdir + "/logs") == False:
             os.makedirs(workdir + "/logs")
         logfile = workdir + "/logs/" + ds_basename + ".log"
         ds_cmd += f" --logfile {logfile}"
-        batch_file = create_batch_script_nonhpc(
-            ds_cmd, workdir, ds_basename
-        )
+        batch_file = create_batch_script_nonhpc(ds_cmd, workdir, ds_basename)
         print(ds_cmd + "\n")
         os.system("bash " + batch_file)
         print("Waiting to finish making of dynamic spectra...\n")
@@ -1195,6 +1194,7 @@ def run_ds_jobs(msname,workdir,target_scans=[],jobid=0,cpu_frac=0.8,mem_frac=0.8
     except Exception as e:
         traceback.print_exc()
         return 1
+
 
 def check_status(workdir, basename):
     """
@@ -1223,7 +1223,7 @@ def check_status(workdir, basename):
         return False
 
 
-def start_ping_logger(jobid, waittime, remote_link=""):
+def start_ping_logger(jobid, remote_jobid, waittime, remote_link=""):
     """
     Run ping remote logger in background
 
@@ -1231,6 +1231,8 @@ def start_ping_logger(jobid, waittime, remote_link=""):
     ----------
     jobid : int
         Job ID
+    remote_jobid : str
+        Remote log job ID
     waittime : float
         Wait time before process ends in hour
     remote_link : str, optional
@@ -1244,7 +1246,9 @@ def start_ping_logger(jobid, waittime, remote_link=""):
     if remote_link != "" and waittime > 0:
         stop_event = Event()
         proc = Process(
-            target=ping_logger, args=(jobid, stop_event, remote_link), daemon=False
+            target=ping_logger,
+            args=(jobid, remote_jobid, stop_event, remote_link),
+            daemon=False,
         )
         proc.start()
 
@@ -1255,7 +1259,7 @@ def start_ping_logger(jobid, waittime, remote_link=""):
         from threading import Thread
 
         Thread(target=stop_after_delay, daemon=True).start()
-        return proc.pid
+        return int(proc.pid)
     else:
         return
 
@@ -1299,7 +1303,7 @@ def master_control(
     solar_selfcal=True,
     solint="5min",
     # Sidereal correction
-    do_sidereal_cor=True,
+    do_sidereal_cor=False,
     # Dynamic spectra
     make_ds=True,
     # Imaging
@@ -1442,387 +1446,573 @@ def master_control(
         print("Please provide a valid measurement set location.\n")
         exit_job(start_time)
         return 1
-    mspath = os.path.dirname(msname)
-    band = get_band_name(msname)
-    ###################################
-    # Preparing working directories
-    ###################################
-    if workdir == "":
-        workdir = os.path.dirname(os.path.abspath(msname)) + "/workdir"
-    if workdir[-1] == "/":
-        workdir = workdir[:-1]
-    if os.path.exists(workdir) == False:
-        os.makedirs(workdir)
-    if mspath != "" and os.path.exists(mspath + "/dask-scratch-space"):
-        os.system("rm -rf " + mspath + "/dask-scratch-space " + mspath + "/tmp")
-    if workdir != "" and os.path.exists(workdir + "/dask-scratch-space"):
-        os.system("rm -rf " + workdir + "/dask-scratch-space " + workdir + "/tmp")
-    ####################################
-    # Job and process IDs
-    ####################################
-    pid = os.getpid()
-    jobid = get_jobid()
-    main_job_file = save_main_process_info(pid, jobid, workdir, cpu_frac, mem_frac)
-    start_time = time.time()
-    print("###########################")
-    print(f"MeerSOLAR Job ID: {jobid}")
-    print (f"Work directory: {workdir}")
-    print("###########################\n")
-    #####################################
-    # Moving into work directory
-    #####################################    
-    os.chdir(workdir)
-    caldir = workdir + "/caltables"
-    cpu_frac_bkp = copy.deepcopy(cpu_frac)
-    mem_frac_bkp = copy.deepcopy(mem_frac)
-    if remote_logger:
-        remote_link = get_remote_logger_link()
-        if remote_link == "":
-            print("Please provide a valid remote link.")
-            remote_logger = False
-
-    if remote_logger==False:
-        emails = get_emails()
-        if emails != "":
-            email_subject = f"MeerSOLAR Logger Details: {timestamp}"
-
-            email_msg=(f"MeerSOLAR user,\n\n"
-                       f"MeerSOLAR Job ID: {jobid}\n\n"
-                       f"Best,\n"
-                       f"MeerSOLAR"
-            )
-        success_msg, error_msg = send_notification(emails, email_subject, email_msg)
-    else:
+    try:
+        mspath = os.path.dirname(msname)
+        ###################################
+        # Preparing working directories
+        ###################################
+        if workdir == "":
+            workdir = os.path.dirname(os.path.abspath(msname)) + "/workdir"
+        if workdir[-1] == "/":
+            workdir = workdir[:-1]
+        if os.path.exists(workdir) == False:
+            os.makedirs(workdir)
+        if mspath != "" and os.path.exists(mspath + "/dask-scratch-space"):
+            os.system("rm -rf " + mspath + "/dask-scratch-space " + mspath + "/tmp")
+        if workdir != "" and os.path.exists(workdir + "/dask-scratch-space"):
+            os.system("rm -rf " + workdir + "/dask-scratch-space " + workdir + "/tmp")
         ####################################
-        # Job name and logging password
+        # Job and process IDs
         ####################################
-        hostname = socket.gethostname()
-        timestamp = dt.utcnow().strftime("%Y-%m-%dT%H:%M:%S")
-        job_name = (
-            f"{hostname} :: {timestamp} :: {os.path.basename(msname).split('.ms')[0]}"
+        pid = os.getpid()
+        jobid = get_jobid()
+        main_job_file = save_main_process_info(
+            pid,
+            jobid,
+            os.path.abspath(msname),
+            os.path.abspath(workdir),
+            cpu_frac,
+            mem_frac,
         )
-        timestamp1 = dt.utcnow().strftime("%Y%m%dT%H%M%S")
-        job_id = f"{hostname}_{timestamp1}_{os.path.basename(msname).split('.ms')[0]}"
-        password = generate_password()
-        np.save(
-            f"{workdir}/jobname_password.npy",
-            np.array([job_name, password], dtype="object"),
-        )
-        print(
-            "############################################################################"
-        )
-        print(remote_link)
-        print(f"Job ID: {job_name}")
-        print(f"Remote access password: {password}")
-        print(
-            "#############################################################################"
-        )
-        emails = get_emails()
-        if emails != "":
-            email_subject = f"MeerSOLAR Logger Details: {timestamp}"
-
-            email_msg=(f"MeerSOLAR user,\n\n"
-                       f"MeerSOLAR Job ID: {jobid}\n\n"
-                       f"Remote logger Job ID: {job_name}\n"
-                       f"Remote access password: {password}\n\n"
-                       f"Best,\n"
-                       f"MeerSOLAR"
-            )
-        success_msg, error_msg = send_notification(emails, email_subject, email_msg)        
-
-    #####################################
-    # Settings for solar data
-    #####################################
-    if solar_data:
-        if use_solar_mask == False:
-            print("Use solar mask during CLEANing.")
-            use_solar_mask = True
-        if solar_selfcal == False:
-            solar_selfcal = True
-    else:
-        if do_noise_cal:
-            print(
-                "Turning off noise diode based calibration for non-solar observation."
-            )
-            do_noise_cal = False
-        if use_solar_mask:
-            print("Stop using solar mask during CLEANing.")
-            use_solar_mask = False
-        if solar_selfcal:
-            solar_selfcal = False
-
-    ###################################################
-    # Target spliting spectral and temporal chunks
-    ##################################################
-    if image_timeres > (2 * 3660):  # If more than 2 hours
-        print(
-            f"Image time integration is more than 2 hours, which may cause smearing due to solar differential rotation."
-        )
-    
-    #################################################
-    # Determining maximum allowed frequency averaging
-    #################################################
-    max_freqres = calc_bw_smearing_freqwidth(msname)
-    freqavg = round(min(image_freqres, max_freqres), 2)
-
-    #########################################
-    # Target ms frequency chunk based on band
-    #########################################
-    bad_spws = get_bad_chans(msname).split("0:")[-1].split(";")
-    good_start = []
-    good_end = []
-    for i in range(len(bad_spws) - 1):
-        start_chan = int(bad_spws[i].split("~")[-1]) + 1
-        end_chan = int(bad_spws[i + 1].split("~")[0]) - 1
-        good_start.append(start_chan)
-        good_end.append(end_chan)
-    start_chan = min(good_start)
-    end_chan = max(good_end)
-    spw = f"0:{start_chan}~{end_chan}"
-
-    msmd = msmetadata()
-    msmd.open(msname)
-    chanres = msmd.chanres(0, unit="MHz")[0]
-    msmd.close()
-    total_bw = chanres * (end_chan - start_chan)
-    nchunk = 4
-    target_freq_chunk = total_bw / nchunk
-    if image_freqres < 0:
-        band = get_band_name(msname)
-        if band == "U":
-            target_freq_chunk = -1
-            nchunk = 1
-    elif image_freqres > target_freq_chunk:
-        nchunk = image_freqres // target_freq_chunk
-        target_freq_chunk = image_freqres / nchunk
-
-    #############################
-    # Reset any previous weights
-    ############################
-    cpu_usage = psutil.cpu_percent(interval=1)  # Average over 1 second
-    total_cpus = psutil.cpu_count(logical=True)
-    available_cpus = int(total_cpus * (1 - cpu_usage / 100.0))
-    available_cpus = max(1, available_cpus)  # Avoid zero workers
-    reset_weights_and_flags(
-        msname, n_threads=available_cpus, force_reset=do_forcereset_weightflag
-    )
-
-    #######################################
-    # Run dynamic spectra making
-    #######################################
-    if make_ds:
-        msg = run_ds_jobs(msname,workdir,jobid=jobid,target_scans=target_scans,cpu_frac=round(cpu_frac,2),mem_frac=round(mem_frac,2))
-        if msg != 0:
-            print(
-                "!!!! WARNING: Dynamic spectra could not be made. !!!!"
-            )
-    
-    ########################################
-    # Run noise-diode based flux calibration
-    ########################################
-    if do_noise_cal:
-        msg = run_noise_diode_cal(
-            msname,
-            workdir,
-            jobid=jobid,
-            keep_backup=keep_backup,
-            cpu_frac=round(cpu_frac, 2),
-            mem_frac=round(mem_frac, 2),
-        )  # Run noise diode based flux calibration
-        if msg != 0:
-            print(
-                "!!!! WARNING: Error in running noise-diode based flux calibration. Flux density calibration may not be correct. !!!!"
-            )
-
-    ##############################
-    # Run partitioning jobs
-    ##############################
-    # If do partition or calibrator ms is not present in case of basic calibration is requested
-    calibrator_msname = workdir + "/calibrator.ms"
-    if do_basic_cal and (
-        do_cal_partition or os.path.exists(calibrator_msname) == False
-    ):
-        msg = run_partion(
-            msname,
-            workdir,
-            split_fullpol=do_polcal,
-            jobid=jobid,
-            cpu_frac=round(cpu_frac, 2),
-            mem_frac=round(mem_frac, 2),
-        )
-        if msg != 0:
-            print("!!!! WARNING: Error in partitioning calibrator fields. !!!!")
-            exit_job(start_time, mspath, workdir)
-            if remote_logger:
-                pid = start_ping_logger(
-                    job_id, remote_logger_waittime, remote_link=remote_link
-                )
-                datadir = get_datadir()
-                save_pid(pid, datadir + f"/pids/pids_{job_id}.txt")
-            return 1
-
-    ##################################
-    # Run flagging jobs on calibrators
-    ##################################
-    # Only if basic calibration is requested
-    if do_cal_flag and do_basic_cal:
-        if os.path.exists(calibrator_msname) == False:
-            print(f"Calibrator ms: {calibrator_ms} is not present.")
-            exit_job(start_time, mspath, workdir)
-            if remote_logger:
-                pid = start_ping_logger(
-                    job_id, remote_logger_waittime, remote_link=remote_link
-                )
-                datadir = get_datadir()
-                save_pid(pid, datadir + f"/pids/pids_{job_id}.txt")
-            return 1
-        msg = run_flag(
-            calibrator_msname,
-            workdir,
-            flag_calibrators=True,
-            jobid=jobid,
-            cpu_frac=round(cpu_frac, 2),
-            mem_frac=round(mem_frac, 2),
-        )
-        if msg != 0:
-            print(
-                "!!!! WARNING: Flagging error. Examine calibration solutions with caution. !!!!"
-            )
-
-    #################################
-    # Import model
-    #################################
-    # Only if basic calibration is requested
-    if do_import_model and do_basic_cal:
-        if os.path.exists(calibrator_msname) == False:
-            print(f"Calibrator ms: {calibrator_ms} is not present.")
-            exit_job(start_time, mspath, workdir)
-            if remote_logger:
-                pid = start_ping_logger(
-                    job_id, remote_logger_waittime, remote_link=remote_link
-                )
-                datadir = get_datadir()
-                save_pid(pid, datadir + f"/pids/pids_{job_id}.txt")
-            return 1
-        fluxcal_fields, fluxcal_scans = get_fluxcals(calibrator_msname)
-        phasecal_fields, phasecal_scans, phasecal_fluxes = get_phasecals(
-            calibrator_msname
-        )
-        calibrator_field = fluxcal_fields + phasecal_fields
-        msg = run_import_model(
-            calibrator_msname,
-            workdir,
-            jobid=jobid,
-            cpu_frac=round(cpu_frac, 2),
-            mem_frac=round(mem_frac, 2),
-        )  # Run model import
-        if msg != 0:
-            print(
-                "!!!! WARNING: Error in importing calibrator models. Not continuing calibration. !!!!"
-            )
-            exit_job(start_time, mspath, workdir)
-            if remote_logger:
-                pid = start_ping_logger(
-                    job_id, remote_logger_waittime, remote_link=remote_link
-                )
-                datadir = get_datadir()
-                save_pid(pid, datadir + f"/pids/pids_{job_id}.txt")
-            return 1
-
-    ###############################
-    # Run basic calibration
-    ###############################
-    use_only_bandpass = False
-    if do_basic_cal:
-        if os.path.exists(calibrator_msname) == False:
-            print(f"Calibrator ms: {calibrator_ms} is not present.")
-            exit_job(start_time, mspath, workdir)
-            if remote_logger:
-                pid = start_ping_logger(
-                    job_id, remote_logger_waittime, remote_link=remote_link
-                )
-                datadir = get_datadir()
-                save_pid(pid, datadir + f"/pids/pids_{job_id}.txt")
-            return 1
-        msg = run_basic_cal_jobs(
-            calibrator_msname,
-            workdir,
-            perform_polcal=do_polcal,
-            jobid=jobid,
-            cpu_frac=round(cpu_frac, 2),
-            mem_frac=round(mem_frac, 2),
-            keep_backup=keep_backup,
-        )  # Run basic calibration
-        if msg != 0:
-            print(
-                "!!!! WARNING: Error in basic calibration. Not continuing further. !!!!"
-            )
-            exit_job(start_time, mspath, workdir)
-            if remote_logger:
-                pid = start_ping_logger(
-                    job_id, remote_logger_waittime, remote_link=remote_link
-                )
-                datadir = get_datadir()
-                save_pid(pid, datadir + f"/pids/pids_{job_id}.txt")
-            return 1
-
-    ##########################################
-    # Checking presence of necessary caltables
-    ##########################################
-    if len(glob.glob(caldir + "/*.bcal")) == 0:
-        print(f"No bandpass table is present in calibration directory : {caldir}.")
-        exit_job(start_time, mspath, workdir)
+        start_time = time.time()
+        print("###########################")
+        print(f"MeerSOLAR Job ID: {jobid}")
+        print(f"Work directory: {workdir}")
+        print("###########################\n")
+        #####################################
+        # Moving into work directory
+        #####################################
+        os.chdir(workdir)
+        caldir = workdir + "/caltables"
+        cpu_frac_bkp = copy.deepcopy(cpu_frac)
+        mem_frac_bkp = copy.deepcopy(mem_frac)
         if remote_logger:
-            pid = start_ping_logger(
-                job_id, remote_logger_waittime, remote_link=remote_link
-            )
-            datadir = get_datadir()
-            save_pid(pid, datadir + f"/pids/pids_{job_id}.txt")
-        return 1
-    if len(glob.glob(caldir + "/*.gcal")) == 0:
-        print(
-            f"No time-dependent gaintable is present in calibration directory : {caldir}. Applying only bandpass solutions."
-        )
-        use_only_bandpass = True
+            remote_link = get_remote_logger_link()
+            if remote_link == "":
+                print("Please provide a valid remote link.")
+                remote_logger = False
 
-    ############################################
-    # Spliting for self-cals
-    ############################################
-    # Spliting only if self-cal is requested
-    if do_selfcal:
-        if do_selfcal_split == False:
-            selfcal_target_mslist = glob.glob(workdir + "/selfcals_scan*.ms")
-            if len(selfcal_target_mslist) == 0:
-                print(
-                    "No measurement set is present for self-calibration. Spliting them.."
+        if remote_logger == False:
+            emails = get_emails()
+            timestamp = dt.utcnow().strftime("%Y-%m-%dT%H:%M:%S")
+            if emails != "":
+                email_subject = f"MeerSOLAR Logger Details: {timestamp}"
+
+                email_msg = (
+                    f"MeerSOLAR user,\n\n"
+                    f"MeerSOLAR Job ID: {jobid}\n\n"
+                    f"Best,\n"
+                    f"MeerSOLAR"
                 )
-                do_selfcal_split = True
+            success_msg, error_msg = send_notification(emails, email_subject, email_msg)
+        else:
+            ####################################
+            # Job name and logging password
+            ####################################
+            hostname = socket.gethostname()
+            timestamp = dt.utcnow().strftime("%Y-%m-%dT%H:%M:%S")
+            job_name = f"{hostname} :: {timestamp} :: {os.path.basename(msname).split('.ms')[0]}"
+            timestamp1 = dt.utcnow().strftime("%Y%m%dT%H%M%S")
+            remote_job_id = (
+                f"{hostname}_{timestamp1}_{os.path.basename(msname).split('.ms')[0]}"
+            )
+            password = generate_password()
+            np.save(
+                f"{workdir}/jobname_password.npy",
+                np.array([job_name, password], dtype="object"),
+            )
+            print(
+                "############################################################################"
+            )
+            print(remote_link)
+            print(f"Job ID: {job_name}")
+            print(f"Remote access password: {password}")
+            print(
+                "#############################################################################"
+            )
+            emails = get_emails()
+            if emails != "":
+                email_subject = f"MeerSOLAR Logger Details: {timestamp}"
 
-        if do_selfcal_split:
-            prefix = "selfcals"
-            try:
-                time_interval = float(solint)
-            except:
-                if "s" in solint:
-                    time_interval = float(solint.split("s")[0])
-                elif "min" in solint:
-                    time_interval = float(solint.split("min")[0]) * 60
-                elif solint == "int":
-                    time_interval = image_timeres
+                email_msg = (
+                    f"MeerSOLAR user,\n\n"
+                    f"MeerSOLAR Job ID: {jobid}\n\n"
+                    f"Remote logger Job ID: {job_name}\n"
+                    f"Remote access password: {password}\n\n"
+                    f"Best,\n"
+                    f"MeerSOLAR"
+                )
+            success_msg, error_msg = send_notification(emails, email_subject, email_msg)
+
+        #####################################
+        # Settings for solar data
+        #####################################
+        if solar_data:
+            if use_solar_mask == False:
+                print("Use solar mask during CLEANing.")
+                use_solar_mask = True
+            if solar_selfcal == False:
+                solar_selfcal = True
+        else:
+            if do_noise_cal:
+                print(
+                    "Turning off noise diode based calibration for non-solar observation."
+                )
+                do_noise_cal = False
+            if use_solar_mask:
+                print("Stop using solar mask during CLEANing.")
+                use_solar_mask = False
+            if solar_selfcal:
+                solar_selfcal = False
+
+        ###################################################
+        # Target spliting spectral and temporal chunks
+        ##################################################
+        if image_timeres > (2 * 3660):  # If more than 2 hours
+            print(
+                f"Image time integration is more than 2 hours, which may cause smearing due to solar differential rotation."
+            )
+
+        #################################################
+        # Determining maximum allowed frequency averaging
+        #################################################
+        max_freqres = calc_bw_smearing_freqwidth(msname)
+        freqavg = round(min(image_freqres, max_freqres), 2)
+
+        #########################################
+        # Target ms frequency chunk based on band
+        #########################################
+        bad_spws = get_bad_chans(msname).split("0:")[-1].split(";")
+        good_start = []
+        good_end = []
+        for i in range(len(bad_spws) - 1):
+            start_chan = int(bad_spws[i].split("~")[-1]) + 1
+            end_chan = int(bad_spws[i + 1].split("~")[0]) - 1
+            good_start.append(start_chan)
+            good_end.append(end_chan)
+        start_chan = min(good_start)
+        end_chan = max(good_end)
+        spw = f"0:{start_chan}~{end_chan}"
+
+        msmd = msmetadata()
+        msmd.open(msname)
+        chanres = msmd.chanres(0, unit="MHz")[0]
+        msmd.close()
+        total_bw = chanres * (end_chan - start_chan)
+        nchunk = 4
+        target_freq_chunk = total_bw / nchunk
+        if image_freqres < 0:
+            band = get_band_name(msname)
+            if band == "U":
+                target_freq_chunk = -1
+                nchunk = 1
+        elif image_freqres > target_freq_chunk:
+            nchunk = image_freqres // target_freq_chunk
+            target_freq_chunk = image_freqres / nchunk
+
+        #############################
+        # Reset any previous weights
+        ############################
+        cpu_usage = psutil.cpu_percent(interval=1)  # Average over 1 second
+        total_cpus = psutil.cpu_count(logical=True)
+        available_cpus = int(total_cpus * (1 - cpu_usage / 100.0))
+        available_cpus = max(1, available_cpus)  # Avoid zero workers
+        reset_weights_and_flags(
+            msname, n_threads=available_cpus, force_reset=do_forcereset_weightflag
+        )
+
+        #######################################
+        # Run dynamic spectra making
+        #######################################
+        if make_ds:
+            msg = run_ds_jobs(
+                msname,
+                workdir,
+                jobid=jobid,
+                target_scans=target_scans,
+                cpu_frac=round(cpu_frac, 2),
+                mem_frac=round(mem_frac, 2),
+            )
+            if msg != 0:
+                print("!!!! WARNING: Dynamic spectra could not be made. !!!!")
+
+        ########################################
+        # Run noise-diode based flux calibration
+        ########################################
+        if do_noise_cal:
+            msg = run_noise_diode_cal(
+                msname,
+                workdir,
+                jobid=jobid,
+                keep_backup=keep_backup,
+                cpu_frac=round(cpu_frac, 2),
+                mem_frac=round(mem_frac, 2),
+            )  # Run noise diode based flux calibration
+            if msg != 0:
+                print(
+                    "!!!! WARNING: Error in running noise-diode based flux calibration. Flux density calibration may not be correct. !!!!"
+                )
+
+        ##############################
+        # Run partitioning jobs
+        ##############################
+        # If do partition or calibrator ms is not present in case of basic calibration is requested
+        calibrator_msname = workdir + "/calibrator.ms"
+        if do_basic_cal and (
+            do_cal_partition or os.path.exists(calibrator_msname) == False
+        ):
+            msg = run_partion(
+                msname,
+                workdir,
+                split_fullpol=do_polcal,
+                jobid=jobid,
+                cpu_frac=round(cpu_frac, 2),
+                mem_frac=round(mem_frac, 2),
+            )
+            if msg != 0:
+                print("!!!! WARNING: Error in partitioning calibrator fields. !!!!")
+                exit_job(start_time, mspath, workdir)
+                if remote_logger:
+                    pid = start_ping_logger(
+                        jobid,
+                        remote_job_id,
+                        remote_logger_waittime,
+                        remote_link=remote_link,
+                    )
+                    datadir = get_datadir()
+                    if pid is not None:
+                        save_pid(pid, datadir + f"/pids/pids_{jobid}.txt")
+                return 1
+
+        ##################################
+        # Run flagging jobs on calibrators
+        ##################################
+        # Only if basic calibration is requested
+        if do_cal_flag and do_basic_cal:
+            if os.path.exists(calibrator_msname) == False:
+                print(f"Calibrator ms: {calibrator_ms} is not present.")
+                exit_job(start_time, mspath, workdir)
+                if remote_logger:
+                    pid = start_ping_logger(
+                        jobid,
+                        remote_job_id,
+                        remote_logger_waittime,
+                        remote_link=remote_link,
+                    )
+                    datadir = get_datadir()
+                    if pid is not None:
+                        save_pid(pid, datadir + f"/pids/pids_{jobid}.txt")
+                return 1
+            msg = run_flag(
+                calibrator_msname,
+                workdir,
+                flag_calibrators=True,
+                jobid=jobid,
+                cpu_frac=round(cpu_frac, 2),
+                mem_frac=round(mem_frac, 2),
+            )
+            if msg != 0:
+                print(
+                    "!!!! WARNING: Flagging error. Examine calibration solutions with caution. !!!!"
+                )
+
+        #################################
+        # Import model
+        #################################
+        # Only if basic calibration is requested
+        if do_import_model and do_basic_cal:
+            if os.path.exists(calibrator_msname) == False:
+                print(f"Calibrator ms: {calibrator_ms} is not present.")
+                exit_job(start_time, mspath, workdir)
+                if remote_logger:
+                    pid = start_ping_logger(
+                        jobid,
+                        remote_job_id,
+                        remote_logger_waittime,
+                        remote_link=remote_link,
+                    )
+                    datadir = get_datadir()
+                    if pid is not None:
+                        save_pid(pid, datadir + f"/pids/pids_{jobid}.txt")
+                return 1
+            fluxcal_fields, fluxcal_scans = get_fluxcals(calibrator_msname)
+            phasecal_fields, phasecal_scans, phasecal_fluxes = get_phasecals(
+                calibrator_msname
+            )
+            calibrator_field = fluxcal_fields + phasecal_fields
+            msg = run_import_model(
+                calibrator_msname,
+                workdir,
+                jobid=jobid,
+                cpu_frac=round(cpu_frac, 2),
+                mem_frac=round(mem_frac, 2),
+            )  # Run model import
+            if msg != 0:
+                print(
+                    "!!!! WARNING: Error in importing calibrator models. Not continuing calibration. !!!!"
+                )
+                exit_job(start_time, mspath, workdir)
+                if remote_logger:
+                    pid = start_ping_logger(
+                        jobid,
+                        remote_job_id,
+                        remote_logger_waittime,
+                        remote_link=remote_link,
+                    )
+                    datadir = get_datadir()
+                    if pid is not None:
+                        save_pid(pid, datadir + f"/pids/pids_{jobid}.txt")
+                return 1
+
+        ###############################
+        # Run basic calibration
+        ###############################
+        use_only_bandpass = False
+        if do_basic_cal:
+            if os.path.exists(calibrator_msname) == False:
+                print(f"Calibrator ms: {calibrator_ms} is not present.")
+                exit_job(start_time, mspath, workdir)
+                if remote_logger:
+                    pid = start_ping_logger(
+                        jobid,
+                        remote_job_id,
+                        remote_logger_waittime,
+                        remote_link=remote_link,
+                    )
+                    datadir = get_datadir()
+                    if pid is not None:
+                        save_pid(pid, datadir + f"/pids/pids_{jobid}.txt")
+                return 1
+            msg = run_basic_cal_jobs(
+                calibrator_msname,
+                workdir,
+                perform_polcal=do_polcal,
+                jobid=jobid,
+                cpu_frac=round(cpu_frac, 2),
+                mem_frac=round(mem_frac, 2),
+                keep_backup=keep_backup,
+            )  # Run basic calibration
+            if msg != 0:
+                print(
+                    "!!!! WARNING: Error in basic calibration. Not continuing further. !!!!"
+                )
+                exit_job(start_time, mspath, workdir)
+                if remote_logger:
+                    pid = start_ping_logger(
+                        jobid,
+                        remote_job_id,
+                        remote_logger_waittime,
+                        remote_link=remote_link,
+                    )
+                    datadir = get_datadir()
+                    if pid is not None:
+                        save_pid(pid, datadir + f"/pids/pids_{jobid}.txt")
+                return 1
+
+        ##########################################
+        # Checking presence of necessary caltables
+        ##########################################
+        if len(glob.glob(caldir + "/*.bcal")) == 0:
+            print(f"No bandpass table is present in calibration directory : {caldir}.")
+            exit_job(start_time, mspath, workdir)
+            if remote_logger:
+                pid = start_ping_logger(
+                    jobid,
+                    remote_job_id,
+                    remote_logger_waittime,
+                    remote_link=remote_link,
+                )
+                datadir = get_datadir()
+                if pid is not None:
+                    save_pid(pid, datadir + f"/pids/pids_{jobid}.txt")
+            return 1
+        if len(glob.glob(caldir + "/*.gcal")) == 0:
+            print(
+                f"No time-dependent gaintable is present in calibration directory : {caldir}. Applying only bandpass solutions."
+            )
+            use_only_bandpass = True
+
+        ############################################
+        # Spliting for self-cals
+        ############################################
+        # Spliting only if self-cal is requested
+        if do_selfcal:
+            if do_selfcal_split == False:
+                selfcal_target_mslist = glob.glob(workdir + "/selfcals_scan*.ms")
+                if len(selfcal_target_mslist) == 0:
+                    print(
+                        "No measurement set is present for self-calibration. Spliting them.."
+                    )
+                    do_selfcal_split = True
+
+            if do_selfcal_split:
+                prefix = "selfcals"
+                try:
+                    time_interval = float(solint)
+                except:
+                    if "s" in solint:
+                        time_interval = float(solint.split("s")[0])
+                    elif "min" in solint:
+                        time_interval = float(solint.split("min")[0]) * 60
+                    elif solint == "int":
+                        time_interval = image_timeres
+                    else:
+                        time_interval = -1
+                msg = run_target_split_jobs(
+                    msname,
+                    workdir,
+                    datacolumn="data",
+                    freqres=freqavg,
+                    target_freq_chunk=25,
+                    n_spectral_chunk=nchunk,  # Number of target spectral chunk
+                    target_scans=target_scans,
+                    prefix=prefix,
+                    merge_spws=True,
+                    time_window=min(60, time_interval),
+                    time_interval=time_interval,
+                    split_fullpol=do_polcal,
+                    jobid=jobid,
+                    cpu_frac=round(cpu_frac, 2),
+                    mem_frac=round(mem_frac, 2),
+                    max_cpu_frac=round(cpu_frac, 2),
+                    max_mem_frac=round(mem_frac, 2),
+                )
+                if msg != 0:
+                    print(
+                        "!!!! WARNING: Error in running spliting target scans for selfcal. !!!!"
+                    )
+                    do_selfcal = False
                 else:
-                    time_interval = -1
+                    print("Waiting to finish spliting of target scans for selfcal...\n")
+                    split_basename = f"split_{prefix}"
+                    while True:
+                        finished_file = glob.glob(
+                            workdir + "/.Finished_" + split_basename + "*"
+                        )
+                        if len(finished_file) > 0:
+                            break
+                        else:
+                            time.sleep(1)
+                    success_index_split_target = int(finished_file[0].split("_")[-1])
+                    if success_index_split_target == 0:
+                        print(
+                            "Spliting target scans are done successfully for selfcal.\n"
+                        )
+                    else:
+                        print(
+                            "!!!! WARNING: Error in spliting target scans for selfcal. Not continuing further for selfcal. !!!!"
+                        )
+                        do_selfcal = False
+
+        ####################################
+        # Filtering any corrupted ms
+        #####################################
+        if do_selfcal:
+            selfcal_target_mslist = glob.glob(workdir + "/selfcals_scan*.ms")
+            filtered_mslist = []  # Filtering in case any ms is corrupted
+            for ms in selfcal_target_mslist:
+                checkcol = check_datacolumn_valid(ms)
+                if checkcol:
+                    filtered_mslist.append(ms)
+                else:
+                    print(f"Issue in : {ms}")
+                    os.system(f"rm -rf {ms}")
+            selfcal_mslist = filtered_mslist
+            if len(selfcal_mslist) == 0:
+                print(
+                    "No splited target scan ms are available in work directory for selfcal. Not continuing further for selfcal."
+                )
+                do_selfcal = False
+            print(f"Selfcal mslist : {[os.path.basename(i) for i in selfcal_mslist]}")
+
+        #########################################################
+        # Applying solutions on target scans for self-calibration
+        #########################################################
+        if do_selfcal:  # Applying solutions for selfcal
+            caldir = workdir + "/caltables"
+            msg = run_apply_basiccal_sol(
+                selfcal_mslist,
+                workdir,
+                caldir,
+                use_only_bandpass=use_only_bandpass,
+                overwrite_datacolumn=False,
+                applymode="calflag",
+                jobid=jobid,
+                cpu_frac=round(cpu_frac, 2),
+                mem_frac=round(mem_frac, 2),
+            )
+            if msg != 0:
+                print(
+                    "!!!! WARNING: Error in applying basic calibration solutions on target scans. Not continuing further for selfcal.!!!!"
+                )
+                do_selfcal = False
+
+        ########################################
+        # Performing self-calibration
+        ########################################
+        if do_selfcal:
+            os.system(
+                "rm -rf " + workdir + "/*selfcal " + workdir + "/caltables/*selfcal*"
+            )
+            if do_sidereal_cor:
+                msg = run_solar_siderealcor_jobs(
+                    selfcal_mslist,
+                    workdir,
+                    prefix="selfcals",
+                    jobid=jobid,
+                    cpu_frac=round(cpu_frac, 2),
+                    mem_frac=round(mem_frac, 2),
+                    max_cpu_frac=round(cpu_frac, 2),
+                    max_mem_frac=round(mem_frac, 2),
+                )
+                if msg != 0:
+                    print("Sidereal correction is not successful.")
+            msg = run_selfcal_jobs(
+                selfcal_mslist,
+                workdir,
+                solint=solint,
+                do_apcal=do_ap_selfcal,
+                solar_selfcal=solar_selfcal,
+                keep_backup=keep_backup,
+                uvrange=uvrange,
+                weight="briggs",
+                robust=0.0,
+                jobid=jobid,
+                cpu_frac=round(cpu_frac, 2),
+                mem_frac=round(mem_frac, 2),
+            )
+            if msg != 0:
+                print(
+                    "!!!! WARNING: Error in self-calibration on target scans. Not applying self-calibration. !!!!"
+                )
+                do_apply_selfcal = False
+
+        ########################################
+        # Checking self-cal caltables
+        ########################################
+        selfcaldir = glob.glob(workdir + "/caltables/*selfcal*")
+        if len(selfcaldir) == 0:
+            print(
+                "Self-calibration is not performed and no self-calibration caltable is available."
+            )
+            do_apply_selfcal = False
+
+        #############################################
+        # Check spliting target scans finished or not
+        #############################################
+        # If corrected data is requested or imaging is requested
+        prefix = "targets"
+        if do_target_split and (do_applycal or do_imaging):
             msg = run_target_split_jobs(
                 msname,
                 workdir,
                 datacolumn="data",
+                spw=spw,
+                target_freq_chunk=target_freq_chunk,
                 freqres=freqavg,
-                target_freq_chunk=25,
-                n_spectral_chunk=nchunk,  # Number of target spectral chunk
+                n_spectral_chunk=-1,
                 target_scans=target_scans,
                 prefix=prefix,
-                merge_spws=True,
-                time_window=min(60, time_interval),
-                time_interval=time_interval,
                 split_fullpol=do_polcal,
                 jobid=jobid,
                 cpu_frac=round(cpu_frac, 2),
@@ -1831,392 +2021,294 @@ def master_control(
                 max_mem_frac=round(mem_frac, 2),
             )
             if msg != 0:
-                print(
-                    "!!!! WARNING: Error in running spliting target scans for selfcal. !!!!"
+                print("!!!! WARNING: Error in running spliting target scans. !!!!")
+                exit_job(start_time, mspath, workdir)
+                if remote_logger:
+                    pid = start_ping_logger(
+                        jobid,
+                        remote_job_id,
+                        remote_logger_waittime,
+                        remote_link=remote_link,
+                    )
+                    datadir = get_datadir()
+                    if pid is not None:
+                        save_pid(pid, datadir + f"/pids/pids_{jobid}.txt")
+                return 1
+            ##################################
+            # Waiting only spliting is started
+            ##################################
+            print("Waiting to finish spliting of target scans...\n")
+            split_basename = f"split_{prefix}"
+            while True:
+                finished_file = glob.glob(
+                    workdir + "/.Finished_" + split_basename + "*"
                 )
-                do_selfcal = False
-            else:
-                print("Waiting to finish spliting of target scans for selfcal...\n")
-                split_basename = f"split_{prefix}"
-                while True:
-                    finished_file = glob.glob(
-                        workdir + "/.Finished_" + split_basename + "*"
-                    )
-                    if len(finished_file) > 0:
-                        break
-                    else:
-                        time.sleep(1)
-                success_index_split_target = int(finished_file[0].split("_")[-1])
-                if success_index_split_target == 0:
-                    print("Spliting target scans are done successfully for selfcal.\n")
+                if len(finished_file) > 0:
+                    break
                 else:
-                    print(
-                        "!!!! WARNING: Error in spliting target scans for selfcal. Not continuing further for selfcal. !!!!"
+                    time.sleep(1)
+            success_index_split_target = int(finished_file[0].split("_")[-1])
+            if success_index_split_target == 0:
+                print("Spliting target scans are done successfully.\n")
+            else:
+                print(
+                    "!!!! WARNING: Error in spliting target scans. Not continuing further. !!!!"
+                )
+                exit_job(start_time, mspath, workdir)
+                if remote_logger:
+                    pid = start_ping_logger(
+                        jobid,
+                        remote_job_id,
+                        remote_logger_waittime,
+                        remote_link=remote_link,
                     )
-                    do_selfcal = False
+                    datadir = get_datadir()
+                    if pid is not None:
+                        save_pid(pid, datadir + f"/pids/pids_{jobid}.txt")
+                return 1
 
-    ####################################
-    # Filtering any corrupted ms
-    #####################################
-    if do_selfcal:
-        selfcal_target_mslist = glob.glob(workdir + "/selfcals_scan*.ms")
+        cpu_frac = copy.deepcopy(cpu_frac_bkp)
+        mem_frac = copy.deepcopy(mem_frac_bkp)
+        target_mslist = glob.glob(workdir + "/targets_scan*.ms")
+
+        ####################################
+        # Filtering any corrupted ms
+        #####################################
         filtered_mslist = []  # Filtering in case any ms is corrupted
-        for ms in selfcal_target_mslist:
+        for ms in target_mslist:
             checkcol = check_datacolumn_valid(ms)
             if checkcol:
                 filtered_mslist.append(ms)
             else:
                 print(f"Issue in : {ms}")
-                os.system(f"rm -rf {ms}")
-        selfcal_mslist = filtered_mslist
-        if len(selfcal_mslist) == 0:
-            print(
-                "No splited target scan ms are available in work directory for selfcal. Not continuing further for selfcal."
-            )
-            do_selfcal = False
-        print(f"Selfcal mslist : {[os.path.basename(i) for i in selfcal_mslist]}")
-
-    #########################################################
-    # Applying solutions on target scans for self-calibration
-    #########################################################
-    if do_selfcal:  # Applying solutions for selfcal
-        caldir = workdir + "/caltables"
-        msg = run_apply_basiccal_sol(
-            selfcal_mslist,
-            workdir,
-            caldir,
-            use_only_bandpass=use_only_bandpass,
-            overwrite_datacolumn=False,
-            applymode="calflag",
-            jobid=jobid,
-            cpu_frac=round(cpu_frac, 2),
-            mem_frac=round(mem_frac, 2),
-        )
-        if msg != 0:
-            print(
-                "!!!! WARNING: Error in applying basic calibration solutions on target scans. Not continuing further for selfcal.!!!!"
-            )
-            do_selfcal = False
-
-    ########################################
-    # Performing self-calibration
-    ########################################
-    if do_selfcal:
-        os.system("rm -rf " + workdir + "/*selfcal " + workdir + "/caltables/*selfcal*")
-        if do_sidereal_cor:
-            msg = run_solar_siderealcor_jobs(
-                selfcal_mslist,
-                workdir,
-                prefix="selfcals",
-                jobid=jobid,
-                cpu_frac=round(cpu_frac, 2),
-                mem_frac=round(mem_frac, 2),
-                max_cpu_frac=round(cpu_frac, 2),
-                max_mem_frac=round(mem_frac, 2),
-            )
-            if msg != 0:
-                print("Sidereal correction is not successful.")
-        msg = run_selfcal_jobs(
-            selfcal_mslist,
-            workdir,
-            solint=solint,
-            do_apcal=do_ap_selfcal,
-            solar_selfcal=solar_selfcal,
-            keep_backup=keep_backup,
-            uvrange=uvrange,
-            weight="briggs",
-            robust=0.0,
-            jobid=jobid,
-            cpu_frac=round(cpu_frac, 2),
-            mem_frac=round(mem_frac, 2),
-        )
-        if msg != 0:
-            print(
-                "!!!! WARNING: Error in self-calibration on target scans. Not applying self-calibration. !!!!"
-            )
-            do_apply_selfcal = False
-
-    ########################################
-    # Checking self-cal caltables
-    ########################################
-    selfcaldir = glob.glob(workdir + "/caltables/*selfcal*")
-    if len(selfcaldir) == 0:
-        print(
-            "Self-calibration is not performed and no self-calibration caltable is available."
-        )
-        do_apply_selfcal = False
-
-    #############################################
-    # Check spliting target scans finished or not
-    #############################################
-    # If corrected data is requested or imaging is requested
-    prefix = "targets"
-    if do_target_split and (do_applycal or do_imaging):
-        msg = run_target_split_jobs(
-            msname,
-            workdir,
-            datacolumn="data",
-            spw=spw,
-            target_freq_chunk=target_freq_chunk,
-            freqres=freqavg,
-            n_spectral_chunk=-1,
-            target_scans=target_scans,
-            prefix=prefix,
-            split_fullpol=do_polcal,
-            jobid=jobid,
-            cpu_frac=round(cpu_frac, 2),
-            mem_frac=round(mem_frac, 2),
-            max_cpu_frac=round(cpu_frac, 2),
-            max_mem_frac=round(mem_frac, 2),
-        )
-        if msg != 0:
-            print("!!!! WARNING: Error in running spliting target scans. !!!!")
+                os.system("rm -rf {ms}")
+        target_mslist = filtered_mslist
+        if len(target_mslist) == 0:
+            print("No splited target scan ms are available in work directory.")
             exit_job(start_time, mspath, workdir)
             if remote_logger:
                 pid = start_ping_logger(
-                    job_id, remote_logger_waittime, remote_link=remote_link
+                    jobid,
+                    remote_job_id,
+                    remote_logger_waittime,
+                    remote_link=remote_link,
                 )
                 datadir = get_datadir()
-                save_pid(pid, datadir + f"/pids/pids_{job_id}.txt")
+                if pid is not None:
+                    save_pid(pid, datadir + f"/pids/pids_{jobid}.txt")
             return 1
-        ##################################
-        # Waiting only spliting is started
-        ##################################
-        print("Waiting to finish spliting of target scans...\n")
-        split_basename = f"split_{prefix}"
-        while True:
-            finished_file = glob.glob(workdir + "/.Finished_" + split_basename + "*")
-            if len(finished_file) > 0:
-                break
+
+        if do_applycal or do_imaging:
+            print(
+                f"Target scan mslist : {[os.path.basename(i) for i in target_mslist]}"
+            )
+
+        #########################################################
+        # Applying basic solutions on target scans
+        #########################################################
+        if do_applycal:
+            if len(target_mslist) > 0:
+                caldir = workdir + "/caltables"
+                msg = run_apply_basiccal_sol(
+                    target_mslist,
+                    workdir,
+                    caldir,
+                    use_only_bandpass=use_only_bandpass,
+                    overwrite_datacolumn=True,
+                    applymode="calflag",
+                    jobid=jobid,
+                    cpu_frac=round(cpu_frac, 2),
+                    mem_frac=round(mem_frac, 2),
+                )
+                if msg != 0:
+                    print(
+                        "!!!! WARNING: Error in applying basic calibration solutions on target scans. Not continuing further.!!!!"
+                    )
+                    exit_job(start_time, mspath, workdir)
+                    if remote_logger:
+                        pid = start_ping_logger(
+                            jobid,
+                            remote_job_id,
+                            remote_logger_waittime,
+                            remote_link=remote_link,
+                        )
+                        datadir = get_datadir()
+                        if pid is not None:
+                            save_pid(pid, datadir + f"/pids/pids_{jobid}.txt")
+                    return 1
             else:
-                time.sleep(1)
-        success_index_split_target = int(finished_file[0].split("_")[-1])
-        if success_index_split_target == 0:
-            print("Spliting target scans are done successfully.\n")
-        else:
-            print(
-                "!!!! WARNING: Error in spliting target scans. Not continuing further. !!!!"
-            )
-            exit_job(start_time, mspath, workdir)
-            if remote_logger:
-                pid = start_ping_logger(
-                    job_id, remote_logger_waittime, remote_link=remote_link
+                print(
+                    "!!!! WARNING: No measurement set is present for basic calibration applying solutions. Not continuing further. !!!!"
                 )
-                datadir = get_datadir()
-                save_pid(pid, datadir + f"/pids/pids_{job_id}.txt")
-            return 1
+                exit_job(start_time, mspath, workdir)
+                if remote_logger:
+                    pid = start_ping_logger(
+                        jobid,
+                        remote_job_id,
+                        remote_logger_waittime,
+                        remote_link=remote_link,
+                    )
+                    datadir = get_datadir()
+                    if pid is not None:
+                        save_pid(pid, datadir + f"/pids/pids_{jobid}.txt")
+                return 1
+            if do_sidereal_cor:
+                msg = run_solar_siderealcor_jobs(
+                    target_mslist,
+                    workdir,
+                    prefix="targets",
+                    jobid=jobid,
+                    cpu_frac=round(cpu_frac, 2),
+                    mem_frac=round(mem_frac, 2),
+                    max_cpu_frac=round(cpu_frac, 2),
+                    max_mem_frac=round(mem_frac, 2),
+                )
 
-    cpu_frac = copy.deepcopy(cpu_frac_bkp)
-    mem_frac = copy.deepcopy(mem_frac_bkp)
-    target_mslist = glob.glob(workdir + "/targets_scan*.ms")
-
-    ####################################
-    # Filtering any corrupted ms
-    #####################################
-    filtered_mslist = []  # Filtering in case any ms is corrupted
-    for ms in target_mslist:
-        checkcol = check_datacolumn_valid(ms)
-        if checkcol:
-            filtered_mslist.append(ms)
-        else:
-            print(f"Issue in : {ms}")
-            os.system("rm -rf {ms}")
-    target_mslist = filtered_mslist
-    if len(target_mslist) == 0:
-        print("No splited target scan ms are available in work directory.")
-        exit_job(start_time, mspath, workdir)
-        if remote_logger:
-            pid = start_ping_logger(
-                job_id, remote_logger_waittime, remote_link=remote_link
-            )
-            datadir = get_datadir()
-            save_pid(pid, datadir + f"/pids/pids_{job_id}.txt")
-        return 1
-
-    if do_applycal or do_imaging:
-        print(f"Target scan mslist : {[os.path.basename(i) for i in target_mslist]}")
-
-    #########################################################
-    # Applying basic solutions on target scans
-    #########################################################
-    if do_applycal:
-        if len(target_mslist) > 0:
+        ########################################
+        # Apply self-calibration
+        ########################################
+        if do_apply_selfcal:
+            target_mslist = sorted(target_mslist)
             caldir = workdir + "/caltables"
-            msg = run_apply_basiccal_sol(
+            msg = run_apply_selfcal_sol(
                 target_mslist,
                 workdir,
                 caldir,
-                use_only_bandpass=use_only_bandpass,
-                overwrite_datacolumn=True,
-                applymode="calflag",
+                overwrite_datacolumn=False,
+                applymode="calonly",
                 jobid=jobid,
                 cpu_frac=round(cpu_frac, 2),
                 mem_frac=round(mem_frac, 2),
             )
             if msg != 0:
                 print(
-                    "!!!! WARNING: Error in applying basic calibration solutions on target scans. Not continuing further.!!!!"
+                    "!!!! WARNING: Error in applying self-calibration solutions on target scans. !!!!"
                 )
-                exit_job(start_time, mspath, workdir)
-                if remote_logger:
-                    pid = start_ping_logger(
-                        job_id, remote_logger_waittime, remote_link=remote_link
-                    )
-                    datadir = get_datadir()
-                    save_pid(pid, datadir + f"/pids/pids_{job_id}.txt")
-                return 1
-        else:
-            print(
-                "!!!! WARNING: No measurement set is present for basic calibration applying solutions. Not continuing further. !!!!"
-            )
-            exit_job(start_time, mspath, workdir)
-            if remote_logger:
-                pid = start_ping_logger(
-                    job_id, remote_logger_waittime, remote_link=remote_link
-                )
-                datadir = get_datadir()
-                save_pid(pid, datadir + f"/pids/pids_{job_id}.txt")
-            return 1
-        if do_sidereal_cor:
-            msg = run_solar_siderealcor_jobs(
+
+        #####################################
+        # Imaging
+        ######################################
+        if do_imaging:
+            if do_polcal == False:
+                pol = "I"
+            else:
+                pol = "IQUV"
+            band = get_band_name(target_mslist[0])
+            msg = run_imaging_jobs(
                 target_mslist,
                 workdir,
-                prefix="targets",
-                jobid=jobid,
-                cpu_frac=round(cpu_frac, 2),
-                mem_frac=round(mem_frac, 2),
-                max_cpu_frac=round(cpu_frac, 2),
-                max_mem_frac=round(mem_frac, 2),
-            )
-
-    ########################################
-    # Apply self-calibration
-    ########################################
-    if do_apply_selfcal:
-        target_mslist = sorted(target_mslist)
-        caldir = workdir + "/caltables"
-        msg = run_apply_selfcal_sol(
-            target_mslist,
-            workdir,
-            caldir,
-            overwrite_datacolumn=False,
-            applymode="calonly",
-            jobid=jobid,
-            cpu_frac=round(cpu_frac, 2),
-            mem_frac=round(mem_frac, 2),
-        )
-        if msg != 0:
-            print(
-                "!!!! WARNING: Error in applying self-calibration solutions on target scans. !!!!"
-            )
-
-    #####################################
-    # Imaging
-    ######################################
-    if do_imaging:
-        if do_polcal == False:
-            pol = "I"
-        else:
-            pol = "IQUV"
-        msg = run_imaging_jobs(
-            target_mslist,
-            workdir,
-            freqrange=freqrange,
-            timerange=timerange,
-            minuv=minuv,
-            weight=weight,
-            robust=float(robust),
-            pol=pol,
-            band=band,
-            freqres=image_freqres,
-            timeres=image_timeres,
-            threshold=float(clean_threshold),
-            use_multiscale=use_multiscale,
-            use_solar_mask=use_solar_mask,
-            cutout_rsun=cutout_rsun,
-            make_overlay=make_overlay,
-            savemodel=keep_backup,
-            saveres=keep_backup,
-            jobid=jobid,
-            cpu_frac=round(cpu_frac, 2),
-            mem_frac=round(mem_frac, 2),
-        )
-        if msg != 0:
-            print(
-                "!!!! WARNING: Final imaging on all measurement sets is not successful. Check the image directory. !!!!"
-            )
-            exit_job(start_time, mspath, workdir)
-            if remote_logger:
-                pid = start_ping_logger(
-                    job_id, remote_logger_waittime, remote_link=remote_link
-                )
-                datadir = get_datadir()
-                save_pid(pid, datadir + f"/pids/pids_{job_id}.txt")
-            return 1
-
-    ###########################
-    # Primary beam correction
-    ###########################
-    if do_pbcor:
-        if weight == "briggs":
-            weight_str = f"{weight}_{robust}"
-        else:
-            weight_str = weight
-        if image_freqres == -1 and image_timeres == -1:
-            imagedir = workdir + f"/imagedir_f_all_t_all_w_{weight_str}"
-        elif image_freqres != -1 and image_timeres == -1:
-            imagedir = (
-                workdir
-                + f"/imagedir_f_{round(float(image_freqres),1)}_t_all_w_{weight_str}"
-            )
-        elif image_freqres == -1 and image_timeres != -1:
-            imagedir = (
-                workdir
-                + f"/imagedir_f_all_t_{round(float(image_timeres),1)}_w_{weight_str}"
-            )
-        else:
-            imagedir = (
-                workdir
-                + f"/imagedir_f_{round(float(image_freqres),1)}_t_{round(float(image_timeres),1)}_w_{weight_str}"
-            )
-        imagedir = imagedir + "/images"
-        images = glob.glob(imagedir + "/*.fits")
-        if len(images) == 0:
-            print(f"No image is present in image directory: {imagedir}")
-        else:
-            msg = run_apply_pbcor(
-                imagedir,
-                workdir,
-                apply_parang=apply_parang,
+                freqrange=freqrange,
+                timerange=timerange,
+                minuv=minuv,
+                weight=weight,
+                robust=float(robust),
+                pol=pol,
+                band=band,
+                freqres=image_freqres,
+                timeres=image_timeres,
+                threshold=float(clean_threshold),
+                use_multiscale=use_multiscale,
+                use_solar_mask=use_solar_mask,
+                cutout_rsun=cutout_rsun,
+                make_overlay=make_overlay,
+                savemodel=keep_backup,
+                saveres=keep_backup,
                 jobid=jobid,
                 cpu_frac=round(cpu_frac, 2),
                 mem_frac=round(mem_frac, 2),
             )
             if msg != 0:
                 print(
-                    "!!!! WARNING: Primary beam corrections of the final images are not successful. !!!!"
+                    "!!!! WARNING: Final imaging on all measurement sets is not successful. Check the image directory. !!!!"
                 )
                 exit_job(start_time, mspath, workdir)
                 if remote_logger:
                     pid = start_ping_logger(
-                        job_id, remote_logger_waittime, remote_link=remote_link
+                        jobid,
+                        remote_job_id,
+                        remote_logger_waittime,
+                        remote_link=remote_link,
                     )
                     datadir = get_datadir()
-                    save_pid(pid, datadir + f"/pids/pids_{job_id}.txt")
+                    if pid is not None:
+                        save_pid(pid, datadir + f"/pids/pids_{jobid}.txt")
                 return 1
-            print(f"Final image directory: {os.path.dirname(imagedir)}\n")
-    ###########################################
-    # Successful exit
-    ###########################################
-    print(
-        f"Calibration and imaging pipeline is successfully run on measurement set : {msname}\n"
-    )
-    exit_job(start_time, mspath, workdir)
-    if remote_logger:
-        pid = start_ping_logger(job_id, remote_logger_waittime, remote_link=remote_link)
-        datadir = get_datadir()
-        save_pid(pid, datadir + f"/pids/pids_{job_id}.txt")
-    return 0
+
+        ###########################
+        # Primary beam correction
+        ###########################
+        if do_pbcor:
+            if weight == "briggs":
+                weight_str = f"{weight}_{robust}"
+            else:
+                weight_str = weight
+            if image_freqres == -1 and image_timeres == -1:
+                imagedir = workdir + f"/imagedir_f_all_t_all_w_{weight_str}"
+            elif image_freqres != -1 and image_timeres == -1:
+                imagedir = (
+                    workdir
+                    + f"/imagedir_f_{round(float(image_freqres),1)}_t_all_w_{weight_str}"
+                )
+            elif image_freqres == -1 and image_timeres != -1:
+                imagedir = (
+                    workdir
+                    + f"/imagedir_f_all_t_{round(float(image_timeres),1)}_w_{weight_str}"
+                )
+            else:
+                imagedir = (
+                    workdir
+                    + f"/imagedir_f_{round(float(image_freqres),1)}_t_{round(float(image_timeres),1)}_w_{weight_str}"
+                )
+            imagedir = imagedir + "/images"
+            images = glob.glob(imagedir + "/*.fits")
+            if len(images) == 0:
+                print(f"No image is present in image directory: {imagedir}")
+            else:
+                msg = run_apply_pbcor(
+                    imagedir,
+                    workdir,
+                    apply_parang=apply_parang,
+                    jobid=jobid,
+                    cpu_frac=round(cpu_frac, 2),
+                    mem_frac=round(mem_frac, 2),
+                )
+                if msg != 0:
+                    print(
+                        "!!!! WARNING: Primary beam corrections of the final images are not successful. !!!!"
+                    )
+                    exit_job(start_time, mspath, workdir)
+                    if remote_logger:
+                        pid = start_ping_logger(
+                            jobid,
+                            remote_job_id,
+                            remote_logger_waittime,
+                            remote_link=remote_link,
+                        )
+                        datadir = get_datadir()
+                        if pid is not None:
+                            save_pid(pid, datadir + f"/pids/pids_{jobid}.txt")
+                    return 1
+                print(f"Final image directory: {os.path.dirname(imagedir)}\n")
+        ###########################################
+        # Successful exit
+        ###########################################
+        print(
+            f"Calibration and imaging pipeline is successfully run on measurement set : {msname}\n"
+        )
+        exit_job(start_time, mspath, workdir)
+        if remote_logger:
+            pid = start_ping_logger(
+                jobid, remote_job_id, remote_logger_waittime, remote_link=remote_link
+            )
+            datadir = get_datadir()
+            if pid is not None:
+                save_pid(pid, datadir + f"/pids/pids_{jobid}.txt")
+        return 0
+    except Exception as e:
+        traceback.print_exc()
+        return 1
+    finally:
+        drop_cache(msname)
 
 
 def main():
@@ -2237,7 +2329,7 @@ def main():
             required=True,
             help="Working directory",
         )
-       
+
         # === Advanced calibration parameters ===
         advanced_cal = parser.add_argument_group(
             "###################\nAdvanced calibration parameters\n###################"
@@ -2260,7 +2352,7 @@ def main():
             dest="do_polcal",
             help="Disable polarization calibration",
         )
-        
+
         # === Advanced imaging and calibration parameters ===
         advanced_image = parser.add_argument_group(
             "###################\nAdvanced imaging parameters\n###################"
@@ -2319,13 +2411,13 @@ def main():
             type=float,
             default=0.0,
             help="Robust parameter for Briggs weighting (-2 to +2)",
-        )   
+        )
         advanced_image.add_argument(
             "--no_multiscale",
             action="store_false",
             dest="use_multiscale",
             help="Disable multiscale CLEAN for extended structures",
-        )  
+        )
         advanced_image.add_argument(
             "--clean_threshold",
             type=float,
@@ -2361,7 +2453,7 @@ def main():
             dest="make_overlay",
             help="Disable overlay plot on GOES SUVI after imaging",
         )
-      
+
         # === Advanced options ===
         advanced = parser.add_argument_group(
             "###################\nAdvanced pipeline parameters\n###################"
@@ -2467,7 +2559,7 @@ def main():
             dest="do_imaging",
             help="Disable final imaging",
         )
-        
+
         # === Advanced local system/ per node hardware resource parameters ===
         advanced_resource = parser.add_argument_group(
             "###################\nAdvanced hardware resource parameters for local system or per node on HPC cluster\n###################"
@@ -2490,7 +2582,10 @@ def main():
             help="Keep backup of intermediate steps",
         )
         advanced_resource.add_argument(
-            "--no_remote_logger", action="store_false", dest="remote_logger", help="Disable remote logger"
+            "--no_remote_logger",
+            action="store_false",
+            dest="remote_logger",
+            help="Disable remote logger",
         )
         advanced_resource.add_argument(
             "--logger_alivetime",
@@ -2524,28 +2619,23 @@ def main():
             msname=args.msname,
             workdir=args.workdir,
             solar_data=args.solar_data,
-
             # Pre-calibration
             do_forcereset_weightflag=args.do_forcereset_weightflag,
             do_cal_partition=args.do_cal_partition,
             do_cal_flag=args.do_cal_flag,
             do_import_model=args.do_import_model,
-
             # Basic calibration
             do_basic_cal=args.do_basic_cal,
             do_noise_cal=args.do_noise_cal,
             do_applycal=args.do_applycal,
-
             # Target data preparation
             do_target_split=args.do_target_split,
             target_scans=args.target_scans,
             freqrange=args.freqrange,
             timerange=args.timerange,
             uvrange=args.cal_uvrange,
-
             # Polarization calibration
             do_polcal=args.do_polcal,
-
             # Self-calibration
             do_selfcal=args.do_selfcal,
             do_selfcal_split=args.do_selfcal_split,
@@ -2553,13 +2643,10 @@ def main():
             do_ap_selfcal=args.do_ap_selfcal,
             solar_selfcal=args.solar_selfcal,
             solint=args.solint,
-
             # Sidereal correction
             do_sidereal_cor=args.do_sidereal_cor,
-
             # Dynamic spectra
             make_ds=args.make_ds,
-
             # Imaging
             do_imaging=args.do_imaging,
             do_pbcor=args.do_pbcor,
@@ -2575,13 +2662,11 @@ def main():
             use_solar_mask=args.use_solar_mask,
             cutout_rsun=args.cutout_rsun,
             make_overlay=args.make_overlay,
-
             # Resource settings
             cpu_frac=args.cpu_frac,
             mem_frac=args.mem_frac,
             n_nodes=args.n_nodes,
             keep_backup=args.keep_backup,
-
             # Remote logging
             remote_logger=args.remote_logger,
             remote_logger_waittime=args.logger_alivetime,

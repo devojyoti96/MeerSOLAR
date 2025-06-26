@@ -1,4 +1,4 @@
-import os
+import os, platform, ctypes
 import sys, numpy as np
 import traceback, argparse
 from collections import deque
@@ -21,13 +21,75 @@ from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
 
 LOG_DIR = None
+POSIX_FADV_DONTNEED = 4
+libc = ctypes.CDLL("libc.so.6")
 
+#####################################
+# Resource management
+#####################################
+def drop_file_cache(filepath, verbose=False):
+    """
+    Advise the OS to drop the given file from the page cache.
+    Safe, per-file, no sudo required.
+    """
+    if platform.system() != "Linux":
+        raise NotImplementedError("drop_file_cache is only supported on Linux")
+    try:
+        if not os.path.isfile(filepath):
+            return
+        fd = os.open(filepath, os.O_RDONLY)
+        result = libc.posix_fadvise(fd, 0, 0, POSIX_FADV_DONTNEED)
+        os.close(fd)
+        if verbose:
+            if result == 0:
+                print(f"[cache drop] Released: {filepath}")
+            else:
+                print(f"[cache drop] Failed ({result}) for: {filepath}")
+    except Exception as e:
+        if verbose:
+            print(f"[cache drop] Error for {filepath}: {e}")
+            traceback.print_exc()
+
+
+def drop_cache(path, verbose=False):
+    """
+    Drop file cache for a file or all files under a directory.
+
+    Parameters
+    ----------
+    path : str
+        File or directory path
+    """
+    if platform.system() != "Linux":
+        raise NotImplementedError("drop_file_cache is only supported on Linux")
+    if os.path.isfile(path):
+        drop_file_cache(path, verbose=verbose)
+    elif os.path.isdir(path):
+        for root, _, files in os.walk(path):
+            for f in files:
+                full_path = os.path.join(root, f)
+                drop_file_cache(full_path, verbose=verbose)
+    else:
+        if verbose:
+            print(f"[cache drop] Path does not exist or is not valid: {path}")
+   
+def get_datadir():
+    from importlib.resources import files
+
+    datadir_path = str(files("meersolar").joinpath("data"))
+    os.makedirs(datadir_path, exist_ok=True)
+    os.makedirs(f"{datadir_path}/pids", exist_ok=True)
+    return datadir_path
+            
 class SmartDefaultsHelpFormatter(argparse.ArgumentDefaultsHelpFormatter):
     def _get_help_string(self, action):
         # Don't show default for boolean flags
-        if isinstance(action, argparse._StoreTrueAction) or isinstance(action, argparse._StoreFalseAction):
+        if isinstance(action, argparse._StoreTrueAction) or isinstance(
+            action, argparse._StoreFalseAction
+        ):
             return action.help
         return super()._get_help_string(action)
+
 
 def get_logid(logfile):
     name = os.path.basename(logfile)
@@ -64,8 +126,10 @@ def get_logid(logfile):
     else:
         return name
 
+
 class TailWatcher(FileSystemEventHandler, QObject):
     new_line = pyqtSignal(str)
+
     def __init__(self, file_path):
         super().__init__()
         self.file_path = file_path
@@ -74,7 +138,9 @@ class TailWatcher(FileSystemEventHandler, QObject):
         self.observer = Observer()
 
     def start(self):
-        self.observer.schedule(self, path=os.path.dirname(self.file_path), recursive=False)
+        self.observer.schedule(
+            self, path=os.path.dirname(self.file_path), recursive=False
+        )
         self.observer.start()
         # Do not emit initial content to avoid duplication
 
@@ -100,13 +166,18 @@ class TailWatcher(FileSystemEventHandler, QObject):
             except Exception as e:
                 self.new_line.emit(f"\n[watcher error] {e}\n")
 
+
 class LogViewer(QWidget):
     def __init__(self, max_lines=10000):
         super().__init__()
         self.setWindowTitle("MeerLogger (Live Log)")
         screen = QApplication.primaryScreen().availableGeometry()
-        self.setGeometry(screen.x() + screen.width() // 10, screen.y() + screen.height() // 10,
-                         int(screen.width() * 0.8), int(screen.height() * 0.8))
+        self.setGeometry(
+            screen.x() + screen.width() // 10,
+            screen.y() + screen.height() // 10,
+            int(screen.width() * 0.8),
+            int(screen.height() * 0.8),
+        )
 
         self.max_lines = max_lines
         self.buffer = []
@@ -122,7 +193,10 @@ class LogViewer(QWidget):
 
     def calc_list_width(self):
         fm = self.log_list.fontMetrics()
-        widths = [fm.horizontalAdvance(self.log_list.item(i).text()) for i in range(self.log_list.count())]
+        widths = [
+            fm.horizontalAdvance(self.log_list.item(i).text())
+            for i in range(self.log_list.count())
+        ]
         return max(150, min(int(1.1 * max(widths, default=100)), 500))
 
     def setup_ui(self):
@@ -152,25 +226,32 @@ class LogViewer(QWidget):
         inner_container = QWidget()
         inner_container.setObjectName("InnerContainer")
         inner_container.setLayout(inner_layout)
-        inner_container.setStyleSheet("""
+        inner_container.setStyleSheet(
+            """
             QWidget#InnerContainer {
                 background-color: #f0f0f0;
                 border-bottom-left-radius: 12px;
                 border-bottom-right-radius: 12px;
             }
-        """)
+        """
+        )
 
         outer_layout.addWidget(inner_container, 0, 0)
 
     def refresh_logs(self):
         existing_paths = {
-            self.log_list.item(i).data(Qt.UserRole) for i in range(self.log_list.count())
+            self.log_list.item(i).data(Qt.UserRole)
+            for i in range(self.log_list.count())
         }
         new_items_added = False
 
         if os.path.isdir(LOG_DIR):
-            log_files = [fname for fname in os.listdir(LOG_DIR)
-                         if os.path.isfile(os.path.join(LOG_DIR, fname)) and fname.endswith(".log")]
+            log_files = [
+                fname
+                for fname in os.listdir(LOG_DIR)
+                if os.path.isfile(os.path.join(LOG_DIR, fname))
+                and fname.endswith(".log")
+            ]
             log_files.sort(key=lambda f: os.path.getctime(os.path.join(LOG_DIR, f)))
 
             for fname in log_files:
@@ -183,9 +264,12 @@ class LogViewer(QWidget):
                     new_items_added = True
 
         if new_items_added:
-            QTimer.singleShot(100, lambda: self.splitter.setSizes([
-                self.calc_list_width(), self.width() - self.calc_list_width()
-            ]))
+            QTimer.singleShot(
+                100,
+                lambda: self.splitter.setSizes(
+                    [self.calc_list_width(), self.width() - self.calc_list_width()]
+                ),
+            )
 
     def load_log_content(self, item):
         new_log_path = item.data(Qt.UserRole)
@@ -199,14 +283,15 @@ class LogViewer(QWidget):
             with open(new_log_path, "r") as f:
                 full_data = f.read()
                 # Split, filter blank lines, and rejoin with original line endings
-                lines = [line for line in full_data.splitlines(keepends=True) if line.strip()]
+                lines = [
+                    line for line in full_data.splitlines(keepends=True) if line.strip()
+                ]
                 self.buffer = lines
                 self.log_view.setPlainText("".join(lines))
                 self.log_view.moveCursor(QTextCursor.End)
         except Exception as e:
             self.buffer = [f"[Error reading file: {e}]\n"]
             self.log_view.setPlainText(self.buffer[0])
-
 
         self.tail_watcher = TailWatcher(self.current_log_path)
         self.tail_watcher.new_line.connect(self.append_log_line)
@@ -216,7 +301,7 @@ class LogViewer(QWidget):
         lines = text.splitlines(keepends=True)
         self.buffer.extend(lines)
         if len(self.buffer) > self.max_lines:
-            self.buffer = self.buffer[-self.max_lines:]
+            self.buffer = self.buffer[-self.max_lines :]
         self.log_view.setPlainText("".join(self.buffer))
         self.log_view.moveCursor(QTextCursor.End)
 
@@ -225,21 +310,23 @@ class LogViewer(QWidget):
             self.tail_watcher.stop()
         QApplication.quit()
 
-def get_datadir():
-    from importlib.resources import files
-    datadir_path = str(files("meersolar").joinpath("data"))
-    os.makedirs(datadir_path, exist_ok=True)
-    os.makedirs(f"{datadir_path}/pids", exist_ok=True)
-    return datadir_path
-
 def main():
     global LOG_DIR
-    parser = argparse.ArgumentParser(description="MeerSOLAR Logger",
-                                     formatter_class=SmartDefaultsHelpFormatter)
-    parser.add_argument("--jobid", type=str, default=None, help="MeerSOLAR Job ID", metavar="Integer")
-    parser.add_argument("--logdir", type=str, default=None, help="Name of log directory", metavar="String")
+    parser = argparse.ArgumentParser(
+        description="MeerSOLAR Logger", formatter_class=SmartDefaultsHelpFormatter
+    )
+    parser.add_argument(
+        "--jobid", type=str, default=None, help="MeerSOLAR Job ID", metavar="Integer"
+    )
+    parser.add_argument(
+        "--logdir",
+        type=str,
+        default=None,
+        help="Name of log directory",
+        metavar="String",
+    )
     args = parser.parse_args()
-
+    
     if args.jobid is None and args.logdir is None:
         print("Please provide either job ID or log directory.")
         sys.exit(1)
@@ -248,18 +335,22 @@ def main():
         if args.jobid is not None:
             jobfile_name = datadir + f"/main_pids_{args.jobid}.txt"
             if not os.path.exists(jobfile_name):
-                print(f"Job ID: {args.jobid} is not available. Provide log directory name.")
+                print(
+                    f"Job ID: {args.jobid} is not available. Provide log directory name."
+                )
                 sys.exit(1)
             else:
                 results = np.loadtxt(jobfile_name, dtype="str", unpack=True)
-                basedir = results[2]
+                basedir = str(results[3])
                 if not os.path.exists(basedir):
                     print(f"Base directory : {basedir} is not present.")
                     sys.exit(1)
                 LOG_DIR = basedir.rstrip("/") + "/logs"
         else:
             if not os.path.exists(args.logdir):
-                print(f"Log directory: {args.logdir} is not present. Please provide a valid log directory.")
+                print(
+                    f"Log directory: {args.logdir} is not present. Please provide a valid log directory."
+                )
                 sys.exit(1)
             LOG_DIR = args.logdir
 
@@ -272,21 +363,31 @@ def main():
     os.environ.setdefault("XDG_RUNTIME_DIR", f"{LOG_DIR}/xdgtmp")
     os.environ["XDG_RUNTIME_DIR"] = f"{LOG_DIR}/xdgtmp"
     os.environ["TMPDIR"] = f"{LOG_DIR}/xdgtmp"
-
-    app = QApplication(sys.argv)
-    app.setStyleSheet("""
-        * {
-            font-family: \"Segoe UI\", \"Noto Sans\", \"Sans Serif\";
-            font-size: 15px;
-        }
-        QListWidget, QPlainTextEdit, QPushButton {
-            font-size: 15px;
-        }
-        QPushButton {
-            padding: 4px 14px;
-        }
-    """)
-    viewer = LogViewer()
-    viewer.show()
-    sys.exit(app.exec_())
-
+    
+    try:
+        app = QApplication(sys.argv)
+        app.setStyleSheet(
+            """
+            * {
+                font-family: \"Segoe UI\", \"Noto Sans\", \"Sans Serif\";
+                font-size: 15px;
+            }
+            QListWidget, QPlainTextEdit, QPushButton {
+                font-size: 15px;
+            }
+            QPushButton {
+                padding: 4px 14px;
+            }
+        """
+        )
+        viewer = LogViewer()
+        viewer.show()
+        sys.exit(app.exec_())
+    except Exception as e:
+        traceback.print_exc()
+    finally:
+        if LOG_DIR is not None and os.path.exists(LOG_DIR):
+            drop_cache(LOG_DIR)
+        
+        
+        

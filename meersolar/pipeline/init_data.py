@@ -42,10 +42,10 @@ def download_with_parfive(record_id, update=False, output_dir="zenodo_download")
     results = dl.download()
 
 
-def init_meersolar_data(update=False,remote_link=None,emails=None):
+def init_meersolar_data(update=False, remote_link=None, emails=None):
     """
     Initiate MeerSOLAR data
-    
+
     Parameters
     ----------
     update : bool, optional
@@ -58,7 +58,7 @@ def init_meersolar_data(update=False,remote_link=None,emails=None):
     datadir = get_datadir()
     os.makedirs(datadir, exist_ok=True)
     linkfile = f"{datadir}/remotelink.txt"
-    emailfile=f"{datadir}/emails.txt"
+    emailfile = f"{datadir}/emails.txt"
     if not os.path.exists(linkfile):
         with open(linkfile, "w") as f:
             f.write("")
@@ -66,11 +66,11 @@ def init_meersolar_data(update=False,remote_link=None,emails=None):
     if remote_link is not None:
         with open(linkfile, "w") as f:
             f.write(str(remote_link))
-       
+
     if emails is not None:
         with open(emailfile, "w") as f:
-            f.write(str(emails))     
-    
+            f.write(str(emails))
+
     unavailable_files = [
         f for f in all_filenames if not os.path.exists(f"{datadir}/{f}")
     ]
@@ -80,18 +80,23 @@ def init_meersolar_data(update=False,remote_link=None,emails=None):
         download_with_parfive(record_id, update=update, output_dir=datadir)
         timestr = dt.utcnow().strftime("%Y-%m-%d %H:%M:%S")
         print(f"MeeSOLAR data are updated in: {datadir} at time: {timestr}")
-   
+
 
 def main():
     usage = "Initiate MeerSOLAR data"
-    parser = argparse.ArgumentParser(description=usage,formatter_class=SmartDefaultsHelpFormatter)
+    parser = argparse.ArgumentParser(
+        description=usage, formatter_class=SmartDefaultsHelpFormatter
+    )
     parser.add_argument("--init", action="store_true", help="Initiate data")
     parser.add_argument("--update", action="store_true", help="Update existing data")
     parser.add_argument(
         "--remotelink", dest="link", default=None, help="Set remote log link"
     )
     parser.add_argument(
-        "--emails", dest="emails", default=None, help="Email addresses (comma seperated) to send Job ID and password for remote logger"
+        "--emails",
+        dest="emails",
+        default=None,
+        help="Email addresses (comma seperated) to send Job ID and password for remote logger",
     )
 
     if len(sys.argv) == 1:
@@ -99,8 +104,11 @@ def main():
         sys.exit(1)
     args = parser.parse_args()
     if args.init:
-        init_meersolar_data(update=args.update,remote_link=args.link,emails=args.emails)
-        print (f"MeerSOLAR data are initiated.")
+        init_meersolar_data(
+            update=args.update, remote_link=args.link, emails=args.emails
+        )
+        print(f"MeerSOLAR data are initiated.")
+
 
 if __name__ == "__main__":
     main()
