@@ -67,7 +67,7 @@ def make_ds(
                 cpu_frac=cpu_frac,
                 mem_frac=mem_frac,
             )
-        if os.path.samfile(outdir,workdir)==False:
+        if os.path.samefile(outdir,workdir)==False:
             os.system(f"mv {workdir}/dynamic_spectra {outdir}")
         ds_file_name = os.path.basename(msname).split(".ms")[0] + "_DS"
         ds_files = glob.glob(f"{outdir}/dynamic_spectra/{ds_file_name}*.{extension}")
@@ -176,8 +176,7 @@ def main():
         workdir = args.workdir
     os.makedirs(workdir,exist_ok=True)
 
-    if not os.path.exists(workdir + "/logs/"):
-        os.makedirs(workdir + "/logs/")
+    os.makedirs(workdir + "/logs/",exist_ok=True)
 
     logfile = args.logfile
     observer = None

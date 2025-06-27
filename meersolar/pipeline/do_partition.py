@@ -371,10 +371,9 @@ def main():
 
     if args.workdir == "" or not os.path.exists(args.workdir):
         workdir = os.path.dirname(os.path.abspath(args.msname)) + "/workdir"
-        if not os.path.exists(workdir):
-            os.makedirs(workdir)
     else:
         workdir = args.workdir
+    os.makedirs(workdir,exist_ok=True)
 
     logfile = args.logfile
     observer = None

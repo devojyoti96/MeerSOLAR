@@ -444,7 +444,6 @@ def main():
         type=str,
         default="",
         help="Name of work directory",
-        metavar="String",
     )
 
     ## Advanced parameters
@@ -456,17 +455,16 @@ def main():
         type=str,
         default="data",
         help="Data column to split",
-        metavar="String",
     )
     adv_args.add_argument(
-        "--spw", type=str, default="", help="Spectral window to split", metavar="String"
+        "--spw", type=str, default="", help="Spectral window to split"
     )
     adv_args.add_argument(
         "--scans",
         type=str,
         default="",
         help="Target scan list (default: all)",
-        metavar="String",
+        metavar="SCANS (Comma seperated)",
     )
     adv_args.add_argument(
         "--time_window",
@@ -522,7 +520,6 @@ def main():
         type=str,
         default="targets",
         help="Splited ms prefix name",
-        metavar="String",
     )
     adv_args.add_argument(
         "--split_fullpol", action="store_true", help="Split full polar data"
@@ -564,10 +561,10 @@ def main():
         metavar="Float",
     )
     hard_args.add_argument(
-        "--logfile", type=str, default=None, help="Log file", metavar="String"
+        "--logfile", type=str, default=None, help="Log file"
     )
     hard_args.add_argument(
-        "--jobid", type=int, default=0, help="Job ID", metavar="Integer"
+        "--jobid", type=int, default=0, help="Job ID"
     )
 
     if len(sys.argv) == 1:
@@ -583,8 +580,7 @@ def main():
         if args.workdir and os.path.exists(args.workdir)
         else os.path.dirname(os.path.abspath(args.msname)) + "/workdir"
     )
-    if not os.path.exists(workdir):
-        os.makedirs(workdir)
+    os.makedirs(workdir,exist_ok=True)
 
     logfile = args.logfile
     observer = None

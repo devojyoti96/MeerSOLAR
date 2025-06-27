@@ -429,6 +429,7 @@ def single_round_cal_and_flag(
     phasecal_fluxes,
     polcal_scans=[],
     polcal_fields=[],
+    do_delaycal=False,
     do_phasecal=False,
     do_leakagecal=False,
     do_polcal=False,
@@ -465,6 +466,8 @@ def single_round_cal_and_flag(
         Polarized calibrator scans
     polcal_fields : list, optional
         Polarized calibrator fields
+    do_delaycal : bool, optional
+        Perform delay calibration or not
     do_phasecal : bool, optional
         Perform calibration on phasecal fields
     do_leakagecal : bool, optional
@@ -567,7 +570,7 @@ def single_round_cal_and_flag(
         ##############################
         # Delay calibration
         ##############################
-        if len(fluxcal_mslist) > 0:
+        if len(fluxcal_mslist) > 0 and do_delaycal:
             delaycal_mslist = fluxcal_mslist
             #############################################
             # Memory limit
@@ -959,7 +962,7 @@ def single_round_cal_and_flag(
                     gaintable=applycal_gaintable,
                     gainfield=applycal_gainfield,
                     interp=applycal_interp,
-                    calwt=[False],
+                    calwt=[False]*len(applycal_gainfield),
                     parang=parang,
                     n_threads=n_threads,
                 )
@@ -1069,6 +1072,7 @@ def run_basic_cal_rounds(
     refant="",
     uvrange="",
     keep_backup=False,
+    do_delaycal=False,
     perform_polcal=False,
     cpu_frac=0.8,
     mem_frac=0.8,
@@ -1086,6 +1090,8 @@ def run_basic_cal_rounds(
         Reference antenna
     uvrange : str, optional
         UV-range
+    do_delaycal : bool, optional
+        Do delay calibration or not
     perform_polcal : bool, optional
         Perform polarization calibration for fullpolar data
     keep_backup : bool, optional
@@ -1150,6 +1156,9 @@ def run_basic_cal_rounds(
             refant = get_refant(msname)
         if uvrange == "":
             uvrange = ">200lambda"
+        print ("#########################################")
+        print (f"Using UV-range for calibration: {uvrange}")
+        print ("#########################################")
         for cal_round in range(1, n_rounds + 1):
             print("\n#################################")
             print(f"Calibration round: {cal_round}")
@@ -1174,6 +1183,7 @@ def run_basic_cal_rounds(
                 phasecal_scans,
                 phasecal_fields,
                 phasecal_fluxes,
+                do_delaycal=do_delaycal,
                 do_phasecal=do_phasecal,
                 do_leakagecal=do_leakagecal,
                 do_polcal=do_polcal,
@@ -1260,6 +1270,9 @@ def main():
         help="UV range for calibration (e.g. '>100lambda')",
     )
     adv_args.add_argument(
+        "--do_delaycal", action="store_true", help="Enable delay calibration"
+    )
+    adv_args.add_argument(
         "--perform_polcal", action="store_true", help="Enable polarization calibration"
     )
     adv_args.add_argument(
@@ -1329,6 +1342,7 @@ def main():
                 workdir,
                 refant=args.refant,
                 uvrange=args.uvrange,
+                do_delaycal=args.do_delaycal,
                 perform_polcal=args.perform_polcal,
                 keep_backup=args.keep_backup,
                 cpu_frac=args.cpu_frac,
@@ -1350,7 +1364,8 @@ def main():
     finally:
         time.sleep(5)
         drop_cache(args.msname)
-        drop_cache(args.workdir)
+        drop_cache(workdir)
+        drop_cache(caldir)
         clean_shutdown(observer)
     return msg
 

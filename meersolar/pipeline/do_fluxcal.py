@@ -293,8 +293,8 @@ def get_power_diff(
     ########################################
     # Determining chunk size
     ########################################
-    cal_mssize = get_ms_size(cal_msname)
-    source_mssize = get_ms_size(source_msname)
+    cal_mssize = get_ms_size(cal_msname,only_autocorr=True)
+    source_mssize = get_ms_size(source_msname,only_autocorr=True)
     total_mssize = cal_mssize + source_mssize
     scale_factor_size = nant * ntime * scale_factor.nbytes / (1024.0**3)
     att_ant_array_size = (npol * nchan * nant * 16) / (1024.0**3)
@@ -391,6 +391,8 @@ def estimate_att(
             cpu_frac=cpu_frac,
             mem_frac=mem_frac,
         )
+        drop_cache(msname)
+        drop_cache(workdir)
         if len(autocorr_mslist) == 0:
             print("No scans splited.")
 
@@ -431,6 +433,8 @@ def estimate_att(
         results = compute(*tasks)
         dask_client.close()
         dask_cluster.close()
+        for autocorr_msname in autocorr_mslist:
+            drop_cache(autocorr_msname)
         att_level = {}
         ########################################
         # Calculating per scan level
@@ -711,10 +715,7 @@ def run_noise_cal(
         )
         if keep_backup:
             print("Backup directory: " + workdir + "/backup")
-            if os.path.isdir(workdir + "/backup") == False:
-                os.makedirs(workdir + "/backup")
-            else:
-                os.system("rm -rf " + workdir + "/backup/*")
+            os.makedirs(workdir + "/backup",exist_ok=True)
             os.system(
                 "mv "
                 + noisecal_ms
@@ -873,7 +874,8 @@ def main():
     finally:
         time.sleep(5)
         drop_cache(args.msname)
-        drop_cache(args.workdir)
+        drop_cache(workdir)
+        drop_cache(caldir)
         clean_shutdown(observer)
     return msg
 

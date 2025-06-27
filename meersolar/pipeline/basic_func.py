@@ -296,11 +296,16 @@ def get_remote_logger_link():
         return ""
     remote_link = lines[0]
     try:
-        res = requests.get(remote_link, timeout=2)
-        if res.status_code == 200:
-            return remote_link
-        else:
-            return ""
+        count=0
+        while True:
+            res = requests.get(remote_link, timeout=2)
+            if res.status_code == 200:
+                return remote_link
+            else:
+                count+=1
+                time.sleep(2)
+            if count>5:
+                return ""
     except Exception:
         return ""
 
@@ -455,6 +460,7 @@ def get_logid(logfile):
         "imaging_targets.log": "All imaging",
         "noise_cal.log": "Flux calibration using noise-diode",
         "partition_cal.log": "Partioning for basic calibration",
+        "ds_targets.log": "Making dynamic spectra",
     }
 
     if name in logmap:
@@ -3087,7 +3093,7 @@ def ceil_to_multiple(n, base):
     return ((n // base) + 1) * base
 
 
-def calc_bw_smearing_freqwidth(msname):
+def calc_bw_smearing_freqwidth(msname,full_FoV=False,FWHM=True):
     """
     Function to calculate spectral width to procude bandwidth smearing
 
@@ -3095,6 +3101,10 @@ def calc_bw_smearing_freqwidth(msname):
     ----------
     msname : str
         Name of the measurement set
+    full_FoV : bool, optional
+        Consider smearing within solar disc or full FoV
+    FWHM : bool, optional
+        If using full FoV, consider upto FWHM or first null
 
     Returns
     -------
@@ -3102,21 +3112,22 @@ def calc_bw_smearing_freqwidth(msname):
         Spectral width in MHz
     """
     R = 0.9
-    fov = 3600  # 2 times size of the Sun
+    if full_FoV:
+        fov=calc_field_of_view(msname,FWHM=FWHM) # In arcsec
+    else:
+        fov = 35*60  # Size of the Sun, slightly larger is taken for U-band
     psf = calc_psf(msname)
-    msmd = msmetadata()
-    msmd.open(msname)
-    freq = msmd.meanfreq(0)
-    freqres = msmd.chanres(0)[0] / 10**6
-    msmd.close()
-    msmd.done()
+    tb=table()
+    tb.open(f"{msname}/SPECTRAL_WINDOW")
+    freq=float(tb.getcol("REF_FREQUENCY")[0])/10**6
+    freqres=float(tb.getcol("CHAN_WIDTH")[0])/10**6
+    tb.close()
     delta_nu = np.sqrt((1 / R**2) - 1) * (psf / fov) * freq
-    delta_nu /= 10**6
     delta_nu = ceil_to_multiple(delta_nu, freqres)
     return round(delta_nu, 2)
 
 
-def calc_time_smearing_timewidth(msname):
+def calc_time_smearing_timewidth(msname,full_FoV=False,FWHM=True):
     """
     Calculate maximum time averaging to avoid time smearing over full FoV.
 
@@ -3124,6 +3135,10 @@ def calc_time_smearing_timewidth(msname):
     ----------
     msname : str
         Measurement set name
+    full_FoV : bool, optional
+        Consider smearing within solar disc or full FoV
+    FWHM : bool, optional
+        If using full FoV, consider upto FWHM or first null
 
     Returns
     -------
@@ -3139,7 +3154,11 @@ def calc_time_smearing_timewidth(msname):
     c = 299792458.0  # speed of light in m/s
     omega_E = 7.2921159e-5  # Earth rotation rate in rad/s
     lam = c / freq_Hz  # wavelength in meters
-    fov_deg = calc_field_of_view(msname) / 3600.0
+    if full_FoV:
+        fov=calc_field_of_view(msname,FWHM=FWHM) # In arcsec
+    else:
+        fov = 35*60  # Size of the Sun, slightly larger is taken for U-band
+    fov_deg = fov / 3600.0
     fov_rad = np.deg2rad(fov_deg)
     uv, uvlambda = calc_maxuv(msname)
     # Approximate maximum allowable time to avoid >10% amplitude loss

@@ -241,10 +241,9 @@ def main():
     mslist = args.mslist.split(",")
     if args.workdir == "" or not os.path.exists(args.workdir):
         workdir = os.path.dirname(os.path.abspath(mslist[0])) + "/workdir"
-        if not os.path.exists(workdir):
-            os.makedirs(workdir)
     else:
         workdir = args.workdir
+    os.makedirs(workdir,exist_ok=True)
 
     logfile = args.logfile
     observer = None

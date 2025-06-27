@@ -111,7 +111,7 @@ def main():
         help="Comma-separated list of measurement sets (required positional argument)",
     )
     basic_args.add_argument(
-        "--workdir", type=str, default="", help="Working directory", metavar="String"
+        "--workdir", type=str, default="", help="Working directory"
     )
 
     ## Resource management parameters
@@ -147,10 +147,10 @@ def main():
         metavar="Float",
     )
     hard_args.add_argument(
-        "--logfile", type=str, default=None, help="Log file", metavar="String"
+        "--logfile", type=str, default=None, help="Log file"
     )
     hard_args.add_argument(
-        "--jobid", type=int, default=0, help="Job ID", metavar="Integer"
+        "--jobid", type=int, default=0, help="Job ID"
     )
 
     if len(sys.argv) == 1:
@@ -166,10 +166,9 @@ def main():
         workdir = (
             os.path.dirname(os.path.abspath(args.mslist.split(",")[0])) + "/workdir"
         )
-        if os.path.exists(workdir) == False:
-            os.makedirs(workdir)
     else:
         workdir = args.workdir
+    os.makedirs(workdir,exist_ok=True)
 
     logfile = args.logfile
     observer = None

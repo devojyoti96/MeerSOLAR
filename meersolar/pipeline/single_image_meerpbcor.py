@@ -664,14 +664,12 @@ def main():
         type=str,
         default="",
         help="Name of primary beam directory",
-        metavar="String",
     )
     basic_args.add_argument(
         "--pbcor_dir",
         type=str,
         default="",
         help="Name of primary beam corrected image directory",
-        metavar="String",
     )
 
     ## Advanced parameters
@@ -685,7 +683,7 @@ def main():
         help="Do not save beam to disk",
     )
     adv_args.add_argument(
-        "--band", type=str, default="", help="Band name", metavar="String"
+        "--band", type=str, default="", help="Band name"
     )
     adv_args.add_argument(
         "--no_apply_parang",
@@ -707,7 +705,7 @@ def main():
         metavar="Integer",
     )
     hard_args.add_argument(
-        "--jobid", type=int, default=0, help="Job ID", metavar="Integer"
+        "--jobid", type=int, default=0, help="Job ID"
     )
 
     if len(sys.argv) == 1:

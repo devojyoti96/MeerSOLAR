@@ -225,7 +225,7 @@ def applysol(
                     gainfield=gainfield,
                     applymode=applymode,
                     interp=interp,
-                    calwt=[False],
+                    calwt=[False]*len(gaintable),
                     parang=parang,
                     flagbackup=False,
                 )
@@ -578,11 +578,11 @@ def main():
         workdir = (
             os.path.dirname(os.path.abspath(args.mslist.split(",")[0])) + "/workdir"
         )
-        if not os.path.exists(workdir):
-            os.makedirs(workdir)
     else:
         workdir = args.workdir
 
+    os.makedirs(workdir,exist_ok=True)
+    
     logfile = args.logfile
     observer = None
 

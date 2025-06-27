@@ -78,8 +78,7 @@ def run_flag(
     )
     logfile = workdir + "/logs/" + flag_basename + ".log"
     flagging_cmd += f" --logfile {logfile}"
-    if os.path.isdir(workdir + "/logs") == False:
-        os.makedirs(workdir + "/logs")
+    os.makedirs(workdir + "/logs",exist_ok=True)
     batch_file = create_batch_script_nonhpc(flagging_cmd, workdir, flag_basename)
     print(flagging_cmd + "\n")
     os.system("bash " + batch_file)
@@ -137,8 +136,7 @@ def run_import_model(msname, workdir, jobid=0, cpu_frac=0.8, mem_frac=0.8):
     model_basename = "modeling_" + os.path.basename(msname).split(".ms")[0]
     logfile = workdir + "/logs/" + model_basename + ".log"
     import_model_cmd += f" --logfile {logfile}"
-    if os.path.isdir(workdir + "/logs") == False:
-        os.makedirs(workdir + "/logs")
+    os.makedirs(workdir + "/logs",exist_ok=True)
     batch_file = create_batch_script_nonhpc(import_model_cmd, workdir, model_basename)
     print(import_model_cmd + "\n")
     os.system("bash " + batch_file)
@@ -163,6 +161,7 @@ def run_import_model(msname, workdir, jobid=0, cpu_frac=0.8, mem_frac=0.8):
 def run_basic_cal_jobs(
     msname,
     workdir,
+    caldir,
     perform_polcal=False,
     jobid=0,
     cpu_frac=0.8,
@@ -178,6 +177,8 @@ def run_basic_cal_jobs(
         Name of the measurement set
     workdir : str
         Working directory
+    caldir : str
+        Caltable directory
     perform_polcal : bool, optional
         Perform full polarization calibration
     cpu_frac : float, optional
@@ -201,6 +202,8 @@ def run_basic_cal_jobs(
         f"run_basic_cal {msname}"
         + " --workdir "
         + workdir
+        + " --caldir "
+        + caldir
         + " --cpu_frac "
         + str(cpu_frac)
         + " --mem_frac "
@@ -214,8 +217,7 @@ def run_basic_cal_jobs(
         basic_cal_cmd += " --keep_backup"
     logfile = workdir + "/logs/" + cal_basename + ".log"
     basic_cal_cmd += f" --logfile {logfile}"
-    if os.path.isdir(workdir + "/logs") == False:
-        os.makedirs(workdir + "/logs")
+    os.makedirs(workdir + "/logs",exist_ok=True)
     batch_file = create_batch_script_nonhpc(basic_cal_cmd, workdir, cal_basename)
     print(basic_cal_cmd + "\n")
     os.system("bash " + batch_file)
@@ -235,7 +237,7 @@ def run_basic_cal_jobs(
 
 
 def run_noise_diode_cal(
-    msname, workdir, keep_backup=False, jobid=0, cpu_frac=0.8, mem_frac=0.8
+    msname, workdir, caldir, keep_backup=False, jobid=0, cpu_frac=0.8, mem_frac=0.8
 ):
     """
     Perform noise diode based flux calibration
@@ -246,6 +248,8 @@ def run_noise_diode_cal(
         Name of the measurement set
     workdir : str
         Working directory
+    caldir : str
+        Caltable directory
     keep_backup : bool, optional
         Keep backup
     cpu_frac : float, optional
@@ -268,6 +272,8 @@ def run_noise_diode_cal(
             f"run_fluxcal {msname}"
             + " --workdir "
             + workdir
+            + " --caldir "
+            + caldir
             + " --cpu_frac "
             + str(cpu_frac)
             + " --mem_frac "
@@ -277,8 +283,7 @@ def run_noise_diode_cal(
         )
         logfile = workdir + "/logs/" + noisecal_basename + ".log"
         noise_cal_cmd += f" --logfile {logfile}"
-        if os.path.isdir(workdir + "/logs") == False:
-            os.makedirs(workdir + "/logs")
+        os.makedirs(workdir + "/logs",exist_ok=True)
         batch_file = create_batch_script_nonhpc(
             noise_cal_cmd, workdir, noisecal_basename
         )
@@ -369,8 +374,7 @@ def run_partion(
     partition_basename = f"partition_cal"
     logfile = workdir + "/logs/" + partition_basename + ".log"
     split_cmd += f" --logfile {logfile}"
-    if os.path.isdir(workdir + "/logs") == False:
-        os.makedirs(workdir + "/logs")
+    os.makedirs(workdir + "/logs",exist_ok=True)
     batch_file = create_batch_script_nonhpc(split_cmd, workdir, partition_basename)
     print(split_cmd + "\n")
     os.system("bash " + batch_file)
@@ -503,8 +507,7 @@ def run_target_split_jobs(
             )
         logfile = workdir + "/logs/" + split_basename + ".log"
         split_cmd += f" --logfile {logfile}"
-        if os.path.isdir(workdir + "/logs") == False:
-            os.makedirs(workdir + "/logs")
+        os.makedirs(workdir + "/logs",exist_ok=True)
         batch_file = create_batch_script_nonhpc(split_cmd, workdir, split_basename)
         print(split_cmd + "\n")
         os.system("bash " + batch_file)
@@ -570,8 +573,7 @@ def run_solar_siderealcor_jobs(
             + " --jobid "
             + str(jobid)
         )
-        if os.path.isdir(workdir + "/logs") == False:
-            os.makedirs(workdir + "/logs")
+        os.makedirs(workdir + "/logs",exist_ok=True)
         logfile = workdir + "/logs/" + sidereal_basename + ".log"
         sidereal_cor_cmd += f" --logfile {logfile}"
         batch_file = create_batch_script_nonhpc(
@@ -645,8 +647,7 @@ def run_apply_pbcor(
         )
         if apply_parang == False:
             applypbcor_cmd += " --no_apply_parang"
-        if os.path.isdir(workdir + "/logs") == False:
-            os.makedirs(workdir + "/logs")
+        os.makedirs(workdir + "/logs",exist_ok=True)
         logfile = workdir + "/logs/" + applypbcor_basename + ".log"
         applypbcor_cmd += f" --logfile {logfile}"
         batch_file = create_batch_script_nonhpc(
@@ -737,8 +738,7 @@ def run_apply_basiccal_sol(
             applycal_cmd += " --use_only_bandpass"
         if overwrite_datacolumn:
             applycal_cmd += " --overwrite_datacolumn"
-        if os.path.isdir(workdir + "/logs") == False:
-            os.makedirs(workdir + "/logs")
+        os.makedirs(workdir + "/logs",exist_ok=True)
         logfile = workdir + "/logs/" + applycal_basename + ".log"
         applycal_cmd += f" --logfile {logfile}"
         batch_file = create_batch_script_nonhpc(
@@ -824,8 +824,7 @@ def run_apply_selfcal_sol(
         )
         if overwrite_datacolumn:
             applycal_cmd += " --overwrite_datacolumn"
-        if os.path.isdir(workdir + "/logs") == False:
-            os.makedirs(workdir + "/logs")
+        os.makedirs(workdir + "/logs",exist_ok=True)
         logfile = workdir + "/logs/" + applycal_basename + ".log"
         applycal_cmd += f" --logfile {logfile}"
         batch_file = create_batch_script_nonhpc(
@@ -854,6 +853,7 @@ def run_apply_selfcal_sol(
 def run_selfcal_jobs(
     mslist,
     workdir,
+    caldir,
     start_thresh=5.0,
     stop_thresh=3.0,
     max_iter=100,
@@ -883,6 +883,8 @@ def run_selfcal_jobs(
         Target measurement set list
     workdir : str
         Working directory
+    caldir : str
+        Caltable directory
     cpu_frac : float, optional
         CPU fraction to use
     mem_frac : float, optional
@@ -933,6 +935,8 @@ def run_selfcal_jobs(
             f"run_selfcal {mslist}"
             + " --workdir "
             + workdir
+            + " --caldir "
+            + caldir
             + " --cpu_frac "
             + str(cpu_frac)
             + " --mem_frac "
@@ -972,8 +976,7 @@ def run_selfcal_jobs(
             selfcal_cmd += " --no_solar_selfcal"
         if keep_backup:
             selfcal_cmd += " --keep_backup"
-        if os.path.isdir(workdir + "/logs") == False:
-            os.makedirs(workdir + "/logs")
+        os.makedirs(workdir + "/logs",exist_ok=True)
         batch_file = create_batch_script_nonhpc(selfcal_cmd, workdir, selfcal_basename)
         print(selfcal_cmd + "\n")
         os.system("bash " + batch_file)
@@ -998,6 +1001,7 @@ def run_selfcal_jobs(
 def run_imaging_jobs(
     mslist,
     workdir,
+    outdir,
     freqrange="",
     timerange="",
     minuv=-1,
@@ -1027,6 +1031,8 @@ def run_imaging_jobs(
         Target measurement set list
     workdir : str
         Working directory
+    outdir : str
+        Output image directory
     freqrange : str, optional
         Frequency range to image in MHz
     timerange : str, optional
@@ -1080,6 +1086,8 @@ def run_imaging_jobs(
             f"run_imaging {mslist}"
             + " --workdir "
             + workdir
+            + " --outdir "
+            + outdir
             + " --cpu_frac "
             + str(cpu_frac)
             + " --mem_frac "
@@ -1119,8 +1127,7 @@ def run_imaging_jobs(
             imaging_cmd += " --timerange " + str(timerange)
         if band != "":
             imaging_cmd += " --band " + str(band)
-        if os.path.isdir(workdir + "/logs") == False:
-            os.makedirs(workdir + "/logs")
+        os.makedirs(workdir + "/logs",exist_ok=True)
         batch_file = create_batch_script_nonhpc(imaging_cmd, workdir, imaging_basename)
         print(imaging_cmd + "\n")
         os.system("bash " + batch_file)
@@ -1142,7 +1149,7 @@ def run_imaging_jobs(
         return 1
 
 
-def run_ds_jobs(msname, workdir, target_scans=[], jobid=0, cpu_frac=0.8, mem_frac=0.8):
+def run_ds_jobs(msname, workdir, outdir, target_scans=[], jobid=0, cpu_frac=0.8, mem_frac=0.8):
     """
     Make dynamic spectra of the target scans
 
@@ -1152,6 +1159,8 @@ def run_ds_jobs(msname, workdir, target_scans=[], jobid=0, cpu_frac=0.8, mem_fra
         Name of the measurement set
     workdir : str
         Name of the work directory
+    outdir : str
+        Output directory
     target_scans : list, optional
         Target scans
     cpu_frac : float, optional
@@ -1170,9 +1179,8 @@ def run_ds_jobs(msname, workdir, target_scans=[], jobid=0, cpu_frac=0.8, mem_fra
         print("###########################\n")
         ds_basename = "ds_targets"
         target_scans = " ".join([str(s) for s in target_scans])
-        ds_cmd = f"run_makeds {msname} --workdir {workdir} --cpu_frac {cpu_frac} --mem_frac {mem_frac} --jobid {jobid} --target_scans {target_scans}"
-        if os.path.isdir(workdir + "/logs") == False:
-            os.makedirs(workdir + "/logs")
+        ds_cmd = f"run_makeds {msname} --workdir {workdir} --outdir {outdir} --cpu_frac {cpu_frac} --mem_frac {mem_frac} --jobid {jobid} --target_scans {target_scans}"
+        os.makedirs(workdir + "/logs",exist_ok=True)
         logfile = workdir + "/logs/" + ds_basename + ".log"
         ds_cmd += f" --logfile {logfile}"
         batch_file = create_batch_script_nonhpc(ds_cmd, workdir, ds_basename)
@@ -1277,6 +1285,7 @@ def exit_job(start_time, mspath="", workdir=""):
 def master_control(
     msname,
     workdir,
+    outdir,
     solar_data=True,
     # Pre-calibration
     do_forcereset_weightflag=False,
@@ -1339,6 +1348,8 @@ def master_control(
         Measurement set name
     workdir : str
         Work directory path
+    outdir : str
+        Output directory
     solar_data : bool, optional
         Whether it is solar data or not
 
@@ -1453,10 +1464,15 @@ def master_control(
         ###################################
         if workdir == "":
             workdir = os.path.dirname(os.path.abspath(msname)) + "/workdir"
-        if workdir[-1] == "/":
-            workdir = workdir[:-1]
-        if os.path.exists(workdir) == False:
-            os.makedirs(workdir)
+        workdir=workdir.rstrip("/")
+        if outdir=="":
+            outdir=workdir
+        outdir=outdir.rstrip("/")
+        caldir=outdir+"/caltables"  
+        caldir=caldir.rstrip("/")  
+        os.makedirs(workdir,exist_ok=True)
+        os.makedirs(outdir,exist_ok=True)
+        os.makedirs(caldir,exist_ok=True)
         if mspath != "" and os.path.exists(mspath + "/dask-scratch-space"):
             os.system("rm -rf " + mspath + "/dask-scratch-space " + mspath + "/tmp")
         if workdir != "" and os.path.exists(workdir + "/dask-scratch-space"):
@@ -1483,7 +1499,6 @@ def master_control(
         # Moving into work directory
         #####################################
         os.chdir(workdir)
-        caldir = workdir + "/caltables"
         cpu_frac_bkp = copy.deepcopy(cpu_frac)
         mem_frac_bkp = copy.deepcopy(mem_frac)
         if remote_logger:
@@ -1553,6 +1568,7 @@ def master_control(
                 use_solar_mask = True
             if solar_selfcal == False:
                 solar_selfcal = True
+            full_FoV=False
         else:
             if do_noise_cal:
                 print(
@@ -1564,6 +1580,7 @@ def master_control(
                 use_solar_mask = False
             if solar_selfcal:
                 solar_selfcal = False
+            full_FoV=True
 
         ###################################################
         # Target spliting spectral and temporal chunks
@@ -1576,8 +1593,25 @@ def master_control(
         #################################################
         # Determining maximum allowed frequency averaging
         #################################################
-        max_freqres = calc_bw_smearing_freqwidth(msname)
-        freqavg = round(min(image_freqres, max_freqres), 2)
+        max_freqres = calc_bw_smearing_freqwidth(msname,full_FoV=full_FoV)
+        if image_freqres>0:
+            freqavg = round(min(image_freqres, max_freqres), 1)
+        else:
+            freqavg = round(max_freqres,1)
+
+        ################################################
+        # Determining maximum allowed temporal averaging
+        ################################################
+        if solar_data: # For solar data, it is assumed Sun is tracked. 
+            max_timeres = calc_time_smearing_timewidth(msname)
+        else:
+            max_timeres = min(
+                calc_time_smearing_timewidth(msname), max_time_solar_smearing(msname)
+            )
+        if image_timeres>0:
+            timeavg = round(min(image_timeres, max_timeres), 1)
+        else:
+            timeavg = round(max_timeres,1)
 
         #########################################
         # Target ms frequency chunk based on band
@@ -1594,22 +1628,26 @@ def master_control(
         end_chan = max(good_end)
         spw = f"0:{start_chan}~{end_chan}"
 
-        msmd = msmetadata()
-        msmd.open(msname)
-        chanres = msmd.chanres(0, unit="MHz")[0]
-        msmd.close()
-        total_bw = chanres * (end_chan - start_chan)
-        nchunk = 4
-        target_freq_chunk = total_bw / nchunk
+        #############################################################
+        # Determining numbers of spectral chunks for parallel imaging
+        #############################################################
         if image_freqres < 0:
-            band = get_band_name(msname)
-            if band == "U":
-                target_freq_chunk = -1
-                nchunk = 1
-        elif image_freqres > target_freq_chunk:
-            nchunk = image_freqres // target_freq_chunk
-            target_freq_chunk = image_freqres / nchunk
-
+            target_freq_chunk = -1
+            nchunk = 1
+        else:
+            msmd = msmetadata()
+            msmd.open(msname)
+            chanres = msmd.chanres(0, unit="MHz")[0]
+            msmd.close()
+            total_bw = chanres * (end_chan - start_chan)
+            nchunk=int(total_bw/image_freqres)
+            if nchunk>max(4,n_nodes): # Maximum 4 chunking or number of compute nodes
+                nchunk=max(4,n_nodes)
+                target_freq_chunk=total_bw/nchunk
+            else:
+                nchnuk=1
+                target_freq_chunk=image_freqres
+        
         #############################
         # Reset any previous weights
         ############################
@@ -1628,6 +1666,7 @@ def master_control(
             msg = run_ds_jobs(
                 msname,
                 workdir,
+                outdir,
                 jobid=jobid,
                 target_scans=target_scans,
                 cpu_frac=round(cpu_frac, 2),
@@ -1643,6 +1682,7 @@ def master_control(
             msg = run_noise_diode_cal(
                 msname,
                 workdir,
+                caldir,
                 jobid=jobid,
                 keep_backup=keep_backup,
                 cpu_frac=round(cpu_frac, 2),
@@ -1786,6 +1826,7 @@ def master_control(
             msg = run_basic_cal_jobs(
                 calibrator_msname,
                 workdir,
+                caldir,
                 perform_polcal=do_polcal,
                 jobid=jobid,
                 cpu_frac=round(cpu_frac, 2),
@@ -1863,6 +1904,7 @@ def master_control(
                     workdir,
                     datacolumn="data",
                     freqres=freqavg,
+                    timeres=timeavg,
                     target_freq_chunk=25,
                     n_spectral_chunk=nchunk,  # Number of target spectral chunk
                     target_scans=target_scans,
@@ -1929,7 +1971,6 @@ def master_control(
         # Applying solutions on target scans for self-calibration
         #########################################################
         if do_selfcal:  # Applying solutions for selfcal
-            caldir = workdir + "/caltables"
             msg = run_apply_basiccal_sol(
                 selfcal_mslist,
                 workdir,
@@ -1970,6 +2011,7 @@ def master_control(
             msg = run_selfcal_jobs(
                 selfcal_mslist,
                 workdir,
+                caldir,
                 solint=solint,
                 do_apcal=do_ap_selfcal,
                 solar_selfcal=solar_selfcal,
@@ -1990,8 +2032,8 @@ def master_control(
         ########################################
         # Checking self-cal caltables
         ########################################
-        selfcaldir = glob.glob(workdir + "/caltables/*selfcal*")
-        if len(selfcaldir) == 0:
+        selfcal_tables = glob.glob(caldir + "/*selfcal*")
+        if len(selfcal_tables) == 0:
             print(
                 "Self-calibration is not performed and no self-calibration caltable is available."
             )
@@ -2010,6 +2052,7 @@ def master_control(
                 spw=spw,
                 target_freq_chunk=target_freq_chunk,
                 freqres=freqavg,
+                timeres=timeavg,
                 n_spectral_chunk=-1,
                 target_scans=target_scans,
                 prefix=prefix,
@@ -2108,7 +2151,6 @@ def master_control(
         #########################################################
         if do_applycal:
             if len(target_mslist) > 0:
-                caldir = workdir + "/caltables"
                 msg = run_apply_basiccal_sol(
                     target_mslist,
                     workdir,
@@ -2169,7 +2211,6 @@ def master_control(
         ########################################
         if do_apply_selfcal:
             target_mslist = sorted(target_mslist)
-            caldir = workdir + "/caltables"
             msg = run_apply_selfcal_sol(
                 target_mslist,
                 workdir,
@@ -2197,6 +2238,7 @@ def master_control(
             msg = run_imaging_jobs(
                 target_mslist,
                 workdir,
+                outdir,
                 freqrange=freqrange,
                 timerange=timerange,
                 minuv=minuv,
@@ -2243,20 +2285,20 @@ def master_control(
             else:
                 weight_str = weight
             if image_freqres == -1 and image_timeres == -1:
-                imagedir = workdir + f"/imagedir_f_all_t_all_w_{weight_str}"
+                imagedir = outdir + f"/imagedir_f_all_t_all_w_{weight_str}"
             elif image_freqres != -1 and image_timeres == -1:
                 imagedir = (
-                    workdir
+                    outdir
                     + f"/imagedir_f_{round(float(image_freqres),1)}_t_all_w_{weight_str}"
                 )
             elif image_freqres == -1 and image_timeres != -1:
                 imagedir = (
-                    workdir
+                    outdir
                     + f"/imagedir_f_all_t_{round(float(image_timeres),1)}_w_{weight_str}"
                 )
             else:
                 imagedir = (
-                    workdir
+                    outdir
                     + f"/imagedir_f_{round(float(image_freqres),1)}_t_{round(float(image_timeres),1)}_w_{weight_str}"
                 )
             imagedir = imagedir + "/images"
@@ -2328,6 +2370,13 @@ def main():
             dest="workdir",
             required=True,
             help="Working directory",
+        )
+        essential.add_argument(
+            "--outdir",
+            type=str,
+            dest="outdir",
+            required=True,
+            help="Output products directory",
         )
 
         # === Advanced calibration parameters ===
@@ -2618,6 +2667,7 @@ def main():
         msg = master_control(
             msname=args.msname,
             workdir=args.workdir,
+            outdir=args.outdir,
             solar_data=args.solar_data,
             # Pre-calibration
             do_forcereset_weightflag=args.do_forcereset_weightflag,

@@ -316,14 +316,13 @@ def main():
         description="MeerSOLAR Logger", formatter_class=SmartDefaultsHelpFormatter
     )
     parser.add_argument(
-        "--jobid", type=str, default=None, help="MeerSOLAR Job ID", metavar="Integer"
+        "--jobid", type=str, default=None, help="MeerSOLAR Job ID"
     )
     parser.add_argument(
         "--logdir",
         type=str,
         default=None,
         help="Name of log directory",
-        metavar="String",
     )
     args = parser.parse_args()
     

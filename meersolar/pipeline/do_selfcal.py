@@ -649,10 +649,8 @@ def do_selfcal(
     try:
         msname = os.path.abspath(msname.rstrip("/"))
         selfcaldir = selfcaldir.rstrip("/")
-        if os.path.exists(selfcaldir) == False:
-            os.makedirs(selfcaldir)
-        else:
-            os.system("rm -rf " + selfcaldir + "/*")
+        os.makedirs(selfcaldir,exist_ok=True)
+        
         os.chdir(selfcaldir)
         selfcalms = selfcaldir + "/selfcal_" + os.path.basename(msname)
         if os.path.exists(selfcalms):
@@ -1054,10 +1052,10 @@ def main():
         help="Comma-separated list of measurement sets (required positional argument)",
     )
     basic_args.add_argument(
-        "--workdir", type=str, default="", required=True, help="Working directory", metavar="String"
+        "--workdir", type=str, default="", required=True, help="Working directory", 
     )
     basic_args.add_argument(
-        "--caldir", type=str, default="", required=True, help="Caltable directory", metavar="String"
+        "--caldir", type=str, default="", required=True, help="Caltable directory",
     )
     
     ## Advanced parameters
@@ -1107,14 +1105,13 @@ def main():
         metavar="Float",
     )
     adv_args.add_argument(
-        "--solint", type=str, default="60s", help="Solution interval", metavar="String"
+        "--solint", type=str, default="60s", help="Solution interval"
     )
     adv_args.add_argument(
         "--uvrange",
         type=str,
         default="",
         help="Calibration UV-range (CASA format)",
-        metavar="String",
     )
     adv_args.add_argument(
         "--minuv",
@@ -1124,7 +1121,7 @@ def main():
         metavar="Float",
     )
     adv_args.add_argument(
-        "--weight", type=str, default="briggs", help="Imaging weight", metavar="String"
+        "--weight", type=str, default="briggs", help="Imaging weight"
     )
     adv_args.add_argument(
         "--robust",
@@ -1176,7 +1173,7 @@ def main():
         metavar="Float",
     )
     hard_args.add_argument(
-        "--jobid", type=int, default=0, help="Job ID", metavar="Integer"
+        "--jobid", type=int, default=0, help="Job ID"
     )
 
     if len(sys.argv) == 1:
@@ -1398,7 +1395,7 @@ def main():
         time.sleep(5)
         for ms in mslist:
             drop_cache(ms)
-        drop_cache(args.workdir)
+        drop_cache(workdir)
         clean_shutdown(observer)
     return msg
 

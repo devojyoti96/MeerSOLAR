@@ -485,9 +485,9 @@ def main():
 
     if args.workdir == "" or not os.path.exists(args.workdir):
         workdir = os.path.dirname(os.path.abspath(args.msname)) + "/workdir"
-        os.makedirs(workdir, exist_ok=True)
     else:
         workdir = args.workdir
+    os.makedirs(workdir, exist_ok=True)
 
     observer = None
     if os.path.exists(f"{workdir}/jobname_password.npy") and args.logfile:

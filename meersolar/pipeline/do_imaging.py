@@ -306,8 +306,7 @@ def perform_imaging(
         prefix = workdir + "/imaging_" + os.path.basename(msname).split(".ms")[0]
         if imagedir == "":
             imagedir = workdir
-        if os.path.exists(imagedir) == False:
-            os.makedirs(imagedir)
+        os.makedirs(imagedir,exist_ok=True)
         if weight == "briggs":
             weight += " " + str(robust)
         if threshold <= 1:
@@ -501,8 +500,7 @@ def perform_imaging(
                     # Renaming images
                     ######################
                     if len(imagelist) > 0:
-                        if os.path.exists(imagedir + "/images") == False:
-                            os.makedirs(imagedir + "/images")
+                        os.makedirs(imagedir + "/images",exist_ok=True)
                         final_image_list = []
                         for imagename in imagelist:
                             renamed_image = rename_image(
@@ -518,8 +516,7 @@ def perform_imaging(
                         final_list.append(final_image_list)
                         if savemodel and len(modellist) > 0:
                             final_model_list = []
-                            if os.path.exists(imagedir + "/models") == False:
-                                os.makedirs(imagedir + "/models")
+                            os.makedirs(imagedir + "/models",exist_ok=True)
                             for modelname in modellist:
                                 renamed_model = rename_image(
                                     modelname,
@@ -534,8 +531,7 @@ def perform_imaging(
                             final_list.append(final_model_list)
                         if saveres and len(reslist) > 0:
                             final_res_list = []
-                            if os.path.exists(imagedir + "/residuals") == False:
-                                os.makedirs(imagedir + "/residuals")
+                            os.makedirs(imagedir + "/residuals",exist_ok=True)
                             for resname in reslist:
                                 renamed_res = rename_image(
                                     resname,
@@ -587,6 +583,7 @@ def run_all_imaging(
     mslist=[],
     mainlogger=None,
     workdir="",
+    outdir="",
     freqrange="",
     timerange="",
     datacolumn="CORRECTED_DATA",
@@ -620,6 +617,8 @@ def run_all_imaging(
         Python logger
     workdir : str
         Work directory
+    outdir : str
+        Output directory
     freqrange : str, optional
         Frequency range to image
     timerange : str, optional
@@ -710,13 +709,13 @@ def run_all_imaging(
         else:
             weight_str = weight
         if freqres == -1 and timeres == -1:
-            imagedir = workdir + f"/imagedir_f_all_t_all_w_{weight_str}"
+            imagedir = outdir + f"/imagedir_f_all_t_all_w_{weight_str}"
         elif freqres != -1 and timeres == -1:
-            imagedir = workdir + f"/imagedir_f_{freqres}_t_all_w_{weight_str}"
+            imagedir = outdir + f"/imagedir_f_{freqres}_t_all_w_{weight_str}"
         elif freqres == -1 and timeres != -1:
-            imagedir = workdir + f"/imagedir_f_all_t_{timeres}_w_{weight_str}"
+            imagedir = outdir + f"/imagedir_f_all_t_{timeres}_w_{weight_str}"
         else:
-            imagedir = workdir + f"/imagedir_f_{freqres}_t_{timeres}_w_{weight_str}"
+            imagedir = outdir + f"/imagedir_f_{freqres}_t_{timeres}_w_{weight_str}"
         os.makedirs(imagedir, exist_ok=True)
 
         ####################################
@@ -817,8 +816,7 @@ def run_all_imaging(
             possible_sizes = np.sort(np.array(possible_sizes))
             possible_sizes = possible_sizes[possible_sizes >= imsize]
             imsize = max(1024, int(possible_sizes[0]))
-            if os.path.exists(workdir + "/logs") == False:
-                os.makedirs(workdir + "/logs")
+            os.makedirs(workdir + "/logs",exist_ok=True)
             logfile = (
                 workdir
                 + "/logs/imaging_"
@@ -915,13 +913,20 @@ def main():
         "mslist",
         type=str,
         help="Comma-separated list of measurement sets (required)",
-        metavar="MSLIST",
     )
     basic_args.add_argument(
         "--workdir",
         type=str,
+        required=True,
         default="",
-        help="Work directory for imaging outputs",
+        help="Work directory for imaging",
+    )
+    basic_args.add_argument(
+        "--outdir",
+        type=str,
+        required=True,
+        default="",
+        help="Output directory for imaging products",
     )
 
     ## Advanced parameters
@@ -1072,14 +1077,18 @@ def main():
 
     if args.workdir == "" or not os.path.exists(args.workdir):
         first_ms = args.mslist.split(",")[0]
-        workdir = os.path.dirname(os.path.abspath(first_ms)) + "/workdir"
-        if not os.path.exists(workdir):
-            os.makedirs(workdir)
+        workdir = os.path.dirname(os.path.abspath(first_ms)) + "/workdir"     
     else:
         workdir = args.workdir
+    os.makedirs(workdir,exist_ok=True)
+        
+    if args.outdir == "" or not os.path.exists(args.outkdir):
+        outdir=workdir
+    else:
+        outdir = args.outdir
+    os.makedirs(outdir,exist_ok=True)
 
-    if not os.path.exists(workdir + "/logs/"):
-        os.makedirs(workdir + "/logs/")
+    os.makedirs(workdir + "/logs/",exist_ok=True)
 
     mainlog_file = workdir + "/logs/imaging_targets.mainlog"
     mainlogger, mainlog_file = create_logger(
@@ -1106,6 +1115,7 @@ def main():
                 mslist=mslist,
                 mainlogger=mainlogger,
                 workdir=workdir,
+                outdir=outdir,
                 freqrange=args.freqrange,
                 timerange=args.timerange,
                 datacolumn=args.datacolumn,
@@ -1134,7 +1144,7 @@ def main():
         time.sleep(5)
         for ms in mslist:
             drop_cache(ms)
-        drop_cache(args.workdir)
+        drop_cache(workdir)
         clean_shutdown(observer)
 
     return msg

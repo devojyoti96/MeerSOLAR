@@ -252,22 +252,23 @@ def main():
         sys.exit(1)
 
     args = parser.parse_args()
+    
+    if args.workdir == "" or not os.path.exists(args.workdir):
+        workdir = os.path.dirname(os.path.abspath(args.msname)) + "/workdir"
+    else:
+        workdir = args.workdir
+    os.makedirs(workdir,exist_ok=True)
 
     pid = os.getpid()
     save_pid(pid, datadir + f"/pids/pids_{args.jobid}.txt")
 
-    if args.workdir == "":
-        print("Please provide a valid work directory name.")
-        return 1
-
-    os.makedirs(args.workdir, exist_ok=True)
     logfile = args.logfile
     observer = None
 
-    if os.path.exists(f"{args.workdir}/jobname_password.npy") and logfile is not None:
+    if os.path.exists(f"{workdir}/jobname_password.npy") and logfile is not None:
         time.sleep(5)
         jobname, password = np.load(
-            f"{args.workdir}/jobname_password.npy", allow_pickle=True
+            f"{workdir}/jobname_password.npy", allow_pickle=True
         )
         if os.path.exists(logfile):
             print(f"Starting remote logger. Remote logger password: {password}")
@@ -295,7 +296,7 @@ def main():
     finally:
         time.sleep(5)
         drop_cache(args.imagedir)
-        drop_cache(args.workdir)
+        drop_cache(workdir)
         clean_shutdown(observer)
 
     return msg
