@@ -3,7 +3,7 @@ Quickstart
 MeerSOLAR is distributed on
 `PyPI <https://pypi.org/project/meersolar/>`__. To use it:
 
-1. Install conda with python 3.10
+1. Create conda environment with python 3.10
 
    .. code-block:: bash
 
