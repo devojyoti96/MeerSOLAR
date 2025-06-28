@@ -165,12 +165,13 @@
   <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="quickstart.html">Quickstart</a></li>
 <li class="toctree-l1 has-children"><a class="reference internal" href="install.html">Installation and Initial Setup</a><input class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><div class="visually-hidden">Toggle navigation of Installation and Initial Setup</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
-<li class="toctree-l2"><a class="reference internal" href="install_conda.html">Installing Conda: Anaconda or Miniconda</a></li>
-<li class="toctree-l2"><a class="reference internal" href="activate_conda.html">Creating and Activating Conda Environment</a></li>
+<li class="toctree-l2"><a class="reference internal" href="install_conda.html">Install Conda: Anaconda or Miniconda</a></li>
+<li class="toctree-l2"><a class="reference internal" href="activate_conda.html">Create and Activate Conda Environment</a></li>
 <li class="toctree-l2"><a class="reference internal" href="install_meersolar.html">Install MeerSOLAR</a></li>
 <li class="toctree-l2"><a class="reference internal" href="initial_setup.html">Initial Setup</a></li>
 </ul>
 </li>
+<li class="toctree-l1"><a class="reference internal" href="idia_setup.html">IDIA-ilifu Setup</a></li>
 <li class="toctree-l1 has-children"><a class="reference internal" href="tutorial.html">Tutorial</a><input class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" role="switch" type="checkbox"/><label for="toctree-checkbox-2"><div class="visually-hidden">Toggle navigation of Tutorial</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
 <li class="toctree-l2"><a class="reference internal" href="flowchart.html">MeerSOLAR Flowchart</a></li>
 <li class="toctree-l2"><a class="reference internal" href="runpipeline.html">Run MeerSOLAR Pipeline</a></li>
@@ -246,7 +247,7 @@
 </ol>
 <div class="dropdown admonition">
 <p class="admonition-title">Click here to see parameters</p>
-<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>usage: run_fluxcal [-h] [--workdir WORKDIR] [--keep_backup]
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>usage: run_fluxcal [-h] --workdir WORKDIR --caldir CALDIR [--keep_backup]
                    [--cpu_frac CPU_FRAC] [--mem_frac MEM_FRAC]
                    [--logfile LOGFILE] [--jobid JOBID]
                    msname
@@ -260,7 +261,10 @@ options:
 Essential parameters
 ###################:
   msname               Name of measurement set (required positional argument)
-  --workdir WORKDIR    Working directory for calibration products (default: )
+  --workdir WORKDIR    Working directory (default: auto-created next to MS)
+                       (default: )
+  --caldir CALDIR      Directory for calibration products (default: auto-
+                       created in the workdir MS) (default: )
 
 ###################
 Advanced parameters
@@ -282,7 +286,7 @@ Hardware resource management parameters
 </ol>
 <div class="dropdown admonition">
 <p class="admonition-title">Click here to see parameters</p>
-<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>usage: run_partition [-h] [--outputms OUTPUTMS] [--workdir WORKDIR]
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>usage: run_partition [-h] [--outputms OUTPUTMS] --workdir WORKDIR
                      [--fields FIELDS] [--scans SCANS] [--width WIDTH]
                      [--timebin TIMEBIN] [--datacolumn DATACOLUMN]
                      [--split_fullpol] [--cpu_frac CPU_FRAC]
@@ -300,7 +304,7 @@ Essential parameters
   msname                Name of input measurement set (required positional
                         argument)
   --outputms OUTPUTMS   Name of output multi-MS (default: multi.ms)
-  --workdir WORKDIR     Work directory (default: )
+  --workdir WORKDIR     Work directory (default: None)
 
 ###################
 Advanced parameters
@@ -405,10 +409,10 @@ Hardware resource management parameters
 </ol>
 <div class="dropdown admonition">
 <p class="admonition-title">Click here to see parameters</p>
-<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>usage: run_basic_cal [-h] [--workdir WORKDIR] [--refant REFANT]
-                     [--uvrange UVRANGE] [--perform_polcal] [--keep_backup]
-                     [--cpu_frac CPU_FRAC] [--mem_frac MEM_FRAC]
-                     [--logfile LOGFILE] [--jobid JOBID]
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>usage: run_basic_cal [-h] --workdir WORKDIR --caldir CALDIR [--refant REFANT]
+                     [--uvrange UVRANGE] [--do_delaycal] [--perform_polcal]
+                     [--keep_backup] [--cpu_frac CPU_FRAC]
+                     [--mem_frac MEM_FRAC] [--logfile LOGFILE] [--jobid JOBID]
                      msname
 
 Basic calibration using calibrators
@@ -422,6 +426,8 @@ Essential parameters
   msname               Name of measurement set (required positional argument)
   --workdir WORKDIR    Working directory for calibration outputs (default:
                        auto-created next to MS) (default: )
+  --caldir CALDIR      Caltables directory (default: auto-created in the
+                       workdir MS) (default: )
 
 ###################
 Advanced calibration parameters
@@ -429,6 +435,7 @@ Advanced calibration parameters
   --refant REFANT      Reference antenna (default: 1)
   --uvrange UVRANGE    UV range for calibration (e.g. &#39;&gt;100lambda&#39;) (default:
                        )
+  --do_delaycal        Enable delay calibration
   --perform_polcal     Enable polarization calibration
   --keep_backup        Keep backup of measurement set after each calibration
                        round
@@ -495,15 +502,15 @@ Hardware resource management parameters
 </ol>
 <div class="dropdown admonition">
 <p class="admonition-title">Click here to see parameters</p>
-<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>usage: run_target_split [-h] [--workdir String] [--datacolumn String]
-                        [--spw String] [--scans String] [--time_window Float]
-                        [--time_interval Float] [--quack_timestamps Integer]
-                        [--spectral_chunk Float] [--n_spectral_chunk Integer]
-                        [--freqres Float] [--timeres Float] [--prefix String]
-                        [--split_fullpol] [--merge_spws] [--cpu_frac Float]
-                        [--mem_frac Float] [--max_cpu_frac Float]
-                        [--max_mem_frac Float] [--logfile String]
-                        [--jobid Integer]
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>usage: run_target_split [-h] [--workdir WORKDIR] [--datacolumn DATACOLUMN]
+                        [--spw SPW] [--scans SCANS (Comma seperated)]
+                        [--time_window Float] [--time_interval Float]
+                        [--quack_timestamps Integer] [--spectral_chunk Float]
+                        [--n_spectral_chunk Integer] [--freqres Float]
+                        [--timeres Float] [--prefix PREFIX] [--split_fullpol]
+                        [--merge_spws] [--cpu_frac Float] [--mem_frac Float]
+                        [--max_cpu_frac Float] [--max_mem_frac Float]
+                        [--logfile LOGFILE] [--jobid JOBID]
                         msname
 
 Split target scans
@@ -515,14 +522,16 @@ options:
 Essential parameters
 ###################:
   msname                Name of measurement set (required positional argument)
-  --workdir String      Name of work directory (default: )
+  --workdir WORKDIR     Name of work directory (default: )
 
 ###################
 Advanced parameters
 ###################:
-  --datacolumn String   Data column to split (default: data)
-  --spw String          Spectral window to split (default: )
-  --scans String        Target scan list (default: all) (default: )
+  --datacolumn DATACOLUMN
+                        Data column to split (default: data)
+  --spw SPW             Spectral window to split (default: )
+  --scans SCANS (Comma seperated)
+                        Target scan list (default: all) (default: )
   --time_window Float   Time window in seconds (default: -1)
   --time_interval Float
                         Time interval in seconds (default: -1)
@@ -535,7 +544,7 @@ Advanced parameters
                         Numbers of spectral chunks to split (default: -1)
   --freqres Float       Frequency to average in MHz (default: -1)
   --timeres Float       Time bin to average in seconds (default: -1)
-  --prefix String       Splited ms prefix name (default: targets)
+  --prefix PREFIX       Splited ms prefix name (default: targets)
   --split_fullpol       Split full polar data
   --merge_spws          Merge spectral windows
 
@@ -546,8 +555,8 @@ Hardware resource management parameters
   --mem_frac Float      Memory fraction to use (default: 0.8)
   --max_cpu_frac Float  Maximum CPU fraction to use (default: 0.8)
   --max_mem_frac Float  Maximum memory fraction to use (default: 0.8)
-  --logfile String      Log file (default: None)
-  --jobid Integer       Job ID (default: 0)
+  --logfile LOGFILE     Log file (default: None)
+  --jobid JOBID         Job ID (default: 0)
 </pre></div>
 </div>
 </div>
@@ -556,14 +565,14 @@ Hardware resource management parameters
 </ol>
 <div class="dropdown admonition">
 <p class="admonition-title">Click here to see parameters</p>
-<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>usage: run_selfcal [-h] [--workdir String] [--start_thresh Float]
-                   [--stop_thresh Float] [--max_iter Integer] [--max_DR Float]
-                   [--min_iter Integer] [--conv_frac Float] [--solint String]
-                   [--uvrange String] [--minuv Float] [--weight String]
-                   [--robust Float] [--applymode String]
-                   [--min_tol_factor Float] [--no_apcal] [--no_solar_selfcal]
-                   [--keep_backup] [--cpu_frac Float] [--mem_frac Float]
-                   [--jobid Integer]
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>usage: run_selfcal [-h] --workdir WORKDIR --caldir CALDIR
+                   [--start_thresh Float] [--stop_thresh Float]
+                   [--max_iter Integer] [--max_DR Float] [--min_iter Integer]
+                   [--conv_frac Float] [--solint SOLINT] [--uvrange UVRANGE]
+                   [--minuv Float] [--weight WEIGHT] [--robust Float]
+                   [--applymode String] [--min_tol_factor Float] [--no_apcal]
+                   [--no_solar_selfcal] [--keep_backup] [--cpu_frac Float]
+                   [--mem_frac Float] [--jobid JOBID]
                    mslist
 
 Self-calibration
@@ -576,7 +585,8 @@ Essential parameters
 ###################:
   mslist                Comma-separated list of measurement sets (required
                         positional argument)
-  --workdir String      Working directory (default: )
+  --workdir WORKDIR     Working directory (default: )
+  --caldir CALDIR       Caltable directory (default: )
 
 ###################
 Advanced calibration and imaging parameters
@@ -588,10 +598,10 @@ Advanced calibration and imaging parameters
   --min_iter Integer    Minimum number of selfcal iterations (default: 2)
   --conv_frac Float     Fractional change in DR to determine convergence
                         (default: 0.3)
-  --solint String       Solution interval (default: 60s)
-  --uvrange String      Calibration UV-range (CASA format) (default: )
+  --solint SOLINT       Solution interval (default: 60s)
+  --uvrange UVRANGE     Calibration UV-range (CASA format) (default: )
   --minuv Float         Minimum UV-lambda used for imaging (default: 0)
-  --weight String       Imaging weight (default: briggs)
+  --weight WEIGHT       Imaging weight (default: briggs)
   --robust Float        Robust parameter for briggs weight (default: 0.0)
   --applymode String    Solution apply mode (default: calonly)
   --min_tol_factor Float
@@ -606,7 +616,7 @@ Hardware resource management parameters
 ###################:
   --cpu_frac Float      CPU fraction to use (default: 0.8)
   --mem_frac Float      Memory fraction to use (default: 0.8)
-  --jobid Integer       Job ID (default: 0)
+  --jobid JOBID         Job ID (default: 0)
 </pre></div>
 </div>
 </div>
@@ -663,10 +673,10 @@ Hardware resource management parameters
 </ol>
 <div class="dropdown admonition">
 <p class="admonition-title">Click here to see parameters</p>
-<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>usage: run_solar_siderealcor [-h] [--workdir String] [--cpu_frac Float]
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>usage: run_solar_siderealcor [-h] [--workdir WORKDIR] [--cpu_frac Float]
                              [--mem_frac Float] [--max_cpu_frac Float]
-                             [--max_mem_frac Float] [--logfile String]
-                             [--jobid Integer]
+                             [--max_mem_frac Float] [--logfile LOGFILE]
+                             [--jobid JOBID]
                              mslist
 
 Correct measurement sets for sidereal motion
@@ -679,7 +689,7 @@ Essential parameters
 ###################:
   mslist                Comma-separated list of measurement sets (required
                         positional argument)
-  --workdir String      Working directory (default: )
+  --workdir WORKDIR     Working directory (default: )
 
 ###################
 Hardware resource management parameters
@@ -688,8 +698,8 @@ Hardware resource management parameters
   --mem_frac Float      Memory fraction to use (default: 0.8)
   --max_cpu_frac Float  Maximum CPU fraction to use (default: 0.8)
   --max_mem_frac Float  Maximum memory fraction to use (default: 0.8)
-  --logfile String      Log file (default: None)
-  --jobid Integer       Job ID (default: 0)
+  --logfile LOGFILE     Log file (default: None)
+  --jobid JOBID         Job ID (default: 0)
 </pre></div>
 </div>
 </div>
@@ -698,10 +708,10 @@ Hardware resource management parameters
 </ol>
 <div class="dropdown admonition">
 <p class="admonition-title">Click here to see parameters</p>
-<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>usage: run_makeds [-h] --workdir WORKDIR [--extension EXTENSION]
-                  [--target_scans [TARGET_SCANS ...]] [--no_merge]
-                  [--no_seperate] [--cpu_frac CPU_FRAC] [--mem_frac MEM_FRAC]
-                  [--logfile LOGFILE] [--jobid JOBID]
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>usage: run_makeds [-h] --workdir WORKDIR --outdir OUTDIR
+                  [--extension EXTENSION] [--target_scans [TARGET_SCANS ...]]
+                  [--no_merge] [--no_seperate] [--cpu_frac CPU_FRAC]
+                  [--mem_frac MEM_FRAC] [--logfile LOGFILE] [--jobid JOBID]
                   msname
 
 Make dynamic spectra of solar scans
@@ -714,6 +724,7 @@ Essential parameters
 ###################:
   msname                Measurement set name
   --workdir WORKDIR     Working directory (default: None)
+  --outdir OUTDIR       Output directory (default: None)
 
 ###################
 Advanced parameters
@@ -744,16 +755,16 @@ Hardware resource management parameters
 </ol>
 <div class="dropdown admonition">
 <p class="admonition-title">Click here to see parameters</p>
-<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>usage: run_imaging [-h] [--workdir WORKDIR] [--freqrange FREQRANGE]
-                   [--timerange TIMERANGE] [--datacolumn DATACOLUMN]
-                   [--pol POL] [--freqres FREQRES] [--timeres TIMERES]
-                   [--weight WEIGHT] [--robust ROBUST] [--minuv_l MINUV]
-                   [--threshold THRESHOLD] [--band BAND]
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>usage: run_imaging [-h] --workdir WORKDIR --outdir OUTDIR
+                   [--freqrange FREQRANGE] [--timerange TIMERANGE]
+                   [--datacolumn DATACOLUMN] [--pol POL] [--freqres FREQRES]
+                   [--timeres TIMERES] [--weight WEIGHT] [--robust ROBUST]
+                   [--minuv_l MINUV] [--threshold THRESHOLD] [--band BAND]
                    [--cutout_rsun CUTOUT_RSUN] [--no_multiscale]
                    [--no_solar_mask] [--no_savemodel] [--no_saveres]
                    [--no_make_overlay] [--no_make_plots] [--cpu_frac CPU_FRAC]
                    [--mem_frac MEM_FRAC] [--jobid JOBID]
-                   MSLIST
+                   mslist
 
 Perform spectropolarimetric snapshot imaging
 
@@ -763,8 +774,9 @@ options:
 ###################
 Essential parameters
 ###################:
-  MSLIST                Comma-separated list of measurement sets (required)
-  --workdir WORKDIR     Work directory for imaging outputs (default: )
+  mslist                Comma-separated list of measurement sets (required)
+  --workdir WORKDIR     Work directory for imaging (default: )
+  --outdir OUTDIR       Output directory for imaging products (default: )
 
 ###################
 Advanced imaging parameters
@@ -810,38 +822,38 @@ Hardware resource management parameters
 </ol>
 <div class="dropdown admonition">
 <p class="admonition-title">Click here to see parameters</p>
-<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>usage: run_single_meerpbcor [-h] [--pbdir String] [--pbcor_dir String]
-                            [--no_save_beam] [--band String]
-                            [--no_apply_parang] [--verbose] [--ncpu Integer]
-                            [--jobid Integer]
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>usage: run_single_meerpbcor [-h] [--pbdir PBDIR] [--pbcor_dir PBCOR_DIR]
+                            [--no_save_beam] [--band BAND] [--no_apply_parang]
+                            [--verbose] [--ncpu Integer] [--jobid JOBID]
                             imagename
 
 Correct image for full-polar antenna averaged MeerKAT primary beam
 
 options:
-  -h, --help          show this help message and exit
+  -h, --help            show this help message and exit
 
 ###################
 Essential parameters
 ###################:
-  imagename           Name of image (required positional argument)
-  --pbdir String      Name of primary beam directory (default: )
-  --pbcor_dir String  Name of primary beam corrected image directory (default:
-                      )
+  imagename             Name of image (required positional argument)
+  --pbdir PBDIR         Name of primary beam directory (default: )
+  --pbcor_dir PBCOR_DIR
+                        Name of primary beam corrected image directory
+                        (default: )
 
 ###################
 Advanced parameters
 ###################:
-  --no_save_beam      Do not save beam to disk
-  --band String       Band name (default: )
-  --no_apply_parang   Do not apply parallactic angle correction
-  --verbose           Verbose output
+  --no_save_beam        Do not save beam to disk
+  --band BAND           Band name (default: )
+  --no_apply_parang     Do not apply parallactic angle correction
+  --verbose             Verbose output
 
 ###################
 Hardware resource management parameters
 ###################:
-  --ncpu Integer      Number of CPU threads to use (default: 8)
-  --jobid Integer     Job ID (default: 0)
+  --ncpu Integer        Number of CPU threads to use (default: 8)
+  --jobid JOBID         Job ID (default: 0)
 </pre></div>
 </div>
 </div>

@@ -26,7 +26,7 @@ MeerSOLAR is distributed on
 
    .. code-block:: bash
 
-      run_meersolar <path of measurement set> --workdir <path of work directory>
+      run_meersolar <path of measurement set> --workdir <path of work directory> --outdir <path of output products directory>
 
 That’s all. You started MeerSOLAR pipeline for analysing your MeerKAT solar observation 🎉.
 
@@ -41,4 +41,6 @@ That’s all. You started MeerSOLAR pipeline for analysing your MeerKAT solar ob
    .. code-block :: bash
     
       run_meersolar_log --jobid <jobid>
+      
+7. Output products will be saved in : ``<path of output products directory>``.
 

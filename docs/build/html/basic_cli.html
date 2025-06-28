@@ -165,12 +165,13 @@
   <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="quickstart.html">Quickstart</a></li>
 <li class="toctree-l1 has-children"><a class="reference internal" href="install.html">Installation and Initial Setup</a><input class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><div class="visually-hidden">Toggle navigation of Installation and Initial Setup</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
-<li class="toctree-l2"><a class="reference internal" href="install_conda.html">Installing Conda: Anaconda or Miniconda</a></li>
-<li class="toctree-l2"><a class="reference internal" href="activate_conda.html">Creating and Activating Conda Environment</a></li>
+<li class="toctree-l2"><a class="reference internal" href="install_conda.html">Install Conda: Anaconda or Miniconda</a></li>
+<li class="toctree-l2"><a class="reference internal" href="activate_conda.html">Create and Activate Conda Environment</a></li>
 <li class="toctree-l2"><a class="reference internal" href="install_meersolar.html">Install MeerSOLAR</a></li>
 <li class="toctree-l2"><a class="reference internal" href="initial_setup.html">Initial Setup</a></li>
 </ul>
 </li>
+<li class="toctree-l1"><a class="reference internal" href="idia_setup.html">IDIA-ilifu Setup</a></li>
 <li class="toctree-l1 has-children"><a class="reference internal" href="tutorial.html">Tutorial</a><input class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" role="switch" type="checkbox"/><label for="toctree-checkbox-2"><div class="visually-hidden">Toggle navigation of Tutorial</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
 <li class="toctree-l2"><a class="reference internal" href="flowchart.html">MeerSOLAR Flowchart</a></li>
 <li class="toctree-l2"><a class="reference internal" href="runpipeline.html">Run MeerSOLAR Pipeline</a></li>
@@ -245,7 +246,7 @@
 </ol>
 <div class="dropdown admonition">
 <p class="admonition-title">Click here to see parameters</p>
-<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>usage: run_meersolar [-h] --workdir WORKDIR [--solint SOLINT]
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>usage: run_meersolar [-h] --workdir WORKDIR --outdir OUTDIR [--solint SOLINT]
                      [--cal_uvrange CAL_UVRANGE] [--no_polcal]
                      [--target_scans [TARGET_SCANS ...]]
                      [--freqrange FREQRANGE] [--timerange TIMERANGE]
@@ -277,6 +278,7 @@ Essential parameters
 ###################:
   msname                Measurement set name
   --workdir WORKDIR     Working directory (default: None)
+  --outdir OUTDIR       Output products directory (default: None)
 
 ###################
 Advanced calibration parameters
@@ -408,14 +410,14 @@ options:
 </ol>
 <div class="dropdown admonition">
 <p class="admonition-title">Click here to see parameters</p>
-<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>usage: run_meerlogger [-h] [--jobid Integer] [--logdir String]
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>usage: run_meerlogger [-h] [--jobid JOBID] [--logdir LOGDIR]
 
 MeerSOLAR Logger
 
 options:
   -h, --help       show this help message and exit
-  --jobid Integer  MeerSOLAR Job ID (default: None)
-  --logdir String  Name of log directory (default: None)
+  --jobid JOBID    MeerSOLAR Job ID (default: None)
+  --logdir LOGDIR  Name of log directory (default: None)
 </pre></div>
 </div>
 </div>

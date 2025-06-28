@@ -31,6 +31,7 @@ Contents
    
    quickstart
    install
+   idia_setup
    tutorial
    kill
    cli

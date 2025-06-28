@@ -164,12 +164,13 @@
   <ul>
 <li class="toctree-l1"><a class="reference internal" href="../../../quickstart.html">Quickstart</a></li>
 <li class="toctree-l1 has-children"><a class="reference internal" href="../../../install.html">Installation and Initial Setup</a><input class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><div class="visually-hidden">Toggle navigation of Installation and Initial Setup</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
-<li class="toctree-l2"><a class="reference internal" href="../../../install_conda.html">Installing Conda: Anaconda or Miniconda</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../../activate_conda.html">Creating and Activating Conda Environment</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../install_conda.html">Install Conda: Anaconda or Miniconda</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../activate_conda.html">Create and Activate Conda Environment</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../install_meersolar.html">Install MeerSOLAR</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../initial_setup.html">Initial Setup</a></li>
 </ul>
 </li>
+<li class="toctree-l1"><a class="reference internal" href="../../../idia_setup.html">IDIA-ilifu Setup</a></li>
 <li class="toctree-l1 has-children"><a class="reference internal" href="../../../tutorial.html">Tutorial</a><input class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" role="switch" type="checkbox"/><label for="toctree-checkbox-2"><div class="visually-hidden">Toggle navigation of Tutorial</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
 <li class="toctree-l2"><a class="reference internal" href="../../../flowchart.html">MeerSOLAR Flowchart</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../runpipeline.html">Run MeerSOLAR Pipeline</a></li>
@@ -229,11 +230,13 @@
         <article role="main">
           <h1>Source code for meersolar.pipeline.basic_func</h1><div class="highlight"><pre>
 <span></span><span class="kn">import</span> <span class="nn">os</span><span class="o">,</span> <span class="nn">sys</span><span class="o">,</span> <span class="nn">glob</span><span class="o">,</span> <span class="nn">time</span><span class="o">,</span> <span class="nn">gc</span><span class="o">,</span> <span class="nn">tempfile</span><span class="o">,</span> <span class="nn">copy</span><span class="o">,</span> <span class="nn">traceback</span><span class="o">,</span> <span class="nn">resource</span><span class="o">,</span> <span class="nn">requests</span><span class="o">,</span> <span class="nn">threading</span><span class="o">,</span> <span class="nn">socket</span><span class="o">,</span> <span class="nn">argparse</span>
+
 <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s2">&quot;QT_OPENGL&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;software&quot;</span>
 <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s2">&quot;QT_QPA_PLATFORM&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;offscreen&quot;</span>
-<span class="kn">import</span> <span class="nn">matplotlib.ticker</span> <span class="k">as</span> <span class="nn">ticker</span><span class="o">,</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span><span class="o">,</span> <span class="nn">matplotlib</span><span class="o">,</span> <span class="nn">subprocess</span><span class="o">,</span> <span class="nn">contextlib</span>
-<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span><span class="o">,</span> <span class="nn">dask</span><span class="o">,</span> <span class="nn">psutil</span><span class="o">,</span> <span class="nn">logging</span><span class="o">,</span> <span class="nn">sunpy</span>
+<span class="kn">import</span> <span class="nn">matplotlib.ticker</span> <span class="k">as</span> <span class="nn">ticker</span><span class="o">,</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span><span class="o">,</span> <span class="nn">matplotlib</span><span class="o">,</span> <span class="nn">subprocess</span><span class="o">,</span> <span class="nn">contextlib</span><span class="o">,</span> <span class="nn">ctypes</span><span class="o">,</span> <span class="nn">platform</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span><span class="o">,</span> <span class="nn">dask</span><span class="o">,</span> <span class="nn">psutil</span><span class="o">,</span> <span class="nn">logging</span><span class="o">,</span> <span class="nn">sunpy</span><span class="o">,</span> <span class="nn">tempfile</span><span class="o">,</span> <span class="nn">shutil</span>
 <span class="kn">import</span> <span class="nn">astropy.units</span> <span class="k">as</span> <span class="nn">u</span><span class="o">,</span> <span class="nn">string</span><span class="o">,</span> <span class="nn">secrets</span>
+<span class="kn">from</span> <span class="nn">contextlib</span> <span class="kn">import</span> <span class="n">contextmanager</span>
 <span class="kn">from</span> <span class="nn">astropy.coordinates</span> <span class="kn">import</span> <span class="n">EarthLocation</span><span class="p">,</span> <span class="n">SkyCoord</span>
 <span class="kn">from</span> <span class="nn">sunpy.map</span> <span class="kn">import</span> <span class="n">Map</span>
 <span class="kn">from</span> <span class="nn">sunpy.coordinates</span> <span class="kn">import</span> <span class="n">frames</span><span class="p">,</span> <span class="n">sun</span>
@@ -271,6 +274,7 @@
 <span class="k">except</span><span class="p">:</span>
     <span class="k">pass</span>
 
+
 <div class="viewcode-block" id="get_datadir">
 <a class="viewcode-back" href="../../../meersolar.pipeline.html#meersolar.pipeline.basic_func.get_datadir">[docs]</a>
 <span class="k">def</span> <span class="nf">get_datadir</span><span class="p">():</span>
@@ -290,28 +294,35 @@
 <span class="n">udocker_dir</span> <span class="o">=</span> <span class="n">datadir</span> <span class="o">+</span> <span class="s2">&quot;/udocker&quot;</span>
 <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s2">&quot;UDOCKER_DIR&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">udocker_dir</span>
 <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s2">&quot;UDOCKER_TARBALL&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">datadir</span> <span class="o">+</span> <span class="s2">&quot;/udocker-englib-1.2.11.tar.gz&quot;</span>
+<span class="n">POSIX_FADV_DONTNEED</span> <span class="o">=</span> <span class="mi">4</span>
+<span class="n">libc</span> <span class="o">=</span> <span class="n">ctypes</span><span class="o">.</span><span class="n">CDLL</span><span class="p">(</span><span class="s2">&quot;libc.so.6&quot;</span><span class="p">)</span>
+
 
 <div class="viewcode-block" id="SmartDefaultsHelpFormatter">
 <a class="viewcode-back" href="../../../meersolar.pipeline.html#meersolar.pipeline.basic_func.SmartDefaultsHelpFormatter">[docs]</a>
 <span class="k">class</span> <span class="nc">SmartDefaultsHelpFormatter</span><span class="p">(</span><span class="n">argparse</span><span class="o">.</span><span class="n">ArgumentDefaultsHelpFormatter</span><span class="p">):</span>
     <span class="k">def</span> <span class="nf">_get_help_string</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">action</span><span class="p">):</span>
         <span class="c1"># Don&#39;t show default for boolean flags</span>
-        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">action</span><span class="p">,</span> <span class="n">argparse</span><span class="o">.</span><span class="n">_StoreTrueAction</span><span class="p">)</span> <span class="ow">or</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">action</span><span class="p">,</span> <span class="n">argparse</span><span class="o">.</span><span class="n">_StoreFalseAction</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">action</span><span class="p">,</span> <span class="n">argparse</span><span class="o">.</span><span class="n">_StoreTrueAction</span><span class="p">)</span> <span class="ow">or</span> <span class="nb">isinstance</span><span class="p">(</span>
+            <span class="n">action</span><span class="p">,</span> <span class="n">argparse</span><span class="o">.</span><span class="n">_StoreFalseAction</span>
+        <span class="p">):</span>
             <span class="k">return</span> <span class="n">action</span><span class="o">.</span><span class="n">help</span>
         <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_get_help_string</span><span class="p">(</span><span class="n">action</span><span class="p">)</span></div>
 
-        
+
+
 <div class="viewcode-block" id="init_udocker">
 <a class="viewcode-back" href="../../../meersolar.pipeline.html#meersolar.pipeline.basic_func.init_udocker">[docs]</a>
 <span class="k">def</span> <span class="nf">init_udocker</span><span class="p">():</span>
     <span class="n">os</span><span class="o">.</span><span class="n">system</span><span class="p">(</span><span class="s2">&quot;udocker install&quot;</span><span class="p">)</span></div>
 
 
+
 <div class="viewcode-block" id="suppress_casa_output">
 <a class="viewcode-back" href="../../../meersolar.pipeline.html#meersolar.pipeline.basic_func.suppress_casa_output">[docs]</a>
 <span class="nd">@contextlib</span><span class="o">.</span><span class="n">contextmanager</span>
 <span class="k">def</span> <span class="nf">suppress_casa_output</span><span class="p">():</span>
-    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">devnull</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">fnull</span><span class="p">:</span>
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">devnull</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">fnull</span><span class="p">:</span>
         <span class="n">old_stdout</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">dup</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
         <span class="n">old_stderr</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">dup</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
         <span class="n">os</span><span class="o">.</span><span class="n">dup2</span><span class="p">(</span><span class="n">fnull</span><span class="o">.</span><span class="n">fileno</span><span class="p">(),</span> <span class="mi">1</span><span class="p">)</span>
@@ -323,12 +334,187 @@
             <span class="n">os</span><span class="o">.</span><span class="n">dup2</span><span class="p">(</span><span class="n">old_stderr</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span></div>
 
 
+
 <div class="viewcode-block" id="clean_shutdown">
 <a class="viewcode-back" href="../../../meersolar.pipeline.html#meersolar.pipeline.basic_func.clean_shutdown">[docs]</a>
 <span class="k">def</span> <span class="nf">clean_shutdown</span><span class="p">(</span><span class="n">observer</span><span class="p">):</span>
     <span class="k">if</span> <span class="n">observer</span><span class="p">:</span>
         <span class="n">observer</span><span class="o">.</span><span class="n">stop</span><span class="p">()</span>
         <span class="n">observer</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">timeout</span><span class="o">=</span><span class="mi">5</span><span class="p">)</span></div>
+
+
+
+<span class="c1">#####################################</span>
+<span class="c1"># Resource management</span>
+<span class="c1">#####################################</span>
+<div class="viewcode-block" id="drop_file_cache">
+<a class="viewcode-back" href="../../../meersolar.pipeline.html#meersolar.pipeline.basic_func.drop_file_cache">[docs]</a>
+<span class="k">def</span> <span class="nf">drop_file_cache</span><span class="p">(</span><span class="n">filepath</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Advise the OS to drop the given file from the page cache.</span>
+<span class="sd">    Safe, per-file, no sudo required.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">platform</span><span class="o">.</span><span class="n">system</span><span class="p">()</span> <span class="o">!=</span> <span class="s2">&quot;Linux&quot;</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s2">&quot;drop_file_cache is only supported on Linux&quot;</span><span class="p">)</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isfile</span><span class="p">(</span><span class="n">filepath</span><span class="p">):</span>
+            <span class="k">return</span>
+        <span class="n">fd</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">filepath</span><span class="p">,</span> <span class="n">os</span><span class="o">.</span><span class="n">O_RDONLY</span><span class="p">)</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="n">libc</span><span class="o">.</span><span class="n">posix_fadvise</span><span class="p">(</span><span class="n">fd</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">POSIX_FADV_DONTNEED</span><span class="p">)</span>
+        <span class="n">os</span><span class="o">.</span><span class="n">close</span><span class="p">(</span><span class="n">fd</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">result</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;[cache drop] Released: </span><span class="si">{</span><span class="n">filepath</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;[cache drop] Failed (</span><span class="si">{</span><span class="n">result</span><span class="si">}</span><span class="s2">) for: </span><span class="si">{</span><span class="n">filepath</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;[cache drop] Error for </span><span class="si">{</span><span class="n">filepath</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="n">traceback</span><span class="o">.</span><span class="n">print_exc</span><span class="p">()</span></div>
+
+
+
+<div class="viewcode-block" id="drop_cache">
+<a class="viewcode-back" href="../../../meersolar.pipeline.html#meersolar.pipeline.basic_func.drop_cache">[docs]</a>
+<span class="k">def</span> <span class="nf">drop_cache</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Drop file cache for a file or all files under a directory.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    path : str</span>
+<span class="sd">        File or directory path</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">platform</span><span class="o">.</span><span class="n">system</span><span class="p">()</span> <span class="o">!=</span> <span class="s2">&quot;Linux&quot;</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s2">&quot;drop_file_cache is only supported on Linux&quot;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isfile</span><span class="p">(</span><span class="n">path</span><span class="p">):</span>
+        <span class="n">drop_file_cache</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="n">verbose</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isdir</span><span class="p">(</span><span class="n">path</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">root</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">files</span> <span class="ow">in</span> <span class="n">os</span><span class="o">.</span><span class="n">walk</span><span class="p">(</span><span class="n">path</span><span class="p">):</span>
+            <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">files</span><span class="p">:</span>
+                <span class="n">full_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">root</span><span class="p">,</span> <span class="n">f</span><span class="p">)</span>
+                <span class="n">drop_file_cache</span><span class="p">(</span><span class="n">full_path</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="n">verbose</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;[cache drop] Path does not exist or is not valid: </span><span class="si">{</span><span class="n">path</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="has_space">
+<a class="viewcode-back" href="../../../meersolar.pipeline.html#meersolar.pipeline.basic_func.has_space">[docs]</a>
+<span class="k">def</span> <span class="nf">has_space</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">required_gb</span><span class="p">):</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">stat</span> <span class="o">=</span> <span class="n">shutil</span><span class="o">.</span><span class="n">disk_usage</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+        <span class="k">return</span> <span class="p">(</span><span class="n">stat</span><span class="o">.</span><span class="n">free</span> <span class="o">/</span> <span class="mf">1e9</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="n">required_gb</span>
+    <span class="k">except</span><span class="p">:</span>
+        <span class="k">return</span> <span class="kc">False</span></div>
+
+
+
+<div class="viewcode-block" id="shm_or_tmp">
+<a class="viewcode-back" href="../../../meersolar.pipeline.html#meersolar.pipeline.basic_func.shm_or_tmp">[docs]</a>
+<span class="nd">@contextmanager</span>
+<span class="k">def</span> <span class="nf">shm_or_tmp</span><span class="p">(</span><span class="n">required_gb</span><span class="p">,</span> <span class="n">workdir</span><span class="p">,</span> <span class="n">prefix</span><span class="o">=</span><span class="s2">&quot;meersolar_&quot;</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Create a temporary working directory:</span>
+<span class="sd">    1. Try /dev/shm if it has required space</span>
+<span class="sd">    2. Else TMPDIR if set and has space</span>
+<span class="sd">    4. Else work directory</span>
+<span class="sd">    Temporarily sets TMPDIR to the selected path during the context.</span>
+<span class="sd">    Cleans up after use.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    required_gb : float</span>
+<span class="sd">        Required disk space in GB</span>
+<span class="sd">    workdir : str</span>
+<span class="sd">        Fall back work directory</span>
+<span class="sd">    prefix : str, optional</span>
+<span class="sd">        Temp directory prefix</span>
+<span class="sd">    verbose : bool, optional</span>
+<span class="sd">        Verbose</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">has_space</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">required_gb</span><span class="p">):</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">stat</span> <span class="o">=</span> <span class="n">shutil</span><span class="o">.</span><span class="n">disk_usage</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+            <span class="k">return</span> <span class="p">(</span>
+                <span class="n">stat</span><span class="o">.</span><span class="n">free</span> <span class="o">/</span> <span class="mf">1e9</span>
+            <span class="p">)</span> <span class="o">&gt;=</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">required_gb</span>  <span class="c1"># At-least two times of required disk space</span>
+        <span class="k">except</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">False</span>
+
+    <span class="n">candidates</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">if</span> <span class="n">has_space</span><span class="p">(</span><span class="s2">&quot;/dev/shm&quot;</span><span class="p">,</span> <span class="n">required_gb</span><span class="p">):</span>
+        <span class="n">candidates</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;/dev/shm&quot;</span><span class="p">)</span>
+    <span class="n">tmpdir_env</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;TMPDIR&quot;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">tmpdir_env</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">has_space</span><span class="p">(</span><span class="n">tmpdir_env</span><span class="p">,</span> <span class="n">required_gb</span><span class="p">):</span>
+        <span class="n">candidates</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">tmpdir_env</span><span class="p">)</span>
+    <span class="n">candidates</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">getcwd</span><span class="p">())</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">candidates</span><span class="p">)):</span>
+        <span class="n">base_dir</span> <span class="o">=</span> <span class="n">candidates</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">temp_dir</span> <span class="o">=</span> <span class="n">tempfile</span><span class="o">.</span><span class="n">mkdtemp</span><span class="p">(</span><span class="nb">dir</span><span class="o">=</span><span class="n">base_dir</span><span class="p">,</span> <span class="n">prefix</span><span class="o">=</span><span class="n">prefix</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">i</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Using RAM&quot;</span><span class="p">)</span>
+                <span class="k">elif</span> <span class="n">i</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+                    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Using {os.environ.get(&#39;TMPDIR&#39;)}&quot;</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Using {os.getcwd()}&quot;</span><span class="p">)</span>
+            <span class="k">break</span>
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;[shm_or_tmp] Failed to create temp dir in </span><span class="si">{</span><span class="n">base_dir</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span>
+            <span class="s2">&quot;Could not create a temporary directory in any fallback location.&quot;</span>
+        <span class="p">)</span>
+    <span class="c1"># Override TMPDIR</span>
+    <span class="n">old_tmpdir</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;TMPDIR&quot;</span><span class="p">)</span>
+    <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s2">&quot;TMPDIR&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">temp_dir</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="k">yield</span> <span class="n">temp_dir</span>
+    <span class="k">finally</span><span class="p">:</span>
+        <span class="c1"># Restore TMPDIR</span>
+        <span class="k">if</span> <span class="n">old_tmpdir</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s2">&quot;TMPDIR&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">old_tmpdir</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;TMPDIR&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="c1"># Clean up the temp directory</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">shutil</span><span class="o">.</span><span class="n">rmtree</span><span class="p">(</span><span class="n">temp_dir</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;[cleanup] Warning: could not delete </span><span class="si">{</span><span class="n">temp_dir</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="tmp_with_cache_rel">
+<a class="viewcode-back" href="../../../meersolar.pipeline.html#meersolar.pipeline.basic_func.tmp_with_cache_rel">[docs]</a>
+<span class="nd">@contextmanager</span>
+<span class="k">def</span> <span class="nf">tmp_with_cache_rel</span><span class="p">(</span><span class="n">required_gb</span><span class="p">,</span> <span class="n">workdir</span><span class="p">,</span> <span class="n">prefix</span><span class="o">=</span><span class="s2">&quot;meersolar_&quot;</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Combined context manager:</span>
+<span class="sd">    - Uses shm_or_tmp() for workspace</span>
+<span class="sd">    - Drops kernel page cache for all files in that directory on exit</span>
+<span class="sd">    </span>
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    required_gb : float</span>
+<span class="sd">        Required disk space in GB</span>
+<span class="sd">    workdir : str</span>
+<span class="sd">        Fall back work directory</span>
+<span class="sd">    prefix : str, optional</span>
+<span class="sd">        Temp directory prefix</span>
+<span class="sd">    verbose : bool, optional</span>
+<span class="sd">        Verbose</span>
+<span class="sd">    </span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">with</span> <span class="n">shm_or_tmp</span><span class="p">(</span><span class="n">required_gb</span><span class="p">,</span> <span class="n">workdir</span><span class="p">,</span> <span class="n">prefix</span><span class="o">=</span><span class="n">prefix</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="n">verbose</span><span class="p">)</span> <span class="k">as</span> <span class="n">tempdir</span><span class="p">:</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">yield</span> <span class="n">tempdir</span>
+        <span class="k">finally</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">platform</span><span class="o">.</span><span class="n">system</span><span class="p">()</span> <span class="o">==</span> <span class="s2">&quot;Linux&quot;</span><span class="p">:</span>
+                <span class="n">drop_cache</span><span class="p">(</span><span class="n">tempdir</span><span class="p">)</span></div>
 
 
 
@@ -349,6 +535,9 @@
         <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s2">&quot;MKL_NUM_THREADS&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">n_threads</span><span class="p">)</span>
         <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s2">&quot;VECLIB_MAXIMUM_THREADS&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">n_threads</span><span class="p">)</span></div>
 
+
+
+<span class="c1">##################################</span>
 
 
 <div class="viewcode-block" id="generate_password">
@@ -376,13 +565,19 @@
         <span class="k">return</span> <span class="s2">&quot;&quot;</span>
     <span class="n">remote_link</span> <span class="o">=</span> <span class="n">lines</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
     <span class="k">try</span><span class="p">:</span>
-        <span class="n">res</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">remote_link</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
-        <span class="k">if</span> <span class="n">res</span><span class="o">.</span><span class="n">status_code</span> <span class="o">==</span> <span class="mi">200</span><span class="p">:</span>
-            <span class="k">return</span> <span class="n">remote_link</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="k">return</span> <span class="s2">&quot;&quot;</span>
+        <span class="n">count</span><span class="o">=</span><span class="mi">0</span>
+        <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+            <span class="n">res</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">remote_link</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">res</span><span class="o">.</span><span class="n">status_code</span> <span class="o">==</span> <span class="mi">200</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">remote_link</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">count</span><span class="o">+=</span><span class="mi">1</span>
+                <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">count</span><span class="o">&gt;</span><span class="mi">5</span><span class="p">:</span>
+                <span class="k">return</span> <span class="s2">&quot;&quot;</span>
     <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
         <span class="k">return</span> <span class="s2">&quot;&quot;</span></div>
+
 
 
 <div class="viewcode-block" id="get_emails">
@@ -399,6 +594,7 @@
         <span class="k">return</span> <span class="s2">&quot;&quot;</span>
     <span class="k">else</span><span class="p">:</span>
         <span class="k">return</span> <span class="n">lines</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span></div>
+
 
 
 <div class="viewcode-block" id="RemoteLogger">
@@ -471,19 +667,18 @@
 
 <div class="viewcode-block" id="ping_logger">
 <a class="viewcode-back" href="../../../meersolar.pipeline.html#meersolar.pipeline.basic_func.ping_logger">[docs]</a>
-<span class="k">def</span> <span class="nf">ping_logger</span><span class="p">(</span><span class="n">jobid</span><span class="p">,</span> <span class="n">stop_event</span><span class="p">,</span> <span class="n">remote_link</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">):</span>
+<span class="k">def</span> <span class="nf">ping_logger</span><span class="p">(</span><span class="n">jobid</span><span class="p">,</span> <span class="n">remote_jobid</span><span class="p">,</span> <span class="n">stop_event</span><span class="p">,</span> <span class="n">remote_link</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Ping a job-specific keep-alive endpoint periodically until stop_event is set.&quot;&quot;&quot;</span>
     <span class="n">pid</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">getpid</span><span class="p">()</span>
-    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;PID&quot;</span><span class="p">,</span> <span class="n">pid</span><span class="p">)</span>
     <span class="n">datadir</span> <span class="o">=</span> <span class="n">get_datadir</span><span class="p">()</span>
     <span class="n">save_pid</span><span class="p">(</span><span class="n">pid</span><span class="p">,</span> <span class="n">datadir</span> <span class="o">+</span> <span class="sa">f</span><span class="s2">&quot;/pids/pids_</span><span class="si">{</span><span class="n">jobid</span><span class="si">}</span><span class="s2">.txt&quot;</span><span class="p">)</span>
     <span class="n">interval</span> <span class="o">=</span> <span class="mi">10</span>  <span class="c1"># 10 min interval</span>
     <span class="k">if</span> <span class="n">remote_link</span> <span class="o">!=</span> <span class="s2">&quot;&quot;</span><span class="p">:</span>
-        <span class="n">url</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">remote_link</span><span class="si">}</span><span class="s2">/api/ping/</span><span class="si">{</span><span class="n">jobid</span><span class="si">}</span><span class="s2">&quot;</span>
+        <span class="n">url</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">remote_link</span><span class="si">}</span><span class="s2">/api/ping/</span><span class="si">{</span><span class="n">remote_jobid</span><span class="si">}</span><span class="s2">&quot;</span>
         <span class="k">while</span> <span class="ow">not</span> <span class="n">stop_event</span><span class="o">.</span><span class="n">is_set</span><span class="p">():</span>
             <span class="k">try</span><span class="p">:</span>
                 <span class="nb">print</span><span class="p">(</span>
-                    <span class="sa">f</span><span class="s2">&quot;[ping_logger] Ping sent for job </span><span class="si">{</span><span class="n">jobid</span><span class="si">}</span><span class="s2"> at </span><span class="si">{</span><span class="n">dt</span><span class="o">.</span><span class="n">now</span><span class="p">()</span><span class="o">.</span><span class="n">isoformat</span><span class="p">()</span><span class="si">}</span><span class="s2">&quot;</span>
+                    <span class="sa">f</span><span class="s2">&quot;[ping_logger] Ping sent for job </span><span class="si">{</span><span class="n">remote_jobid</span><span class="si">}</span><span class="s2"> at </span><span class="si">{</span><span class="n">dt</span><span class="o">.</span><span class="n">now</span><span class="p">()</span><span class="o">.</span><span class="n">isoformat</span><span class="p">()</span><span class="si">}</span><span class="s2">&quot;</span>
                 <span class="p">)</span>
                 <span class="n">res</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">post</span><span class="p">(</span><span class="n">url</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
             <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
@@ -558,6 +753,7 @@
         <span class="s2">&quot;imaging_targets.log&quot;</span><span class="p">:</span> <span class="s2">&quot;All imaging&quot;</span><span class="p">,</span>
         <span class="s2">&quot;noise_cal.log&quot;</span><span class="p">:</span> <span class="s2">&quot;Flux calibration using noise-diode&quot;</span><span class="p">,</span>
         <span class="s2">&quot;partition_cal.log&quot;</span><span class="p">:</span> <span class="s2">&quot;Partioning for basic calibration&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;ds_targets.log&quot;</span><span class="p">:</span> <span class="s2">&quot;Making dynamic spectra&quot;</span><span class="p">,</span>
     <span class="p">}</span>
 
     <span class="k">if</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">logmap</span><span class="p">:</span>
@@ -889,14 +1085,15 @@
 
     <span class="n">warnings</span><span class="o">.</span><span class="n">filterwarnings</span><span class="p">(</span><span class="s2">&quot;ignore&quot;</span><span class="p">,</span> <span class="n">category</span><span class="o">=</span><span class="ne">RuntimeWarning</span><span class="p">)</span>
     <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">workdir</span><span class="si">}</span><span class="s2">/dynamic_spectra&quot;</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-    <span class="nb">print</span> <span class="p">(</span><span class="s2">&quot;##############################################&quot;</span><span class="p">)</span>
-    <span class="nb">print</span> <span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Start making dynamic spectra for ms: </span><span class="si">{</span><span class="n">msname</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-    <span class="nb">print</span> <span class="p">(</span><span class="s2">&quot;##############################################&quot;</span><span class="p">)</span>
-    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">target_scans</span><span class="p">)</span><span class="o">&gt;</span><span class="mi">0</span><span class="p">:</span>
-        <span class="n">temp_target_scans</span><span class="o">=</span><span class="p">[]</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;##############################################&quot;</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Start making dynamic spectra for ms: </span><span class="si">{</span><span class="n">msname</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;##############################################&quot;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">target_scans</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">temp_target_scans</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">target_scans</span><span class="p">:</span>
             <span class="n">temp_target_scans</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">s</span><span class="p">))</span>
-        <span class="n">target_scans</span><span class="o">=</span><span class="n">temp_target_scans</span>
+        <span class="n">target_scans</span> <span class="o">=</span> <span class="n">temp_target_scans</span>
+
     <span class="c1">##############################</span>
     <span class="c1"># Extract dynamic spectrum</span>
     <span class="c1">##############################</span>
@@ -988,7 +1185,9 @@
     <span class="n">mstool</span> <span class="o">=</span> <span class="n">casamstool</span><span class="p">()</span>
     <span class="k">for</span> <span class="n">scan</span> <span class="ow">in</span> <span class="n">scans</span><span class="p">:</span>
         <span class="k">if</span> <span class="n">scan</span> <span class="ow">in</span> <span class="n">valid_scans</span><span class="p">:</span>
-            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">target_scans</span><span class="p">)</span><span class="o">==</span><span class="mi">0</span> <span class="ow">or</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">target_scans</span><span class="p">)</span><span class="o">&gt;</span><span class="mi">0</span> <span class="ow">and</span> <span class="nb">int</span><span class="p">(</span><span class="n">scan</span><span class="p">)</span> <span class="ow">in</span> <span class="n">target_scans</span><span class="p">):</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">target_scans</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">or</span> <span class="p">(</span>
+                <span class="nb">len</span><span class="p">(</span><span class="n">target_scans</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="ow">and</span> <span class="nb">int</span><span class="p">(</span><span class="n">scan</span><span class="p">)</span> <span class="ow">in</span> <span class="n">target_scans</span>
+            <span class="p">):</span>
                 <span class="n">final_scans</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">scan</span><span class="p">))</span>
                 <span class="n">msmd</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">msname</span><span class="p">)</span>
                 <span class="n">nchan</span> <span class="o">=</span> <span class="n">msmd</span><span class="o">.</span><span class="n">nchan</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
@@ -999,9 +1198,10 @@
                 <span class="n">nrow</span> <span class="o">=</span> <span class="n">mstool</span><span class="o">.</span><span class="n">nrow</span><span class="p">(</span><span class="kc">True</span><span class="p">)</span>
                 <span class="n">mstool</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
                 <span class="n">nbaselines</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">nant</span> <span class="o">+</span> <span class="p">(</span><span class="n">nant</span> <span class="o">*</span> <span class="p">(</span><span class="n">nant</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">/</span> <span class="mi">2</span><span class="p">))</span>
-                <span class="n">scan_size_list</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="mi">5</span> <span class="o">*</span> <span class="p">(</span><span class="n">nrow</span> <span class="o">/</span> <span class="n">nbaselines</span><span class="p">)</span> <span class="o">*</span> <span class="mi">16</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="mi">1024</span><span class="o">**</span><span class="mi">3</span><span class="p">))</span>
-    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">final_scans</span><span class="p">)</span><span class="o">==</span><span class="mi">0</span><span class="p">:</span>
-        <span class="nb">print</span> <span class="p">(</span><span class="s2">&quot;No scans to make dynamic spectra.&quot;</span><span class="p">)</span>
+                <span class="n">scan_size</span> <span class="o">=</span> <span class="p">(</span><span class="mi">5</span> <span class="o">*</span> <span class="p">(</span><span class="n">nrow</span> <span class="o">/</span> <span class="n">nbaselines</span><span class="p">)</span> <span class="o">*</span> <span class="mi">16</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="mi">1024</span><span class="o">**</span><span class="mi">3</span><span class="p">)</span>
+                <span class="n">scan_size_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">scan_size</span><span class="p">)</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">final_scans</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;No scans to make dynamic spectra.&quot;</span><span class="p">)</span>
         <span class="k">return</span>
     <span class="k">del</span> <span class="n">scans</span>
     <span class="n">scans</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">final_scans</span><span class="p">)</span>
@@ -1027,13 +1227,18 @@
     <span class="k">for</span> <span class="n">scan</span> <span class="ow">in</span> <span class="n">scans</span><span class="p">:</span>
         <span class="n">tasks</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
             <span class="n">delayed</span><span class="p">(</span><span class="n">make_ds_file_per_scan</span><span class="p">)(</span>
-                <span class="n">msname</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">workdir</span><span class="si">}</span><span class="s2">/dynamic_spectra/</span><span class="si">{</span><span class="n">ds_file_name</span><span class="si">}</span><span class="s2">_scan_</span><span class="si">{</span><span class="n">scan</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">scan</span><span class="p">,</span> <span class="n">datacolumn</span>
+                <span class="n">msname</span><span class="p">,</span>
+                <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">workdir</span><span class="si">}</span><span class="s2">/dynamic_spectra/</span><span class="si">{</span><span class="n">ds_file_name</span><span class="si">}</span><span class="s2">_scan_</span><span class="si">{</span><span class="n">scan</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
+                <span class="n">scan</span><span class="p">,</span>
+                <span class="n">datacolumn</span><span class="p">,</span>
             <span class="p">)</span>
         <span class="p">)</span>
     <span class="n">compute</span><span class="p">(</span><span class="o">*</span><span class="n">tasks</span><span class="p">)</span>
     <span class="n">dask_client</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
     <span class="n">dask_cluster</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
-    <span class="n">ds_files</span> <span class="o">=</span> <span class="p">[</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">workdir</span><span class="si">}</span><span class="s2">/dynamic_spectra/</span><span class="si">{</span><span class="n">ds_file_name</span><span class="si">}</span><span class="s2">_scan_</span><span class="si">{</span><span class="n">scan</span><span class="si">}</span><span class="s2">.npy&quot;</span> <span class="k">for</span> <span class="n">scan</span> <span class="ow">in</span> <span class="n">scans</span><span class="p">]</span>
+    <span class="n">ds_files</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">workdir</span><span class="si">}</span><span class="s2">/dynamic_spectra/</span><span class="si">{</span><span class="n">ds_file_name</span><span class="si">}</span><span class="s2">_scan_</span><span class="si">{</span><span class="n">scan</span><span class="si">}</span><span class="s2">.npy&quot;</span> <span class="k">for</span> <span class="n">scan</span> <span class="ow">in</span> <span class="n">scans</span>
+    <span class="p">]</span>
     <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;DS files: </span><span class="si">{</span><span class="n">ds_files</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">merge_scan</span> <span class="o">==</span> <span class="kc">False</span><span class="p">:</span>
         <span class="n">plots</span> <span class="o">=</span> <span class="p">[]</span>
@@ -1046,7 +1251,9 @@
             <span class="n">plots</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">plot_file</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
         <span class="n">plot_file</span> <span class="o">=</span> <span class="n">make_ds_plot</span><span class="p">(</span>
-            <span class="n">ds_files</span><span class="p">,</span> <span class="n">plot_file</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">workdir</span><span class="si">}</span><span class="s2">/dynamic_spectra/</span><span class="si">{</span><span class="n">ds_file_name</span><span class="si">}</span><span class="s2">.</span><span class="si">{</span><span class="n">extension</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">showgui</span><span class="o">=</span><span class="n">showgui</span>
+            <span class="n">ds_files</span><span class="p">,</span>
+            <span class="n">plot_file</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">workdir</span><span class="si">}</span><span class="s2">/dynamic_spectra/</span><span class="si">{</span><span class="n">ds_file_name</span><span class="si">}</span><span class="s2">.</span><span class="si">{</span><span class="n">extension</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
+            <span class="n">showgui</span><span class="o">=</span><span class="n">showgui</span><span class="p">,</span>
         <span class="p">)</span>
     <span class="n">gc</span><span class="o">.</span><span class="n">collect</span><span class="p">()</span>
     <span class="n">goes_files</span> <span class="o">=</span> <span class="n">glob</span><span class="o">.</span><span class="n">glob</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">workdir</span><span class="si">}</span><span class="s2">/dynamic_spectra/sci*.nc&quot;</span><span class="p">)</span>
@@ -1156,6 +1363,8 @@
 <span class="sd">    sunpy.map</span>
 <span class="sd">        Sunpy SUVIMap</span>
 <span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">warnings</span><span class="o">.</span><span class="n">filterwarnings</span><span class="p">(</span><span class="s2">&quot;ignore&quot;</span><span class="p">,</span> <span class="n">message</span><span class="o">=</span><span class="s2">&quot;This download has been started in a thread which is not the main thread&quot;</span><span class="p">)</span>
+    <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="s1">&#39;sunpy&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">setLevel</span><span class="p">(</span><span class="n">logging</span><span class="o">.</span><span class="n">ERROR</span><span class="p">)</span>
     <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">workdir</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
     <span class="n">start_time</span> <span class="o">=</span> <span class="n">dt</span><span class="o">.</span><span class="n">fromisoformat</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">obs_date</span><span class="si">}</span><span class="s2">T</span><span class="si">{</span><span class="n">obs_time</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
     <span class="n">t_start</span> <span class="o">=</span> <span class="p">(</span><span class="n">start_time</span> <span class="o">-</span> <span class="n">timedelta</span><span class="p">(</span><span class="n">minutes</span><span class="o">=</span><span class="mi">2</span><span class="p">))</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="s2">&quot;%Y-%m-</span><span class="si">%d</span><span class="s2">T%H:%M&quot;</span><span class="p">)</span>
@@ -1164,7 +1373,7 @@
     <span class="n">instrument</span> <span class="o">=</span> <span class="n">a</span><span class="o">.</span><span class="n">Instrument</span><span class="p">(</span><span class="s2">&quot;suvi&quot;</span><span class="p">)</span>
     <span class="n">wavelength</span> <span class="o">=</span> <span class="n">a</span><span class="o">.</span><span class="n">Wavelength</span><span class="p">(</span><span class="n">wavelength</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">angstrom</span><span class="p">)</span>
     <span class="n">results</span> <span class="o">=</span> <span class="n">Fido</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="n">time</span><span class="p">,</span> <span class="n">instrument</span><span class="p">,</span> <span class="n">wavelength</span><span class="p">,</span> <span class="n">a</span><span class="o">.</span><span class="n">Level</span><span class="p">(</span><span class="mi">2</span><span class="p">))</span>
-    <span class="n">downloaded_files</span> <span class="o">=</span> <span class="n">Fido</span><span class="o">.</span><span class="n">fetch</span><span class="p">(</span><span class="n">results</span><span class="p">,</span> <span class="n">path</span><span class="o">=</span><span class="n">workdir</span><span class="p">)</span>
+    <span class="n">downloaded_files</span> <span class="o">=</span> <span class="n">Fido</span><span class="o">.</span><span class="n">fetch</span><span class="p">(</span><span class="n">results</span><span class="p">,</span> <span class="n">path</span><span class="o">=</span><span class="n">workdir</span><span class="p">,</span> <span class="n">progress</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
     <span class="n">obs_times</span> <span class="o">=</span> <span class="p">[]</span>
     <span class="k">for</span> <span class="n">image</span> <span class="ow">in</span> <span class="n">downloaded_files</span><span class="p">:</span>
         <span class="n">suvimap</span> <span class="o">=</span> <span class="n">Map</span><span class="p">(</span><span class="n">image</span><span class="p">)</span>
@@ -1200,6 +1409,7 @@
 <span class="sd">    sunpy.map</span>
 <span class="sd">        Off-disk enhanced emission</span>
 <span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="s1">&#39;sunpy&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">setLevel</span><span class="p">(</span><span class="n">logging</span><span class="o">.</span><span class="n">ERROR</span><span class="p">)</span>
     <span class="n">hpc_coords</span> <span class="o">=</span> <span class="n">all_coordinates_from_map</span><span class="p">(</span><span class="n">sunpy_map</span><span class="p">)</span>
     <span class="n">r</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">hpc_coords</span><span class="o">.</span><span class="n">Tx</span><span class="o">**</span><span class="mi">2</span> <span class="o">+</span> <span class="n">hpc_coords</span><span class="o">.</span><span class="n">Ty</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span> <span class="o">/</span> <span class="n">sunpy_map</span><span class="o">.</span><span class="n">rsun_obs</span>
     <span class="n">rsun_step_size</span> <span class="o">=</span> <span class="mf">0.01</span>
@@ -1279,6 +1489,7 @@
 <span class="sd">    str</span>
 <span class="sd">        Plot file name</span>
 <span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="s1">&#39;sunpy&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">setLevel</span><span class="p">(</span><span class="n">logging</span><span class="o">.</span><span class="n">ERROR</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">showgui</span><span class="p">:</span>
         <span class="n">matplotlib</span><span class="o">.</span><span class="n">use</span><span class="p">(</span><span class="s2">&quot;TkAgg&quot;</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
@@ -1931,6 +2142,30 @@
     <span class="n">goodrms</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">goodrms</span><span class="p">)</span>
     <span class="n">referenceant</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">argmin</span><span class="p">(</span><span class="n">goodrms</span><span class="p">)</span>
     <span class="k">return</span> <span class="nb">str</span><span class="p">(</span><span class="n">referenceant</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="get_ms_scans">
+<a class="viewcode-back" href="../../../meersolar.pipeline.html#meersolar.pipeline.basic_func.get_ms_scans">[docs]</a>
+<span class="k">def</span> <span class="nf">get_ms_scans</span><span class="p">(</span><span class="n">msname</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Get scans of the measurement set</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    msname : str</span>
+<span class="sd">        Measurement set</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    list</span>
+<span class="sd">        Scan list</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">msmd</span> <span class="o">=</span> <span class="n">msmetadata</span><span class="p">()</span>
+    <span class="n">msmd</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">msname</span><span class="p">)</span>
+    <span class="n">scans</span> <span class="o">=</span> <span class="n">msmd</span><span class="o">.</span><span class="n">scannumbers</span><span class="p">()</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span>
+    <span class="n">msmd</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+    <span class="k">return</span> <span class="n">scans</span></div>
 
 
 
@@ -3299,7 +3534,7 @@
 
 <div class="viewcode-block" id="calc_bw_smearing_freqwidth">
 <a class="viewcode-back" href="../../../meersolar.pipeline.html#meersolar.pipeline.basic_func.calc_bw_smearing_freqwidth">[docs]</a>
-<span class="k">def</span> <span class="nf">calc_bw_smearing_freqwidth</span><span class="p">(</span><span class="n">msname</span><span class="p">):</span>
+<span class="k">def</span> <span class="nf">calc_bw_smearing_freqwidth</span><span class="p">(</span><span class="n">msname</span><span class="p">,</span><span class="n">full_FoV</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span><span class="n">FWHM</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Function to calculate spectral width to procude bandwidth smearing</span>
 
@@ -3307,6 +3542,10 @@
 <span class="sd">    ----------</span>
 <span class="sd">    msname : str</span>
 <span class="sd">        Name of the measurement set</span>
+<span class="sd">    full_FoV : bool, optional</span>
+<span class="sd">        Consider smearing within solar disc or full FoV</span>
+<span class="sd">    FWHM : bool, optional</span>
+<span class="sd">        If using full FoV, consider upto FWHM or first null</span>
 
 <span class="sd">    Returns</span>
 <span class="sd">    -------</span>
@@ -3314,16 +3553,17 @@
 <span class="sd">        Spectral width in MHz</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">R</span> <span class="o">=</span> <span class="mf">0.9</span>
-    <span class="n">fov</span> <span class="o">=</span> <span class="mi">3600</span>  <span class="c1"># 2 times size of the Sun</span>
+    <span class="k">if</span> <span class="n">full_FoV</span><span class="p">:</span>
+        <span class="n">fov</span><span class="o">=</span><span class="n">calc_field_of_view</span><span class="p">(</span><span class="n">msname</span><span class="p">,</span><span class="n">FWHM</span><span class="o">=</span><span class="n">FWHM</span><span class="p">)</span> <span class="c1"># In arcsec</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">fov</span> <span class="o">=</span> <span class="mi">35</span><span class="o">*</span><span class="mi">60</span>  <span class="c1"># Size of the Sun, slightly larger is taken for U-band</span>
     <span class="n">psf</span> <span class="o">=</span> <span class="n">calc_psf</span><span class="p">(</span><span class="n">msname</span><span class="p">)</span>
-    <span class="n">msmd</span> <span class="o">=</span> <span class="n">msmetadata</span><span class="p">()</span>
-    <span class="n">msmd</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">msname</span><span class="p">)</span>
-    <span class="n">freq</span> <span class="o">=</span> <span class="n">msmd</span><span class="o">.</span><span class="n">meanfreq</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
-    <span class="n">freqres</span> <span class="o">=</span> <span class="n">msmd</span><span class="o">.</span><span class="n">chanres</span><span class="p">(</span><span class="mi">0</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span> <span class="o">/</span> <span class="mi">10</span><span class="o">**</span><span class="mi">6</span>
-    <span class="n">msmd</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
-    <span class="n">msmd</span><span class="o">.</span><span class="n">done</span><span class="p">()</span>
+    <span class="n">tb</span><span class="o">=</span><span class="n">table</span><span class="p">()</span>
+    <span class="n">tb</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">msname</span><span class="si">}</span><span class="s2">/SPECTRAL_WINDOW&quot;</span><span class="p">)</span>
+    <span class="n">freq</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">tb</span><span class="o">.</span><span class="n">getcol</span><span class="p">(</span><span class="s2">&quot;REF_FREQUENCY&quot;</span><span class="p">)[</span><span class="mi">0</span><span class="p">])</span><span class="o">/</span><span class="mi">10</span><span class="o">**</span><span class="mi">6</span>
+    <span class="n">freqres</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">tb</span><span class="o">.</span><span class="n">getcol</span><span class="p">(</span><span class="s2">&quot;CHAN_WIDTH&quot;</span><span class="p">)[</span><span class="mi">0</span><span class="p">])</span><span class="o">/</span><span class="mi">10</span><span class="o">**</span><span class="mi">6</span>
+    <span class="n">tb</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
     <span class="n">delta_nu</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">((</span><span class="mi">1</span> <span class="o">/</span> <span class="n">R</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="n">psf</span> <span class="o">/</span> <span class="n">fov</span><span class="p">)</span> <span class="o">*</span> <span class="n">freq</span>
-    <span class="n">delta_nu</span> <span class="o">/=</span> <span class="mi">10</span><span class="o">**</span><span class="mi">6</span>
     <span class="n">delta_nu</span> <span class="o">=</span> <span class="n">ceil_to_multiple</span><span class="p">(</span><span class="n">delta_nu</span><span class="p">,</span> <span class="n">freqres</span><span class="p">)</span>
     <span class="k">return</span> <span class="nb">round</span><span class="p">(</span><span class="n">delta_nu</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span></div>
 
@@ -3331,7 +3571,7 @@
 
 <div class="viewcode-block" id="calc_time_smearing_timewidth">
 <a class="viewcode-back" href="../../../meersolar.pipeline.html#meersolar.pipeline.basic_func.calc_time_smearing_timewidth">[docs]</a>
-<span class="k">def</span> <span class="nf">calc_time_smearing_timewidth</span><span class="p">(</span><span class="n">msname</span><span class="p">):</span>
+<span class="k">def</span> <span class="nf">calc_time_smearing_timewidth</span><span class="p">(</span><span class="n">msname</span><span class="p">,</span><span class="n">full_FoV</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span><span class="n">FWHM</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Calculate maximum time averaging to avoid time smearing over full FoV.</span>
 
@@ -3339,6 +3579,10 @@
 <span class="sd">    ----------</span>
 <span class="sd">    msname : str</span>
 <span class="sd">        Measurement set name</span>
+<span class="sd">    full_FoV : bool, optional</span>
+<span class="sd">        Consider smearing within solar disc or full FoV</span>
+<span class="sd">    FWHM : bool, optional</span>
+<span class="sd">        If using full FoV, consider upto FWHM or first null</span>
 
 <span class="sd">    Returns</span>
 <span class="sd">    -------</span>
@@ -3354,7 +3598,11 @@
     <span class="n">c</span> <span class="o">=</span> <span class="mf">299792458.0</span>  <span class="c1"># speed of light in m/s</span>
     <span class="n">omega_E</span> <span class="o">=</span> <span class="mf">7.2921159e-5</span>  <span class="c1"># Earth rotation rate in rad/s</span>
     <span class="n">lam</span> <span class="o">=</span> <span class="n">c</span> <span class="o">/</span> <span class="n">freq_Hz</span>  <span class="c1"># wavelength in meters</span>
-    <span class="n">fov_deg</span> <span class="o">=</span> <span class="n">calc_field_of_view</span><span class="p">(</span><span class="n">msname</span><span class="p">)</span> <span class="o">/</span> <span class="mf">3600.0</span>
+    <span class="k">if</span> <span class="n">full_FoV</span><span class="p">:</span>
+        <span class="n">fov</span><span class="o">=</span><span class="n">calc_field_of_view</span><span class="p">(</span><span class="n">msname</span><span class="p">,</span><span class="n">FWHM</span><span class="o">=</span><span class="n">FWHM</span><span class="p">)</span> <span class="c1"># In arcsec</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">fov</span> <span class="o">=</span> <span class="mi">35</span><span class="o">*</span><span class="mi">60</span>  <span class="c1"># Size of the Sun, slightly larger is taken for U-band</span>
+    <span class="n">fov_deg</span> <span class="o">=</span> <span class="n">fov</span> <span class="o">/</span> <span class="mf">3600.0</span>
     <span class="n">fov_rad</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">deg2rad</span><span class="p">(</span><span class="n">fov_deg</span><span class="p">)</span>
     <span class="n">uv</span><span class="p">,</span> <span class="n">uvlambda</span> <span class="o">=</span> <span class="n">calc_maxuv</span><span class="p">(</span><span class="n">msname</span><span class="p">)</span>
     <span class="c1"># Approximate maximum allowable time to avoid &gt;10% amplitude loss</span>
@@ -3811,6 +4059,7 @@
 <span class="sd">    sunpy.map</span>
 <span class="sd">        Sunpy map</span>
 <span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="s1">&#39;sunpy&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">setLevel</span><span class="p">(</span><span class="n">logging</span><span class="o">.</span><span class="n">ERROR</span><span class="p">)</span>
     <span class="n">MEERLAT</span> <span class="o">=</span> <span class="o">-</span><span class="mf">30.7133</span>
     <span class="n">MEERLON</span> <span class="o">=</span> <span class="mf">21.4429</span>
     <span class="n">MEERALT</span> <span class="o">=</span> <span class="mf">1086.6</span>
@@ -3924,6 +4173,7 @@
 <span class="sd">    sunpy.Map</span>
 <span class="sd">        MeerKAT image in helioprojective co-ordinate</span>
 <span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="s1">&#39;sunpy&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">setLevel</span><span class="p">(</span><span class="n">logging</span><span class="o">.</span><span class="n">ERROR</span><span class="p">)</span>
     <span class="n">MEERLAT</span> <span class="o">=</span> <span class="o">-</span><span class="mf">30.7133</span>
     <span class="n">MEERLON</span> <span class="o">=</span> <span class="mf">21.4429</span>
     <span class="n">MEERALT</span> <span class="o">=</span> <span class="mf">1086.6</span>
@@ -4280,6 +4530,7 @@
     <span class="k">return</span> <span class="n">merged_caltable</span></div>
 
 
+
 <div class="viewcode-block" id="get_nprocess_meersolar">
 <a class="viewcode-back" href="../../../meersolar.pipeline.html#meersolar.pipeline.basic_func.get_nprocess_meersolar">[docs]</a>
 <span class="k">def</span> <span class="nf">get_nprocess_meersolar</span><span class="p">(</span><span class="n">jobid</span><span class="p">):</span>
@@ -4326,7 +4577,7 @@
         <span class="n">pids</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">loadtxt</span><span class="p">(</span><span class="n">pid_file</span><span class="p">,</span> <span class="n">unpack</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="s2">&quot;int&quot;</span><span class="p">)</span>
         <span class="n">pids</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">pids</span><span class="p">,</span> <span class="n">pid</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
-        <span class="n">pids</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">pid</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="s2">&quot;int&quot;</span><span class="p">)</span>
+        <span class="n">pids</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="nb">int</span><span class="p">(</span><span class="n">pid</span><span class="p">)])</span>
     <span class="n">np</span><span class="o">.</span><span class="n">savetxt</span><span class="p">(</span><span class="n">pid_file</span><span class="p">,</span> <span class="n">pids</span><span class="p">,</span> <span class="n">fmt</span><span class="o">=</span><span class="s2">&quot;</span><span class="si">%d</span><span class="s2">&quot;</span><span class="p">)</span></div>
 
 
@@ -4360,13 +4611,15 @@
         <span class="n">CUTOFF</span> <span class="o">=</span> <span class="n">dt</span><span class="o">.</span><span class="n">utcnow</span><span class="p">()</span> <span class="o">-</span> <span class="n">timedelta</span><span class="p">(</span><span class="n">days</span><span class="o">=</span><span class="mi">15</span><span class="p">)</span>
         <span class="n">filtered_prev_jobids</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="k">for</span> <span class="n">job_id</span> <span class="ow">in</span> <span class="n">prev_jobids</span><span class="p">:</span>
-            <span class="n">job_time</span> <span class="o">=</span> <span class="n">dt</span><span class="o">.</span><span class="n">strptime</span><span class="p">(</span><span class="n">job_id</span><span class="o">.</span><span class="n">ljust</span><span class="p">(</span><span class="mi">20</span><span class="p">,</span> <span class="s1">&#39;0&#39;</span><span class="p">),</span> <span class="n">FORMAT</span><span class="p">)</span>  <span class="c1"># pad if truncated</span>
-            <span class="k">if</span> <span class="n">job_time</span> <span class="o">&gt;=</span> <span class="n">CUTOFF</span> <span class="ow">or</span> <span class="n">job_id</span><span class="o">==</span><span class="mi">0</span><span class="p">:</span> <span class="c1"># Job ID 0 is always kept</span>
+            <span class="n">job_time</span> <span class="o">=</span> <span class="n">dt</span><span class="o">.</span><span class="n">strptime</span><span class="p">(</span><span class="n">job_id</span><span class="o">.</span><span class="n">ljust</span><span class="p">(</span><span class="mi">20</span><span class="p">,</span> <span class="s2">&quot;0&quot;</span><span class="p">),</span> <span class="n">FORMAT</span><span class="p">)</span>  <span class="c1"># pad if truncated</span>
+            <span class="k">if</span> <span class="n">job_time</span> <span class="o">&gt;=</span> <span class="n">CUTOFF</span> <span class="ow">or</span> <span class="n">job_id</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>  <span class="c1"># Job ID 0 is always kept</span>
                 <span class="n">filtered_prev_jobids</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">job_id</span><span class="p">)</span>
         <span class="n">prev_jobids</span> <span class="o">=</span> <span class="n">filtered_prev_jobids</span>
 
     <span class="n">now</span> <span class="o">=</span> <span class="n">dt</span><span class="o">.</span><span class="n">utcnow</span><span class="p">()</span>
-    <span class="n">cur_jobid</span> <span class="o">=</span> <span class="n">now</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="s2">&quot;%Y%m</span><span class="si">%d</span><span class="s2">%H%M%S&quot;</span><span class="p">)</span> <span class="o">+</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="nb">int</span><span class="p">(</span><span class="n">now</span><span class="o">.</span><span class="n">microsecond</span><span class="o">/</span><span class="mi">1000</span><span class="p">)</span><span class="si">:</span><span class="s2">03d</span><span class="si">}</span><span class="s2">&quot;</span>  <span class="c1"># ms = first 3 digits of microseconds</span>
+    <span class="n">cur_jobid</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">now</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="s2">&quot;%Y%m</span><span class="si">%d</span><span class="s2">%H%M%S&quot;</span><span class="p">)</span> <span class="o">+</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="nb">int</span><span class="p">(</span><span class="n">now</span><span class="o">.</span><span class="n">microsecond</span><span class="o">/</span><span class="mi">1000</span><span class="p">)</span><span class="si">:</span><span class="s2">03d</span><span class="si">}</span><span class="s2">&quot;</span>
+    <span class="p">)</span>  <span class="c1"># ms = first 3 digits of microseconds</span>
     <span class="n">prev_jobids</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">cur_jobid</span><span class="p">)</span>
 
     <span class="n">job_ids_int</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">prev_jobids</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
@@ -4378,7 +4631,7 @@
 
 <div class="viewcode-block" id="save_main_process_info">
 <a class="viewcode-back" href="../../../meersolar.pipeline.html#meersolar.pipeline.basic_func.save_main_process_info">[docs]</a>
-<span class="k">def</span> <span class="nf">save_main_process_info</span><span class="p">(</span><span class="n">pid</span><span class="p">,</span> <span class="n">jobid</span><span class="p">,</span> <span class="n">basedir</span><span class="p">,</span> <span class="n">cpu_frac</span><span class="p">,</span> <span class="n">mem_frac</span><span class="p">):</span>
+<span class="k">def</span> <span class="nf">save_main_process_info</span><span class="p">(</span><span class="n">pid</span><span class="p">,</span> <span class="n">jobid</span><span class="p">,</span> <span class="n">msname</span><span class="p">,</span> <span class="n">basedir</span><span class="p">,</span> <span class="n">cpu_frac</span><span class="p">,</span> <span class="n">mem_frac</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Save MeerSOLAR main processes info</span>
 
@@ -4388,6 +4641,8 @@
 <span class="sd">        Main job process id</span>
 <span class="sd">    jobid : int</span>
 <span class="sd">        MeerSOLAR Job ID</span>
+<span class="sd">    msname : str</span>
+<span class="sd">        Main measurement set</span>
 <span class="sd">    basedir : str</span>
 <span class="sd">        Base directory</span>
 <span class="sd">    cpu_frac : float</span>
@@ -4401,23 +4656,26 @@
 <span class="sd">        Job info file name</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">datadir</span> <span class="o">=</span> <span class="n">get_datadir</span><span class="p">()</span>
-    <span class="n">prev_main_pids</span><span class="o">=</span><span class="n">glob</span><span class="o">.</span><span class="n">glob</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">datadir</span><span class="si">}</span><span class="s2">/main_pids_*.txt&quot;</span><span class="p">)</span>
-    <span class="n">prev_jobids</span><span class="o">=</span><span class="p">[</span><span class="nb">str</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">i</span><span class="p">)</span><span class="o">.</span><span class="n">rstrip</span><span class="p">(</span><span class="s2">&quot;.txt&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;main_pids_&quot;</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">prev_main_pids</span><span class="p">]</span>
+    <span class="n">prev_main_pids</span> <span class="o">=</span> <span class="n">glob</span><span class="o">.</span><span class="n">glob</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">datadir</span><span class="si">}</span><span class="s2">/main_pids_*.txt&quot;</span><span class="p">)</span>
+    <span class="n">prev_jobids</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="nb">str</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">i</span><span class="p">)</span><span class="o">.</span><span class="n">rstrip</span><span class="p">(</span><span class="s2">&quot;.txt&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;main_pids_&quot;</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">prev_main_pids</span>
+    <span class="p">]</span>
     <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">prev_jobids</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
         <span class="n">FORMAT</span> <span class="o">=</span> <span class="s2">&quot;%Y%m</span><span class="si">%d</span><span class="s2">%H%M%S</span><span class="si">%f</span><span class="s2">&quot;</span>
         <span class="n">CUTOFF</span> <span class="o">=</span> <span class="n">dt</span><span class="o">.</span><span class="n">utcnow</span><span class="p">()</span> <span class="o">-</span> <span class="n">timedelta</span><span class="p">(</span><span class="n">days</span><span class="o">=</span><span class="mi">15</span><span class="p">)</span>
         <span class="n">filtered_prev_jobids</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">prev_jobids</span><span class="p">)):</span>
-            <span class="n">job_id</span><span class="o">=</span><span class="n">prev_jobids</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
-            <span class="n">job_time</span> <span class="o">=</span> <span class="n">dt</span><span class="o">.</span><span class="n">strptime</span><span class="p">(</span><span class="n">job_id</span><span class="o">.</span><span class="n">ljust</span><span class="p">(</span><span class="mi">20</span><span class="p">,</span> <span class="s1">&#39;0&#39;</span><span class="p">),</span> <span class="n">FORMAT</span><span class="p">)</span>  <span class="c1"># pad if truncated</span>
-            <span class="k">if</span> <span class="n">job_time</span> <span class="o">&lt;</span> <span class="n">CUTOFF</span> <span class="ow">or</span> <span class="n">job_id</span><span class="o">==</span><span class="mi">0</span><span class="p">:</span> <span class="c1"># Job ID 0 is always kept</span>
+            <span class="n">job_id</span> <span class="o">=</span> <span class="n">prev_jobids</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+            <span class="n">job_time</span> <span class="o">=</span> <span class="n">dt</span><span class="o">.</span><span class="n">strptime</span><span class="p">(</span><span class="n">job_id</span><span class="o">.</span><span class="n">ljust</span><span class="p">(</span><span class="mi">20</span><span class="p">,</span> <span class="s2">&quot;0&quot;</span><span class="p">),</span> <span class="n">FORMAT</span><span class="p">)</span>  <span class="c1"># pad if truncated</span>
+            <span class="k">if</span> <span class="n">job_time</span> <span class="o">&lt;</span> <span class="n">CUTOFF</span> <span class="ow">or</span> <span class="n">job_id</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>  <span class="c1"># Job ID 0 is always kept</span>
                 <span class="n">filtered_prev_jobids</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">job_id</span><span class="p">)</span>
             <span class="k">else</span><span class="p">:</span>
                 <span class="n">os</span><span class="o">.</span><span class="n">system</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;rm -rf </span><span class="si">{</span><span class="n">prev_main_pids</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
                 <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">datadir</span><span class="si">}</span><span class="s2">/pids/pids_</span><span class="si">{</span><span class="n">job_id</span><span class="si">}</span><span class="s2">.txt&quot;</span><span class="p">):</span>
-                    <span class="n">os</span><span class="o">.</span><span class="n">system</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;rm -rf </span><span class="si">{</span><span class="n">datadir</span><span class="si">}</span><span class="s2">/pids/pids_</span><span class="si">{</span><span class="n">job_id</span><span class="si">}</span><span class="s2">.txt&quot;</span><span class="p">)</span>    
+                    <span class="n">os</span><span class="o">.</span><span class="n">system</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;rm -rf </span><span class="si">{</span><span class="n">datadir</span><span class="si">}</span><span class="s2">/pids/pids_</span><span class="si">{</span><span class="n">job_id</span><span class="si">}</span><span class="s2">.txt&quot;</span><span class="p">)</span>
     <span class="n">main_job_file</span> <span class="o">=</span> <span class="n">datadir</span> <span class="o">+</span> <span class="sa">f</span><span class="s2">&quot;/main_pids_</span><span class="si">{</span><span class="n">jobid</span><span class="si">}</span><span class="s2">.txt&quot;</span>
-    <span class="n">main_str</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">jobid</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">pid</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">basedir</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">cpu_frac</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">mem_frac</span><span class="si">}</span><span class="s2">&quot;</span>
+    <span class="n">main_str</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">jobid</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">pid</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">msname</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">basedir</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">cpu_frac</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">mem_frac</span><span class="si">}</span><span class="s2">&quot;</span>
     <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">main_job_file</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
         <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">main_str</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">main_job_file</span></div>
@@ -4774,13 +5032,16 @@
 
 <div class="viewcode-block" id="get_ms_size">
 <a class="viewcode-back" href="../../../meersolar.pipeline.html#meersolar.pipeline.basic_func.get_ms_size">[docs]</a>
-<span class="k">def</span> <span class="nf">get_ms_size</span><span class="p">(</span><span class="n">msname</span><span class="p">):</span>
+<span class="k">def</span> <span class="nf">get_ms_size</span><span class="p">(</span><span class="n">msname</span><span class="p">,</span> <span class="n">only_autocorr</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Get measurement set total size</span>
 
 <span class="sd">    Parameters</span>
 <span class="sd">    ----------</span>
 <span class="sd">    msname : str</span>
+<span class="sd">        Measurement set name</span>
+<span class="sd">    only_autocorr : bool, optional</span>
+<span class="sd">        Only auto-correlation</span>
 
 <span class="sd">    Returns</span>
 <span class="sd">    -------</span>
@@ -4792,13 +5053,21 @@
         <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">filenames</span><span class="p">:</span>
             <span class="n">fp</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">dirpath</span><span class="p">,</span> <span class="n">f</span><span class="p">)</span>
             <span class="n">total_size</span> <span class="o">+=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">getsize</span><span class="p">(</span><span class="n">fp</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">total_size</span> <span class="o">/</span> <span class="p">(</span><span class="mi">1024</span><span class="o">**</span><span class="mi">3</span><span class="p">)</span>  <span class="c1"># in GB</span></div>
+    <span class="k">if</span> <span class="n">only_autocorr</span><span class="p">:</span>
+        <span class="n">msmd</span> <span class="o">=</span> <span class="n">msmetadata</span><span class="p">()</span>
+        <span class="n">msmd</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">msname</span><span class="p">)</span>
+        <span class="n">nant</span> <span class="o">=</span> <span class="n">msmd</span><span class="o">.</span><span class="n">nantennas</span><span class="p">()</span>
+        <span class="n">msmd</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+        <span class="n">all_baselines</span> <span class="o">=</span> <span class="p">(</span><span class="n">nant</span> <span class="o">*</span> <span class="n">nant</span><span class="p">)</span> <span class="o">/</span> <span class="mi">2</span>
+        <span class="n">total_size</span> <span class="o">/=</span> <span class="n">all_baselines</span>
+        <span class="n">total_size</span> <span class="o">*=</span> <span class="n">nant</span>
+    <span class="k">return</span> <span class="nb">round</span><span class="p">(</span><span class="n">total_size</span> <span class="o">/</span> <span class="p">(</span><span class="mi">1024</span><span class="o">**</span><span class="mi">3</span><span class="p">),</span> <span class="mi">2</span><span class="p">)</span>  <span class="c1"># in GB</span></div>
 
 
 
 <div class="viewcode-block" id="get_column_size">
 <a class="viewcode-back" href="../../../meersolar.pipeline.html#meersolar.pipeline.basic_func.get_column_size">[docs]</a>
-<span class="k">def</span> <span class="nf">get_column_size</span><span class="p">(</span><span class="n">msname</span><span class="p">):</span>
+<span class="k">def</span> <span class="nf">get_column_size</span><span class="p">(</span><span class="n">msname</span><span class="p">,</span> <span class="n">only_autocorr</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Get time chunk size for a memory limit</span>
 
@@ -4806,6 +5075,8 @@
 <span class="sd">    ----------</span>
 <span class="sd">    msname : str</span>
 <span class="sd">        Measurement set</span>
+<span class="sd">    only_autocorr : bool, optional</span>
+<span class="sd">        Only auto-correlations</span>
 
 <span class="sd">    Returns</span>
 <span class="sd">    -------</span>
@@ -4817,15 +5088,55 @@
     <span class="n">nrow</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">msmd</span><span class="o">.</span><span class="n">nrows</span><span class="p">())</span>
     <span class="n">nchan</span> <span class="o">=</span> <span class="n">msmd</span><span class="o">.</span><span class="n">nchan</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
     <span class="n">npol</span> <span class="o">=</span> <span class="n">msmd</span><span class="o">.</span><span class="n">ncorrforpol</span><span class="p">()[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">nant</span> <span class="o">=</span> <span class="n">msmd</span><span class="o">.</span><span class="n">nantennas</span><span class="p">()</span>
     <span class="n">msmd</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
     <span class="n">datasize</span> <span class="o">=</span> <span class="n">nrow</span> <span class="o">*</span> <span class="n">nchan</span> <span class="o">*</span> <span class="n">npol</span> <span class="o">*</span> <span class="mi">16</span> <span class="o">/</span> <span class="p">(</span><span class="mf">1024.0</span><span class="o">**</span><span class="mi">3</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">datasize</span></div>
+    <span class="k">if</span> <span class="n">only_autocorr</span><span class="p">:</span>
+        <span class="n">all_baselines</span> <span class="o">=</span> <span class="p">(</span><span class="n">nant</span> <span class="o">*</span> <span class="n">nant</span><span class="p">)</span> <span class="o">/</span> <span class="mi">2</span>
+        <span class="n">datasize</span> <span class="o">/=</span> <span class="n">all_baselines</span>
+        <span class="n">datasize</span> <span class="o">*=</span> <span class="n">nant</span>
+    <span class="k">return</span> <span class="nb">round</span><span class="p">(</span><span class="n">datasize</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="get_ms_scan_size">
+<a class="viewcode-back" href="../../../meersolar.pipeline.html#meersolar.pipeline.basic_func.get_ms_scan_size">[docs]</a>
+<span class="k">def</span> <span class="nf">get_ms_scan_size</span><span class="p">(</span><span class="n">msname</span><span class="p">,</span> <span class="n">scan</span><span class="p">,</span> <span class="n">only_autocorr</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Get measurement set scan size</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    msname : str</span>
+<span class="sd">        Measurement set</span>
+<span class="sd">    scan : int</span>
+<span class="sd">        Scan number</span>
+<span class="sd">    only_autocorr : bool, optional</span>
+<span class="sd">        Only for auto-correlations</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    float</span>
+<span class="sd">        Size in GB</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">tb</span> <span class="o">=</span> <span class="n">table</span><span class="p">()</span>
+    <span class="n">tb</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">msname</span><span class="p">)</span>
+    <span class="n">nrow</span> <span class="o">=</span> <span class="n">tb</span><span class="o">.</span><span class="n">nrows</span><span class="p">()</span>
+    <span class="n">tb</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+    <span class="n">mstool</span> <span class="o">=</span> <span class="n">casamstool</span><span class="p">()</span>
+    <span class="n">mstool</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">msname</span><span class="p">)</span>
+    <span class="n">mstool</span><span class="o">.</span><span class="n">select</span><span class="p">({</span><span class="s2">&quot;scan_number&quot;</span><span class="p">:</span> <span class="nb">int</span><span class="p">(</span><span class="n">scan</span><span class="p">)})</span>
+    <span class="n">scan_nrow</span> <span class="o">=</span> <span class="n">mstool</span><span class="o">.</span><span class="n">nrow</span><span class="p">(</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">mstool</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+    <span class="n">ms_size</span> <span class="o">=</span> <span class="n">get_ms_size</span><span class="p">(</span><span class="n">msname</span><span class="p">,</span> <span class="n">only_autocorr</span><span class="o">=</span><span class="n">only_autocorr</span><span class="p">)</span>
+    <span class="n">scan_size</span> <span class="o">=</span> <span class="n">scan_nrow</span> <span class="o">*</span> <span class="p">(</span><span class="n">ms_size</span> <span class="o">/</span> <span class="n">nrow</span><span class="p">)</span>
+    <span class="k">return</span> <span class="nb">round</span><span class="p">(</span><span class="n">scan_size</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span></div>
 
 
 
 <div class="viewcode-block" id="get_chunk_size">
 <a class="viewcode-back" href="../../../meersolar.pipeline.html#meersolar.pipeline.basic_func.get_chunk_size">[docs]</a>
-<span class="k">def</span> <span class="nf">get_chunk_size</span><span class="p">(</span><span class="n">msname</span><span class="p">,</span> <span class="n">memory_limit</span><span class="o">=-</span><span class="mi">1</span><span class="p">):</span>
+<span class="k">def</span> <span class="nf">get_chunk_size</span><span class="p">(</span><span class="n">msname</span><span class="p">,</span> <span class="n">memory_limit</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span> <span class="n">only_autocorr</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Get time chunk size for a memory limit</span>
 
@@ -4835,6 +5146,8 @@
 <span class="sd">        Measurement set</span>
 <span class="sd">    memory_limit : int, optional</span>
 <span class="sd">        Memory limit</span>
+<span class="sd">    only_autocorr : bool, optional</span>
+<span class="sd">        Only aut-correlation</span>
 
 <span class="sd">    Returns</span>
 <span class="sd">    -------</span>
@@ -4843,7 +5156,7 @@
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">if</span> <span class="n">memory_limit</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span>
         <span class="n">memory_limit</span> <span class="o">=</span> <span class="n">psutil</span><span class="o">.</span><span class="n">virtual_memory</span><span class="p">()</span><span class="o">.</span><span class="n">available</span> <span class="o">/</span> <span class="mi">1024</span><span class="o">**</span><span class="mi">3</span>  <span class="c1"># In GB</span>
-    <span class="n">col_size</span> <span class="o">=</span> <span class="n">get_column_size</span><span class="p">(</span><span class="n">msname</span><span class="p">)</span>
+    <span class="n">col_size</span> <span class="o">=</span> <span class="n">get_column_size</span><span class="p">(</span><span class="n">msname</span><span class="p">,</span> <span class="n">only_autocorr</span><span class="o">=</span><span class="n">only_autocorr</span><span class="p">)</span>
     <span class="n">nchunk</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">col_size</span> <span class="o">/</span> <span class="n">memory_limit</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">nchunk</span> <span class="o">&lt;</span> <span class="mi">1</span><span class="p">:</span>
         <span class="n">nchunk</span> <span class="o">=</span> <span class="mi">1</span>

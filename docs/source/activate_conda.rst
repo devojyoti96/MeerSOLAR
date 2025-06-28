@@ -1,5 +1,5 @@
-Creating and Activating Conda Environment
-==========================================
+Create and Activate Conda Environment
+=====================================
 This guideline provide how to activate **conda** environment before installing and using MeerSOLAR. 
 
 Create conda environment

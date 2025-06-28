@@ -163,12 +163,13 @@
   <ul>
 <li class="toctree-l1"><a class="reference internal" href="quickstart.html">Quickstart</a></li>
 <li class="toctree-l1 has-children"><a class="reference internal" href="install.html">Installation and Initial Setup</a><input class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><div class="visually-hidden">Toggle navigation of Installation and Initial Setup</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
-<li class="toctree-l2"><a class="reference internal" href="install_conda.html">Installing Conda: Anaconda or Miniconda</a></li>
-<li class="toctree-l2"><a class="reference internal" href="activate_conda.html">Creating and Activating Conda Environment</a></li>
+<li class="toctree-l2"><a class="reference internal" href="install_conda.html">Install Conda: Anaconda or Miniconda</a></li>
+<li class="toctree-l2"><a class="reference internal" href="activate_conda.html">Create and Activate Conda Environment</a></li>
 <li class="toctree-l2"><a class="reference internal" href="install_meersolar.html">Install MeerSOLAR</a></li>
 <li class="toctree-l2"><a class="reference internal" href="initial_setup.html">Initial Setup</a></li>
 </ul>
 </li>
+<li class="toctree-l1"><a class="reference internal" href="idia_setup.html">IDIA-ilifu Setup</a></li>
 <li class="toctree-l1 has-children"><a class="reference internal" href="tutorial.html">Tutorial</a><input class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" role="switch" type="checkbox"/><label for="toctree-checkbox-2"><div class="visually-hidden">Toggle navigation of Tutorial</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
 <li class="toctree-l2"><a class="reference internal" href="flowchart.html">MeerSOLAR Flowchart</a></li>
 <li class="toctree-l2"><a class="reference internal" href="runpipeline.html">Run MeerSOLAR Pipeline</a></li>
@@ -229,7 +230,7 @@
           
 <section class="genindex-section">
   <h1 id="index">Index</h1>
-  <div class="genindex-jumpbox"><a href="#A"><strong>A</strong></a> | <a href="#B"><strong>B</strong></a> | <a href="#C"><strong>C</strong></a> | <a href="#D"><strong>D</strong></a> | <a href="#E"><strong>E</strong></a> | <a href="#F"><strong>F</strong></a> | <a href="#G"><strong>G</strong></a> | <a href="#I"><strong>I</strong></a> | <a href="#L"><strong>L</strong></a> | <a href="#M"><strong>M</strong></a> | <a href="#N"><strong>N</strong></a> | <a href="#O"><strong>O</strong></a> | <a href="#P"><strong>P</strong></a> | <a href="#R"><strong>R</strong></a> | <a href="#S"><strong>S</strong></a> | <a href="#T"><strong>T</strong></a> | <a href="#W"><strong>W</strong></a></div>
+  <div class="genindex-jumpbox"><a href="#A"><strong>A</strong></a> | <a href="#B"><strong>B</strong></a> | <a href="#C"><strong>C</strong></a> | <a href="#D"><strong>D</strong></a> | <a href="#E"><strong>E</strong></a> | <a href="#F"><strong>F</strong></a> | <a href="#G"><strong>G</strong></a> | <a href="#H"><strong>H</strong></a> | <a href="#I"><strong>I</strong></a> | <a href="#L"><strong>L</strong></a> | <a href="#M"><strong>M</strong></a> | <a href="#N"><strong>N</strong></a> | <a href="#O"><strong>O</strong></a> | <a href="#P"><strong>P</strong></a> | <a href="#R"><strong>R</strong></a> | <a href="#S"><strong>S</strong></a> | <a href="#T"><strong>T</strong></a> | <a href="#W"><strong>W</strong></a></div>
 </section>
 <section id="A" class="genindex-section">
   <h2>A</h2>
@@ -339,14 +340,26 @@
 </li>
         <li><a href="meersolar.pipeline.html#meersolar.pipeline.basic_func.do_flag_backup">do_flag_backup() (in module meersolar.pipeline.basic_func)</a>
 </li>
-    </ul></td>
-    <td style="width: 33%; vertical-align: top;"><ul>
         <li><a href="meersolar.pipeline.html#meersolar.pipeline.flagging.do_flagging">do_flagging() (in module meersolar.pipeline.flagging)</a>
 </li>
         <li><a href="meersolar.pipeline.html#meersolar.pipeline.do_selfcal.do_selfcal">do_selfcal() (in module meersolar.pipeline.do_selfcal)</a>
 </li>
+    </ul></td>
+    <td style="width: 33%; vertical-align: top;"><ul>
         <li><a href="meersolar.pipeline.html#meersolar.pipeline.init_data.download_with_parfive">download_with_parfive() (in module meersolar.pipeline.init_data)</a>
 </li>
+        <li><a href="meersolar.pipeline.html#meersolar.pipeline.basic_func.drop_cache">drop_cache() (in module meersolar.pipeline.basic_func)</a>
+
+        <ul>
+          <li><a href="meersolar.pipeline.html#meersolar.pipeline.viewer.drop_cache">(in module meersolar.pipeline.viewer)</a>
+</li>
+        </ul></li>
+        <li><a href="meersolar.pipeline.html#meersolar.pipeline.basic_func.drop_file_cache">drop_file_cache() (in module meersolar.pipeline.basic_func)</a>
+
+        <ul>
+          <li><a href="meersolar.pipeline.html#meersolar.pipeline.viewer.drop_file_cache">(in module meersolar.pipeline.viewer)</a>
+</li>
+        </ul></li>
     </ul></td>
   </tr></table>
 </section>
@@ -451,15 +464,19 @@
 </li>
         <li><a href="meersolar.pipeline.html#meersolar.pipeline.basic_func.get_jobid">get_jobid() (in module meersolar.pipeline.basic_func)</a>
 </li>
-    </ul></td>
-    <td style="width: 33%; vertical-align: top;"><ul>
         <li><a href="meersolar.pipeline.html#meersolar.pipeline.basic_func.get_logid">get_logid() (in module meersolar.pipeline.basic_func)</a>
 
         <ul>
           <li><a href="meersolar.pipeline.html#meersolar.pipeline.viewer.get_logid">(in module meersolar.pipeline.viewer)</a>
 </li>
         </ul></li>
+    </ul></td>
+    <td style="width: 33%; vertical-align: top;"><ul>
         <li><a href="meersolar.pipeline.html#meersolar.pipeline.basic_func.get_meermap">get_meermap() (in module meersolar.pipeline.basic_func)</a>
+</li>
+        <li><a href="meersolar.pipeline.html#meersolar.pipeline.basic_func.get_ms_scan_size">get_ms_scan_size() (in module meersolar.pipeline.basic_func)</a>
+</li>
+        <li><a href="meersolar.pipeline.html#meersolar.pipeline.basic_func.get_ms_scans">get_ms_scans() (in module meersolar.pipeline.basic_func)</a>
 </li>
         <li><a href="meersolar.pipeline.html#meersolar.pipeline.basic_func.get_ms_size">get_ms_size() (in module meersolar.pipeline.basic_func)</a>
 </li>
@@ -508,6 +525,16 @@
         <li><a href="meersolar.pipeline.html#meersolar.pipeline.basic_func.get_valid_scans">get_valid_scans() (in module meersolar.pipeline.basic_func)</a>
 </li>
         <li><a href="meersolar.pipeline.html#meersolar.pipeline.init_data.get_zenodo_file_urls">get_zenodo_file_urls() (in module meersolar.pipeline.init_data)</a>
+</li>
+    </ul></td>
+  </tr></table>
+</section>
+
+<section id="H" class="genindex-section">
+  <h2>H</h2>
+  <table style="width: 100%" class="indextable genindextable"><tr>
+    <td style="width: 33%; vertical-align: top;"><ul>
+        <li><a href="meersolar.pipeline.html#meersolar.pipeline.basic_func.has_space">has_space() (in module meersolar.pipeline.basic_func)</a>
 </li>
     </ul></td>
   </tr></table>
@@ -1036,6 +1063,8 @@
 </li>
         <li><a href="meersolar.pipeline.html#meersolar.pipeline.viewer.LogViewer.setup_ui">setup_ui() (meersolar.pipeline.viewer.LogViewer method)</a>
 </li>
+        <li><a href="meersolar.pipeline.html#meersolar.pipeline.basic_func.shm_or_tmp">shm_or_tmp() (in module meersolar.pipeline.basic_func)</a>
+</li>
         <li><a href="meersolar.pipeline.html#meersolar.pipeline.flagging.single_ms_flag">single_ms_flag() (in module meersolar.pipeline.flagging)</a>
 </li>
         <li><a href="meersolar.pipeline.html#meersolar.pipeline.do_partition.single_mstransform">single_mstransform() (in module meersolar.pipeline.do_partition)</a>
@@ -1050,10 +1079,10 @@
           <li><a href="meersolar.pipeline.html#meersolar.pipeline.viewer.SmartDefaultsHelpFormatter">(class in meersolar.pipeline.viewer)</a>
 </li>
         </ul></li>
-        <li><a href="meersolar.crystalball.html#meersolar.crystalball.crystalball.source_model_to_dask">source_model_to_dask() (in module meersolar.crystalball.crystalball)</a>
-</li>
     </ul></td>
     <td style="width: 33%; vertical-align: top;"><ul>
+        <li><a href="meersolar.crystalball.html#meersolar.crystalball.crystalball.source_model_to_dask">source_model_to_dask() (in module meersolar.crystalball.crystalball)</a>
+</li>
         <li><a href="meersolar.crystalball.html#meersolar.crystalball.wsclean.WSCleanModel.source_type">source_type (meersolar.crystalball.wsclean.WSCleanModel attribute)</a>
 </li>
         <li><a href="meersolar.crystalball.html#meersolar.crystalball.wsclean.WSCleanModel.spi">spi (meersolar.crystalball.wsclean.WSCleanModel attribute)</a>
@@ -1093,6 +1122,8 @@
     </ul></td>
     <td style="width: 33%; vertical-align: top;"><ul>
         <li><a href="meersolar.pipeline.html#meersolar.pipeline.basic_func.timestamp_to_mjdsec">timestamp_to_mjdsec() (in module meersolar.pipeline.basic_func)</a>
+</li>
+        <li><a href="meersolar.pipeline.html#meersolar.pipeline.basic_func.tmp_with_cache_rel">tmp_with_cache_rel() (in module meersolar.pipeline.basic_func)</a>
 </li>
     </ul></td>
   </tr></table>

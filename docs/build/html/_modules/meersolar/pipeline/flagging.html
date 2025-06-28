@@ -164,12 +164,13 @@
   <ul>
 <li class="toctree-l1"><a class="reference internal" href="../../../quickstart.html">Quickstart</a></li>
 <li class="toctree-l1 has-children"><a class="reference internal" href="../../../install.html">Installation and Initial Setup</a><input class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><div class="visually-hidden">Toggle navigation of Installation and Initial Setup</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
-<li class="toctree-l2"><a class="reference internal" href="../../../install_conda.html">Installing Conda: Anaconda or Miniconda</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../../activate_conda.html">Creating and Activating Conda Environment</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../install_conda.html">Install Conda: Anaconda or Miniconda</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../activate_conda.html">Create and Activate Conda Environment</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../install_meersolar.html">Install MeerSOLAR</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../initial_setup.html">Initial Setup</a></li>
 </ul>
 </li>
+<li class="toctree-l1"><a class="reference internal" href="../../../idia_setup.html">IDIA-ilifu Setup</a></li>
 <li class="toctree-l1 has-children"><a class="reference internal" href="../../../tutorial.html">Tutorial</a><input class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" role="switch" type="checkbox"/><label for="toctree-checkbox-2"><div class="visually-hidden">Toggle navigation of Tutorial</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
 <li class="toctree-l2"><a class="reference internal" href="../../../flowchart.html">MeerSOLAR Flowchart</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../runpipeline.html">Run MeerSOLAR Pipeline</a></li>
@@ -294,144 +295,178 @@
         <span class="n">mem</span> <span class="o">=</span> <span class="nb">round</span><span class="p">(</span><span class="n">process</span><span class="o">.</span><span class="n">memory_info</span><span class="p">()</span><span class="o">.</span><span class="n">rss</span> <span class="o">/</span> <span class="mi">1024</span><span class="o">**</span><span class="mi">3</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>  <span class="c1"># in GB</span>
         <span class="k">return</span> <span class="n">mem</span>
     <span class="n">msname</span> <span class="o">=</span> <span class="n">msname</span><span class="o">.</span><span class="n">rstrip</span><span class="p">(</span><span class="s2">&quot;/&quot;</span><span class="p">)</span>
-    <span class="c1">##############################</span>
-    <span class="c1"># Flagging bad channels</span>
-    <span class="c1">##############################</span>
-    <span class="k">if</span> <span class="n">badspw</span> <span class="o">!=</span> <span class="s2">&quot;&quot;</span><span class="p">:</span>
-        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Flagging bad spectral windows: </span><span class="si">{</span><span class="n">badspw</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
-        <span class="k">try</span><span class="p">:</span>
-            <span class="k">with</span> <span class="n">suppress_casa_output</span><span class="p">():</span>
-                <span class="n">flagdata</span><span class="p">(</span>
-                    <span class="n">vis</span><span class="o">=</span><span class="n">msname</span><span class="p">,</span>
-                    <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;manual&quot;</span><span class="p">,</span>
-                    <span class="n">spw</span><span class="o">=</span><span class="n">badspw</span><span class="p">,</span>
-                    <span class="n">cmdreason</span><span class="o">=</span><span class="s2">&quot;badchan&quot;</span><span class="p">,</span>
-                    <span class="n">flagbackup</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-                <span class="p">)</span>
-        <span class="k">except</span><span class="p">:</span>
-            <span class="k">pass</span>
-
-    <span class="c1">##############################</span>
-    <span class="c1"># Flagging bad antennas</span>
-    <span class="c1">##############################</span>
-    <span class="k">if</span> <span class="n">bad_ants_str</span> <span class="o">!=</span> <span class="s2">&quot;&quot;</span><span class="p">:</span>
-        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Flagging bad antenna: </span><span class="si">{</span><span class="n">bad_ants_str</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
-        <span class="k">try</span><span class="p">:</span>
-            <span class="k">with</span> <span class="n">suppress_casa_output</span><span class="p">():</span>
-                <span class="n">flagdata</span><span class="p">(</span>
-                    <span class="n">vis</span><span class="o">=</span><span class="n">msname</span><span class="p">,</span>
-                    <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;manual&quot;</span><span class="p">,</span>
-                    <span class="n">antenna</span><span class="o">=</span><span class="n">bad_ants_str</span><span class="p">,</span>
-                    <span class="n">cmdreason</span><span class="o">=</span><span class="s2">&quot;badant&quot;</span><span class="p">,</span>
-                    <span class="n">flagbackup</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-                <span class="p">)</span>
-        <span class="k">except</span><span class="p">:</span>
-            <span class="k">pass</span>
-
-    <span class="c1">#################################</span>
-    <span class="c1"># Clip zero amplitude data points</span>
-    <span class="c1">#################################</span>
     <span class="k">try</span><span class="p">:</span>
-        <span class="k">with</span> <span class="n">suppress_casa_output</span><span class="p">():</span>
-            <span class="n">flagdata</span><span class="p">(</span>
-                <span class="n">vis</span><span class="o">=</span><span class="n">msname</span><span class="p">,</span>
-                <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;clip&quot;</span><span class="p">,</span>
-                <span class="n">clipzeros</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-                <span class="n">datacolumn</span><span class="o">=</span><span class="n">datacolumn</span><span class="p">,</span>
-                <span class="n">autocorr</span><span class="o">=</span><span class="n">flag_autocorr</span><span class="p">,</span>
-                <span class="n">flagbackup</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-            <span class="p">)</span>
-    <span class="k">except</span><span class="p">:</span>
-        <span class="k">pass</span>
+        <span class="c1">##############################</span>
+        <span class="c1"># Flagging bad channels</span>
+        <span class="c1">##############################</span>
+        <span class="k">if</span> <span class="n">badspw</span> <span class="o">!=</span> <span class="s2">&quot;&quot;</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Flagging bad spectral windows: </span><span class="si">{</span><span class="n">badspw</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="k">with</span> <span class="n">suppress_casa_output</span><span class="p">():</span>
+                    <span class="n">flagdata</span><span class="p">(</span>
+                        <span class="n">vis</span><span class="o">=</span><span class="n">msname</span><span class="p">,</span>
+                        <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;manual&quot;</span><span class="p">,</span>
+                        <span class="n">spw</span><span class="o">=</span><span class="n">badspw</span><span class="p">,</span>
+                        <span class="n">cmdreason</span><span class="o">=</span><span class="s2">&quot;badchan&quot;</span><span class="p">,</span>
+                        <span class="n">flagbackup</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                    <span class="p">)</span>
+            <span class="k">except</span><span class="p">:</span>
+                <span class="k">pass</span>
 
-    <span class="c1">#################################</span>
-    <span class="c1"># Flag auto-correlations</span>
-    <span class="c1">#################################</span>
-    <span class="k">if</span> <span class="n">flag_autocorr</span><span class="p">:</span>
+        <span class="c1">##############################</span>
+        <span class="c1"># Flagging bad antennas</span>
+        <span class="c1">##############################</span>
+        <span class="k">if</span> <span class="n">bad_ants_str</span> <span class="o">!=</span> <span class="s2">&quot;&quot;</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Flagging bad antenna: </span><span class="si">{</span><span class="n">bad_ants_str</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="k">with</span> <span class="n">suppress_casa_output</span><span class="p">():</span>
+                    <span class="n">flagdata</span><span class="p">(</span>
+                        <span class="n">vis</span><span class="o">=</span><span class="n">msname</span><span class="p">,</span>
+                        <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;manual&quot;</span><span class="p">,</span>
+                        <span class="n">antenna</span><span class="o">=</span><span class="n">bad_ants_str</span><span class="p">,</span>
+                        <span class="n">cmdreason</span><span class="o">=</span><span class="s2">&quot;badant&quot;</span><span class="p">,</span>
+                        <span class="n">flagbackup</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                    <span class="p">)</span>
+            <span class="k">except</span><span class="p">:</span>
+                <span class="k">pass</span>
+
+        <span class="c1">#################################</span>
+        <span class="c1"># Clip zero amplitude data points</span>
+        <span class="c1">#################################</span>
         <span class="k">try</span><span class="p">:</span>
             <span class="k">with</span> <span class="n">suppress_casa_output</span><span class="p">():</span>
                 <span class="n">flagdata</span><span class="p">(</span>
                     <span class="n">vis</span><span class="o">=</span><span class="n">msname</span><span class="p">,</span>
-                    <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;manual&quot;</span><span class="p">,</span>
-                    <span class="n">autocorr</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                    <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;clip&quot;</span><span class="p">,</span>
+                    <span class="n">clipzeros</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
                     <span class="n">datacolumn</span><span class="o">=</span><span class="n">datacolumn</span><span class="p">,</span>
+                    <span class="n">autocorr</span><span class="o">=</span><span class="n">flag_autocorr</span><span class="p">,</span>
                     <span class="n">flagbackup</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
                 <span class="p">)</span>
         <span class="k">except</span><span class="p">:</span>
             <span class="k">pass</span>
 
-    <span class="c1">####################################################</span>
-    <span class="c1"># Check if required columns are present for residual</span>
-    <span class="c1">####################################################</span>
-    <span class="k">if</span> <span class="n">datacolumn</span> <span class="o">==</span> <span class="s2">&quot;residual&quot;</span> <span class="ow">or</span> <span class="n">datacolumn</span> <span class="o">==</span> <span class="s2">&quot;RESIDUAL&quot;</span><span class="p">:</span>
-        <span class="n">modelcolumn_present</span> <span class="o">=</span> <span class="n">check_datacolumn_valid</span><span class="p">(</span><span class="n">msname</span><span class="p">,</span> <span class="n">datacolumn</span><span class="o">=</span><span class="s2">&quot;MODEL_DATA&quot;</span><span class="p">)</span>
-        <span class="n">corcolumn_present</span> <span class="o">=</span> <span class="n">check_datacolumn_valid</span><span class="p">(</span><span class="n">msname</span><span class="p">,</span> <span class="n">datacolumn</span><span class="o">=</span><span class="s2">&quot;CORRECTED_DATA&quot;</span><span class="p">)</span>
-        <span class="k">if</span> <span class="n">modelcolumn_present</span> <span class="o">==</span> <span class="kc">False</span> <span class="ow">or</span> <span class="n">corcolumn_present</span> <span class="o">==</span> <span class="kc">False</span><span class="p">:</span>
-            <span class="n">datacolumn</span> <span class="o">=</span> <span class="s2">&quot;corrected&quot;</span>
-    <span class="k">elif</span> <span class="n">datacolumn</span> <span class="o">==</span> <span class="s2">&quot;RESIDUAL_DATA&quot;</span><span class="p">:</span>
-        <span class="n">modelcolumn_present</span> <span class="o">=</span> <span class="n">check_datacolumn_valid</span><span class="p">(</span><span class="n">msname</span><span class="p">,</span> <span class="n">datacolumn</span><span class="o">=</span><span class="s2">&quot;MODEL_DATA&quot;</span><span class="p">)</span>
-        <span class="n">datacolumn_present</span> <span class="o">=</span> <span class="n">check_datacolumn_valid</span><span class="p">(</span><span class="n">msname</span><span class="p">,</span> <span class="n">datacolumn</span><span class="o">=</span><span class="s2">&quot;DATA&quot;</span><span class="p">)</span>
-        <span class="k">if</span> <span class="n">modelcolumn_present</span> <span class="o">==</span> <span class="kc">False</span> <span class="ow">or</span> <span class="n">datacolumn_present</span> <span class="o">==</span> <span class="kc">False</span><span class="p">:</span>
-            <span class="n">datacolumn</span> <span class="o">=</span> <span class="s2">&quot;corrected&quot;</span>
+        <span class="c1">#################################</span>
+        <span class="c1"># Flag auto-correlations</span>
+        <span class="c1">#################################</span>
+        <span class="k">if</span> <span class="n">flag_autocorr</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="k">with</span> <span class="n">suppress_casa_output</span><span class="p">():</span>
+                    <span class="n">flagdata</span><span class="p">(</span>
+                        <span class="n">vis</span><span class="o">=</span><span class="n">msname</span><span class="p">,</span>
+                        <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;manual&quot;</span><span class="p">,</span>
+                        <span class="n">autocorr</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                        <span class="n">datacolumn</span><span class="o">=</span><span class="n">datacolumn</span><span class="p">,</span>
+                        <span class="n">flagbackup</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                    <span class="p">)</span>
+            <span class="k">except</span><span class="p">:</span>
+                <span class="k">pass</span>
 
-    <span class="c1">#################################################</span>
-    <span class="c1"># Whether corrected data column is present or not</span>
-    <span class="c1">#################################################</span>
-    <span class="k">if</span> <span class="n">datacolumn</span> <span class="o">==</span> <span class="s2">&quot;corrected&quot;</span> <span class="ow">or</span> <span class="n">datacolumn</span> <span class="o">==</span> <span class="s2">&quot;CORRECTED_DATA&quot;</span><span class="p">:</span>
-        <span class="n">corcolumn_present</span> <span class="o">=</span> <span class="n">check_datacolumn_valid</span><span class="p">(</span><span class="n">msname</span><span class="p">,</span> <span class="n">datacolumn</span><span class="o">=</span><span class="s2">&quot;CORRECTED_DATA&quot;</span><span class="p">)</span>
-        <span class="k">if</span> <span class="n">corcolumn_present</span> <span class="o">==</span> <span class="kc">False</span><span class="p">:</span>
-            <span class="nb">print</span><span class="p">(</span>
-                <span class="s2">&quot;Corrected data column is chosen for flagging, but it is not present.</span><span class="se">\n</span><span class="s2">&quot;</span>
+        <span class="c1">####################################################</span>
+        <span class="c1"># Check if required columns are present for residual</span>
+        <span class="c1">####################################################</span>
+        <span class="k">if</span> <span class="n">datacolumn</span> <span class="o">==</span> <span class="s2">&quot;residual&quot;</span> <span class="ow">or</span> <span class="n">datacolumn</span> <span class="o">==</span> <span class="s2">&quot;RESIDUAL&quot;</span><span class="p">:</span>
+            <span class="n">modelcolumn_present</span> <span class="o">=</span> <span class="n">check_datacolumn_valid</span><span class="p">(</span>
+                <span class="n">msname</span><span class="p">,</span> <span class="n">datacolumn</span><span class="o">=</span><span class="s2">&quot;MODEL_DATA&quot;</span>
             <span class="p">)</span>
-            <span class="k">return</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="n">datacolumn</span> <span class="o">=</span> <span class="s2">&quot;corrected&quot;</span>
+            <span class="n">corcolumn_present</span> <span class="o">=</span> <span class="n">check_datacolumn_valid</span><span class="p">(</span>
+                <span class="n">msname</span><span class="p">,</span> <span class="n">datacolumn</span><span class="o">=</span><span class="s2">&quot;CORRECTED_DATA&quot;</span>
+            <span class="p">)</span>
+            <span class="k">if</span> <span class="n">modelcolumn_present</span> <span class="o">==</span> <span class="kc">False</span> <span class="ow">or</span> <span class="n">corcolumn_present</span> <span class="o">==</span> <span class="kc">False</span><span class="p">:</span>
+                <span class="n">datacolumn</span> <span class="o">=</span> <span class="s2">&quot;corrected&quot;</span>
+        <span class="k">elif</span> <span class="n">datacolumn</span> <span class="o">==</span> <span class="s2">&quot;RESIDUAL_DATA&quot;</span><span class="p">:</span>
+            <span class="n">modelcolumn_present</span> <span class="o">=</span> <span class="n">check_datacolumn_valid</span><span class="p">(</span>
+                <span class="n">msname</span><span class="p">,</span> <span class="n">datacolumn</span><span class="o">=</span><span class="s2">&quot;MODEL_DATA&quot;</span>
+            <span class="p">)</span>
+            <span class="n">datacolumn_present</span> <span class="o">=</span> <span class="n">check_datacolumn_valid</span><span class="p">(</span><span class="n">msname</span><span class="p">,</span> <span class="n">datacolumn</span><span class="o">=</span><span class="s2">&quot;DATA&quot;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">modelcolumn_present</span> <span class="o">==</span> <span class="kc">False</span> <span class="ow">or</span> <span class="n">datacolumn_present</span> <span class="o">==</span> <span class="kc">False</span><span class="p">:</span>
+                <span class="n">datacolumn</span> <span class="o">=</span> <span class="s2">&quot;corrected&quot;</span>
 
-    <span class="c1">#################################################</span>
-    <span class="c1"># Whether data column is present or not</span>
-    <span class="c1">#################################################</span>
-    <span class="k">if</span> <span class="n">datacolumn</span> <span class="o">==</span> <span class="s2">&quot;data&quot;</span> <span class="ow">or</span> <span class="n">datacolumn</span> <span class="o">==</span> <span class="s2">&quot;DATA&quot;</span><span class="p">:</span>
-        <span class="n">datacolumn_present</span> <span class="o">=</span> <span class="n">check_datacolumn_valid</span><span class="p">(</span><span class="n">msname</span><span class="p">,</span> <span class="n">datacolumn</span><span class="o">=</span><span class="s2">&quot;DATA&quot;</span><span class="p">)</span>
-        <span class="k">if</span> <span class="n">datacolumn_present</span> <span class="o">==</span> <span class="kc">False</span><span class="p">:</span>
-            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Data column is chosen for flagging, but it is not present.</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
-            <span class="k">return</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="n">datacolumn</span> <span class="o">=</span> <span class="s2">&quot;data&quot;</span>
+        <span class="c1">#################################################</span>
+        <span class="c1"># Whether corrected data column is present or not</span>
+        <span class="c1">#################################################</span>
+        <span class="k">if</span> <span class="n">datacolumn</span> <span class="o">==</span> <span class="s2">&quot;corrected&quot;</span> <span class="ow">or</span> <span class="n">datacolumn</span> <span class="o">==</span> <span class="s2">&quot;CORRECTED_DATA&quot;</span><span class="p">:</span>
+            <span class="n">corcolumn_present</span> <span class="o">=</span> <span class="n">check_datacolumn_valid</span><span class="p">(</span>
+                <span class="n">msname</span><span class="p">,</span> <span class="n">datacolumn</span><span class="o">=</span><span class="s2">&quot;CORRECTED_DATA&quot;</span>
+            <span class="p">)</span>
+            <span class="k">if</span> <span class="n">corcolumn_present</span> <span class="o">==</span> <span class="kc">False</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span>
+                    <span class="s2">&quot;Corrected data column is chosen for flagging, but it is not present.</span><span class="se">\n</span><span class="s2">&quot;</span>
+                <span class="p">)</span>
+                <span class="k">return</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">datacolumn</span> <span class="o">=</span> <span class="s2">&quot;corrected&quot;</span>
 
-    <span class="c1">###########################</span>
-    <span class="c1"># Determinign time chunking</span>
-    <span class="c1">############################</span>
-    <span class="k">if</span> <span class="n">use_tfcrop</span> <span class="ow">or</span> <span class="n">use_rflag</span><span class="p">:</span>
-        <span class="n">nchunk</span> <span class="o">=</span> <span class="n">get_chunk_size</span><span class="p">(</span><span class="n">msname</span><span class="p">,</span> <span class="n">memory_limit</span><span class="o">=</span><span class="n">memory_limit</span><span class="p">)</span>
-        <span class="k">if</span> <span class="n">nchunk</span> <span class="o">&lt;=</span> <span class="mi">1</span><span class="p">:</span>
-            <span class="n">ntime</span> <span class="o">=</span> <span class="s2">&quot;scan&quot;</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="n">msmd</span> <span class="o">=</span> <span class="n">msmetadata</span><span class="p">()</span>
-            <span class="n">msmd</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">msname</span><span class="p">)</span>
-            <span class="n">scan</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">unique</span><span class="p">(</span><span class="n">msmd</span><span class="o">.</span><span class="n">scannumbers</span><span class="p">())[</span><span class="mi">0</span><span class="p">]</span>
-            <span class="n">times</span> <span class="o">=</span> <span class="n">msmd</span><span class="o">.</span><span class="n">timesforspws</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
-            <span class="n">msmd</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
-            <span class="n">total_time</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nanmax</span><span class="p">(</span><span class="n">times</span><span class="p">)</span> <span class="o">-</span> <span class="n">np</span><span class="o">.</span><span class="n">nanmin</span><span class="p">(</span><span class="n">times</span><span class="p">)</span>
-            <span class="n">timeres</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nanmin</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">diff</span><span class="p">(</span><span class="n">times</span><span class="p">))</span>
-            <span class="n">ntime</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">total_time</span> <span class="o">/</span> <span class="n">nchunk</span><span class="p">)</span>
-            <span class="k">if</span> <span class="n">ntime</span> <span class="o">&lt;</span> <span class="n">timeres</span><span class="p">:</span>
-                <span class="n">ntime</span> <span class="o">=</span> <span class="n">timeres</span>
+        <span class="c1">#################################################</span>
+        <span class="c1"># Whether data column is present or not</span>
+        <span class="c1">#################################################</span>
+        <span class="k">if</span> <span class="n">datacolumn</span> <span class="o">==</span> <span class="s2">&quot;data&quot;</span> <span class="ow">or</span> <span class="n">datacolumn</span> <span class="o">==</span> <span class="s2">&quot;DATA&quot;</span><span class="p">:</span>
+            <span class="n">datacolumn_present</span> <span class="o">=</span> <span class="n">check_datacolumn_valid</span><span class="p">(</span><span class="n">msname</span><span class="p">,</span> <span class="n">datacolumn</span><span class="o">=</span><span class="s2">&quot;DATA&quot;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">datacolumn_present</span> <span class="o">==</span> <span class="kc">False</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Data column is chosen for flagging, but it is not present.</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="k">return</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">datacolumn</span> <span class="o">=</span> <span class="s2">&quot;data&quot;</span>
 
-    <span class="c1">##############</span>
-    <span class="c1"># Tfcrop flag</span>
-    <span class="c1">##############</span>
-    <span class="k">if</span> <span class="n">use_tfcrop</span><span class="p">:</span>
+        <span class="c1">###########################</span>
+        <span class="c1"># Determinign time chunking</span>
+        <span class="c1">############################</span>
+        <span class="k">if</span> <span class="n">use_tfcrop</span> <span class="ow">or</span> <span class="n">use_rflag</span><span class="p">:</span>
+            <span class="n">nchunk</span> <span class="o">=</span> <span class="n">get_chunk_size</span><span class="p">(</span><span class="n">msname</span><span class="p">,</span> <span class="n">memory_limit</span><span class="o">=</span><span class="n">memory_limit</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">nchunk</span> <span class="o">&lt;=</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="n">ntime</span> <span class="o">=</span> <span class="s2">&quot;scan&quot;</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">msmd</span> <span class="o">=</span> <span class="n">msmetadata</span><span class="p">()</span>
+                <span class="n">msmd</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">msname</span><span class="p">)</span>
+                <span class="n">scan</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">unique</span><span class="p">(</span><span class="n">msmd</span><span class="o">.</span><span class="n">scannumbers</span><span class="p">())[</span><span class="mi">0</span><span class="p">]</span>
+                <span class="n">times</span> <span class="o">=</span> <span class="n">msmd</span><span class="o">.</span><span class="n">timesforspws</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+                <span class="n">msmd</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+                <span class="n">total_time</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nanmax</span><span class="p">(</span><span class="n">times</span><span class="p">)</span> <span class="o">-</span> <span class="n">np</span><span class="o">.</span><span class="n">nanmin</span><span class="p">(</span><span class="n">times</span><span class="p">)</span>
+                <span class="n">timeres</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nanmin</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">diff</span><span class="p">(</span><span class="n">times</span><span class="p">))</span>
+                <span class="n">ntime</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">total_time</span> <span class="o">/</span> <span class="n">nchunk</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">ntime</span> <span class="o">&lt;</span> <span class="n">timeres</span><span class="p">:</span>
+                    <span class="n">ntime</span> <span class="o">=</span> <span class="n">timeres</span>
+
+        <span class="c1">##############</span>
+        <span class="c1"># Tfcrop flag</span>
+        <span class="c1">##############</span>
+        <span class="k">if</span> <span class="n">use_tfcrop</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="k">with</span> <span class="n">suppress_casa_output</span><span class="p">():</span>
+                    <span class="n">flagdata</span><span class="p">(</span>
+                        <span class="n">vis</span><span class="o">=</span><span class="n">msname</span><span class="p">,</span>
+                        <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;tfcrop&quot;</span><span class="p">,</span>
+                        <span class="n">timefit</span><span class="o">=</span><span class="s2">&quot;line&quot;</span><span class="p">,</span>
+                        <span class="n">freqfit</span><span class="o">=</span><span class="s2">&quot;line&quot;</span><span class="p">,</span>
+                        <span class="n">extendflags</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                        <span class="n">flagdimension</span><span class="o">=</span><span class="n">flagdimension</span><span class="p">,</span>
+                        <span class="n">timecutoff</span><span class="o">=</span><span class="mf">5.0</span><span class="p">,</span>
+                        <span class="n">freqcutoff</span><span class="o">=</span><span class="mf">5.0</span><span class="p">,</span>
+                        <span class="n">extendpols</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                        <span class="n">growaround</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                        <span class="n">action</span><span class="o">=</span><span class="s2">&quot;apply&quot;</span><span class="p">,</span>
+                        <span class="n">flagbackup</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                        <span class="n">overwrite</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                        <span class="n">writeflags</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                        <span class="n">datacolumn</span><span class="o">=</span><span class="n">datacolumn</span><span class="p">,</span>
+                        <span class="n">ntime</span><span class="o">=</span><span class="n">ntime</span><span class="p">,</span>
+                    <span class="p">)</span>
+            <span class="k">except</span><span class="p">:</span>
+                <span class="k">pass</span>
+
+        <span class="c1">#############</span>
+        <span class="c1"># Rflag flag</span>
+        <span class="c1">#############</span>
         <span class="k">try</span><span class="p">:</span>
             <span class="k">with</span> <span class="n">suppress_casa_output</span><span class="p">():</span>
                 <span class="n">flagdata</span><span class="p">(</span>
                     <span class="n">vis</span><span class="o">=</span><span class="n">msname</span><span class="p">,</span>
-                    <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;tfcrop&quot;</span><span class="p">,</span>
+                    <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;rflag&quot;</span><span class="p">,</span>
                     <span class="n">timefit</span><span class="o">=</span><span class="s2">&quot;line&quot;</span><span class="p">,</span>
                     <span class="n">freqfit</span><span class="o">=</span><span class="s2">&quot;line&quot;</span><span class="p">,</span>
                     <span class="n">extendflags</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-                    <span class="n">flagdimension</span><span class="o">=</span><span class="n">flagdimension</span><span class="p">,</span>
-                    <span class="n">timecutoff</span><span class="o">=</span><span class="mf">5.0</span><span class="p">,</span>
-                    <span class="n">freqcutoff</span><span class="o">=</span><span class="mf">5.0</span><span class="p">,</span>
+                    <span class="n">timedevscale</span><span class="o">=</span><span class="mf">5.0</span><span class="p">,</span>
+                    <span class="n">freqdevscale</span><span class="o">=</span><span class="mf">5.0</span><span class="p">,</span>
                     <span class="n">extendpols</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
                     <span class="n">growaround</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
                     <span class="n">action</span><span class="o">=</span><span class="s2">&quot;apply&quot;</span><span class="p">,</span>
@@ -444,56 +479,36 @@
         <span class="k">except</span><span class="p">:</span>
             <span class="k">pass</span>
 
-    <span class="c1">#############</span>
-    <span class="c1"># Rflag flag</span>
-    <span class="c1">#############</span>
-    <span class="k">try</span><span class="p">:</span>
-        <span class="k">with</span> <span class="n">suppress_casa_output</span><span class="p">():</span>
-            <span class="n">flagdata</span><span class="p">(</span>
-                <span class="n">vis</span><span class="o">=</span><span class="n">msname</span><span class="p">,</span>
-                <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;rflag&quot;</span><span class="p">,</span>
-                <span class="n">timefit</span><span class="o">=</span><span class="s2">&quot;line&quot;</span><span class="p">,</span>
-                <span class="n">freqfit</span><span class="o">=</span><span class="s2">&quot;line&quot;</span><span class="p">,</span>
-                <span class="n">extendflags</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-                <span class="n">timedevscale</span><span class="o">=</span><span class="mf">5.0</span><span class="p">,</span>
-                <span class="n">freqdevscale</span><span class="o">=</span><span class="mf">5.0</span><span class="p">,</span>
-                <span class="n">extendpols</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-                <span class="n">growaround</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-                <span class="n">action</span><span class="o">=</span><span class="s2">&quot;apply&quot;</span><span class="p">,</span>
-                <span class="n">flagbackup</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-                <span class="n">overwrite</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-                <span class="n">writeflags</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-                <span class="n">datacolumn</span><span class="o">=</span><span class="n">datacolumn</span><span class="p">,</span>
-                <span class="n">ntime</span><span class="o">=</span><span class="n">ntime</span><span class="p">,</span>
-            <span class="p">)</span>
-    <span class="k">except</span><span class="p">:</span>
-        <span class="k">pass</span>
-
-    <span class="c1">##############</span>
-    <span class="c1"># Extend flag</span>
-    <span class="c1">##############</span>
-    <span class="k">try</span><span class="p">:</span>
-        <span class="k">with</span> <span class="n">suppress_casa_output</span><span class="p">():</span>
-            <span class="n">flagdata</span><span class="p">(</span>
-                <span class="n">vis</span><span class="o">=</span><span class="n">msname</span><span class="p">,</span>
-                <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;extend&quot;</span><span class="p">,</span>
-                <span class="n">datacolumn</span><span class="o">=</span><span class="s2">&quot;data&quot;</span><span class="p">,</span>
-                <span class="n">clipzeros</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-                <span class="n">extendflags</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-                <span class="n">extendpols</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-                <span class="n">growtime</span><span class="o">=</span><span class="mf">80.0</span><span class="p">,</span>
-                <span class="n">growfreq</span><span class="o">=</span><span class="mf">80.0</span><span class="p">,</span>
-                <span class="n">growaround</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-                <span class="n">flagneartime</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-                <span class="n">flagnearfreq</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-                <span class="n">action</span><span class="o">=</span><span class="s2">&quot;apply&quot;</span><span class="p">,</span>
-                <span class="n">flagbackup</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-                <span class="n">overwrite</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-                <span class="n">writeflags</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-                <span class="n">ntime</span><span class="o">=</span><span class="n">ntime</span><span class="p">,</span>
-            <span class="p">)</span>
-    <span class="k">except</span><span class="p">:</span>
-        <span class="k">pass</span>
+        <span class="c1">##############</span>
+        <span class="c1"># Extend flag</span>
+        <span class="c1">##############</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">with</span> <span class="n">suppress_casa_output</span><span class="p">():</span>
+                <span class="n">flagdata</span><span class="p">(</span>
+                    <span class="n">vis</span><span class="o">=</span><span class="n">msname</span><span class="p">,</span>
+                    <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;extend&quot;</span><span class="p">,</span>
+                    <span class="n">datacolumn</span><span class="o">=</span><span class="s2">&quot;data&quot;</span><span class="p">,</span>
+                    <span class="n">clipzeros</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                    <span class="n">extendflags</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                    <span class="n">extendpols</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                    <span class="n">growtime</span><span class="o">=</span><span class="mf">80.0</span><span class="p">,</span>
+                    <span class="n">growfreq</span><span class="o">=</span><span class="mf">80.0</span><span class="p">,</span>
+                    <span class="n">growaround</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                    <span class="n">flagneartime</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                    <span class="n">flagnearfreq</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                    <span class="n">action</span><span class="o">=</span><span class="s2">&quot;apply&quot;</span><span class="p">,</span>
+                    <span class="n">flagbackup</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                    <span class="n">overwrite</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                    <span class="n">writeflags</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                    <span class="n">ntime</span><span class="o">=</span><span class="n">ntime</span><span class="p">,</span>
+                <span class="p">)</span>
+        <span class="k">except</span><span class="p">:</span>
+            <span class="k">pass</span>
+    <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="n">traceback</span><span class="o">.</span><span class="n">print_exc</span><span class="p">()</span>
+    <span class="k">finally</span><span class="p">:</span>
+        <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mi">5</span><span class="p">)</span>
+        <span class="n">drop_cache</span><span class="p">(</span><span class="n">msname</span><span class="p">)</span>
     <span class="k">return</span></div>
 
 
@@ -621,7 +636,10 @@
         <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;##################&quot;</span><span class="p">)</span>
         <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Total time taken : &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span> <span class="o">-</span> <span class="n">start_time</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot;s&quot;</span><span class="p">)</span>
         <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;##################</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
-        <span class="k">return</span> <span class="mi">1</span></div>
+        <span class="k">return</span> <span class="mi">1</span>
+    <span class="k">finally</span><span class="p">:</span>
+        <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mi">5</span><span class="p">)</span>
+        <span class="n">drop_cache</span><span class="p">(</span><span class="n">msname</span><span class="p">)</span></div>
 
 
 
@@ -629,7 +647,9 @@
 <a class="viewcode-back" href="../../../meersolar.pipeline.html#meersolar.pipeline.flagging.main">[docs]</a>
 <span class="k">def</span> <span class="nf">main</span><span class="p">():</span>
     <span class="n">usage</span> <span class="o">=</span> <span class="s2">&quot;Initial flagging of calibrator data&quot;</span>
-    <span class="n">parser</span> <span class="o">=</span> <span class="n">argparse</span><span class="o">.</span><span class="n">ArgumentParser</span><span class="p">(</span><span class="n">description</span><span class="o">=</span><span class="n">usage</span><span class="p">,</span><span class="n">formatter_class</span><span class="o">=</span><span class="n">SmartDefaultsHelpFormatter</span><span class="p">)</span>
+    <span class="n">parser</span> <span class="o">=</span> <span class="n">argparse</span><span class="o">.</span><span class="n">ArgumentParser</span><span class="p">(</span>
+        <span class="n">description</span><span class="o">=</span><span class="n">usage</span><span class="p">,</span> <span class="n">formatter_class</span><span class="o">=</span><span class="n">SmartDefaultsHelpFormatter</span>
+    <span class="p">)</span>
 
     <span class="c1">## Essential parameters</span>
     <span class="n">basic_args</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">add_argument_group</span><span class="p">(</span>
@@ -646,7 +666,7 @@
     <span class="n">adv_args</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">add_argument_group</span><span class="p">(</span>
         <span class="s2">&quot;###################</span><span class="se">\n</span><span class="s2">Advanced parameters</span><span class="se">\n</span><span class="s2">###################&quot;</span>
     <span class="p">)</span>
-    
+
     <span class="c1"># Advanced switches</span>
     <span class="n">adv_args</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
         <span class="s2">&quot;--no_flag_bad_ants&quot;</span><span class="p">,</span>
@@ -704,9 +724,9 @@
 
     <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">workdir</span> <span class="o">==</span> <span class="s2">&quot;&quot;</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">workdir</span><span class="p">):</span>
         <span class="n">workdir</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">msname</span><span class="p">))</span> <span class="o">+</span> <span class="s2">&quot;/workdir&quot;</span>
-        <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">workdir</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
         <span class="n">workdir</span> <span class="o">=</span> <span class="n">args</span><span class="o">.</span><span class="n">workdir</span>
+    <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">workdir</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 
     <span class="n">observer</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">workdir</span><span class="si">}</span><span class="s2">/jobname_password.npy&quot;</span><span class="p">)</span> <span class="ow">and</span> <span class="n">args</span><span class="o">.</span><span class="n">logfile</span><span class="p">:</span>
@@ -742,8 +762,9 @@
         <span class="n">msg</span> <span class="o">=</span> <span class="mi">1</span>
     <span class="k">finally</span><span class="p">:</span>
         <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mi">5</span><span class="p">)</span>
+        <span class="n">drop_cache</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">msname</span><span class="p">)</span>
+        <span class="n">drop_cache</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">workdir</span><span class="p">)</span>
         <span class="n">clean_shutdown</span><span class="p">(</span><span class="n">observer</span><span class="p">)</span>
-
     <span class="k">return</span> <span class="n">msg</span></div>
 
 

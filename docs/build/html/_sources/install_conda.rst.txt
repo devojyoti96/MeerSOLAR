@@ -1,5 +1,5 @@
-Installing Conda: Anaconda or Miniconda
-=======================================
+Install Conda: Anaconda or Miniconda
+====================================
 
 This guide provides instructions for installing either **Anaconda** or **Miniconda** into a **custom directory**, creating a Python environment, and activating it.
 
@@ -38,8 +38,8 @@ Install Miniconda in a Custom Directory
       
    .. note::
       
-      In HPC cluster, it is recommended to set **/path/to/miniconda3_custom** to a location which is accessible by all nodes.
-
+      In HPC cluster, it is recommended to set **/path/to/miniconda3_custom** to a location which is accessible by all nodes. Read you HPC documentation carefully and check whether **conda** is already installed and available as **module** or not. 
+      
 3. **Enable the 'conda' Command**
    
    .. important::
@@ -51,7 +51,8 @@ Install Miniconda in a Custom Directory
       source ~/.bashrc    # or ~/.zshrc, depending on your shell
 
    After this, `conda` will be available as a global command.
-
+   
+  
 Install Anaconda in a Custom Directory
 --------------------------------------
 

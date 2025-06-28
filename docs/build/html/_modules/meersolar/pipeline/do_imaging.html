@@ -164,12 +164,13 @@
   <ul>
 <li class="toctree-l1"><a class="reference internal" href="../../../quickstart.html">Quickstart</a></li>
 <li class="toctree-l1 has-children"><a class="reference internal" href="../../../install.html">Installation and Initial Setup</a><input class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><div class="visually-hidden">Toggle navigation of Installation and Initial Setup</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
-<li class="toctree-l2"><a class="reference internal" href="../../../install_conda.html">Installing Conda: Anaconda or Miniconda</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../../activate_conda.html">Creating and Activating Conda Environment</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../install_conda.html">Install Conda: Anaconda or Miniconda</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../activate_conda.html">Create and Activate Conda Environment</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../install_meersolar.html">Install MeerSOLAR</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../initial_setup.html">Initial Setup</a></li>
 </ul>
 </li>
+<li class="toctree-l1"><a class="reference internal" href="../../../idia_setup.html">IDIA-ilifu Setup</a></li>
 <li class="toctree-l1 has-children"><a class="reference internal" href="../../../tutorial.html">Tutorial</a><input class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" role="switch" type="checkbox"/><label for="toctree-checkbox-2"><div class="visually-hidden">Toggle navigation of Tutorial</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
 <li class="toctree-l2"><a class="reference internal" href="../../../flowchart.html">MeerSOLAR Flowchart</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../runpipeline.html">Run MeerSOLAR Pipeline</a></li>
@@ -364,8 +365,8 @@
     <span class="n">imagedir</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span>
     <span class="n">imsize</span><span class="o">=</span><span class="mi">1024</span><span class="p">,</span>
     <span class="n">cellsize</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
-    <span class="n">nchan</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span>
-    <span class="n">ntime</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span>
+    <span class="n">nchan</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+    <span class="n">ntime</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
     <span class="n">pol</span><span class="o">=</span><span class="s2">&quot;I&quot;</span><span class="p">,</span>
     <span class="n">weight</span><span class="o">=</span><span class="s2">&quot;briggs&quot;</span><span class="p">,</span>
     <span class="n">robust</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
@@ -466,7 +467,6 @@
             <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">workdir</span><span class="si">}</span><span class="s2">/jobname_password.npy&quot;</span><span class="p">,</span> <span class="n">allow_pickle</span><span class="o">=</span><span class="kc">True</span>
         <span class="p">)</span>
         <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">logfile</span><span class="p">):</span>
-            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Starting remote logger. Remote logger password: </span><span class="si">{</span><span class="n">password</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
             <span class="n">sub_observer</span> <span class="o">=</span> <span class="n">init_logger</span><span class="p">(</span>
                 <span class="s2">&quot;remotelogger_imaging_{os.path.basename(msname).split(&#39;.ms&#39;)[0]}&quot;</span><span class="p">,</span>
                 <span class="n">logfile</span><span class="p">,</span>
@@ -542,8 +542,7 @@
         <span class="n">prefix</span> <span class="o">=</span> <span class="n">workdir</span> <span class="o">+</span> <span class="s2">&quot;/imaging_&quot;</span> <span class="o">+</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">msname</span><span class="p">)</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;.ms&quot;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
         <span class="k">if</span> <span class="n">imagedir</span> <span class="o">==</span> <span class="s2">&quot;&quot;</span><span class="p">:</span>
             <span class="n">imagedir</span> <span class="o">=</span> <span class="n">workdir</span>
-        <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">imagedir</span><span class="p">)</span> <span class="o">==</span> <span class="kc">False</span><span class="p">:</span>
-            <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">imagedir</span><span class="p">)</span>
+        <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">imagedir</span><span class="p">,</span><span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">weight</span> <span class="o">==</span> <span class="s2">&quot;briggs&quot;</span><span class="p">:</span>
             <span class="n">weight</span> <span class="o">+=</span> <span class="s2">&quot; &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">robust</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">threshold</span> <span class="o">&lt;=</span> <span class="mi">1</span><span class="p">:</span>
@@ -737,8 +736,7 @@
                     <span class="c1"># Renaming images</span>
                     <span class="c1">######################</span>
                     <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">imagelist</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
-                        <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">imagedir</span> <span class="o">+</span> <span class="s2">&quot;/images&quot;</span><span class="p">)</span> <span class="o">==</span> <span class="kc">False</span><span class="p">:</span>
-                            <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">imagedir</span> <span class="o">+</span> <span class="s2">&quot;/images&quot;</span><span class="p">)</span>
+                        <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">imagedir</span> <span class="o">+</span> <span class="s2">&quot;/images&quot;</span><span class="p">,</span><span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
                         <span class="n">final_image_list</span> <span class="o">=</span> <span class="p">[]</span>
                         <span class="k">for</span> <span class="n">imagename</span> <span class="ow">in</span> <span class="n">imagelist</span><span class="p">:</span>
                             <span class="n">renamed_image</span> <span class="o">=</span> <span class="n">rename_image</span><span class="p">(</span>
@@ -754,8 +752,7 @@
                         <span class="n">final_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">final_image_list</span><span class="p">)</span>
                         <span class="k">if</span> <span class="n">savemodel</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">modellist</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
                             <span class="n">final_model_list</span> <span class="o">=</span> <span class="p">[]</span>
-                            <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">imagedir</span> <span class="o">+</span> <span class="s2">&quot;/models&quot;</span><span class="p">)</span> <span class="o">==</span> <span class="kc">False</span><span class="p">:</span>
-                                <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">imagedir</span> <span class="o">+</span> <span class="s2">&quot;/models&quot;</span><span class="p">)</span>
+                            <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">imagedir</span> <span class="o">+</span> <span class="s2">&quot;/models&quot;</span><span class="p">,</span><span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
                             <span class="k">for</span> <span class="n">modelname</span> <span class="ow">in</span> <span class="n">modellist</span><span class="p">:</span>
                                 <span class="n">renamed_model</span> <span class="o">=</span> <span class="n">rename_image</span><span class="p">(</span>
                                     <span class="n">modelname</span><span class="p">,</span>
@@ -770,8 +767,7 @@
                             <span class="n">final_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">final_model_list</span><span class="p">)</span>
                         <span class="k">if</span> <span class="n">saveres</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">reslist</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
                             <span class="n">final_res_list</span> <span class="o">=</span> <span class="p">[]</span>
-                            <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">imagedir</span> <span class="o">+</span> <span class="s2">&quot;/residuals&quot;</span><span class="p">)</span> <span class="o">==</span> <span class="kc">False</span><span class="p">:</span>
-                                <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">imagedir</span> <span class="o">+</span> <span class="s2">&quot;/residuals&quot;</span><span class="p">)</span>
+                            <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">imagedir</span> <span class="o">+</span> <span class="s2">&quot;/residuals&quot;</span><span class="p">,</span><span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
                             <span class="k">for</span> <span class="n">resname</span> <span class="ow">in</span> <span class="n">reslist</span><span class="p">:</span>
                                 <span class="n">renamed_res</span> <span class="o">=</span> <span class="n">rename_image</span><span class="p">(</span>
                                     <span class="n">resname</span><span class="p">,</span>
@@ -813,16 +809,20 @@
         <span class="n">traceback</span><span class="o">.</span><span class="n">print_exc</span><span class="p">()</span>
         <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mi">5</span><span class="p">)</span>
         <span class="n">clean_shutdown</span><span class="p">(</span><span class="n">sub_observer</span><span class="p">)</span>
-        <span class="k">return</span> <span class="mi">1</span><span class="p">,</span> <span class="p">[]</span></div>
+        <span class="k">return</span> <span class="mi">1</span><span class="p">,</span> <span class="p">[]</span>
+    <span class="k">finally</span><span class="p">:</span>
+        <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mi">5</span><span class="p">)</span>
+        <span class="n">drop_cache</span><span class="p">(</span><span class="n">msname</span><span class="p">)</span></div>
 
 
 
 <div class="viewcode-block" id="run_all_imaging">
 <a class="viewcode-back" href="../../../meersolar.pipeline.html#meersolar.pipeline.do_imaging.run_all_imaging">[docs]</a>
 <span class="k">def</span> <span class="nf">run_all_imaging</span><span class="p">(</span>
-    <span class="n">mslist</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span>
+    <span class="n">mslist</span><span class="o">=</span><span class="p">[],</span>
     <span class="n">mainlogger</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
     <span class="n">workdir</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span>
+    <span class="n">outdir</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span>
     <span class="n">freqrange</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span>
     <span class="n">timerange</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span>
     <span class="n">datacolumn</span><span class="o">=</span><span class="s2">&quot;CORRECTED_DATA&quot;</span><span class="p">,</span>
@@ -856,6 +856,8 @@
 <span class="sd">        Python logger</span>
 <span class="sd">    workdir : str</span>
 <span class="sd">        Work directory</span>
+<span class="sd">    outdir : str</span>
+<span class="sd">        Output directory</span>
 <span class="sd">    freqrange : str, optional</span>
 <span class="sd">        Frequency range to image</span>
 <span class="sd">    timerange : str, optional</span>
@@ -946,13 +948,13 @@
         <span class="k">else</span><span class="p">:</span>
             <span class="n">weight_str</span> <span class="o">=</span> <span class="n">weight</span>
         <span class="k">if</span> <span class="n">freqres</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span> <span class="ow">and</span> <span class="n">timeres</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span>
-            <span class="n">imagedir</span> <span class="o">=</span> <span class="n">workdir</span> <span class="o">+</span> <span class="sa">f</span><span class="s2">&quot;/imagedir_f_all_t_all_w_</span><span class="si">{</span><span class="n">weight_str</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="n">imagedir</span> <span class="o">=</span> <span class="n">outdir</span> <span class="o">+</span> <span class="sa">f</span><span class="s2">&quot;/imagedir_f_all_t_all_w_</span><span class="si">{</span><span class="n">weight_str</span><span class="si">}</span><span class="s2">&quot;</span>
         <span class="k">elif</span> <span class="n">freqres</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span> <span class="ow">and</span> <span class="n">timeres</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span>
-            <span class="n">imagedir</span> <span class="o">=</span> <span class="n">workdir</span> <span class="o">+</span> <span class="sa">f</span><span class="s2">&quot;/imagedir_f_</span><span class="si">{</span><span class="n">freqres</span><span class="si">}</span><span class="s2">_t_all_w_</span><span class="si">{</span><span class="n">weight_str</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="n">imagedir</span> <span class="o">=</span> <span class="n">outdir</span> <span class="o">+</span> <span class="sa">f</span><span class="s2">&quot;/imagedir_f_</span><span class="si">{</span><span class="n">freqres</span><span class="si">}</span><span class="s2">_t_all_w_</span><span class="si">{</span><span class="n">weight_str</span><span class="si">}</span><span class="s2">&quot;</span>
         <span class="k">elif</span> <span class="n">freqres</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span> <span class="ow">and</span> <span class="n">timeres</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span>
-            <span class="n">imagedir</span> <span class="o">=</span> <span class="n">workdir</span> <span class="o">+</span> <span class="sa">f</span><span class="s2">&quot;/imagedir_f_all_t_</span><span class="si">{</span><span class="n">timeres</span><span class="si">}</span><span class="s2">_w_</span><span class="si">{</span><span class="n">weight_str</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="n">imagedir</span> <span class="o">=</span> <span class="n">outdir</span> <span class="o">+</span> <span class="sa">f</span><span class="s2">&quot;/imagedir_f_all_t_</span><span class="si">{</span><span class="n">timeres</span><span class="si">}</span><span class="s2">_w_</span><span class="si">{</span><span class="n">weight_str</span><span class="si">}</span><span class="s2">&quot;</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="n">imagedir</span> <span class="o">=</span> <span class="n">workdir</span> <span class="o">+</span> <span class="sa">f</span><span class="s2">&quot;/imagedir_f_</span><span class="si">{</span><span class="n">freqres</span><span class="si">}</span><span class="s2">_t_</span><span class="si">{</span><span class="n">timeres</span><span class="si">}</span><span class="s2">_w_</span><span class="si">{</span><span class="n">weight_str</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="n">imagedir</span> <span class="o">=</span> <span class="n">outdir</span> <span class="o">+</span> <span class="sa">f</span><span class="s2">&quot;/imagedir_f_</span><span class="si">{</span><span class="n">freqres</span><span class="si">}</span><span class="s2">_t_</span><span class="si">{</span><span class="n">timeres</span><span class="si">}</span><span class="s2">_w_</span><span class="si">{</span><span class="n">weight_str</span><span class="si">}</span><span class="s2">&quot;</span>
         <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">imagedir</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 
         <span class="c1">####################################</span>
@@ -972,7 +974,7 @@
         <span class="c1"># Determining spectro-temporal chunks</span>
         <span class="c1">#####################################</span>
         <span class="k">if</span> <span class="n">timeres</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
-            <span class="n">ntime_list</span> <span class="o">=</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">mslist</span><span class="p">)</span>
+            <span class="n">ntime_list</span> <span class="o">=</span> <span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">mslist</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="n">ntime_list</span> <span class="o">=</span> <span class="p">[]</span>
             <span class="n">msmd</span> <span class="o">=</span> <span class="n">msmetadata</span><span class="p">()</span>
@@ -984,7 +986,7 @@
                 <span class="n">ntime</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="nb">int</span><span class="p">(</span><span class="n">tw</span> <span class="o">/</span> <span class="n">timeres</span><span class="p">))</span>
                 <span class="n">ntime_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">ntime</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">freqres</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
-            <span class="n">nchan_list</span> <span class="o">=</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">mslist</span><span class="p">)</span>
+            <span class="n">nchan_list</span> <span class="o">=</span> <span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">mslist</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="n">nchan_list</span> <span class="o">=</span> <span class="p">[]</span>
             <span class="n">msmd</span> <span class="o">=</span> <span class="n">msmetadata</span><span class="p">()</span>
@@ -1000,10 +1002,10 @@
         <span class="c1"># Resetting maximum file limit</span>
         <span class="c1">######################################</span>
         <span class="n">soft_limit</span><span class="p">,</span> <span class="n">hard_limit</span> <span class="o">=</span> <span class="n">resource</span><span class="o">.</span><span class="n">getrlimit</span><span class="p">(</span><span class="n">resource</span><span class="o">.</span><span class="n">RLIMIT_NOFILE</span><span class="p">)</span>
-        <span class="n">new_soft_limit</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">soft_limit</span><span class="p">,</span> <span class="nb">int</span><span class="p">(</span><span class="mf">0.8</span> <span class="o">*</span> <span class="n">hard_limit</span><span class="p">))</span>
+        <span class="n">new_soft_limit</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">soft_limit</span><span class="p">,</span> <span class="nb">int</span><span class="p">(</span><span class="mf">0.8</span><span class="o">*</span><span class="n">hard_limit</span><span class="p">))</span>
         <span class="k">if</span> <span class="n">soft_limit</span> <span class="o">&lt;</span> <span class="n">new_soft_limit</span><span class="p">:</span>
             <span class="n">resource</span><span class="o">.</span><span class="n">setrlimit</span><span class="p">(</span><span class="n">resource</span><span class="o">.</span><span class="n">RLIMIT_NOFILE</span><span class="p">,</span> <span class="p">(</span><span class="n">new_soft_limit</span><span class="p">,</span> <span class="n">hard_limit</span><span class="p">))</span>
-        <span class="n">num_fd_list</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">total_fd</span> <span class="o">=</span> <span class="mi">0</span>
         <span class="n">npol</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">pol</span><span class="p">)</span>
         <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">mslist</span><span class="p">)):</span>
             <span class="n">ms</span> <span class="o">=</span> <span class="n">mslist</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
@@ -1012,11 +1014,10 @@
             <span class="n">per_job_fd</span> <span class="o">=</span> <span class="p">(</span>
                 <span class="n">npol</span> <span class="o">*</span> <span class="p">(</span><span class="n">nchan</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">ntime</span> <span class="o">*</span> <span class="mi">4</span> <span class="o">*</span> <span class="mi">2</span>
             <span class="p">)</span>  <span class="c1"># 4 types of images, 2 is fudge factor</span>
-            <span class="n">num_fd_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">per_job_fd</span><span class="p">)</span>
-        <span class="n">total_fd</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">num_fd_list</span><span class="p">)</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">mslist</span><span class="p">)</span>
+            <span class="n">total_fd</span><span class="o">+=</span><span class="n">per_job_fd</span>
         <span class="n">n_jobs</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="nb">int</span><span class="p">(</span><span class="n">new_soft_limit</span> <span class="o">/</span> <span class="n">total_fd</span><span class="p">))</span>
         <span class="n">n_jobs</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">mslist</span><span class="p">),</span> <span class="n">n_jobs</span><span class="p">)</span>
-
+        
         <span class="c1">#################################</span>
         <span class="c1"># Dask client setup</span>
         <span class="c1">#################################</span>
@@ -1030,11 +1031,6 @@
             <span class="n">min_cpu_per_job</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span>
             <span class="n">min_mem_per_job</span><span class="o">=</span><span class="n">mem_limit</span> <span class="o">/</span> <span class="mf">0.6</span><span class="p">,</span>
         <span class="p">)</span>
-        <span class="n">mainlogger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">#################################&quot;</span><span class="p">)</span>
-        <span class="n">mainlogger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
-            <span class="sa">f</span><span class="s2">&quot;Dask Dashboard: </span><span class="si">{</span><span class="n">dask_client</span><span class="o">.</span><span class="n">dashboard_link</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
-        <span class="p">)</span>
-        <span class="n">mainlogger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">#################################&quot;</span><span class="p">)</span>
         <span class="n">tasks</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">mslist</span><span class="p">)):</span>
             <span class="n">ms</span> <span class="o">=</span> <span class="n">mslist</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
@@ -1053,8 +1049,7 @@
             <span class="n">possible_sizes</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sort</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">possible_sizes</span><span class="p">))</span>
             <span class="n">possible_sizes</span> <span class="o">=</span> <span class="n">possible_sizes</span><span class="p">[</span><span class="n">possible_sizes</span> <span class="o">&gt;=</span> <span class="n">imsize</span><span class="p">]</span>
             <span class="n">imsize</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mi">1024</span><span class="p">,</span> <span class="nb">int</span><span class="p">(</span><span class="n">possible_sizes</span><span class="p">[</span><span class="mi">0</span><span class="p">]))</span>
-            <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">workdir</span> <span class="o">+</span> <span class="s2">&quot;/logs&quot;</span><span class="p">)</span> <span class="o">==</span> <span class="kc">False</span><span class="p">:</span>
-                <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">workdir</span> <span class="o">+</span> <span class="s2">&quot;/logs&quot;</span><span class="p">)</span>
+            <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">workdir</span> <span class="o">+</span> <span class="s2">&quot;/logs&quot;</span><span class="p">,</span><span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
             <span class="n">logfile</span> <span class="o">=</span> <span class="p">(</span>
                 <span class="n">workdir</span>
                 <span class="o">+</span> <span class="s2">&quot;/logs/imaging_&quot;</span>
@@ -1130,15 +1125,20 @@
         <span class="p">)</span>
         <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mi">5</span><span class="p">)</span>
         <span class="n">clean_shutdown</span><span class="p">(</span><span class="n">observer</span><span class="p">)</span>
-        <span class="k">return</span> <span class="mi">1</span></div>
+        <span class="k">return</span> <span class="mi">1</span>
+    <span class="k">finally</span><span class="p">:</span>
+        <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mi">5</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">ms</span> <span class="ow">in</span> <span class="n">mslist</span><span class="p">:</span>
+            <span class="n">drop_cache</span><span class="p">(</span><span class="n">ms</span><span class="p">)</span>
+        <span class="n">drop_cache</span><span class="p">(</span><span class="n">workdir</span><span class="p">)</span></div>
 
-
-
+            
 <div class="viewcode-block" id="main">
 <a class="viewcode-back" href="../../../meersolar.pipeline.html#meersolar.pipeline.do_imaging.main">[docs]</a>
 <span class="k">def</span> <span class="nf">main</span><span class="p">():</span>
     <span class="n">parser</span> <span class="o">=</span> <span class="n">argparse</span><span class="o">.</span><span class="n">ArgumentParser</span><span class="p">(</span>
-        <span class="n">description</span><span class="o">=</span><span class="s2">&quot;Perform spectropolarimetric snapshot imaging&quot;</span><span class="p">,</span><span class="n">formatter_class</span><span class="o">=</span><span class="n">SmartDefaultsHelpFormatter</span>
+        <span class="n">description</span><span class="o">=</span><span class="s2">&quot;Perform spectropolarimetric snapshot imaging&quot;</span><span class="p">,</span>
+        <span class="n">formatter_class</span><span class="o">=</span><span class="n">SmartDefaultsHelpFormatter</span><span class="p">,</span>
     <span class="p">)</span>
 
     <span class="c1">## Essential parameters</span>
@@ -1149,13 +1149,20 @@
         <span class="s2">&quot;mslist&quot;</span><span class="p">,</span>
         <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span>
         <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Comma-separated list of measurement sets (required)&quot;</span><span class="p">,</span>
-        <span class="n">metavar</span><span class="o">=</span><span class="s2">&quot;MSLIST&quot;</span><span class="p">,</span>
     <span class="p">)</span>
     <span class="n">basic_args</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
         <span class="s2">&quot;--workdir&quot;</span><span class="p">,</span>
         <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span>
+        <span class="n">required</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
         <span class="n">default</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span>
-        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Work directory for imaging outputs&quot;</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Work directory for imaging&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">basic_args</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;--outdir&quot;</span><span class="p">,</span>
+        <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span>
+        <span class="n">required</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">default</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Output directory for imaging products&quot;</span><span class="p">,</span>
     <span class="p">)</span>
 
     <span class="c1">## Advanced parameters</span>
@@ -1248,10 +1255,16 @@
         <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Do not use solar disk mask for CLEANing&quot;</span><span class="p">,</span>
     <span class="p">)</span>
     <span class="n">adv_args</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
-        <span class="s2">&quot;--no_savemodel&quot;</span><span class="p">,</span> <span class="n">action</span><span class="o">=</span><span class="s2">&quot;store_false&quot;</span><span class="p">,</span> <span class="n">dest</span><span class="o">=</span><span class="s2">&quot;savemodel&quot;</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Do no save model images&quot;</span>
+        <span class="s2">&quot;--no_savemodel&quot;</span><span class="p">,</span>
+        <span class="n">action</span><span class="o">=</span><span class="s2">&quot;store_false&quot;</span><span class="p">,</span>
+        <span class="n">dest</span><span class="o">=</span><span class="s2">&quot;savemodel&quot;</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Do no save model images&quot;</span><span class="p">,</span>
     <span class="p">)</span>
     <span class="n">adv_args</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
-        <span class="s2">&quot;--no_saveres&quot;</span><span class="p">,</span> <span class="n">action</span><span class="o">=</span><span class="s2">&quot;store_false&quot;</span><span class="p">,</span> <span class="n">dest</span><span class="o">=</span><span class="s2">&quot;saveres&quot;</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Do not save residual images&quot;</span>
+        <span class="s2">&quot;--no_saveres&quot;</span><span class="p">,</span>
+        <span class="n">action</span><span class="o">=</span><span class="s2">&quot;store_false&quot;</span><span class="p">,</span>
+        <span class="n">dest</span><span class="o">=</span><span class="s2">&quot;saveres&quot;</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Do not save residual images&quot;</span><span class="p">,</span>
     <span class="p">)</span>
     <span class="n">adv_args</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
         <span class="s2">&quot;--no_make_overlay&quot;</span><span class="p">,</span>
@@ -1265,7 +1278,7 @@
         <span class="n">dest</span><span class="o">=</span><span class="s2">&quot;make_plots&quot;</span><span class="p">,</span>
         <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Do not make generate helioprojective plots&quot;</span><span class="p">,</span>
     <span class="p">)</span>
-    
+
     <span class="c1">## Resource management parameters</span>
     <span class="n">hard_args</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">add_argument_group</span><span class="p">(</span>
         <span class="s2">&quot;###################</span><span class="se">\n</span><span class="s2">Hardware resource management parameters</span><span class="se">\n</span><span class="s2">###################&quot;</span>
@@ -1300,14 +1313,18 @@
 
     <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">workdir</span> <span class="o">==</span> <span class="s2">&quot;&quot;</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">workdir</span><span class="p">):</span>
         <span class="n">first_ms</span> <span class="o">=</span> <span class="n">args</span><span class="o">.</span><span class="n">mslist</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;,&quot;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
-        <span class="n">workdir</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="n">first_ms</span><span class="p">))</span> <span class="o">+</span> <span class="s2">&quot;/workdir&quot;</span>
-        <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">workdir</span><span class="p">):</span>
-            <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">workdir</span><span class="p">)</span>
+        <span class="n">workdir</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="n">first_ms</span><span class="p">))</span> <span class="o">+</span> <span class="s2">&quot;/workdir&quot;</span>     
     <span class="k">else</span><span class="p">:</span>
         <span class="n">workdir</span> <span class="o">=</span> <span class="n">args</span><span class="o">.</span><span class="n">workdir</span>
+    <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">workdir</span><span class="p">,</span><span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        
+    <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">outdir</span> <span class="o">==</span> <span class="s2">&quot;&quot;</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">outdir</span><span class="p">):</span>
+        <span class="n">outdir</span><span class="o">=</span><span class="n">workdir</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">outdir</span> <span class="o">=</span> <span class="n">args</span><span class="o">.</span><span class="n">outdir</span>
+    <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">outdir</span><span class="p">,</span><span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 
-    <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">workdir</span> <span class="o">+</span> <span class="s2">&quot;/logs/&quot;</span><span class="p">):</span>
-        <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">workdir</span> <span class="o">+</span> <span class="s2">&quot;/logs/&quot;</span><span class="p">)</span>
+    <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">workdir</span> <span class="o">+</span> <span class="s2">&quot;/logs/&quot;</span><span class="p">,</span><span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 
     <span class="n">mainlog_file</span> <span class="o">=</span> <span class="n">workdir</span> <span class="o">+</span> <span class="s2">&quot;/logs/imaging_targets.mainlog&quot;</span>
     <span class="n">mainlogger</span><span class="p">,</span> <span class="n">mainlog_file</span> <span class="o">=</span> <span class="n">create_logger</span><span class="p">(</span>
@@ -1324,9 +1341,8 @@
             <span class="n">observer</span> <span class="o">=</span> <span class="n">init_logger</span><span class="p">(</span>
                 <span class="s2">&quot;all_imaging&quot;</span><span class="p">,</span> <span class="n">mainlog_file</span><span class="p">,</span> <span class="n">jobname</span><span class="o">=</span><span class="n">jobname</span><span class="p">,</span> <span class="n">password</span><span class="o">=</span><span class="n">password</span>
             <span class="p">)</span>
-
+    <span class="n">mslist</span> <span class="o">=</span> <span class="n">args</span><span class="o">.</span><span class="n">mslist</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;,&quot;</span><span class="p">)</span>
     <span class="k">try</span><span class="p">:</span>
-        <span class="n">mslist</span> <span class="o">=</span> <span class="n">args</span><span class="o">.</span><span class="n">mslist</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;,&quot;</span><span class="p">)</span>
         <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">mslist</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
             <span class="n">mainlogger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Please provide a valid measurement set list.&quot;</span><span class="p">)</span>
             <span class="n">msg</span> <span class="o">=</span> <span class="mi">1</span>
@@ -1335,6 +1351,7 @@
                 <span class="n">mslist</span><span class="o">=</span><span class="n">mslist</span><span class="p">,</span>
                 <span class="n">mainlogger</span><span class="o">=</span><span class="n">mainlogger</span><span class="p">,</span>
                 <span class="n">workdir</span><span class="o">=</span><span class="n">workdir</span><span class="p">,</span>
+                <span class="n">outdir</span><span class="o">=</span><span class="n">outdir</span><span class="p">,</span>
                 <span class="n">freqrange</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">freqrange</span><span class="p">,</span>
                 <span class="n">timerange</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">timerange</span><span class="p">,</span>
                 <span class="n">datacolumn</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">datacolumn</span><span class="p">,</span>
@@ -1361,6 +1378,9 @@
         <span class="n">msg</span> <span class="o">=</span> <span class="mi">1</span>
     <span class="k">finally</span><span class="p">:</span>
         <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mi">5</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">ms</span> <span class="ow">in</span> <span class="n">mslist</span><span class="p">:</span>
+            <span class="n">drop_cache</span><span class="p">(</span><span class="n">ms</span><span class="p">)</span>
+        <span class="n">drop_cache</span><span class="p">(</span><span class="n">workdir</span><span class="p">)</span>
         <span class="n">clean_shutdown</span><span class="p">(</span><span class="n">observer</span><span class="p">)</span>
 
     <span class="k">return</span> <span class="n">msg</span></div>

@@ -164,12 +164,13 @@
   <ul>
 <li class="toctree-l1"><a class="reference internal" href="../../../quickstart.html">Quickstart</a></li>
 <li class="toctree-l1 has-children"><a class="reference internal" href="../../../install.html">Installation and Initial Setup</a><input class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><div class="visually-hidden">Toggle navigation of Installation and Initial Setup</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
-<li class="toctree-l2"><a class="reference internal" href="../../../install_conda.html">Installing Conda: Anaconda or Miniconda</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../../activate_conda.html">Creating and Activating Conda Environment</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../install_conda.html">Install Conda: Anaconda or Miniconda</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../activate_conda.html">Create and Activate Conda Environment</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../install_meersolar.html">Install MeerSOLAR</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../initial_setup.html">Initial Setup</a></li>
 </ul>
 </li>
+<li class="toctree-l1"><a class="reference internal" href="../../../idia_setup.html">IDIA-ilifu Setup</a></li>
 <li class="toctree-l1 has-children"><a class="reference internal" href="../../../tutorial.html">Tutorial</a><input class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" role="switch" type="checkbox"/><label for="toctree-checkbox-2"><div class="visually-hidden">Toggle navigation of Tutorial</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
 <li class="toctree-l2"><a class="reference internal" href="../../../flowchart.html">MeerSOLAR Flowchart</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../runpipeline.html">Run MeerSOLAR Pipeline</a></li>
@@ -256,6 +257,7 @@
         <span class="k">return</span> <span class="n">mem</span>
     <span class="k">with</span> <span class="n">suppress_casa_output</span><span class="p">():</span>
         <span class="kn">from</span> <span class="nn">casatasks</span> <span class="kn">import</span> <span class="n">split</span>
+
         <span class="n">split</span><span class="p">(</span>
             <span class="n">vis</span><span class="o">=</span><span class="n">msname</span><span class="p">,</span>
             <span class="n">outputvis</span><span class="o">=</span><span class="n">outputvis</span><span class="p">,</span>
@@ -264,7 +266,6 @@
             <span class="n">datacolumn</span><span class="o">=</span><span class="s2">&quot;data&quot;</span><span class="p">,</span>
             <span class="n">uvrange</span><span class="o">=</span><span class="s2">&quot;0&quot;</span><span class="p">,</span>
             <span class="n">correlation</span><span class="o">=</span><span class="s2">&quot;XX,YY&quot;</span><span class="p">,</span>
-            
         <span class="p">)</span>
     <span class="k">return</span> <span class="n">outputvis</span></div>
 
@@ -537,8 +538,8 @@
     <span class="c1">########################################</span>
     <span class="c1"># Determining chunk size</span>
     <span class="c1">########################################</span>
-    <span class="n">cal_mssize</span> <span class="o">=</span> <span class="n">get_ms_size</span><span class="p">(</span><span class="n">cal_msname</span><span class="p">)</span>
-    <span class="n">source_mssize</span> <span class="o">=</span> <span class="n">get_ms_size</span><span class="p">(</span><span class="n">source_msname</span><span class="p">)</span>
+    <span class="n">cal_mssize</span> <span class="o">=</span> <span class="n">get_ms_size</span><span class="p">(</span><span class="n">cal_msname</span><span class="p">,</span><span class="n">only_autocorr</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">source_mssize</span> <span class="o">=</span> <span class="n">get_ms_size</span><span class="p">(</span><span class="n">source_msname</span><span class="p">,</span><span class="n">only_autocorr</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
     <span class="n">total_mssize</span> <span class="o">=</span> <span class="n">cal_mssize</span> <span class="o">+</span> <span class="n">source_mssize</span>
     <span class="n">scale_factor_size</span> <span class="o">=</span> <span class="n">nant</span> <span class="o">*</span> <span class="n">ntime</span> <span class="o">*</span> <span class="n">scale_factor</span><span class="o">.</span><span class="n">nbytes</span> <span class="o">/</span> <span class="p">(</span><span class="mf">1024.0</span><span class="o">**</span><span class="mi">3</span><span class="p">)</span>
     <span class="n">att_ant_array_size</span> <span class="o">=</span> <span class="p">(</span><span class="n">npol</span> <span class="o">*</span> <span class="n">nchan</span> <span class="o">*</span> <span class="n">nant</span> <span class="o">*</span> <span class="mi">16</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="mf">1024.0</span><span class="o">**</span><span class="mi">3</span><span class="p">)</span>
@@ -626,6 +627,9 @@
         <span class="c1"># All auto-corr scans spliting</span>
         <span class="c1">###########################################</span>
         <span class="n">all_scans</span> <span class="o">=</span> <span class="p">[</span><span class="n">noise_diode_flux_scan</span><span class="p">]</span> <span class="o">+</span> <span class="n">valid_target_scans</span>
+        <span class="n">scan_sizes</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">scan</span> <span class="ow">in</span> <span class="n">all_scans</span><span class="p">:</span>
+            <span class="n">scan_sizes</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">get_ms_scan_size</span><span class="p">(</span><span class="n">msname</span><span class="p">,</span> <span class="nb">int</span><span class="p">(</span><span class="n">scan</span><span class="p">),</span> <span class="n">only_autocorr</span><span class="o">=</span><span class="kc">True</span><span class="p">))</span>
         <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Spliting auto-correlation in different scans ...&quot;</span><span class="p">)</span>
         <span class="n">autocorr_mslist</span> <span class="o">=</span> <span class="n">split_autocorr</span><span class="p">(</span>
             <span class="n">msname</span><span class="p">,</span>
@@ -635,6 +639,8 @@
             <span class="n">cpu_frac</span><span class="o">=</span><span class="n">cpu_frac</span><span class="p">,</span>
             <span class="n">mem_frac</span><span class="o">=</span><span class="n">mem_frac</span><span class="p">,</span>
         <span class="p">)</span>
+        <span class="n">drop_cache</span><span class="p">(</span><span class="n">msname</span><span class="p">)</span>
+        <span class="n">drop_cache</span><span class="p">(</span><span class="n">workdir</span><span class="p">)</span>
         <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">autocorr_mslist</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
             <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;No scans splited.&quot;</span><span class="p">)</span>
 
@@ -648,6 +654,7 @@
         <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Flagging auto-correlation measurement sets ...&quot;</span><span class="p">)</span>
         <span class="n">task</span> <span class="o">=</span> <span class="n">delayed</span><span class="p">(</span><span class="n">single_ms_flag</span><span class="p">)(</span><span class="n">dry_run</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
         <span class="n">mem_limit</span> <span class="o">=</span> <span class="n">run_limited_memory_task</span><span class="p">(</span><span class="n">task</span><span class="p">,</span> <span class="n">dask_dir</span><span class="o">=</span><span class="n">workdir</span><span class="p">)</span>
+        <span class="n">mem_limit</span> <span class="o">+=</span> <span class="nb">max</span><span class="p">(</span><span class="n">scan_sizes</span><span class="p">)</span>
         <span class="n">dask_client</span><span class="p">,</span> <span class="n">dask_cluster</span><span class="p">,</span> <span class="n">n_jobs</span><span class="p">,</span> <span class="n">n_threads</span><span class="p">,</span> <span class="n">mem_limit</span> <span class="o">=</span> <span class="n">get_dask_client</span><span class="p">(</span>
             <span class="nb">len</span><span class="p">(</span><span class="n">autocorr_mslist</span><span class="p">),</span>
             <span class="n">dask_dir</span><span class="o">=</span><span class="n">workdir</span><span class="p">,</span>
@@ -674,6 +681,8 @@
         <span class="n">results</span> <span class="o">=</span> <span class="n">compute</span><span class="p">(</span><span class="o">*</span><span class="n">tasks</span><span class="p">)</span>
         <span class="n">dask_client</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
         <span class="n">dask_cluster</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">autocorr_msname</span> <span class="ow">in</span> <span class="n">autocorr_mslist</span><span class="p">:</span>
+            <span class="n">drop_cache</span><span class="p">(</span><span class="n">autocorr_msname</span><span class="p">)</span>
         <span class="n">att_level</span> <span class="o">=</span> <span class="p">{}</span>
         <span class="c1">########################################</span>
         <span class="c1"># Calculating per scan level</span>
@@ -762,7 +771,11 @@
         <span class="k">return</span> <span class="mi">0</span><span class="p">,</span> <span class="n">att_level</span><span class="p">,</span> <span class="n">all_scaling_files</span>
     <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
         <span class="n">traceback</span><span class="o">.</span><span class="n">print_exc</span><span class="p">()</span>
-        <span class="k">return</span> <span class="mi">1</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span></div>
+        <span class="k">return</span> <span class="mi">1</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span>
+    <span class="k">finally</span><span class="p">:</span>
+        <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mi">5</span><span class="p">)</span>
+        <span class="n">drop_cache</span><span class="p">(</span><span class="n">msname</span><span class="p">)</span>
+        <span class="n">drop_cache</span><span class="p">(</span><span class="n">workdir</span><span class="p">)</span></div>
 
 
 
@@ -805,10 +818,10 @@
     <span class="n">limit_threads</span><span class="p">(</span><span class="n">n_threads</span><span class="o">=</span><span class="n">ncpus</span><span class="p">)</span>
     <span class="kn">from</span> <span class="nn">casatasks</span> <span class="kn">import</span> <span class="n">split</span><span class="p">,</span> <span class="n">bandpass</span>
 
+    <span class="n">msname</span> <span class="o">=</span> <span class="n">msname</span><span class="o">.</span><span class="n">rstrip</span><span class="p">(</span><span class="s2">&quot;/&quot;</span><span class="p">)</span>
+    <span class="n">workdir</span> <span class="o">=</span> <span class="n">workdir</span><span class="o">.</span><span class="n">rstrip</span><span class="p">(</span><span class="s2">&quot;/&quot;</span><span class="p">)</span>
     <span class="k">try</span><span class="p">:</span>
         <span class="n">os</span><span class="o">.</span><span class="n">chdir</span><span class="p">(</span><span class="n">workdir</span><span class="p">)</span>
-        <span class="n">msname</span> <span class="o">=</span> <span class="n">msname</span><span class="o">.</span><span class="n">rstrip</span><span class="p">(</span><span class="s2">&quot;/&quot;</span><span class="p">)</span>
-        <span class="n">workdir</span> <span class="o">=</span> <span class="n">workdir</span><span class="o">.</span><span class="n">rstrip</span><span class="p">(</span><span class="s2">&quot;/&quot;</span><span class="p">)</span>
         <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;##############################################&quot;</span><span class="p">)</span>
         <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Performing flux calibration using noise-diode.&quot;</span><span class="p">)</span>
         <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;##############################################&quot;</span><span class="p">)</span>
@@ -842,6 +855,7 @@
         <span class="c1">##############################</span>
         <span class="c1"># Split noise cal scan</span>
         <span class="c1">##############################</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Spliting auto-correlation in different scans ...&quot;</span><span class="p">)</span>
         <span class="n">noisecal_ms</span> <span class="o">=</span> <span class="n">workdir</span> <span class="o">+</span> <span class="s2">&quot;/noisecal.ms&quot;</span>
         <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">noisecal_ms</span><span class="p">):</span>
             <span class="n">os</span><span class="o">.</span><span class="n">system</span><span class="p">(</span><span class="s2">&quot;rm -rf &quot;</span> <span class="o">+</span> <span class="n">noisecal_ms</span><span class="p">)</span>
@@ -880,7 +894,6 @@
         <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Importing calibrator models ....&quot;</span><span class="p">)</span>
         <span class="n">fluxcal_result</span> <span class="o">=</span> <span class="n">import_fluxcal_models</span><span class="p">(</span>
             <span class="p">[</span><span class="n">noisecal_ms</span><span class="p">],</span>
-            <span class="n">f_scans</span><span class="p">,</span>
             <span class="n">fluxcal_fields</span><span class="p">,</span>
             <span class="n">fluxcal_scans</span><span class="p">,</span>
             <span class="n">ncpus</span><span class="o">=</span><span class="n">ncpus</span><span class="p">,</span>
@@ -953,10 +966,7 @@
         <span class="p">)</span>
         <span class="k">if</span> <span class="n">keep_backup</span><span class="p">:</span>
             <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Backup directory: &quot;</span> <span class="o">+</span> <span class="n">workdir</span> <span class="o">+</span> <span class="s2">&quot;/backup&quot;</span><span class="p">)</span>
-            <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isdir</span><span class="p">(</span><span class="n">workdir</span> <span class="o">+</span> <span class="s2">&quot;/backup&quot;</span><span class="p">)</span> <span class="o">==</span> <span class="kc">False</span><span class="p">:</span>
-                <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">workdir</span> <span class="o">+</span> <span class="s2">&quot;/backup&quot;</span><span class="p">)</span>
-            <span class="k">else</span><span class="p">:</span>
-                <span class="n">os</span><span class="o">.</span><span class="n">system</span><span class="p">(</span><span class="s2">&quot;rm -rf &quot;</span> <span class="o">+</span> <span class="n">workdir</span> <span class="o">+</span> <span class="s2">&quot;/backup/*&quot;</span><span class="p">)</span>
+            <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">workdir</span> <span class="o">+</span> <span class="s2">&quot;/backup&quot;</span><span class="p">,</span><span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
             <span class="n">os</span><span class="o">.</span><span class="n">system</span><span class="p">(</span>
                 <span class="s2">&quot;mv &quot;</span>
                 <span class="o">+</span> <span class="n">noisecal_ms</span>
@@ -991,14 +1001,21 @@
         <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;##################&quot;</span><span class="p">)</span>
         <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Total time taken : &quot;</span><span class="p">,</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span> <span class="o">-</span> <span class="n">start_time</span><span class="p">)</span>
         <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;##################</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
-        <span class="k">return</span> <span class="mi">1</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span></div>
+        <span class="k">return</span> <span class="mi">1</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span>
+    <span class="k">finally</span><span class="p">:</span>
+        <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mi">5</span><span class="p">)</span>
+        <span class="n">drop_cache</span><span class="p">(</span><span class="n">msname</span><span class="p">)</span>
+        <span class="n">drop_cache</span><span class="p">(</span><span class="n">workdir</span><span class="p">)</span></div>
 
 
 
 <div class="viewcode-block" id="main">
 <a class="viewcode-back" href="../../../meersolar.pipeline.html#meersolar.pipeline.do_fluxcal.main">[docs]</a>
 <span class="k">def</span> <span class="nf">main</span><span class="p">():</span>
-    <span class="n">parser</span> <span class="o">=</span> <span class="n">argparse</span><span class="o">.</span><span class="n">ArgumentParser</span><span class="p">(</span><span class="n">description</span><span class="o">=</span><span class="s2">&quot;Basic calibration using calibrators&quot;</span><span class="p">,</span><span class="n">formatter_class</span><span class="o">=</span><span class="n">SmartDefaultsHelpFormatter</span><span class="p">)</span>
+    <span class="n">parser</span> <span class="o">=</span> <span class="n">argparse</span><span class="o">.</span><span class="n">ArgumentParser</span><span class="p">(</span>
+        <span class="n">description</span><span class="o">=</span><span class="s2">&quot;Basic calibration using calibrators&quot;</span><span class="p">,</span>
+        <span class="n">formatter_class</span><span class="o">=</span><span class="n">SmartDefaultsHelpFormatter</span><span class="p">,</span>
+    <span class="p">)</span>
 
     <span class="c1">## Essential parameters</span>
     <span class="n">basic_args</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">add_argument_group</span><span class="p">(</span>
@@ -1012,8 +1029,16 @@
     <span class="n">basic_args</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
         <span class="s2">&quot;--workdir&quot;</span><span class="p">,</span>
         <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span>
+        <span class="n">required</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
         <span class="n">default</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span>
-        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Working directory for calibration products&quot;</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Working directory (default: auto-created next to MS)&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">basic_args</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;--caldir&quot;</span><span class="p">,</span>
+        <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span>
+        <span class="n">required</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">default</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Directory for calibration products (default: auto-created in the workdir MS)&quot;</span><span class="p">,</span>
     <span class="p">)</span>
 
     <span class="c1">## Advanced parameters</span>
@@ -1053,11 +1078,16 @@
 
     <span class="c1"># === Set up workdir ===</span>
     <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">workdir</span> <span class="o">==</span> <span class="s2">&quot;&quot;</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">workdir</span><span class="p">):</span>
-        <span class="n">workdir</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">msname</span><span class="p">))</span> <span class="o">+</span> <span class="s2">&quot;/workdir&quot;</span>
-        <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">workdir</span><span class="p">):</span>
-            <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">workdir</span><span class="p">)</span>
+        <span class="n">workdir</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">msname</span><span class="p">))</span> <span class="o">+</span> <span class="s2">&quot;/workdir&quot;</span>            
     <span class="k">else</span><span class="p">:</span>
         <span class="n">workdir</span> <span class="o">=</span> <span class="n">args</span><span class="o">.</span><span class="n">workdir</span>
+    <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">workdir</span><span class="p">,</span><span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    
+    <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">caldir</span><span class="o">==</span><span class="s2">&quot;&quot;</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">caldir</span><span class="p">):</span>
+        <span class="n">caldir</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">workdir</span><span class="si">}</span><span class="s2">/caltables&quot;</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">caldir</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">caldir</span>
+    <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">caldir</span><span class="p">,</span><span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 
     <span class="n">logfile</span> <span class="o">=</span> <span class="n">args</span><span class="o">.</span><span class="n">logfile</span>
     <span class="n">observer</span> <span class="o">=</span> <span class="kc">None</span>
@@ -1078,10 +1108,6 @@
             <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Starting flux calibration using noise-diode.&quot;</span><span class="p">)</span>
             <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;###################################</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
 
-            <span class="n">caldir</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">workdir</span><span class="p">,</span> <span class="s2">&quot;caltables&quot;</span><span class="p">)</span>
-            <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">caldir</span><span class="p">):</span>
-                <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">caldir</span><span class="p">)</span>
-
             <span class="n">msg</span><span class="p">,</span> <span class="n">att_level</span><span class="p">,</span> <span class="n">all_scaling_files</span> <span class="o">=</span> <span class="n">run_noise_cal</span><span class="p">(</span>
                 <span class="n">args</span><span class="o">.</span><span class="n">msname</span><span class="p">,</span>
                 <span class="n">workdir</span><span class="p">,</span>
@@ -1101,8 +1127,10 @@
         <span class="n">msg</span> <span class="o">=</span> <span class="mi">1</span>
     <span class="k">finally</span><span class="p">:</span>
         <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mi">5</span><span class="p">)</span>
+        <span class="n">drop_cache</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">msname</span><span class="p">)</span>
+        <span class="n">drop_cache</span><span class="p">(</span><span class="n">workdir</span><span class="p">)</span>
+        <span class="n">drop_cache</span><span class="p">(</span><span class="n">caldir</span><span class="p">)</span>
         <span class="n">clean_shutdown</span><span class="p">(</span><span class="n">observer</span><span class="p">)</span>
-
     <span class="k">return</span> <span class="n">msg</span></div>
 
 
