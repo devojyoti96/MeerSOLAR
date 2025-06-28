@@ -129,8 +129,8 @@ def perform_imaging(
     imagedir="",
     imsize=1024,
     cellsize=2,
-    nchan=-1,
-    ntime=-1,
+    nchan=1,
+    ntime=1,
     pol="I",
     weight="briggs",
     robust=0.0,
@@ -735,7 +735,7 @@ def run_all_imaging(
         # Determining spectro-temporal chunks
         #####################################
         if timeres < 0:
-            ntime_list = [-1] * len(mslist)
+            ntime_list = [1] * len(mslist)
         else:
             ntime_list = []
             msmd = msmetadata()
@@ -747,7 +747,7 @@ def run_all_imaging(
                 ntime = max(1, int(tw / timeres))
                 ntime_list.append(ntime)
         if freqres < 0:
-            nchan_list = [-1] * len(mslist)
+            nchan_list = [1] * len(mslist)
         else:
             nchan_list = []
             msmd = msmetadata()
@@ -763,10 +763,10 @@ def run_all_imaging(
         # Resetting maximum file limit
         ######################################
         soft_limit, hard_limit = resource.getrlimit(resource.RLIMIT_NOFILE)
-        new_soft_limit = max(soft_limit, int(0.8 * hard_limit))
+        new_soft_limit = max(soft_limit, int(0.8*hard_limit))
         if soft_limit < new_soft_limit:
             resource.setrlimit(resource.RLIMIT_NOFILE, (new_soft_limit, hard_limit))
-        num_fd_list = []
+        total_fd = 0
         npol = len(pol)
         for i in range(len(mslist)):
             ms = mslist[i]
@@ -775,11 +775,10 @@ def run_all_imaging(
             per_job_fd = (
                 npol * (nchan + 1) * ntime * 4 * 2
             )  # 4 types of images, 2 is fudge factor
-            num_fd_list.append(per_job_fd)
-        total_fd = max(num_fd_list) * len(mslist)
+            total_fd+=per_job_fd
         n_jobs = max(1, int(new_soft_limit / total_fd))
         n_jobs = min(len(mslist), n_jobs)
-
+        
         #################################
         # Dask client setup
         #################################
@@ -793,11 +792,6 @@ def run_all_imaging(
             min_cpu_per_job=3,
             min_mem_per_job=mem_limit / 0.6,
         )
-        mainlogger.info("\n#################################")
-        mainlogger.info(
-            f"Dask Dashboard: {dask_client.dashboard_link}",
-        )
-        mainlogger.info("\n#################################")
         tasks = []
         for i in range(len(mslist)):
             ms = mslist[i]

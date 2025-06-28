@@ -69,7 +69,7 @@ That's all. You started MeerSOLAR pipeline for analysing your MeerKAT solar obse
    run_meersolar_log --jobid <jobid>
    ```
    
-7. Output products will be saved in : <path of output products directory>
+7. Output products will be saved in : `<path of output products directory>`
 
 [pypi]: https://pypi.org/project/meersolar/
 

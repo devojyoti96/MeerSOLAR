@@ -1,8 +1,9 @@
-import os, sys, glob, time, gc, tempfile, copy, traceback, resource, requests, threading, socket, argparse
-
+import os, sys, glob, time, gc, tempfile, copy, warnings, logger
+import traceback, resource, requests, threading, socket, argparse
 os.environ["QT_OPENGL"] = "software"
 os.environ["QT_QPA_PLATFORM"] = "offscreen"
-import matplotlib.ticker as ticker, matplotlib.pyplot as plt, matplotlib, subprocess, contextlib, ctypes, platform
+import matplotlib.ticker as ticker, matplotlib.pyplot as plt 
+import matplotlib, subprocess, contextlib, ctypes, platform
 import numpy as np, dask, psutil, logging, sunpy, tempfile, shutil
 import astropy.units as u, string, secrets
 from contextlib import contextmanager
@@ -1052,6 +1053,8 @@ def get_suvi_map(obs_date, obs_time, workdir, wavelength=195):
     sunpy.map
         Sunpy SUVIMap
     """
+    warnings.filterwarnings("ignore", message="This download has been started in a thread which is not the main thread")
+    logging.getLogger('sunpy').setLevel(logging.ERROR)
     os.makedirs(workdir, exist_ok=True)
     start_time = dt.fromisoformat(f"{obs_date}T{obs_time}")
     t_start = (start_time - timedelta(minutes=2)).strftime("%Y-%m-%dT%H:%M")
@@ -1060,7 +1063,7 @@ def get_suvi_map(obs_date, obs_time, workdir, wavelength=195):
     instrument = a.Instrument("suvi")
     wavelength = a.Wavelength(wavelength * u.angstrom)
     results = Fido.search(time, instrument, wavelength, a.Level(2))
-    downloaded_files = Fido.fetch(results, path=workdir)
+    downloaded_files = Fido.fetch(results, path=workdir, progress=False)
     obs_times = []
     for image in downloaded_files:
         suvimap = Map(image)
@@ -1093,6 +1096,7 @@ def enhance_offlimb(sunpy_map, do_sharpen=True):
     sunpy.map
         Off-disk enhanced emission
     """
+    logging.getLogger('sunpy').setLevel(logging.ERROR)
     hpc_coords = all_coordinates_from_map(sunpy_map)
     r = np.sqrt(hpc_coords.Tx**2 + hpc_coords.Ty**2) / sunpy_map.rsun_obs
     rsun_step_size = 0.01
@@ -1169,6 +1173,7 @@ def make_meer_overlay(
     str
         Plot file name
     """
+    logging.getLogger('sunpy').setLevel(logging.ERROR)
     if showgui:
         matplotlib.use("TkAgg")
     else:
@@ -3579,6 +3584,7 @@ def get_meermap(fits_image, band="", do_sharpen=False):
     sunpy.map
         Sunpy map
     """
+    logging.getLogger('sunpy').setLevel(logging.ERROR)
     MEERLAT = -30.7133
     MEERLON = 21.4429
     MEERALT = 1086.6
@@ -3689,6 +3695,7 @@ def plot_in_hpc(
     sunpy.Map
         MeerKAT image in helioprojective co-ordinate
     """
+    logging.getLogger('sunpy').setLevel(logging.ERROR)
     MEERLAT = -30.7133
     MEERLON = 21.4429
     MEERALT = 1086.6
