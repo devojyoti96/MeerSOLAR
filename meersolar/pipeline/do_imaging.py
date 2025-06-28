@@ -1082,7 +1082,7 @@ def main():
         workdir = args.workdir
     os.makedirs(workdir,exist_ok=True)
         
-    if args.outdir == "" or not os.path.exists(args.outkdir):
+    if args.outdir == "" or not os.path.exists(args.outdir):
         outdir=workdir
     else:
         outdir = args.outdir
