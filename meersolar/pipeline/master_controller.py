@@ -1520,7 +1520,7 @@ def master_control(
                     f"Best,\n"
                     f"MeerSOLAR"
                 )
-            success_msg, error_msg = send_notification(emails, email_subject, email_msg)
+                success_msg, error_msg = send_notification(emails, email_subject, email_msg)
         else:
             ####################################
             # Job name and logging password
@@ -1558,7 +1558,7 @@ def master_control(
                     f"Best,\n"
                     f"MeerSOLAR"
                 )
-            success_msg, error_msg = send_notification(emails, email_subject, email_msg)
+                success_msg, error_msg = send_notification(emails, email_subject, email_msg)
 
         #####################################
         # Settings for solar data

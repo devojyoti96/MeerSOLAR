@@ -313,7 +313,7 @@ def generate_password(length=6):
 def get_remote_logger_link():
     meersolar_cachedir = get_meersolar_cachedir()
     username = os.getlogin()
-    link_file = os.path.join(meersolar_cachedir, "remotelink_{username}.txt")
+    link_file = os.path.join(meersolar_cachedir, f"remotelink_{username}.txt")
     try:
         with open(link_file, "r") as f:
             lines = [line.strip() for line in f if line.strip()]
@@ -340,7 +340,7 @@ def get_remote_logger_link():
 def get_emails():
     meersolar_cachedir = get_meersolar_cachedir()
     username = os.getlogin()
-    email_file = os.path.join(meersolar_cachedir, "emails_{username}.txt")
+    email_file = os.path.join(meersolar_cachedir, f"emails_{username}.txt")
     try:
         with open(email_file, "r") as f:
             lines = [line.strip() for line in f if line.strip()]
@@ -4148,7 +4148,7 @@ def get_jobid():
         prev_jobids = np.loadtxt(jobid_file, unpack=True, dtype="int64")
         if prev_jobids.size == 0:
             prev_jobids = []
-        elif np.isscalar(prev_jobids):
+        elif prev_jobids.size==1:
             prev_jobids = [str(prev_jobids)]
         else:
             prev_jobids = [str(jid) for jid in prev_jobids]
