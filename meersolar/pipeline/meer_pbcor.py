@@ -142,17 +142,11 @@ def pbcor_all_images(
             os.makedirs(pngdir, exist_ok=True)
             os.makedirs(pdfdir, exist_ok=True)
             for image in images:
-                plot_in_hpc(
+                outimages=plot_in_hpc(
                     image,
                     draw_limb=True,
-                    extension="png",
-                    outdir=pngdir,
-                )
-                plot_in_hpc(
-                    image,
-                    draw_limb=True,
-                    extension="pdf",
-                    outdir=pdfdir,
+                    extensions=["png","pdf"],
+                    outdirs=[pngdir,pdfidr]
                 )
         if successful_pbcor > 0 and make_TB:
             successful_images = glob.glob(pbcor_dir + "/*.fits")
@@ -172,17 +166,11 @@ def pbcor_all_images(
             os.makedirs(pngdir, exist_ok=True)
             os.makedirs(pdfdir, exist_ok=True)
             for image in images:
-                plot_in_hpc(
+                outimages=plot_in_hpc(
                     image,
                     draw_limb=True,
-                    extension="png",
-                    outdir=pngdir,
-                )
-                plot_in_hpc(
-                    image,
-                    draw_limb=True,
-                    extension="pdf",
-                    outdir=pdfdir,
+                    extensions=["png","pdf"],
+                    outdirs=[pngdir,pdfdir]
                 )
         print(f"Total input images: {len(images)}")
         print(f"Total corrected images: {successful_pbcor}")

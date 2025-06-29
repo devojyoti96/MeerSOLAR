@@ -57,8 +57,10 @@ def init_meersolar_data(update=False, remote_link=None, emails=None):
     """
     datadir = get_datadir()
     os.makedirs(datadir, exist_ok=True)
-    linkfile = f"{datadir}/remotelink.txt"
-    emailfile = f"{datadir}/emails.txt"
+    meersolar_cachedir=get_meersolar_cachedir()
+    username = os.getlogin()
+    linkfile = f"{meersolar_cachedir}/remotelink_{username}.txt"
+    emailfile = f"{meersolar_cachedir}/emails_{username}.txt"
     if not os.path.exists(linkfile):
         with open(linkfile, "w") as f:
             f.write("")

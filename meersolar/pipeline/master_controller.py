@@ -1719,9 +1719,9 @@ def master_control(
                         remote_logger_waittime,
                         remote_link=remote_link,
                     )
-                    datadir = get_datadir()
+                    meersolar_cachedir = get_meersolar_cachedir()
                     if pid is not None:
-                        save_pid(pid, datadir + f"/pids/pids_{jobid}.txt")
+                        save_pid(pid, f"{meersolar_cachedir}/pids/pids_{jobid}.txt")
                 return 1
 
         ##################################
@@ -1739,9 +1739,9 @@ def master_control(
                         remote_logger_waittime,
                         remote_link=remote_link,
                     )
-                    datadir = get_datadir()
+                    meersolar_cachedir = get_meersolar_cachedir()
                     if pid is not None:
-                        save_pid(pid, datadir + f"/pids/pids_{jobid}.txt")
+                        save_pid(pid, f"{meersolar_cachedir}/pids/pids_{jobid}.txt")
                 return 1
             msg = run_flag(
                 calibrator_msname,
@@ -1771,9 +1771,9 @@ def master_control(
                         remote_logger_waittime,
                         remote_link=remote_link,
                     )
-                    datadir = get_datadir()
+                    meersolar_cachedir = get_meersolar_cachedir()
                     if pid is not None:
-                        save_pid(pid, datadir + f"/pids/pids_{jobid}.txt")
+                        save_pid(pid, f"{meersolar_cachedir}/pids/pids_{jobid}.txt")
                 return 1
             fluxcal_fields, fluxcal_scans = get_fluxcals(calibrator_msname)
             phasecal_fields, phasecal_scans, phasecal_fluxes = get_phasecals(
@@ -1799,9 +1799,9 @@ def master_control(
                         remote_logger_waittime,
                         remote_link=remote_link,
                     )
-                    datadir = get_datadir()
+                    meersolar_cachedir = get_meersolar_cachedir()
                     if pid is not None:
-                        save_pid(pid, datadir + f"/pids/pids_{jobid}.txt")
+                        save_pid(pid, f"{meersolar_cachedir}/pids/pids_{jobid}.txt")
                 return 1
 
         ###############################
@@ -1819,9 +1819,9 @@ def master_control(
                         remote_logger_waittime,
                         remote_link=remote_link,
                     )
-                    datadir = get_datadir()
+                    meersolar_cachedir = get_meersolar_cachedir()
                     if pid is not None:
-                        save_pid(pid, datadir + f"/pids/pids_{jobid}.txt")
+                        save_pid(pid, f"{meersolar_cachedir}/pids/pids_{jobid}.txt")
                 return 1
             msg = run_basic_cal_jobs(
                 calibrator_msname,
@@ -1845,9 +1845,9 @@ def master_control(
                         remote_logger_waittime,
                         remote_link=remote_link,
                     )
-                    datadir = get_datadir()
+                    meersolar_cachedir = get_meersolar_cachedir()
                     if pid is not None:
-                        save_pid(pid, datadir + f"/pids/pids_{jobid}.txt")
+                        save_pid(pid, f"{meersolar_cachedir}/pids/pids_{jobid}.txt")
                 return 1
 
         ##########################################
@@ -1863,9 +1863,9 @@ def master_control(
                     remote_logger_waittime,
                     remote_link=remote_link,
                 )
-                datadir = get_datadir()
+                meersolar_cachedir = get_meersolar_cachedir()
                 if pid is not None:
-                    save_pid(pid, datadir + f"/pids/pids_{jobid}.txt")
+                    save_pid(pid, f"{meersolar_cachedir}/pids/pids_{jobid}.txt")
             return 1
         if len(glob.glob(caldir + "/*.gcal")) == 0:
             print(
@@ -2073,9 +2073,9 @@ def master_control(
                         remote_logger_waittime,
                         remote_link=remote_link,
                     )
-                    datadir = get_datadir()
+                    meersolar_cachedir = get_meersolar_cachedir()
                     if pid is not None:
-                        save_pid(pid, datadir + f"/pids/pids_{jobid}.txt")
+                        save_pid(pid, f"{meersolar_cachedir}/pids/pids_{jobid}.txt")
                 return 1
             ##################################
             # Waiting only spliting is started
@@ -2105,9 +2105,9 @@ def master_control(
                         remote_logger_waittime,
                         remote_link=remote_link,
                     )
-                    datadir = get_datadir()
+                    meersolar_cachedir = get_meersolar_cachedir()
                     if pid is not None:
-                        save_pid(pid, datadir + f"/pids/pids_{jobid}.txt")
+                        save_pid(pid, f"{meersolar_cachedir}/pids/pids_{jobid}.txt")
                 return 1
 
         cpu_frac = copy.deepcopy(cpu_frac_bkp)
@@ -2136,9 +2136,9 @@ def master_control(
                     remote_logger_waittime,
                     remote_link=remote_link,
                 )
-                datadir = get_datadir()
+                meersolar_cachedir = get_meersolar_cachedir()
                 if pid is not None:
-                    save_pid(pid, datadir + f"/pids/pids_{jobid}.txt")
+                    save_pid(pid, f"{meersolar_cachedir}/pids/pids_{jobid}.txt")
             return 1
 
         if do_applycal or do_imaging:
@@ -2174,9 +2174,9 @@ def master_control(
                             remote_logger_waittime,
                             remote_link=remote_link,
                         )
-                        datadir = get_datadir()
+                        meersolar_cachedir = get_meersolar_cachedir()
                         if pid is not None:
-                            save_pid(pid, datadir + f"/pids/pids_{jobid}.txt")
+                            save_pid(pid, f"{meersolar_cachedir}/pids/pids_{jobid}.txt")
                     return 1
             else:
                 print(
@@ -2190,9 +2190,9 @@ def master_control(
                         remote_logger_waittime,
                         remote_link=remote_link,
                     )
-                    datadir = get_datadir()
+                    meersolar_cachedir = get_meersolar_cachedir()
                     if pid is not None:
-                        save_pid(pid, datadir + f"/pids/pids_{jobid}.txt")
+                        save_pid(pid, f"{meersolar_cachedir}/pids/pids_{jobid}.txt")
                 return 1
             if do_sidereal_cor:
                 msg = run_solar_siderealcor_jobs(
@@ -2271,9 +2271,9 @@ def master_control(
                         remote_logger_waittime,
                         remote_link=remote_link,
                     )
-                    datadir = get_datadir()
+                    meersolar_cachedir = get_meersolar_cachedir()
                     if pid is not None:
-                        save_pid(pid, datadir + f"/pids/pids_{jobid}.txt")
+                        save_pid(pid, f"{meersolar_cachedir}/pids/pids_{jobid}.txt")
                 return 1
 
         ###########################
@@ -2326,9 +2326,9 @@ def master_control(
                             remote_logger_waittime,
                             remote_link=remote_link,
                         )
-                        datadir = get_datadir()
+                        meersolar_cachedir = get_meersolar_cachedir()
                         if pid is not None:
-                            save_pid(pid, datadir + f"/pids/pids_{jobid}.txt")
+                            save_pid(pid, f"{meersolar_cachedir}/pids/pids_{jobid}.txt")
                     return 1
                 print(f"Final image directory: {os.path.dirname(imagedir)}\n")
         ###########################################
@@ -2342,9 +2342,9 @@ def master_control(
             pid = start_ping_logger(
                 jobid, remote_job_id, remote_logger_waittime, remote_link=remote_link
             )
-            datadir = get_datadir()
+            meersolar_cachedir = get_meersolar_cachedir()
             if pid is not None:
-                save_pid(pid, datadir + f"/pids/pids_{jobid}.txt")
+                save_pid(pid, f"{meersolar_cachedir}/pids/pids_{jobid}.txt")
         return 0
     except Exception as e:
         traceback.print_exc()

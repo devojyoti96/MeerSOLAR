@@ -1,6 +1,4 @@
 import os, glob, resource, traceback, psutil, time, copy, math, argparse
-from astropy.io import fits
-from casatools import msmetadata
 from meersolar.pipeline.basic_func import *
 from dask import delayed, compute
 from casatasks import casalog
@@ -52,8 +50,10 @@ def rename_image(
     )
     header = fits.getheader(imagename)
     time = header["DATE-OBS"]
-    sun_coords = get_sun(Time(time))
-    print(f"Solar center: {sun_coords.to_string('hmsdms')}")
+    astro_time=Time(time,scale='utc')
+    sun_jpl = Horizons(id='10', location='500', epochs=astro_time.jd)
+    eph = sun_jpl.ephemerides()
+    sun_coords = SkyCoord(ra=eph['RA'][0]*u.deg, dec=eph['DEC'][0]*u.deg, frame='icrs')
     with fits.open(imagename, mode="update") as hdul:
         hdr = hdul[0].header
         hdr["AUTHOR"] = "DevojyotiKansabanik,DeepanPatra"
@@ -71,8 +71,9 @@ def rename_image(
     if "MFS" in imagename:
         new_name += "_MFS"
     new_name = new_name + ".fits"
-    if imagedir != "":
-        new_name = imagedir + "/" + new_name
+    if imagedir=="":
+        imagedir=os.path.dirname(os.path.abspath(imagename))
+    new_name = imagedir + "/" + new_name
     os.system("mv " + imagename + " " + new_name)
     if make_plots:
         try:
@@ -80,17 +81,11 @@ def rename_image(
             pdfdir = f"{os.path.dirname(imagedir)}/images/pdfs"
             os.makedirs(pngdir, exist_ok=True)
             os.makedirs(pdfdir, exist_ok=True)
-            plot_in_hpc(
+            outimages,cropped_map=plot_in_hpc(
                 new_name,
                 draw_limb=True,
-                extension="png",
-                outdir=pngdir,
-            )
-            plot_in_hpc(
-                new_name,
-                draw_limb=True,
-                extension="pdf",
-                outdir=pdfdir,
+                extensions=["png","pdf"],
+                outdirs=[pngdir,pdfdir],
             )
         except:
             pass
@@ -100,19 +95,12 @@ def rename_image(
             overlay_pdfdir = f"{os.path.dirname(imagedir)}/overlays_pdfs"
             os.makedirs(overlay_pngdir, exist_ok=True)
             os.makedirs(overlay_pdfdir, exist_ok=True)
-            make_meer_overlay(
+            outimages=make_meer_overlay(
                 new_name,
-                overlay_pngdir,
                 plot_file_prefix=os.path.basename(new_name).split(".fits")[0]
                 + "_suvi_meerkat_overlay",
-                extension="png",
-            )
-            make_meer_overlay(
-                new_name,
-                overlay_pdfdir,
-                plot_file_prefix=os.path.basename(new_name).split(".fits")[0]
-                + "_suvi_meerkat_overlay",
-                extension="pdf",
+                extensions=["png","pdf"],
+                outdirs=[overlay_pngdir,overlay_pdfdir]
             )
         except Exception as e:
             traceback.print_exc()

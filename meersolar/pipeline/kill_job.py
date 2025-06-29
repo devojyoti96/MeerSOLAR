@@ -1,7 +1,6 @@
 import os, sys, signal, argparse, numpy as np, time, psutil
 from meersolar.pipeline.basic_func import *
 
-
 def kill_process_and_children(pid):
     try:
         parent = psutil.Process(pid)
@@ -50,13 +49,13 @@ def kill_meerjob():
         parser.print_help(sys.stderr)
         sys.exit(1)
     args = parser.parse_args()
-    datadir = get_datadir()
-    jobfile_name = datadir + f"/main_pids_{args.jobid}.txt"
+    meersolar_cachedir=get_meersolar_cachedir()
+    jobfile_name =  f"{meersolar_cachedir}/main_pids_{args.jobid}.txt"
     results = np.loadtxt(jobfile_name, dtype="str", unpack=True)
     main_pid = int(results[1])
     msname = str(results[2])
     basedir = str(results[3])
-    pid_file = datadir + f"/pids/pids_{args.jobid}.txt"
+    pid_file = f"{meersolar_cachedir}/pids/pids_{args.jobid}.txt"
     try:
         os.kill(int(main_pid), signal.SIGKILL)
     except:
@@ -67,6 +66,7 @@ def kill_meerjob():
     os.system(f"rm -rf {basedir}/tmp_meersolar_*")
     drop_cache(msname)
     drop_cache(basedir)
+    drop_cache(meersolar_cachedir)
 
 
 if __name__ == "__main__":

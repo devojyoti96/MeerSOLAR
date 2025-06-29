@@ -1,42 +1,58 @@
-import os, sys, glob, time, gc, tempfile, copy, warnings, logger
+# General imports
+##################
+import os, sys, glob, time, gc, tempfile, copy, warnings
+import subprocess, contextlib, ctypes, platform
 import traceback, resource, requests, threading, socket, argparse
 os.environ["QT_OPENGL"] = "software"
 os.environ["QT_QPA_PLATFORM"] = "offscreen"
-import matplotlib.ticker as ticker, matplotlib.pyplot as plt 
-import matplotlib, subprocess, contextlib, ctypes, platform
+import matplotlib, matplotlib.ticker as ticker, matplotlib.pyplot as plt 
 import numpy as np, dask, psutil, logging, sunpy, tempfile, shutil
 import astropy.units as u, string, secrets
 from contextlib import contextmanager
-from astropy.coordinates import EarthLocation, SkyCoord
-from sunpy.map import Map
-from sunpy.coordinates import frames, sun
 from datetime import datetime as dt, timezone, timedelta
+from scipy.ndimage import gaussian_filter
+from watchdog.observers import Observer
+from watchdog.events import FileSystemEventHandler
+
+#General,CASA,dask imports
+##########################
+from casatools import msmetadata, ms as casamstool, table, agentflagger
 from casatasks import (
     casalog,
     importfits,
     listpartition,
 )
-from scipy.ndimage import gaussian_filter
-from casatools import msmetadata, ms as casamstool, table, agentflagger
+from casatasks import casalog
 from dask.distributed import Client, LocalCluster
 from dask import delayed, compute, config
+
+# Astropy imports
+##################
+from astropy.wcs import FITSFixedWarning
+warnings.simplefilter('ignore', category=FITSFixedWarning)
+from astropy.coordinates import EarthLocation, SkyCoord, AltAz, get_sun
 from astropy.time import Time
-from astropy.coordinates import get_sun, SkyCoord
 from astropy.io import fits
 from astropy.wcs import WCS
-from casatasks import casalog
 from astropy.visualization import ImageNormalize, PowerStretch, LogStretch
-from matplotlib.gridspec import GridSpec
-from matplotlib.patches import Ellipse, Rectangle
-from matplotlib.colors import ListedColormap
-from matplotlib import cm
+from astroquery.jplhorizons import Horizons
+
+# Sunpy imports
+################
+from sunpy.map import Map
+from sunpy.coordinates import frames, sun
 from sunpy import timeseries as ts
 from sunpy.net import Fido, attrs as a
 from sunpy.coordinates import SphericalScreen
 from sunpy.map.maputils import all_coordinates_from_map
 from sunpy.time import parse_time
-from watchdog.observers import Observer
-from watchdog.events import FileSystemEventHandler
+
+# Matplotlib imports
+#####################
+from matplotlib.gridspec import GridSpec
+from matplotlib.patches import Ellipse, Rectangle
+from matplotlib.colors import ListedColormap
+from matplotlib import cm
 
 try:
     logfile = casalog.logfile()
@@ -55,6 +71,15 @@ def get_datadir():
     os.makedirs(datadir_path, exist_ok=True)
     os.makedirs(f"{datadir_path}/pids", exist_ok=True)
     return datadir_path
+    
+def get_meersolar_cachedir():
+    homedir=os.environ.get("HOME")
+    if homedir is None:
+        homedir=os.path.expanduser("~")
+    username = os.getlogin()
+    meersolar_cachedir=f"{homedir}/.meersolar"
+    os.makedirs(meersolar_cachedir,exist_ok=True)
+    return meersolar_cachedir
 
 
 datadir = get_datadir()
@@ -79,7 +104,7 @@ def init_udocker():
     os.system("udocker install")
 
 
-@contextlib.contextmanager
+@contextmanager
 def suppress_casa_output():
     with open(os.devnull, "w") as fnull:
         old_stdout = os.dup(1)
@@ -286,8 +311,9 @@ def generate_password(length=6):
 
 
 def get_remote_logger_link():
-    datadir = get_datadir()
-    link_file = os.path.join(datadir, "remotelink.txt")
+    meersolar_cachedir = get_meersolar_cachedir()
+    username = os.getlogin()
+    link_file = os.path.join(meersolar_cachedir, "remotelink_{username}.txt")
     try:
         with open(link_file, "r") as f:
             lines = [line.strip() for line in f if line.strip()]
@@ -312,8 +338,9 @@ def get_remote_logger_link():
 
 
 def get_emails():
-    datadir = get_datadir()
-    email_file = os.path.join(datadir, "emails.txt")
+    meersolar_cachedir = get_meersolar_cachedir()
+    username = os.getlogin()
+    email_file = os.path.join(meersolar_cachedir, "emails_{username}.txt")
     try:
         with open(email_file, "r") as f:
             lines = [line.strip() for line in f if line.strip()]
@@ -384,8 +411,8 @@ class LogTailHandler(FileSystemEventHandler):
 def ping_logger(jobid, remote_jobid, stop_event, remote_link=""):
     """Ping a job-specific keep-alive endpoint periodically until stop_event is set."""
     pid = os.getpid()
-    datadir = get_datadir()
-    save_pid(pid, datadir + f"/pids/pids_{jobid}.txt")
+    meersolar_cachedir = get_meersolar_cachedir()
+    save_pid(pid, f"{meersolar_cachedir}/pids/pids_{jobid}.txt")
     interval = 10  # 10 min interval
     if remote_link != "":
         url = f"{remote_link}/api/ping/{remote_jobid}"
@@ -1126,7 +1153,6 @@ def enhance_offlimb(sunpy_map, do_sharpen=True):
 
 def make_meer_overlay(
     meerkat_image,
-    workdir,
     suvi_wavelength=195,
     plot_file_prefix=None,
     plot_meer_colormap=True,
@@ -1135,7 +1161,8 @@ def make_meer_overlay(
     do_sharpen_suvi=True,
     xlim=[-1600, 1600],
     ylim=[-1600, 1600],
-    extension="png",
+    extensions=["png"],
+    outdirs=[],
     showgui=False,
 ):
     """
@@ -1145,8 +1172,6 @@ def make_meer_overlay(
     ----------
     meerkat_image : str
         MeerKAT image
-    workdir : str
-        Work directory
     suvi_wavelength : float, optional
         GOES SUVI wavelength, options: 94, 131, 171, 195, 284, 304 Å
     plot_file_prefix : str, optional
@@ -1163,22 +1188,29 @@ def make_meer_overlay(
         X-axis limit in arcsec
     tlim : list, optional
         Y-axis limit in arcsec
-    extension : str, optional
-        Image file extension
+    extensions : list, optional
+        Image file extensions
+    outdirs : list, optional
+        Output directories for each extensions
     showgui : bool, optional
         Show GUI
 
     Returns
     -------
-    str
-        Plot file name
+    list
+        Plot file names
     """
+    @delayed
+    def reproject_map(smap, target_header):
+        with SphericalScreen(smap.observer_coordinate):
+            return smap.reproject_to(target_header)
     logging.getLogger('sunpy').setLevel(logging.ERROR)
+    logging.getLogger('reproject.common').setLevel(logging.ERROR)
     if showgui:
         matplotlib.use("TkAgg")
     else:
         matplotlib.use("Agg")
-    os.makedirs(workdir, exist_ok=True)
+    workdir=os.path.dirname(os.path.abspath(meerkat_image))
     meermap = get_meermap(meerkat_image)
     obs_datetime = fits.getheader(meerkat_image)["DATE-OBS"]
     obs_date = obs_datetime.split("T")[0]
@@ -1201,10 +1233,8 @@ def make_meer_overlay(
         instrument=suvi_map.instrument,
         wavelength=suvi_map.wavelength,
     )
-    with SphericalScreen(meermap.observer_coordinate):
-        meer_reprojected = meermap.reproject_to(projected_header)
-    with SphericalScreen(suvi_map.observer_coordinate):
-        suvi_reprojected = suvi_map.reproject_to(projected_header)
+    reprojected = [reproject_map(m, projected_header) for m in [meermap,suvi_map]]
+    meer_reprojected,suvi_reprojected = compute(*reprojected)
     meertime = meermap.meta["date-obs"].split(".")[0]
     suvitime = suvi_map.meta["date-obs"].split(".")[0]
     if plot_meer_colormap and len(contour_levels) > 0:
@@ -1308,11 +1338,19 @@ def make_meer_overlay(
     elif len(contour_levels) > 0:
         ax_contour.coords.grid(False)
     fig.tight_layout()
+    plot_file_list=[]
+    print("#######################")
     if plot_file_prefix:
-        plot_file = f"{workdir}/{plot_file_prefix}.{extension}"
-        plt.savefig(plot_file, bbox_inches="tight")
-        print("#######################")
-        print(f"Plot saved: {plot_file}")
+        for i in range(len(extensions)):
+            ext=extensions[i]
+            try:
+                savedir=outdirs[i]
+            except:
+                savedir=workdir
+            plot_file = f"{savedir}/{plot_file_prefix}.{ext}"
+            plt.savefig(plot_file, bbox_inches="tight")
+            print(f"Plot saved: {plot_file}")
+            plot_file_list.append(plot_file)
         print("#######################\n")
     else:
         plot_file = None
@@ -1322,7 +1360,7 @@ def make_meer_overlay(
         plt.close("all")
     else:
         plt.close(fig)
-    return plot_file
+    return plot_file_list
 
 
 def split_noise_diode_scans(
@@ -2453,10 +2491,6 @@ def get_solar_elevation_MeerKAT(date_time=""):
     float
         Solar elevation in degree
     """
-    import astropy.units as u
-    from astropy.coordinates import AltAz, EarthLocation, get_sun, SkyCoord
-    from astropy.time import Time
-
     lat = -30.7130
     lon = 21.4430
     elev = 1038
@@ -2672,8 +2706,10 @@ def radec_sun(msname):
     msmd.done()
     mid_time = times[int(len(times) / 2)]
     mid_timestamp = mjdsec_to_timestamp(mid_time)
-    mid_time_mjd = Time(mid_timestamp, format="isot")
-    sun_coord = get_sun(mid_time_mjd)
+    astro_time=Time(mid_timestamp,scale='utc')
+    sun_jpl = Horizons(id='10', location='500', epochs=astro_time.jd)
+    eph = sun_jpl.ephemerides()
+    sun_coord = SkyCoord(ra=eph['RA'][0]*u.deg, dec=eph['DEC'][0]*u.deg, frame='icrs')
     sun_ra = (
         str(int(sun_coord.ra.hms.h))
         + "h"
@@ -3650,8 +3686,8 @@ def get_meermap(fits_image, band="", do_sharpen=False):
 def plot_in_hpc(
     fits_image,
     draw_limb=False,
-    extension="png",
-    outdir="",
+    extensions=["png"],
+    outdirs=[],
     plot_range=[],
     power=0.5,
     xlim=[-1600, 1600],
@@ -3669,10 +3705,10 @@ def plot_in_hpc(
         Name of the fits image
     draw_limb : bool, optional
         Draw solar limb or not
-    extension : str, optional
-        Output file extension
-    outdir : str, optional
-        Output directory
+    extensions : list, optional
+        Output file extensions
+    outdirs : list, optional
+        Output directories for each extensions
     plot_range : list, optional
         Plot range
     power : float, optional
@@ -3690,8 +3726,8 @@ def plot_in_hpc(
 
     Returns
     -------
-    outfile
-        Saved plot name
+    outfiles
+        Saved plot file names
     sunpy.Map
         MeerKAT image in helioprojective co-ordinate
     """
@@ -3761,20 +3797,28 @@ def plot_in_hpc(
     matplotlib.rcParams.update({"font.size": 12})
     fits_image = fits_image.rstrip("/")
     os.makedirs(outdir, exist_ok=True)
-    if len(contour_levels) > 0:
-        output_image = (
-            outdir
-            + "/"
-            + os.path.basename(fits_image).split(".fits")[0]
-            + f"_contour.{extension}"
-        )
-    else:
-        output_image = (
-            outdir
-            + "/"
-            + os.path.basename(fits_image).split(".fits")[0]
-            + f".{extension}"
-        )
+    output_image_list=[]
+    for i in range(len(extensions)):    
+        ext=extensions[i]
+        try:
+            outdir=outdirs[i]
+        except:
+            outdir=os.path.dirname(os.path.abspath(fits_image))
+        if len(contour_levels) > 0:
+            output_image = (
+                outdir
+                + "/"
+                + os.path.basename(fits_image).split(".fits")[0]
+                + f"_contour.{ext}"
+            )
+        else:
+            output_image = (
+                outdir
+                + "/"
+                + os.path.basename(fits_image).split(".fits")[0]
+                + f".{ext}"
+            )
+        output_image_list.append(output_image)
     meer_map_rotate = get_meermap(fits_image, band=band)
     top_right = SkyCoord(
         xlim[1] * u.arcsec, ylim[1] * u.arcsec, frame=meer_map_rotate.coordinate_frame
@@ -3897,12 +3941,13 @@ def plot_in_hpc(
     elif pixel_unit == "JY/BEAM":
         cbar.set_label("Flux density (Jy/beam)")
     fig.tight_layout()
-    fig.savefig(output_image)
+    for output_image in output_image_list:
+        fig.savefig(output_image)
     if showgui:
         plt.show()
     plt.close(fig)
     plt.close("all")
-    return output_image, cropped_map
+    return output_image_list, cropped_map
 
 
 def make_stokes_wsclean_imagecube(
@@ -4059,8 +4104,8 @@ def get_nprocess_meersolar(jobid):
     int
         Number of running processes
     """
-    datadir = get_datadir()
-    pid_file = datadir + f"/pids/pids_{jobid}.txt"
+    meersolar_cachedir = get_meersolar_cachedir()
+    pid_file = f"{meersolar_cachedir}/pids/pids_{jobid}.txt"
     pids = np.loadtxt(pid_file, unpack=True)
     n_process = 0
     for pid in pids:
@@ -4097,8 +4142,8 @@ def get_jobid():
     int
         Job ID in the format YYYYMMDDHHMMSSmmm (milliseconds)
     """
-    datadir = get_datadir()
-    jobid_file = os.path.join(datadir, "jobids.txt")
+    meersolar_cachedir = get_meersolar_cachedir()
+    jobid_file = os.path.join(meersolar_cachedir, "jobids.txt")
     if os.path.exists(jobid_file):
         prev_jobids = np.loadtxt(jobid_file, unpack=True, dtype="int64")
         if prev_jobids.size == 0:
@@ -4156,8 +4201,8 @@ def save_main_process_info(pid, jobid, msname, basedir, cpu_frac, mem_frac):
     str
         Job info file name
     """
-    datadir = get_datadir()
-    prev_main_pids = glob.glob(f"{datadir}/main_pids_*.txt")
+    meersolar_cachedir = get_meersolar_cachedir()
+    prev_main_pids = glob.glob(f"{meersolar_cachedir}/main_pids_*.txt")
     prev_jobids = [
         str(os.path.basename(i).rstrip(".txt").split("main_pids_")[-1])
         for i in prev_main_pids
@@ -4173,9 +4218,9 @@ def save_main_process_info(pid, jobid, msname, basedir, cpu_frac, mem_frac):
                 filtered_prev_jobids.append(job_id)
             else:
                 os.system(f"rm -rf {prev_main_pids[i]}")
-                if os.path.exists(f"{datadir}/pids/pids_{job_id}.txt"):
-                    os.system(f"rm -rf {datadir}/pids/pids_{job_id}.txt")
-    main_job_file = datadir + f"/main_pids_{jobid}.txt"
+                if os.path.exists(f"{meersolar_cachedir}/pids/pids_{job_id}.txt"):
+                    os.system(f"rm -rf {meersolar_cachedir}/pids/pids_{job_id}.txt")
+    main_job_file = f"{meersolar_cachedir}/main_pids_{jobid}.txt"
     main_str = f"{jobid} {pid} {msname} {basedir} {cpu_frac} {mem_frac}"
     with open(main_job_file, "w") as f:
         f.write(main_str)
@@ -4204,7 +4249,6 @@ def create_batch_script_nonhpc(cmd, workdir, basename, write_logfile=True):
     str
         Log file name
     """
-    datadir = get_datadir()
     batch_file = workdir + "/" + basename + ".batch"
     cmd_batch = workdir + "/" + basename + "_cmd.batch"
     finished_touch_file = workdir + "/.Finished_" + basename
