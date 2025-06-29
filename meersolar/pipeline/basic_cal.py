@@ -566,6 +566,10 @@ def single_round_cal_and_flag(
         applycal_gaintable = []
         applycal_gainfield = []
         applycal_interp = []
+    
+        if len(fluxcal_mslist)==0 and len(phasecal_mslist)==0:
+            print("No flux calibrator or phase calibrator is present.")
+            return 1, []
 
         ##############################
         # Delay calibration
@@ -609,9 +613,6 @@ def single_round_cal_and_flag(
                 applycal_gaintable.append(delay_caltable)
                 applycal_gainfield.append("")
                 applycal_interp.append("nearest")
-        else:
-            print("No flux calibrator or phase calibrator is present.")
-            return 1, []
 
         ##############################
         # Bandpass calibration

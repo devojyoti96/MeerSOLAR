@@ -2663,6 +2663,7 @@ def main():
         print("Starting MeerSOLAR Pipeline....")
         print("#########################################\n")
 
+        # TODO: multi specification imaging parameters as json dic 
         msg = master_control(
             msname=args.msname,
             workdir=args.workdir,

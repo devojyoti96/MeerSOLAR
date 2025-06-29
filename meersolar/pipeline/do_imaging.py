@@ -75,6 +75,9 @@ def rename_image(
         imagedir=os.path.dirname(os.path.abspath(imagename))
     new_name = imagedir + "/" + new_name
     os.system("mv " + imagename + " " + new_name)
+    hpcdir=f"{os.path.dirname(imagedir)}/images/hpcs"
+    os.makedirs(hpcdir, exist_ok=True)
+    save_in_hpc(new_name,outdir=hpcdir)
     if make_plots:
         try:
             pngdir = f"{os.path.dirname(imagedir)}/images/pngs"

@@ -73,13 +73,14 @@ def drop_cache(path, verbose=False):
         if verbose:
             print(f"[cache drop] Path does not exist or is not valid: {path}")
    
-def get_datadir():
-    from importlib.resources import files
-
-    datadir_path = str(files("meersolar").joinpath("data"))
-    os.makedirs(datadir_path, exist_ok=True)
-    os.makedirs(f"{datadir_path}/pids", exist_ok=True)
-    return datadir_path
+def get_meersolar_cachedir():
+    homedir=os.environ.get("HOME")
+    if homedir is None:
+        homedir=os.path.expanduser("~")
+    username = os.getlogin()
+    meersolar_cachedir=f"{homedir}/.meersolar"
+    os.makedirs(meersolar_cachedir,exist_ok=True)
+    return meersolar_cachedir
             
 class SmartDefaultsHelpFormatter(argparse.ArgumentDefaultsHelpFormatter):
     def _get_help_string(self, action):
@@ -330,9 +331,9 @@ def main():
         print("Please provide either job ID or log directory.")
         sys.exit(1)
     else:
-        datadir = get_datadir()
+        meersolar_cachedir = get_meersolar_cachedir()
         if args.jobid is not None:
-            jobfile_name = datadir + f"/main_pids_{args.jobid}.txt"
+            jobfile_name = f"{meersolar_cachedir}/main_pids_{args.jobid}.txt"
             if not os.path.exists(jobfile_name):
                 print(
                     f"Job ID: {args.jobid} is not available. Provide log directory name."

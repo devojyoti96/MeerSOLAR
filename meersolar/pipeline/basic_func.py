@@ -3683,6 +3683,29 @@ def get_meermap(fits_image, band="", do_sharpen=False):
     return meer_map_rotate
 
 
+def save_in_hpc(fits_image,outdir=""):
+    """
+    Save solar image in helioprojective coordinates
+    
+    Parameters
+    ----------
+    fits_image : str
+        FITS image name
+    outdir : str, optional
+        Output directory
+    
+    Returns
+    -------
+    str
+        FITS image in helioprojective coordinate
+    """
+    meermap=get_meermap(fits_image)
+    if outdir=="":
+        outdir=os.path.dirname(os.path.abspath(fits_image))
+    outfile=f"{outdir}/{os.path.basename(fits_image).split('.fits')[0]}_HPC.fits"
+    meermap.save(outfile,filetype="fits")
+    return outfile
+
 def plot_in_hpc(
     fits_image,
     draw_limb=False,
@@ -3731,15 +3754,13 @@ def plot_in_hpc(
     sunpy.Map
         MeerKAT image in helioprojective co-ordinate
     """
-    logging.getLogger('sunpy').setLevel(logging.ERROR)
-    MEERLAT = -30.7133
-    MEERLON = 21.4429
-    MEERALT = 1086.6
-    meer_hdu = fits.open(fits_image)  # Opening MeerKAT fits file
-    meer_header = meer_hdu[0].header  # meer header
-    meer_data = meer_hdu[0].data
-    if len(meer_data.shape) > 2:
-        meer_data = meer_data[0, 0, :, :]  # meer data
+    if showgui == False:
+        matplotlib.use("Agg")
+    else:
+        matplotlib.use("TkAgg")
+    matplotlib.rcParams.update({"font.size": 12})
+    fits_image = fits_image.rstrip("/")
+    meer_header = fits.getheader(fits_image)  # Opening MeerKAT fits file
     if meer_header["CTYPE3"] == "FREQ":
         frequency = meer_header["CRVAL3"] * u.Hz
     elif meer_header["CTYPE4"] == "FREQ":
@@ -3756,69 +3777,6 @@ def plot_in_hpc(
     except:
         pixel_nuit = ""
     obstime = Time(meer_header["date-obs"])
-    meerpos = EarthLocation(
-        lat=MEERLAT * u.deg, lon=MEERLON * u.deg, height=MEERALT * u.m
-    )
-    meer_gcrs = SkyCoord(meerpos.get_gcrs(obstime))  # Converting into GCRS coordinate
-    reference_coord = SkyCoord(
-        meer_header["crval1"] * u.Unit(meer_header["cunit1"]),
-        meer_header["crval2"] * u.Unit(meer_header["cunit2"]),
-        frame="gcrs",
-        obstime=obstime,
-        obsgeoloc=meer_gcrs.cartesian,
-        obsgeovel=meer_gcrs.velocity.to_cartesian(),
-        distance=meer_gcrs.hcrs.distance,
-    )
-    reference_coord_arcsec = reference_coord.transform_to(
-        frames.Helioprojective(observer=meer_gcrs)
-    )
-    cdelt1 = (np.abs(meer_header["cdelt1"]) * u.deg).to(u.arcsec)
-    cdelt2 = (np.abs(meer_header["cdelt2"]) * u.deg).to(u.arcsec)
-    P1 = sun.P(obstime)  # Relative rotation angle
-    new_meer_header = sunpy.map.make_fitswcs_header(
-        meer_data,
-        reference_coord_arcsec,
-        reference_pixel=u.Quantity(
-            [meer_header["crpix1"] - 1, meer_header["crpix2"] - 1] * u.pixel
-        ),
-        scale=u.Quantity([cdelt1, cdelt2] * u.arcsec / u.pix),
-        rotation_angle=-P1,
-        wavelength=frequency.to(u.MHz).round(2),
-        observatory="MeerKAT",
-    )
-    meer_map = Map(meer_data, new_meer_header)
-    meer_map_rotate = meer_map.rotate()
-    if showgui == False:
-        matplotlib.use("Agg")
-    else:
-        matplotlib.use("TkAgg")
-    if outdir == "":
-        outdir = os.getcwd()
-    matplotlib.rcParams.update({"font.size": 12})
-    fits_image = fits_image.rstrip("/")
-    os.makedirs(outdir, exist_ok=True)
-    output_image_list=[]
-    for i in range(len(extensions)):    
-        ext=extensions[i]
-        try:
-            outdir=outdirs[i]
-        except:
-            outdir=os.path.dirname(os.path.abspath(fits_image))
-        if len(contour_levels) > 0:
-            output_image = (
-                outdir
-                + "/"
-                + os.path.basename(fits_image).split(".fits")[0]
-                + f"_contour.{ext}"
-            )
-        else:
-            output_image = (
-                outdir
-                + "/"
-                + os.path.basename(fits_image).split(".fits")[0]
-                + f".{ext}"
-            )
-        output_image_list.append(output_image)
     meer_map_rotate = get_meermap(fits_image, band=band)
     top_right = SkyCoord(
         xlim[1] * u.arcsec, ylim[1] * u.arcsec, frame=meer_map_rotate.coordinate_frame
@@ -3941,6 +3899,28 @@ def plot_in_hpc(
     elif pixel_unit == "JY/BEAM":
         cbar.set_label("Flux density (Jy/beam)")
     fig.tight_layout()
+    output_image_list=[]
+    for i in range(len(extensions)):    
+        ext=extensions[i]
+        try:
+            outdir=outdirs[i]
+        except:
+            outdir=os.path.dirname(os.path.abspath(fits_image))
+        if len(contour_levels) > 0:
+            output_image = (
+                outdir
+                + "/"
+                + os.path.basename(fits_image).split(".fits")[0]
+                + f"_contour.{ext}"
+            )
+        else:
+            output_image = (
+                outdir
+                + "/"
+                + os.path.basename(fits_image).split(".fits")[0]
+                + f".{ext}"
+            )
+        output_image_list.append(output_image)
     for output_image in output_image_list:
         fig.savefig(output_image)
     if showgui:

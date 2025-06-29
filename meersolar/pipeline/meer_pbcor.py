@@ -134,23 +134,36 @@ def pbcor_all_images(
             for r in results:
                 if r == 0:
                     successful_pbcor += 1
-        if make_plots:
-            print("Making plots of primary beam corrected images ...")
-            images = glob.glob(f"{pbcor_dir}/*.fits")
-            pngdir = f"{pbcor_dir}/pngs"
-            pdfdir = f"{pbcor_dir}/pdfs"
-            os.makedirs(pngdir, exist_ok=True)
-            os.makedirs(pdfdir, exist_ok=True)
-            for image in images:
-                outimages=plot_in_hpc(
-                    image,
-                    draw_limb=True,
-                    extensions=["png","pdf"],
-                    outdirs=[pngdir,pdfidr]
-                )
-        if successful_pbcor > 0 and make_TB:
-            successful_images = glob.glob(pbcor_dir + "/*.fits")
-            for pbcor_image in successful_images:
+                    
+        ############################################
+        # Saving fits in helioprojective coordinates
+        ############################################
+        if successful_pbcor>0:
+            hpcdir=f"{pbcor_dir}/hpcs"
+            pbcor_images = glob.glob(f"{pbcor_dir}/*.fits")
+            os.makedirs(hpcdir, exist_ok=True)
+            print("Saving primary beam corrected images helioprojective coordinates...")
+            for image in pbcor_images:
+                save_in_hpc(image,outdir=hpcdir)
+            if make_plots:
+                print("Making plots of primary beam corrected images ...")
+                pngdir = f"{pbcor_dir}/pngs"
+                pdfdir = f"{pbcor_dir}/pdfs"
+                os.makedirs(pngdir, exist_ok=True)
+                os.makedirs(pdfdir, exist_ok=True)
+                for image in pbcor_images:
+                    outimages=plot_in_hpc(
+                        image,
+                        draw_limb=True,
+                        extensions=["png","pdf"],
+                        outdirs=[pngdir,pdfidr]
+                    )
+                
+        ####################################
+        # Making brightness temperature maps
+        ####################################
+        if len(pbcor_images) > 0 and make_TB:
+            for pbcor_image in pbcor_images:
                 tb_image = (
                     tb_dir
                     + "/"
@@ -158,22 +171,38 @@ def pbcor_all_images(
                     + "_TB.fits"
                 )
                 generate_tb_map(pbcor_image, outfile=tb_image)
-        if make_plots:
-            print("Making plots of brightness temperature maps..")
-            images = glob.glob(f"{tb_dir}/*.fits")
-            pngdir = f"{tb_dir}/pngs"
-            pdfdir = f"{tb_dir}/pdfs"
-            os.makedirs(pngdir, exist_ok=True)
-            os.makedirs(pdfdir, exist_ok=True)
-            for image in images:
-                outimages=plot_in_hpc(
-                    image,
-                    draw_limb=True,
-                    extensions=["png","pdf"],
-                    outdirs=[pngdir,pdfdir]
-                )
+                
+            ############################################
+            # Saving fits in helioprojective coordinates
+            ###########################################
+            hpcdir=f"{tb_dir}/hpcs"
+            tb_images = glob.glob(f"{tb_dir}/*.fits")
+            os.makedirs(hpcdir, exist_ok=True)
+            print("Saving brightness temperature maps helioprojective coordinates...")
+            for image in tb_images:
+                save_in_hpc(image,outdir=hpcdir)
+                
+            if make_plots:
+                print("Making plots of brightness temperature maps..")
+                pngdir = f"{tb_dir}/pngs"
+                pdfdir = f"{tb_dir}/pdfs"
+                os.makedirs(pngdir, exist_ok=True)
+                os.makedirs(pdfdir, exist_ok=True)
+                for image in tb_images:
+                    outimages=plot_in_hpc(
+                        image,
+                        draw_limb=True,
+                        extensions=["png","pdf"],
+                        outdirs=[pngdir,pdfdir]
+                    )
+            
+        #########################################
+        # Final calculations
+        #########################################
         print(f"Total input images: {len(images)}")
-        print(f"Total corrected images: {successful_pbcor}")
+        print(f"Total corrected images: {len(pbcor_images)}")
+        if make_TB:
+            print(f"Total brightness temperatures maps: {len(tb_images)}") 
         os.system(f"rm -rf {pbdir}/dask-scratch-space")
         return 0
     except Exception as e:
