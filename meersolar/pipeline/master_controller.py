@@ -1323,7 +1323,7 @@ def master_control(
     minuv=0,
     image_freqres=-1,
     image_timeres=-1,
-    pol="I",
+    pol="IQUV",
     apply_parang=True,
     clean_threshold=1.0,
     use_multiscale=True,
@@ -1494,6 +1494,7 @@ def master_control(
         print("###########################")
         print(f"MeerSOLAR Job ID: {jobid}")
         print(f"Work directory: {workdir}")
+        print(f"Final product directory: {outdir}")
         print("###########################\n")
         #####################################
         # Moving into work directory
@@ -2230,10 +2231,8 @@ def master_control(
         # Imaging
         ######################################
         if do_imaging:
-            if do_polcal == False:
+            if do_polcal == False: # Only if do_polcal is False, overwrite to make only Stokes I
                 pol = "I"
-            else:
-                pol = "IQUV"
             band = get_band_name(target_mslist[0])
             msg = run_imaging_jobs(
                 target_mslist,
@@ -2440,7 +2439,7 @@ def main():
         advanced_image.add_argument(
             "--pol",
             type=str,
-            default="I",
+            default="IQUV",
             help="Stokes parameter(s) to image (e.g. 'I', 'XX', 'RR', 'IQUV')",
         )
         advanced_image.add_argument(
