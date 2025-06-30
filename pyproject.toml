@@ -1,16 +1,21 @@
 [build-system]
-requires = ["setuptools>=61.0", "wheel"]
+requires = ["setuptools >= 77.0.3"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "meersolar"
-version = "1.0.0"
+version = "1.0.1"
 description = "A package to calibrate MeerKAT solar observation"
 readme = { file = "README.md", content-type = "text/markdown" }
-license = { text = "MIT" }
+license = "MIT"
 authors = [
     { name = "Devojyoti Kansabanik", email = "devojyoti96@gmail.com" },
     { name = "Deepan Patra", email = "dpatra@ncra.tifr.res.in" }
+]
+requires-python = ">=3.10"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Operating System :: OS Independent"
 ]
 dependencies = [
     "aiapy==0.10.1",
@@ -176,13 +181,6 @@ dependencies = [
     "watchdog==6.0.0",
     "PyQT5==5.15.11"
 ]
-
-requires-python = ">=3.10"
-classifiers = [
-    "Programming Language :: Python :: 3",
-    "License :: OSI Approved :: MIT License",
-    "Operating System :: OS Independent"
-]
 urls = { "Homepage" = "https://github.com/devojyoti96/MeerSOLAR" }
 
 # Console scripts entry points
@@ -210,9 +208,16 @@ show_meersolar_status = "meersolar.pipeline.show_status:main"
 run_makeds = "meersolar.pipeline.make_ds:main"
 
 [tool.setuptools]
-packages = ["meersolar", "meersolar.pipeline", "meersolar.crystalball"]
+packages = [
+    "meersolar",
+    "meersolar.pipeline",
+    "meersolar.crystalball",
+    "meersolar.data"
+]
+include-package-data = true
 
 [tool.setuptools.package-data]
-meersolar = ["data/sendmail.so"]
+"meersolar.data" = ["sendmail.so"]
+
 
 
