@@ -241,8 +241,11 @@
           <section id="create-and-activate-conda-environment">
 <h1>Create and Activate Conda Environment<a class="headerlink" href="#create-and-activate-conda-environment" title="Link to this heading">¶</a></h1>
 <p>This guideline provide how to activate <strong>conda</strong> environment before installing and using MeerSOLAR.</p>
+<section id="create-conda-environment-in-default-conda-directory">
+<h2>Create conda environment in default conda directory:<a class="headerlink" href="#create-conda-environment-in-default-conda-directory" title="Link to this heading">¶</a></h2>
+<p>This will create the conda environment in the default conda directory where conda is installed. If a custom directory is chosen during installation, environment will be created in that directory.</p>
 <section id="create-conda-environment">
-<h2>Create conda environment<a class="headerlink" href="#create-conda-environment" title="Link to this heading">¶</a></h2>
+<h3>Create conda environment<a class="headerlink" href="#create-conda-environment" title="Link to this heading">¶</a></h3>
 <ol class="arabic simple">
 <li><p><strong>To create a minimal Python 3.10 environment:</strong></p></li>
 </ol>
@@ -251,7 +254,7 @@
 </div>
 </section>
 <section id="activate-and-deactivate-conda-environment">
-<h2>Activate and deactivate conda environment<a class="headerlink" href="#activate-and-deactivate-conda-environment" title="Link to this heading">¶</a></h2>
+<h3>Activate and deactivate conda environment<a class="headerlink" href="#activate-and-deactivate-conda-environment" title="Link to this heading">¶</a></h3>
 <ol class="arabic simple">
 <li><p><strong>To activate the environment:</strong></p></li>
 </ol>
@@ -264,6 +267,39 @@
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>conda<span class="w"> </span>deactivate
 </pre></div>
 </div>
+</section>
+</section>
+<section id="create-conda-environment-in-custom-conda-directory">
+<h2>Create conda environment in custom conda directory:<a class="headerlink" href="#create-conda-environment-in-custom-conda-directory" title="Link to this heading">¶</a></h2>
+<p>To create in a custom directory <code class="docutils literal notranslate"><span class="pre">&lt;/path/to/env&gt;</span></code>, follow the steps below.</p>
+<div class="admonition tip">
+<p class="admonition-title">Tip</p>
+<p>It is recommended to install in custom path in HPC architechture or your default conda path has limited disk space or does not have global access.</p>
+</div>
+<section id="id1">
+<h3>Create conda environment<a class="headerlink" href="#id1" title="Link to this heading">¶</a></h3>
+<ol class="arabic simple">
+<li><p><strong>To create a minimal Python 3.10 environment:</strong></p></li>
+</ol>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>conda<span class="w"> </span>create<span class="w"> </span>-p<span class="w"> </span>&lt;/path/to/env&gt;/meersolar_env<span class="w"> </span><span class="nv">python</span><span class="o">=</span><span class="m">3</span>.10
+</pre></div>
+</div>
+</section>
+<section id="id2">
+<h3>Activate and deactivate conda environment<a class="headerlink" href="#id2" title="Link to this heading">¶</a></h3>
+<ol class="arabic simple">
+<li><p><strong>To activate the environment:</strong></p></li>
+</ol>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>conda<span class="w"> </span>activate<span class="w"> </span>&lt;/path/to/env&gt;/meersolar_env
+</pre></div>
+</div>
+<ol class="arabic simple" start="2">
+<li><p><strong>To deactivate:</strong></p></li>
+</ol>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>conda<span class="w"> </span>deactivate
+</pre></div>
+</div>
+</section>
 </section>
 </section>
 
@@ -323,8 +359,16 @@
           <div class="toc-tree">
             <ul>
 <li><a class="reference internal" href="#">Create and Activate Conda Environment</a><ul>
+<li><a class="reference internal" href="#create-conda-environment-in-default-conda-directory">Create conda environment in default conda directory:</a><ul>
 <li><a class="reference internal" href="#create-conda-environment">Create conda environment</a></li>
 <li><a class="reference internal" href="#activate-and-deactivate-conda-environment">Activate and deactivate conda environment</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#create-conda-environment-in-custom-conda-directory">Create conda environment in custom conda directory:</a><ul>
+<li><a class="reference internal" href="#id1">Create conda environment</a></li>
+<li><a class="reference internal" href="#id2">Activate and deactivate conda environment</a></li>
+</ul>
+</li>
 </ul>
 </li>
 </ul>

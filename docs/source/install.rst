@@ -1,16 +1,10 @@
 Installation 
 ============
-.. tip :: 
-   If you are running **MeerSOLAR** on IDIA-ilifu, MeerSOLAR is installed already. User does not need to install it. Follow the **IDIA-ilifu Setup** page for help.
-
 This is the guideline to setup the pipeline in any workstation or HPC environment. The full python package can be installed using `pip`. 
 
 .. important:: 
     Required python version 3.10. Other versions may work, but not tested. Hence, recommend to use python 3.10.
     
-
-Install and activate conda
---------------------------
 .. tip::
    To make life easier, both the Python and other dependencies can be installed using conda.
 
@@ -24,6 +18,8 @@ In many HPC clusters, **conda** may be installed already. In that case, it is re
   .. code-block:: bash
   
      module load anaconda3  
+     
+Otherwise, install it following the steps below.
     
 Install Conda: Anaconda or Miniconda
 ------------------------------------

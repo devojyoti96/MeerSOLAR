@@ -240,17 +240,11 @@
         <article role="main">
           <section id="installation">
 <h1>Installation<a class="headerlink" href="#installation" title="Link to this heading">¶</a></h1>
-<div class="admonition tip">
-<p class="admonition-title">Tip</p>
-<p>If you are running <strong>MeerSOLAR</strong> on IDIA-ilifu, MeerSOLAR is installed already. User does not need to install it. Follow the <strong>IDIA-ilifu Setup</strong> page for help.</p>
-</div>
 <p>This is the guideline to setup the pipeline in any workstation or HPC environment. The full python package can be installed using <cite>pip</cite>.</p>
 <div class="admonition important">
 <p class="admonition-title">Important</p>
 <p>Required python version 3.10. Other versions may work, but not tested. Hence, recommend to use python 3.10.</p>
 </div>
-<section id="install-and-activate-conda">
-<h2>Install and activate conda<a class="headerlink" href="#install-and-activate-conda" title="Link to this heading">¶</a></h2>
 <div class="admonition tip">
 <p class="admonition-title">Tip</p>
 <p>To make life easier, both the Python and other dependencies can be installed using conda.</p>
@@ -258,7 +252,6 @@
 <div><p>First, ensure you have <a class="reference external" href="https://www.anaconda.com/products/individual/">anaconda</a> or <a class="reference external" href="https://docs.conda.io/en/latest/miniconda.html/">miniconda</a> installed with python version 3.10.</p>
 </div></blockquote>
 </div>
-</section>
 <section id="load-installed-conda-module-in-hpc-cluster">
 <h2>Load installed conda module in HPC cluster<a class="headerlink" href="#load-installed-conda-module-in-hpc-cluster" title="Link to this heading">¶</a></h2>
 <p>In many HPC clusters, <strong>conda</strong> may be installed already. In that case, it is recommended to read HPC cluster document and check how to load <strong>conda</strong>. In general, it can be loaded using the <strong>module</strong> to function. Load it as:</p>
@@ -267,6 +260,7 @@
 </pre></div>
 </div>
 </div></blockquote>
+<p>Otherwise, install it following the steps below.</p>
 </section>
 <section id="install-conda-anaconda-or-miniconda">
 <h2>Install Conda: Anaconda or Miniconda<a class="headerlink" href="#install-conda-anaconda-or-miniconda" title="Link to this heading">¶</a></h2>
@@ -286,8 +280,8 @@
 <div class="toctree-wrapper compound">
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="activate_conda.html">Create and Activate Conda Environment</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="activate_conda.html#create-conda-environment">Create conda environment</a></li>
-<li class="toctree-l2"><a class="reference internal" href="activate_conda.html#activate-and-deactivate-conda-environment">Activate and deactivate conda environment</a></li>
+<li class="toctree-l2"><a class="reference internal" href="activate_conda.html#create-conda-environment-in-default-conda-directory">Create conda environment in default conda directory:</a></li>
+<li class="toctree-l2"><a class="reference internal" href="activate_conda.html#create-conda-environment-in-custom-conda-directory">Create conda environment in custom conda directory:</a></li>
 </ul>
 </li>
 </ul>
@@ -363,7 +357,6 @@
           <div class="toc-tree">
             <ul>
 <li><a class="reference internal" href="#">Installation</a><ul>
-<li><a class="reference internal" href="#install-and-activate-conda">Install and activate conda</a></li>
 <li><a class="reference internal" href="#load-installed-conda-module-in-hpc-cluster">Load installed conda module in HPC cluster</a></li>
 <li><a class="reference internal" href="#install-conda-anaconda-or-miniconda">Install Conda: Anaconda or Miniconda</a></li>
 <li><a class="reference internal" href="#create-and-activate-conda">Create and Activate Conda</a></li>

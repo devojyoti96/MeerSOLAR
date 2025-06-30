@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="docs/source/_static/dark_logo.png" alt="MeerSOLAR Logo" width="200"/>
+  <img src="dark_logo.png" alt="MeerSOLAR Logo" width="200"/>
 </p>
 <p align="center">
   <h1>MeerSOLAR</h1> An automated calibration and imaging pipeline designed for solar radio observations using <strong>MeerKAT</strong> radio telescope. It performs end-to-end calibration, flagging, and imaging with a focus on dynamic solar data, supporting both spectral and temporal flexibility in imaging products.

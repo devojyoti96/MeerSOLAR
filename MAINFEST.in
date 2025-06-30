@@ -1,4 +1,3 @@
-include meersolar/data/*
 include README.md
 include LICENSE
 include meersolar/solstar/dem_python/data/*
