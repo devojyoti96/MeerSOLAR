@@ -54,13 +54,23 @@ def rename_image(
     sun_jpl = Horizons(id='10', location='500', epochs=astro_time.jd)
     eph = sun_jpl.ephemerides()
     sun_coords = SkyCoord(ra=eph['RA'][0]*u.deg, dec=eph['DEC'][0]*u.deg, frame='icrs')
+    maxval, minval, rms, total_val, mean_val, median_val, rms_dyn, minmax_dyn = calc_solar_image_stat(imagename,disc_size=18)
     with fits.open(imagename, mode="update") as hdul:
         hdr = hdul[0].header
         hdr["AUTHOR"] = "DevojyotiKansabanik,DeepanPatra"
         if band != "":
             hdr["BAND"] = band
+        hdr["PIPELINE"]="MeerSOLAR"
         hdr["CRVAL1"] = sun_coords.ra.deg
         hdr["CRVAL2"] = sun_coords.dec.deg
+        hdr["MAX"]=maxval
+        hdr["MIN"]=minval
+        hdr["RMS"]=rms
+        hdr["SUM"]=total_val
+        hdr["MEAN"]=mean_val
+        hdr["MEDIAN"]=median_val
+        hdr["RMSDYN"]=rms_dyn
+        hdr["MIMADYN"]=minmax_dyn
     freq = round(header["CRVAL3"] / 10**6, 2)
     t_str = "".join(time.split("T")[0].split("-")) + (
         "".join(time.split("T")[-1].split(":"))
@@ -587,6 +597,7 @@ def run_all_imaging(
     threshold=1.0,
     use_multiscale=True,
     use_solar_mask=True,
+    imaging_params={}, #TODO
     savemodel=False,
     saveres=False,
     band="",
@@ -1130,6 +1141,7 @@ def main():
         for ms in mslist:
             drop_cache(ms)
         drop_cache(workdir)
+        drop_cache(outdir)
         clean_shutdown(observer)
 
     return msg

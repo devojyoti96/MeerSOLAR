@@ -54,7 +54,8 @@ def kill_meerjob():
     results = np.loadtxt(jobfile_name, dtype="str", unpack=True)
     main_pid = int(results[1])
     msname = str(results[2])
-    basedir = str(results[3])
+    workdir = str(results[3])
+    outdir=str(results[4])
     pid_file = f"{meersolar_cachedir}/pids/pids_{args.jobid}.txt"
     try:
         os.kill(int(main_pid), signal.SIGKILL)
@@ -63,8 +64,9 @@ def kill_meerjob():
     if os.path.exists(pid_file):
         pids = np.loadtxt(pid_file, unpack=True, dtype="int")
         force_kill_pids_with_children(pids)
-    os.system(f"rm -rf {basedir}/tmp_meersolar_*")
+    os.system(f"rm -rf {workdir}/tmp_meersolar_*")
     drop_cache(msname)
+    drop_cache(workdir)
     drop_cache(basedir)
     drop_cache(meersolar_cachedir)
 

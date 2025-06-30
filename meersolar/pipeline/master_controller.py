@@ -634,8 +634,7 @@ def run_apply_pbcor(
         print("###########################\n")
         applypbcor_basename = "apply_pbcor"
         applypbcor_cmd = (
-            "run_meerpbcor --imagedir "
-            + str(imagedir)
+            f"run_meerpbcor {imagedir}"
             + " --workdir "
             + str(workdir)
             + " --cpu_frac "
@@ -1048,8 +1047,7 @@ def run_imaging_jobs(
     robust : float, optional
         Briggs weighting robust parameter (-1 to 1)
     pol : str, optional
-        Stokes
-    Parameters to image
+        Stokes parameters to image
     freqres : float, optional
         Frequency resolution of spectral chunk in MHz (default : -1, no spectral chunking)
     timeres : float, optional
@@ -1457,26 +1455,26 @@ def master_control(
         print("Please provide a valid measurement set location.\n")
         exit_job(start_time)
         return 1
+    mspath = os.path.dirname(msname)
+    ###################################
+    # Preparing working directories
+    ###################################
+    if workdir == "":
+        workdir = os.path.dirname(os.path.abspath(msname)) + "/workdir"
+    workdir=workdir.rstrip("/")
+    if outdir=="":
+        outdir=workdir
+    outdir=outdir.rstrip("/")
+    caldir=outdir+"/caltables"  
+    caldir=caldir.rstrip("/")  
+    os.makedirs(workdir,exist_ok=True)
+    os.makedirs(outdir,exist_ok=True)
+    os.makedirs(caldir,exist_ok=True)
+    if mspath != "" and os.path.exists(mspath + "/dask-scratch-space"):
+        os.system("rm -rf " + mspath + "/dask-scratch-space " + mspath + "/tmp")
+    if workdir != "" and os.path.exists(workdir + "/dask-scratch-space"):
+        os.system("rm -rf " + workdir + "/dask-scratch-space " + workdir + "/tmp")
     try:
-        mspath = os.path.dirname(msname)
-        ###################################
-        # Preparing working directories
-        ###################################
-        if workdir == "":
-            workdir = os.path.dirname(os.path.abspath(msname)) + "/workdir"
-        workdir=workdir.rstrip("/")
-        if outdir=="":
-            outdir=workdir
-        outdir=outdir.rstrip("/")
-        caldir=outdir+"/caltables"  
-        caldir=caldir.rstrip("/")  
-        os.makedirs(workdir,exist_ok=True)
-        os.makedirs(outdir,exist_ok=True)
-        os.makedirs(caldir,exist_ok=True)
-        if mspath != "" and os.path.exists(mspath + "/dask-scratch-space"):
-            os.system("rm -rf " + mspath + "/dask-scratch-space " + mspath + "/tmp")
-        if workdir != "" and os.path.exists(workdir + "/dask-scratch-space"):
-            os.system("rm -rf " + workdir + "/dask-scratch-space " + workdir + "/tmp")
         ####################################
         # Job and process IDs
         ####################################
@@ -1487,6 +1485,7 @@ def master_control(
             jobid,
             os.path.abspath(msname),
             os.path.abspath(workdir),
+            os.path.abspath(outdir),
             cpu_frac,
             mem_frac,
         )
@@ -2350,319 +2349,320 @@ def master_control(
         return 1
     finally:
         drop_cache(msname)
+        drop_cache(workdir)
+        drop_cache(outdir)
 
 
 def main():
+    parser = argparse.ArgumentParser(
+        description="Run MeerSOLAR for calibration and imaging of solar observations.",
+        formatter_class=SmartDefaultsHelpFormatter,
+    )
+    # === Essential parameters ===
+    essential = parser.add_argument_group(
+        "###################\nEssential parameters\n###################"
+    )
+    essential.add_argument("msname", type=str, help="Measurement set name")
+    essential.add_argument(
+        "--workdir",
+        type=str,
+        dest="workdir",
+        required=True,
+        help="Working directory",
+    )
+    essential.add_argument(
+        "--outdir",
+        type=str,
+        dest="outdir",
+        required=True,
+        help="Output products directory",
+    )
+
+    # === Advanced calibration parameters ===
+    advanced_cal = parser.add_argument_group(
+        "###################\nAdvanced calibration parameters\n###################"
+    )
+    advanced_cal.add_argument(
+        "--solint",
+        type=str,
+        default="5min",
+        help="Solution interval for calibration (e.g. 'int', '10s', '5min', 'inf')",
+    )
+    advanced_cal.add_argument(
+        "--cal_uvrange",
+        type=str,
+        default="",
+        help="UV range to filter data for calibration (e.g. '>100klambda', '100~10000lambda')",
+    )
+    advanced_cal.add_argument(
+        "--no_polcal",
+        action="store_false",
+        dest="do_polcal",
+        help="Disable polarization calibration",
+    )
+
+    # === Advanced imaging and calibration parameters ===
+    advanced_image = parser.add_argument_group(
+        "###################\nAdvanced imaging parameters\n###################"
+    )
+    advanced_image.add_argument(
+        "--target_scans",
+        nargs="*",
+        type=str,
+        default=[],
+        help="List of target scans to process (space-separated, e.g. 3 5 7)",
+    )
+    advanced_image.add_argument(
+        "--freqrange",
+        type=str,
+        default="",
+        help="Frequency range in MHz to select during imaging (comma-seperate, e.g. '100~110,130~140')",
+    )
+    advanced_image.add_argument(
+        "--timerange",
+        type=str,
+        default="",
+        help="Time range to select during imaging (comma-seperated, e.g. '2014/09/06/09:30:00~2014/09/06/09:45:00,2014/09/06/10:30:00~2014/09/06/10:45:00')",
+    )
+    advanced_image.add_argument(
+        "--image_freqres",
+        type=int,
+        default=-1,
+        help="Output image frequency resolution in MHz (-1 = full)",
+    )
+    advanced_image.add_argument(
+        "--image_timeres",
+        type=int,
+        default=-1,
+        help="Output image time resolution in seconds (-1 = full)",
+    )
+    advanced_image.add_argument(
+        "--pol",
+        type=str,
+        default="IQUV",
+        help="Stokes parameter(s) to image (e.g. 'I', 'XX', 'RR', 'IQUV')",
+    )
+    advanced_image.add_argument(
+        "--minuv",
+        type=float,
+        default=0,
+        help="Minimum baseline length (in wavelengths) to include in imaging",
+    )
+    advanced_image.add_argument(
+        "--weight",
+        type=str,
+        default="briggs",
+        help="Imaging weighting scheme (e.g. 'briggs', 'natural', 'uniform')",
+    )
+    advanced_image.add_argument(
+        "--robust",
+        type=float,
+        default=0.0,
+        help="Robust parameter for Briggs weighting (-2 to +2)",
+    )
+    advanced_image.add_argument(
+        "--no_multiscale",
+        action="store_false",
+        dest="use_multiscale",
+        help="Disable multiscale CLEAN for extended structures",
+    )
+    advanced_image.add_argument(
+        "--clean_threshold",
+        type=float,
+        default=1.0,
+        help="Clean threshold in sigma for final deconvolution (Note this is not auto-mask)",
+    )
+    advanced_image.add_argument(
+        "--do_pbcor",
+        action="store_true",
+        help="Apply primary beam correction after imaging",
+    )
+    advanced_image.add_argument(
+        "--no_apply_parang",
+        action="store_false",
+        dest="apply_parang",
+        help="Disable parallactic angle rotation during imaging",
+    )
+    advanced_image.add_argument(
+        "--cutout_rsun",
+        type=float,
+        default=2.5,
+        help="Field of view cutout radius in solar radii",
+    )
+    advanced_image.add_argument(
+        "--no_solar_mask",
+        action="store_false",
+        dest="use_solar_mask",
+        help="Disable use solar disk mask during deconvolution",
+    )
+    advanced_image.add_argument(
+        "--no_overlay",
+        action="store_false",
+        dest="make_overlay",
+        help="Disable overlay plot on GOES SUVI after imaging",
+    )
+
+    # === Advanced options ===
+    advanced = parser.add_argument_group(
+        "###################\nAdvanced pipeline parameters\n###################"
+    )
+    advanced.add_argument(
+        "--non_solar_data",
+        action="store_false",
+        dest="solar_data",
+        help="Disable solar data mode",
+    )
+    advanced.add_argument(
+        "--non_ds",
+        action="store_false",
+        dest="make_ds",
+        help="Disable making solar dynamic spectra",
+    )
+    advanced.add_argument(
+        "--do_forcereset_weightflag",
+        action="store_true",
+        help="Force reset of weights and flags (disabled by default)",
+    )
+    advanced.add_argument(
+        "--no_noise_cal",
+        action="store_false",
+        dest="do_noise_cal",
+        help="Disable noise calibration",
+    )
+    advanced.add_argument(
+        "--no_cal_partition",
+        action="store_false",
+        dest="do_cal_partition",
+        help="Disable calibrator MS partitioning",
+    )
+    advanced.add_argument(
+        "--no_cal_flag",
+        action="store_false",
+        dest="do_cal_flag",
+        help="Disable initial flagging of calibrators",
+    )
+    advanced.add_argument(
+        "--no_import_model",
+        action="store_false",
+        dest="do_import_model",
+        help="Disable model import",
+    )
+    advanced.add_argument(
+        "--no_basic_cal",
+        action="store_false",
+        dest="do_basic_cal",
+        help="Disable basic gain calibration",
+    )
+    advanced.add_argument(
+        "--do_sidereal_cor",
+        action="store_true",
+        dest="do_sidereal_cor",
+        help="Sidereal motion correction for Sun (disabled by default)",
+    )
+    advanced.add_argument(
+        "--no_selfcal_split",
+        action="store_false",
+        dest="do_selfcal_split",
+        help="Disable split for self-calibration",
+    )
+    advanced.add_argument(
+        "--no_selfcal",
+        action="store_false",
+        dest="do_selfcal",
+        help="Disable self-calibration",
+    )
+    advanced.add_argument(
+        "--no_ap_selfcal",
+        action="store_false",
+        dest="do_ap_selfcal",
+        help="Disable amplitude-phase self-calibration",
+    )
+    advanced.add_argument(
+        "--no_solar_selfcal",
+        action="store_false",
+        dest="solar_selfcal",
+        help="Disable solar-specific self-calibration parameters",
+    )
+    advanced.add_argument(
+        "--no_target_split",
+        action="store_false",
+        dest="do_target_split",
+        help="Disable target data split",
+    )
+    advanced.add_argument(
+        "--no_applycal",
+        action="store_false",
+        dest="do_applycal",
+        help="Disable application of basic calibration solutions",
+    )
+    advanced.add_argument(
+        "--no_apply_selfcal",
+        action="store_false",
+        dest="do_apply_selfcal",
+        help="Disable application of self-calibration solutions",
+    )
+    advanced.add_argument(
+        "--no_imaging",
+        action="store_false",
+        dest="do_imaging",
+        help="Disable final imaging",
+    )
+
+    # === Advanced local system/ per node hardware resource parameters ===
+    advanced_resource = parser.add_argument_group(
+        "###################\nAdvanced hardware resource parameters for local system or per node on HPC cluster\n###################"
+    )
+    advanced_resource.add_argument(
+        "--cpu_frac",
+        type=float,
+        default=0.8,
+        help="Fraction of CPU usuage per node",
+    )
+    advanced_resource.add_argument(
+        "--mem_frac",
+        type=float,
+        default=0.8,
+        help="Fraction of memory usuage per node",
+    )
+    advanced_resource.add_argument(
+        "--keep_backup",
+        action="store_true",
+        help="Keep backup of intermediate steps",
+    )
+    advanced_resource.add_argument(
+        "--no_remote_logger",
+        action="store_false",
+        dest="remote_logger",
+        help="Disable remote logger",
+    )
+    advanced_resource.add_argument(
+        "--logger_alivetime",
+        type=float,
+        default=0,
+        help="Keep remote logger alive for this many hours (Otherwise, logger will be removed after 15 minutes of inactivity)",
+    )
+
+    # === Advanced local system/ per node hardware resource parameters ===
+    advanced_hpc = parser.add_argument_group(
+        "###################\nAdvanced HPC settings\n###################"
+    )
+    advanced_hpc.add_argument(
+        "--n_nodes",
+        type=int,
+        default=0,
+        help="Number of compute nodes to use (0 means local cluster)",
+    )
+
+    if len(sys.argv) == 1:
+        parser.print_help(sys.stderr)
+        sys.exit(1)
+
+    args = parser.parse_args()
+
     try:
-        parser = argparse.ArgumentParser(
-            description="Run MeerSOLAR for calibration and imaging of solar observations.",
-            formatter_class=SmartDefaultsHelpFormatter,
-        )
-        # === Essential parameters ===
-        essential = parser.add_argument_group(
-            "###################\nEssential parameters\n###################"
-        )
-        essential.add_argument("msname", type=str, help="Measurement set name")
-        essential.add_argument(
-            "--workdir",
-            type=str,
-            dest="workdir",
-            required=True,
-            help="Working directory",
-        )
-        essential.add_argument(
-            "--outdir",
-            type=str,
-            dest="outdir",
-            required=True,
-            help="Output products directory",
-        )
-
-        # === Advanced calibration parameters ===
-        advanced_cal = parser.add_argument_group(
-            "###################\nAdvanced calibration parameters\n###################"
-        )
-        advanced_cal.add_argument(
-            "--solint",
-            type=str,
-            default="5min",
-            help="Solution interval for calibration (e.g. 'int', '10s', '5min', 'inf')",
-        )
-        advanced_cal.add_argument(
-            "--cal_uvrange",
-            type=str,
-            default="",
-            help="UV range to filter data for calibration (e.g. '>100klambda', '100~10000lambda')",
-        )
-        advanced_cal.add_argument(
-            "--no_polcal",
-            action="store_false",
-            dest="do_polcal",
-            help="Disable polarization calibration",
-        )
-
-        # === Advanced imaging and calibration parameters ===
-        advanced_image = parser.add_argument_group(
-            "###################\nAdvanced imaging parameters\n###################"
-        )
-        advanced_image.add_argument(
-            "--target_scans",
-            nargs="*",
-            type=str,
-            default=[],
-            help="List of target scans to process (space-separated, e.g. 3 5 7)",
-        )
-        advanced_image.add_argument(
-            "--freqrange",
-            type=str,
-            default="",
-            help="Frequency range in MHz to select during imaging (comma-seperate, e.g. '100~110,130~140')",
-        )
-        advanced_image.add_argument(
-            "--timerange",
-            type=str,
-            default="",
-            help="Time range to select during imaging (comma-seperated, e.g. '2014/09/06/09:30:00~2014/09/06/09:45:00,2014/09/06/10:30:00~2014/09/06/10:45:00')",
-        )
-        advanced_image.add_argument(
-            "--image_freqres",
-            type=int,
-            default=-1,
-            help="Output image frequency resolution in MHz (-1 = full)",
-        )
-        advanced_image.add_argument(
-            "--image_timeres",
-            type=int,
-            default=-1,
-            help="Output image time resolution in seconds (-1 = full)",
-        )
-        advanced_image.add_argument(
-            "--pol",
-            type=str,
-            default="IQUV",
-            help="Stokes parameter(s) to image (e.g. 'I', 'XX', 'RR', 'IQUV')",
-        )
-        advanced_image.add_argument(
-            "--minuv",
-            type=float,
-            default=0,
-            help="Minimum baseline length (in wavelengths) to include in imaging",
-        )
-        advanced_image.add_argument(
-            "--weight",
-            type=str,
-            default="briggs",
-            help="Imaging weighting scheme (e.g. 'briggs', 'natural', 'uniform')",
-        )
-        advanced_image.add_argument(
-            "--robust",
-            type=float,
-            default=0.0,
-            help="Robust parameter for Briggs weighting (-2 to +2)",
-        )
-        advanced_image.add_argument(
-            "--no_multiscale",
-            action="store_false",
-            dest="use_multiscale",
-            help="Disable multiscale CLEAN for extended structures",
-        )
-        advanced_image.add_argument(
-            "--clean_threshold",
-            type=float,
-            default=1.0,
-            help="Clean threshold in sigma for final deconvolution (Note this is not auto-mask)",
-        )
-        advanced_image.add_argument(
-            "--do_pbcor",
-            action="store_true",
-            help="Apply primary beam correction after imaging",
-        )
-        advanced_image.add_argument(
-            "--no_apply_parang",
-            action="store_false",
-            dest="apply_parang",
-            help="Disable parallactic angle rotation during imaging",
-        )
-        advanced_image.add_argument(
-            "--cutout_rsun",
-            type=float,
-            default=2.5,
-            help="Field of view cutout radius in solar radii",
-        )
-        advanced_image.add_argument(
-            "--no_solar_mask",
-            action="store_false",
-            dest="use_solar_mask",
-            help="Disable use solar disk mask during deconvolution",
-        )
-        advanced_image.add_argument(
-            "--no_overlay",
-            action="store_false",
-            dest="make_overlay",
-            help="Disable overlay plot on GOES SUVI after imaging",
-        )
-
-        # === Advanced options ===
-        advanced = parser.add_argument_group(
-            "###################\nAdvanced pipeline parameters\n###################"
-        )
-        advanced.add_argument(
-            "--non_solar_data",
-            action="store_false",
-            dest="solar_data",
-            help="Disable solar data mode",
-        )
-        advanced.add_argument(
-            "--non_ds",
-            action="store_false",
-            dest="make_ds",
-            help="Disable making solar dynamic spectra",
-        )
-        advanced.add_argument(
-            "--do_forcereset_weightflag",
-            action="store_true",
-            help="Force reset of weights and flags (disabled by default)",
-        )
-        advanced.add_argument(
-            "--no_noise_cal",
-            action="store_false",
-            dest="do_noise_cal",
-            help="Disable noise calibration",
-        )
-        advanced.add_argument(
-            "--no_cal_partition",
-            action="store_false",
-            dest="do_cal_partition",
-            help="Disable calibrator MS partitioning",
-        )
-        advanced.add_argument(
-            "--no_cal_flag",
-            action="store_false",
-            dest="do_cal_flag",
-            help="Disable initial flagging of calibrators",
-        )
-        advanced.add_argument(
-            "--no_import_model",
-            action="store_false",
-            dest="do_import_model",
-            help="Disable model import",
-        )
-        advanced.add_argument(
-            "--no_basic_cal",
-            action="store_false",
-            dest="do_basic_cal",
-            help="Disable basic gain calibration",
-        )
-        advanced.add_argument(
-            "--do_sidereal_cor",
-            action="store_true",
-            dest="do_sidereal_cor",
-            help="Sidereal motion correction for Sun (disabled by default)",
-        )
-        advanced.add_argument(
-            "--no_selfcal_split",
-            action="store_false",
-            dest="do_selfcal_split",
-            help="Disable split for self-calibration",
-        )
-        advanced.add_argument(
-            "--no_selfcal",
-            action="store_false",
-            dest="do_selfcal",
-            help="Disable self-calibration",
-        )
-        advanced.add_argument(
-            "--no_ap_selfcal",
-            action="store_false",
-            dest="do_ap_selfcal",
-            help="Disable amplitude-phase self-calibration",
-        )
-        advanced.add_argument(
-            "--no_solar_selfcal",
-            action="store_false",
-            dest="solar_selfcal",
-            help="Disable solar-specific self-calibration parameters",
-        )
-        advanced.add_argument(
-            "--no_target_split",
-            action="store_false",
-            dest="do_target_split",
-            help="Disable target data split",
-        )
-        advanced.add_argument(
-            "--no_applycal",
-            action="store_false",
-            dest="do_applycal",
-            help="Disable application of basic calibration solutions",
-        )
-        advanced.add_argument(
-            "--no_apply_selfcal",
-            action="store_false",
-            dest="do_apply_selfcal",
-            help="Disable application of self-calibration solutions",
-        )
-        advanced.add_argument(
-            "--no_imaging",
-            action="store_false",
-            dest="do_imaging",
-            help="Disable final imaging",
-        )
-
-        # === Advanced local system/ per node hardware resource parameters ===
-        advanced_resource = parser.add_argument_group(
-            "###################\nAdvanced hardware resource parameters for local system or per node on HPC cluster\n###################"
-        )
-        advanced_resource.add_argument(
-            "--cpu_frac",
-            type=float,
-            default=0.8,
-            help="Fraction of CPU usuage per node",
-        )
-        advanced_resource.add_argument(
-            "--mem_frac",
-            type=float,
-            default=0.8,
-            help="Fraction of memory usuage per node",
-        )
-        advanced_resource.add_argument(
-            "--keep_backup",
-            action="store_true",
-            help="Keep backup of intermediate steps",
-        )
-        advanced_resource.add_argument(
-            "--no_remote_logger",
-            action="store_false",
-            dest="remote_logger",
-            help="Disable remote logger",
-        )
-        advanced_resource.add_argument(
-            "--logger_alivetime",
-            type=float,
-            default=0,
-            help="Keep remote logger alive for this many hours (Otherwise, logger will be removed after 15 minutes of inactivity)",
-        )
-
-        # === Advanced local system/ per node hardware resource parameters ===
-        advanced_hpc = parser.add_argument_group(
-            "###################\nAdvanced HPC settings\n###################"
-        )
-        advanced_hpc.add_argument(
-            "--n_nodes",
-            type=int,
-            default=0,
-            help="Number of compute nodes to use (0 means local cluster)",
-        )
-
-        if len(sys.argv) == 1:
-            parser.print_help(sys.stderr)
-            sys.exit(1)
-
-        args = parser.parse_args()
-
         print("\n########################################")
         print("Starting MeerSOLAR Pipeline....")
         print("#########################################\n")
-
         # TODO: multi specification imaging parameters as json dic 
         msg = master_control(
             msname=args.msname,
@@ -2723,6 +2723,10 @@ def main():
         )
     except Exception as e:
         traceback.print_exc()
+    finally:
+        drop_cache(args.msname)
+        drop_cache(args.workdir)
+        drop_cache(args.outdir)
 
 
 if __name__ == "__main__":

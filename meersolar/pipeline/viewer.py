@@ -341,11 +341,11 @@ def main():
                 sys.exit(1)
             else:
                 results = np.loadtxt(jobfile_name, dtype="str", unpack=True)
-                basedir = str(results[3])
-                if not os.path.exists(basedir):
-                    print(f"Base directory : {basedir} is not present.")
+                workdir = str(results[3])
+                if not os.path.exists(workdir):
+                    print(f"Work directory : {workdir} is not present.")
                     sys.exit(1)
-                LOG_DIR = basedir.rstrip("/") + "/logs"
+                LOG_DIR = workdir.rstrip("/") + "/logs"
         else:
             if not os.path.exists(args.logdir):
                 print(

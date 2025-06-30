@@ -26,6 +26,7 @@ def get_fits_freq(image_file):
 
 def run_pbcor(imagename, pbdir, pbcor_dir, apply_parang, jobid=0, ncpu=8):
     cmd = f"run_single_meerpbcor {imagename} --pbdir {pbdir} --pbcor_dir {pbcor_dir} --ncpu {ncpu} --jobid {jobid}"
+    print (cmd)
     if apply_parang == False:
         cmd += " --no_apply_parang"
     a = os.system(f"{cmd} > {imagename}.tmp")
@@ -67,14 +68,15 @@ def pbcor_all_images(
     int
         Success message
     """
+    imagedir=imagedir.rstrip("/")
+    pbdir = f"{os.path.dirname(imagedir)}/pbdir"
+    pbcor_dir = f"{os.path.dirname(imagedir)}/pbcor_images"
+    os.makedirs(pbdir, exist_ok=True)
+    os.makedirs(pbcor_dir, exist_ok=True)
     try:
-        images = glob.glob(imagedir + "/*.fits")
-        pbdir = os.path.dirname(imagedir.rstrip("/")) + "/pbdir"
-        pbcor_dir = os.path.dirname(imagedir.rstrip("/")) + "/pbcor_images"
-        os.makedirs(pbdir, exist_ok=True)
-        os.makedirs(pbcor_dir, exist_ok=True)
+        images = glob.glob(f"{imagedir}/*.fits")
         if make_TB:
-            tb_dir = os.path.dirname(imagedir.rstrip("/")) + "/tb_images"
+            tb_dir = f"{os.path.dirname(imagedir)}/tb_images"
             os.makedirs(tb_dir, exist_ok=True)
         if len(images) == 0:
             print(f"No image is present in image directory: {imagedir}")
@@ -152,17 +154,23 @@ def pbcor_all_images(
                 os.makedirs(pngdir, exist_ok=True)
                 os.makedirs(pdfdir, exist_ok=True)
                 for image in pbcor_images:
-                    outimages=plot_in_hpc(
-                        image,
-                        draw_limb=True,
-                        extensions=["png","pdf"],
-                        outdirs=[pngdir,pdfidr]
-                    )
-                
+                    try:
+                        outimages=plot_in_hpc(
+                            image,
+                            draw_limb=True,
+                            extensions=["png","pdf"],
+                            outdirs=[pngdir,pdfdir]
+                        )
+                    except:
+                        junkpng=f"{pngdir}/{os.path.basename(image).split('.fits')[0]}.png.junk"
+                        junkpdf=f"{pngdir}/{os.path.basename(image).split('.fits')[0]}.pdf.junk"
+                        os.system(f"touch {junkpng}")
+                        os.system(f"touch {junkpdf}")
+                                  
         ####################################
         # Making brightness temperature maps
         ####################################
-        if len(pbcor_images) > 0 and make_TB:
+        if successful_pbcor> 0 and make_TB:
             for pbcor_image in pbcor_images:
                 tb_image = (
                     tb_dir
@@ -211,6 +219,8 @@ def pbcor_all_images(
     finally:
         time.sleep(5)
         drop_cache(imagedir)
+        drop_cache(pbcor_dir)
+        os.system(f"rm -rf {pbdir}")
 
 
 def main():
@@ -277,7 +287,8 @@ def main():
     os.makedirs(workdir,exist_ok=True)
 
     pid = os.getpid()
-    save_pid(pid, datadir + f"/pids/pids_{args.jobid}.txt")
+    meersolar_cachedir = get_meersolar_cachedir()
+    save_pid(pid, f"{meersolar_cachedir}/pids/pids_{args.jobid}.txt")
 
     logfile = args.logfile
     observer = None
@@ -288,7 +299,6 @@ def main():
             f"{workdir}/jobname_password.npy", allow_pickle=True
         )
         if os.path.exists(logfile):
-            print(f"Starting remote logger. Remote logger password: {password}")
             observer = init_logger(
                 "all_pbcor", logfile, jobname=jobname, password=password
             )

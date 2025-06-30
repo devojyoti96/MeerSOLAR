@@ -5,11 +5,9 @@ from astropy.coordinates import AltAz, EarthLocation, SkyCoord
 from astropy.time import Time
 from astropy.wcs import WCS
 from scipy.interpolate import RectBivariateSpline
-from dask import delayed, compute
-from joblib import Parallel, delayed
+from joblib import Parallel, delayed as joblid_delayed
 from astropy.wcs import FITSFixedWarning
-from meersolar.pipeline.basic_func import get_datadir, SmartDefaultsHelpFormatter
-
+from meersolar.pipeline.basic_func import *
 from casatasks import casalog
 
 try:
@@ -481,14 +479,14 @@ def get_image_beam(
         with Parallel(n_jobs=n_cpu, backend="threading") as parallel:
             results = parallel(
                 [
-                    delayed(j00_r)(l_grid_flat, m_grid_flat, grid=False),
-                    delayed(j00_i)(l_grid_flat, m_grid_flat, grid=False),
-                    delayed(j01_r)(l_grid_flat, m_grid_flat, grid=False),
-                    delayed(j01_i)(l_grid_flat, m_grid_flat, grid=False),
-                    delayed(j10_r)(l_grid_flat, m_grid_flat, grid=False),
-                    delayed(j10_i)(l_grid_flat, m_grid_flat, grid=False),
-                    delayed(j11_r)(l_grid_flat, m_grid_flat, grid=False),
-                    delayed(j11_i)(l_grid_flat, m_grid_flat, grid=False),
+                    joblid_delayed(j00_r)(l_grid_flat, m_grid_flat, grid=False),
+                    joblid_delayed(j00_i)(l_grid_flat, m_grid_flat, grid=False),
+                    joblid_delayed(j01_r)(l_grid_flat, m_grid_flat, grid=False),
+                    joblid_delayed(j01_i)(l_grid_flat, m_grid_flat, grid=False),
+                    joblid_delayed(j10_r)(l_grid_flat, m_grid_flat, grid=False),
+                    joblid_delayed(j10_i)(l_grid_flat, m_grid_flat, grid=False),
+                    joblid_delayed(j11_r)(l_grid_flat, m_grid_flat, grid=False),
+                    joblid_delayed(j11_i)(l_grid_flat, m_grid_flat, grid=False),
                 ]
             )
         del parallel
@@ -590,7 +588,7 @@ def get_pbcor_image(
             save_beam=save_beam,
             band=band,
             apply_parang=apply_parang,
-            n_cpu=n_cpu,
+            n_cpu=int(n_cpu),
             verbose=verbose,
         )
         if type(beam) != np.ndarray:
@@ -714,7 +712,8 @@ def main():
 
     args = parser.parse_args()
     pid = os.getpid()
-    save_pid(pid, datadir + f"/pids/pids_{args.jobid}.txt")
+    meersolar_cachedir=get_meersolar_cachedir()
+    save_pid(pid, f"{meersolar_cachedir}/pids/pids_{args.jobid}.txt")
 
     try:
         if args.imagename and os.path.exists(args.imagename):
@@ -732,7 +731,7 @@ def main():
                     band=args.band,
                     apply_parang=args.apply_parang,
                     save_beam=args.save_beam,
-                    n_cpu=args.ncpu,
+                    n_cpu=int(args.ncpu),
                     verbose=args.verbose,
                 )
                 if pbcor_image is None or not os.path.exists(pbcor_image):

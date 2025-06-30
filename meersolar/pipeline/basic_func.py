@@ -79,6 +79,7 @@ def get_meersolar_cachedir():
     username = os.getlogin()
     meersolar_cachedir=f"{homedir}/.meersolar"
     os.makedirs(meersolar_cachedir,exist_ok=True)
+    os.makedirs(f"{meersolar_cachedir}/pids",exist_ok=True)
     return meersolar_cachedir
 
 
@@ -314,28 +315,24 @@ def get_remote_logger_link():
     meersolar_cachedir = get_meersolar_cachedir()
     username = os.getlogin()
     link_file = os.path.join(meersolar_cachedir, f"remotelink_{username}.txt")
-    try:
-        with open(link_file, "r") as f:
-            lines = [line.strip() for line in f if line.strip()]
-    except FileNotFoundError:
-        return ""
-    if not lines:
-        return ""
-    remote_link = lines[0]
-    try:
-        count=0
-        while True:
-            res = requests.get(remote_link, timeout=2)
-            if res.status_code == 200:
-                return remote_link
-            else:
-                count+=1
-                time.sleep(2)
-            if count>5:
-                return ""
-    except Exception:
-        return ""
-
+    for _ in range(5):
+        try:
+            if os.path.isfile(link_file):
+                with open(link_file, "r") as f:
+                    lines = [line.strip() for line in f if line.strip()]
+                if lines:
+                    remote_link = lines[0]
+                    if remote_link:
+                        try:
+                            res = requests.get(remote_link, timeout=2)
+                            if res.status_code == 200:
+                                return remote_link
+                        except Exception:
+                            pass
+        except Exception:
+            pass
+        time.sleep(2)
+    return ""
 
 def get_emails():
     meersolar_cachedir = get_meersolar_cachedir()
@@ -3683,7 +3680,7 @@ def get_meermap(fits_image, band="", do_sharpen=False):
     return meer_map_rotate
 
 
-def save_in_hpc(fits_image,outdir=""):
+def save_in_hpc(fits_image,outdir="",xlim=[-1600, 1600],ylim=[-1600, 1600]):
     """
     Save solar image in helioprojective coordinates
     
@@ -3693,17 +3690,43 @@ def save_in_hpc(fits_image,outdir=""):
         FITS image name
     outdir : str, optional
         Output directory
+    xlim : list
+        X axis limit in arcsecond
+    ylim : list
+        Y axis limit in arcsecond
     
     Returns
     -------
     str
         FITS image in helioprojective coordinate
     """
+    fits_header=fits.getheader(fits_image)
     meermap=get_meermap(fits_image)
+    if len(xlim)==2 and len(ylim)==2:
+        top_right = SkyCoord(
+            xlim[1] * u.arcsec, ylim[1] * u.arcsec, frame=meermap.coordinate_frame
+        )
+        bottom_left = SkyCoord(
+            xlim[0] * u.arcsec, ylim[0] * u.arcsec, frame=meermap.coordinate_frame
+        )
+        meermap = meermap.submap(bottom_left, top_right=top_right)
     if outdir=="":
         outdir=os.path.dirname(os.path.abspath(fits_image))
     outfile=f"{outdir}/{os.path.basename(fits_image).split('.fits')[0]}_HPC.fits"
+    if os.path.exists(outfile):
+        os.system(f"rm -rf {outfile}")
     meermap.save(outfile,filetype="fits")
+    data=fits.getdata(outfile)
+    data=data[np.newaxis,np.newaxis,...]
+    hpc_header=fits.getheader(outfile)
+    for key in [
+        "NAXIS", "NAXIS3", "NAXIS4", "BUNIT", "CTYPE3", "CRPIX3", "CRVAL3", "CDELT3", "CUNIT3",
+        "CTYPE4", "CRPIX4", "CRVAL4", "CDELT4", "CUNIT4", "AUTHOR", "PIPELINE", "BAND",
+        "MAX", "MIN", "RMS", "SUM", "MEAN", "MEDIAN", "RMSDYN", "MIMADYN"
+    ]:
+        if key in fits_header:
+            hpc_header[key] = fits_header[key]
+    fits.writeto(outfile,data=data,header=hpc_header,overwrite=True) 
     return outfile
 
 def plot_in_hpc(
@@ -4157,7 +4180,7 @@ def get_jobid():
     return int(cur_jobid)
 
 
-def save_main_process_info(pid, jobid, msname, basedir, cpu_frac, mem_frac):
+def save_main_process_info(pid, jobid, msname, workdir, outdir, cpu_frac, mem_frac):
     """
     Save MeerSOLAR main processes info
 
@@ -4169,8 +4192,10 @@ def save_main_process_info(pid, jobid, msname, basedir, cpu_frac, mem_frac):
         MeerSOLAR Job ID
     msname : str
         Main measurement set
-    basedir : str
-        Base directory
+    workdir : str
+        Work directory
+    outdir : str
+        Output directory
     cpu_frac : float
         CPU fraction of the job
     mem_frac : float
@@ -4201,7 +4226,7 @@ def save_main_process_info(pid, jobid, msname, basedir, cpu_frac, mem_frac):
                 if os.path.exists(f"{meersolar_cachedir}/pids/pids_{job_id}.txt"):
                     os.system(f"rm -rf {meersolar_cachedir}/pids/pids_{job_id}.txt")
     main_job_file = f"{meersolar_cachedir}/main_pids_{jobid}.txt"
-    main_str = f"{jobid} {pid} {msname} {basedir} {cpu_frac} {mem_frac}"
+    main_str = f"{jobid} {pid} {msname} {workdir} {outdir} {cpu_frac} {mem_frac}"
     with open(main_job_file, "w") as f:
         f.write(main_str)
     return main_job_file
@@ -4801,6 +4826,80 @@ def calc_fractional_bandwidth(msname):
     msmd.close()
     return round(frac_bandwidth * 100.0, 2)
 
+def create_circular_mask_array(data,radius):
+    """
+    Creating circular mask of a Numpy array
+    
+    Parameters
+    ----------
+    data : numpy.array
+        2D numpy array
+    radius : int
+        Radius in pixels
+    
+    Returns
+    -------
+    numpy.array
+        Mask array
+    """
+    shape = data.shape
+    center = (shape[0] // 2, shape[1] // 2)
+    Y, X = np.ogrid[:shape[0], :shape[1]]
+    dist_from_center = (X - center[1])**2 + (Y - center[0])**2
+    mask = dist_from_center <= radius**2
+    return mask
+
+def calc_solar_image_stat(imagename,disc_size=18):
+    """
+    Calculate solar image dynamic range
+    
+    Parameters
+    ----------
+    imagename : str
+        Fits image name
+    disc_size : float, optional
+        Solar disc size in arcmin (default : 18)
+    
+    Returns
+    -------
+    float
+        Maximum value
+    float
+        Minimum value
+    float
+        RMS values
+    float
+        Total value
+    float
+        Mean value
+    float
+        Median value
+    float
+        RMS dynamic range
+    float
+        Min-max dynamic range
+    """
+    data=fits.getdata(imagename)
+    header=fits.getheader(imagename)
+    pix_size=abs(header["CDELT1"])*3600.0 # In arcsec
+    radius=int((disc_size*60)/pix_size)
+    if len(data.shape)>2:
+        data=data[0,0,...]
+    mask=create_circular_mask_array(data,radius)
+    masked_data=copy.deepcopy(data)
+    masked_data[mask]=np.nan
+    unmasked_data=copy.deepcopy(data)
+    unmasked_data[~mask]=np.nan
+    maxval=np.nanmax(unmasked_data)
+    minval=np.nanmin(data)
+    rms=np.nanstd(masked_data)
+    total_val=np.nansum(unmasked_data)
+    rms_dyn=maxval/rms
+    minmax_dyn=maxval/abs(minval)
+    mean_val=np.nanmean(unmasked_data)
+    median_val=np.nanmedian(unmasked_data)
+    del data, mask, unmasked_data, masked_data
+    return maxval, minval, rms, total_val, mean_val, median_val, rms_dyn, minmax_dyn
 
 def calc_dyn_range(imagename, modelname, residualname, fits_mask=""):
     """

@@ -24,12 +24,14 @@ def show_job_status(clean_old_jobs=False):
                     line = f.read().split(" ")
                 jobid = line[0]
                 pid = line[1]
-                workdir = line[2]
+                workdir = line[3]
+                outdir = line[4]
                 if psutil.pid_exists(int(pid)):
                     running = "Running/Waiting"
                 else:
                     running = "Done/Stopped"
-                print(f"Job ID: {jobid}, Work direcory: {workdir}, Status: {running}")
+                print(f"Job ID: {jobid}, Work direcory: {workdir}, Output directory: {outdir}, Status: {running}")
+                print ("#########################################################################################")
                 if clean_old_jobs and running == "Done/Stopped":
                     os.system(f"rm -rf {pid_file}")
                     if os.path.exists(f"rm -rf {meersolar_cachedir}/pids/pids_{jobid}.txt"):
