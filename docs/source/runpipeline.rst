@@ -7,7 +7,7 @@ To run MeerSOLAR pipeline, with default settings for full analysis, run the foll
 
 .. code-block :: bash
 
-    run_meersolar </path/to/measurement_set> --workdir </path/to/work_directory>
+    run_meersolar </path/to/measurement_set> --workdir </path/to/work_directory> --outdir </path/to/output_product_directory>
         
 Advanced run
 ------------
@@ -37,13 +37,13 @@ Runs with advanced calibration paramaters
 
 .. code-block :: bash
     
-    run_meersolar </path/to/measurement_set> --workdir </path/to/work_directory> --solint "10s" --uvrange ">200lambda"
+    run_meersolar </path/to/measurement_set> --solint "10s" --uvrange ">200lambda" --workdir </path/to/work_directory> --outdir </path/to/output_product_directory> 
     
 2. By default for full-polar data, polarization calibration will be performed. To disable it:
 
 .. code-block :: bash 
 
-    run_meersolar </path/to/measurement_set> --workdir </path/to/work_directory> --no_polcal
+    run_meersolar </path/to/measurement_set> --no_polcal --workdir </path/to/work_directory> --outdir </path/to/output_product_directory> 
     
     
 Runs with advanced imaging paramaters 
@@ -53,25 +53,25 @@ Runs with advanced imaging paramaters
 
 .. code-block :: bash
 
-    run_meersolar </path/to/measurement_set> --workdir </path/to/work_directory> --target_scans 3 8 13
+    run_meersolar </path/to/measurement_set> --target_scans 3 8 13 --workdir </path/to/work_directory> --outdir </path/to/output_product_directory> 
     
 2. Run pipeline to image specific time and frequency range. Default is to use entire time and frequency range. Example for imaging two time ranges given in UTC and frequency ranges given in MHz: 
 
 .. code-block :: bash
 
-    run_meersolar </path/to/measurement_set> --workdir </path/to/work_directory> --timerange 2024/06/10/09:00:00~2024/06/10/09:30:00,2024/06/10/10:15:00~2024/06/10/10:45:00 --freqrange 600~650,700~800 
+    run_meersolar </path/to/measurement_set> --timerange 2024/06/10/09:00:00~2024/06/10/09:30:00,2024/06/10/10:15:00~2024/06/10/10:45:00 --freqrange 600~650,700~800 --workdir </path/to/work_directory> --outdir </path/to/output_product_directory> 
     
 3. Run imaging with custom time and frequency resolution. Default is to use entire observing band and maximum 2 hours (or maximum scan duration) of integration to avoid smearing due to differential rotation of the Sun. Example run for imaging at 2 minutes (120 seconds) time resolution and 10 MHz frequency resolution:
 
 .. code-block :: bash 
     
-    run_meersolar </path/to/measurement_set> --workdir </path/to/work_directory> --image_timeres 120 --image_freqres 10
+    run_meersolar </path/to/measurement_set> --image_timeres 120 --image_freqres 10 --workdir </path/to/work_directory> --outdir </path/to/output_product_directory> 
     
-4. Default is to make only Stokes I images. To run full polar imaging:
+4. Default is to make only Stokes I images if `do_polcal=False` and Stokes IQUV, if `do_polcal=True`. To run only Stokes I imaging, even if `do_polcal=True`, run:
 
 .. code-block :: bash
     
-    run_meersolar </path/to/measurement_set> --workdir </path/to/work_directory> --pol IQUV
+    run_meersolar </path/to/measurement_set> --pol I --workdir </path/to/work_directory> --outdir </path/to/output_product_directory> 
     
 Similarly, all other advanced imaging parameters can be used.
 
@@ -81,7 +81,7 @@ By default, all steps will be performed by pipeline. Even pipeline was run upto 
 
 .. caution :: 
     
-    User should not modify and file and directory structure in the work directory. Switching off certain parameters will only allow to run the pipeline forward, if the expected output products from those steps are present with appropriate name in appropriate directory. Otherwise, it will fail.
+    User should not modify any file and directory structure in the work directory. Switching off certain parameters will only allow to run the pipeline forward, if the expected output products from those steps are present with appropriate name in appropriate directory. Otherwise, it will fail.
 
 Take a look at the **Advanced pipeline parameters** in the help page of **run_meersolar**. Each parameters are self explanatory. Some examples are given below:
 
@@ -89,25 +89,25 @@ Take a look at the **Advanced pipeline parameters** in the help page of **run_me
 
 .. code-block :: bash
     
-    run_meersolar </path/to/measurement_set> --workdir </path/to/work_directory> --no_noise_cal
+    run_meersolar </path/to/measurement_set> --no_noise_cal --workdir </path/to/work_directory> --outdir </path/to/output_product_directory> 
     
 2. To switch off self-calibration:
 
 .. code-block :: bash
     
-    run_meersolar </path/to/measurement_set> --workdir </path/to/work_directory> --no_selfcal
+    run_meersolar </path/to/measurement_set> --no_selfcal --workdir </path/to/work_directory> --outdir </path/to/output_product_directory> 
     
 3. To stop final imaging:
 
 .. code-block :: bash
     
-   run_meersolar </path/to/measurement_set> --workdir </path/to/work_directory> --no_imaging
+   run_meersolar </path/to/measurement_set> --no_imaging --workdir </path/to/work_directory> --outdir </path/to/output_product_directory> 
    
 4. To switch off self-calibration and final imaging
 
 .. code-block :: bash
 
-    run_meersolar </path/to/measurement_set> --workdir </path/to/work_directory> --no_selfcal --no_imaging
+    run_meersolar </path/to/measurement_set> --no_selfcal --no_imaging --workdir </path/to/work_directory> --outdir </path/to/output_product_directory> 
 
 
 

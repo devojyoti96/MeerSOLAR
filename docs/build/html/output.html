@@ -164,15 +164,15 @@
 <div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
   <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="quickstart.html">Quickstart</a></li>
-<li class="toctree-l1 has-children"><a class="reference internal" href="install.html">Installation and Initial Setup</a><input class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><div class="visually-hidden">Toggle navigation of Installation and Initial Setup</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l1 has-children"><a class="reference internal" href="install.html">Installation</a><input class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><div class="visually-hidden">Toggle navigation of Installation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
 <li class="toctree-l2"><a class="reference internal" href="install_conda.html">Install Conda: Anaconda or Miniconda</a></li>
 <li class="toctree-l2"><a class="reference internal" href="activate_conda.html">Create and Activate Conda Environment</a></li>
 <li class="toctree-l2"><a class="reference internal" href="install_meersolar.html">Install MeerSOLAR</a></li>
-<li class="toctree-l2"><a class="reference internal" href="initial_setup.html">Initial Setup</a></li>
 </ul>
 </li>
-<li class="toctree-l1"><a class="reference internal" href="idia_setup.html">IDIA-ilifu Setup</a></li>
-<li class="toctree-l1 current has-children"><a class="reference internal" href="tutorial.html">Tutorial</a><input checked="" class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" role="switch" type="checkbox"/><label for="toctree-checkbox-2"><div class="visually-hidden">Toggle navigation of Tutorial</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="idia_setup.html">Installation on IDIA-ilifu</a></li>
+<li class="toctree-l1"><a class="reference internal" href="initial_setup.html">Initial Setup</a></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="tutorial.html">Tutorial</a><input class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" role="switch" type="checkbox"/><label for="toctree-checkbox-2"><div class="visually-hidden">Toggle navigation of Tutorial</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
 <li class="toctree-l2"><a class="reference internal" href="flowchart.html">MeerSOLAR Flowchart</a></li>
 <li class="toctree-l2"><a class="reference internal" href="runpipeline.html">Run MeerSOLAR Pipeline</a></li>
 <li class="toctree-l2 has-children"><a class="reference internal" href="logger.html">Monitoring MeerSOLAR Pipeline Jobs</a><input class="toctree-checkbox" id="toctree-checkbox-3" name="toctree-checkbox-3" role="switch" type="checkbox"/><label for="toctree-checkbox-3"><div class="visually-hidden">Toggle navigation of Monitoring MeerSOLAR Pipeline Jobs</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
@@ -180,9 +180,9 @@
 <li class="toctree-l3"><a class="reference internal" href="remotelogger.html">Remote MeerSOLAR Logger</a></li>
 </ul>
 </li>
-<li class="toctree-l2 current current-page"><a class="current reference internal" href="#">Directory Structure and Data Products</a></li>
 </ul>
 </li>
+<li class="toctree-l1 current current-page"><a class="current reference internal" href="#">Directory Structure and Data Products</a></li>
 <li class="toctree-l1"><a class="reference internal" href="kill.html">Stop MeerSOLAR Job</a></li>
 <li class="toctree-l1 has-children"><a class="reference internal" href="cli.html">Command line tools</a><input class="toctree-checkbox" id="toctree-checkbox-4" name="toctree-checkbox-4" role="switch" type="checkbox"/><label for="toctree-checkbox-4"><div class="visually-hidden">Toggle navigation of Command line tools</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
 <li class="toctree-l2"><a class="reference internal" href="basic_cli.html">Basic CLI</a></li>
@@ -250,12 +250,18 @@ Note down the Job ID to view the logger.</p>
 <span class="gp">#</span><span class="c1">##########################</span>
 <span class="go">MeerSOLAR Job ID: &lt;YYYYMMDDHHMMSSmmm&gt;</span>
 <span class="go">Work directory: &lt;workdir&gt;</span>
+<span class="go">Final product directory: &lt;outputdir&gt;</span>
 <span class="gp">#</span><span class="c1">##########################</span>
 </pre></div>
 </div>
 <section id="directory-structure">
 <h2>Directory structure<a class="headerlink" href="#directory-structure" title="Link to this heading">¶</a></h2>
-<p>All data intermediate and final data products will be saved in &lt;workdir&gt;.</p>
+<p>All data intermediate data products will be saved in <code class="docutils literal notranslate"><span class="pre">&lt;workdir&gt;</span></code>.</p>
+<p>All final data products will be saved in <code class="docutils literal notranslate"><span class="pre">&lt;outputdir&gt;</span></code>.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>In local workstations, it is okay to choose <code class="docutils literal notranslate"><span class="pre">&lt;workdir&gt;</span></code> and <code class="docutils literal notranslate"><span class="pre">&lt;outputdir&gt;</span></code>. In HPC environment, generally, high-speed disks are used during data-processing, which may have limited storage life-time, and has seperate long-term storage disks. It is recommended to choose <code class="docutils literal notranslate"><span class="pre">&lt;workdir&gt;</span></code> path inside the high-speed disk and <code class="docutils literal notranslate"><span class="pre">&lt;outputdir&gt;</span></code> inside the long-term storage disk. Otherwise, there may be possiblity that final data-products will be removed after certain time.</p>
+</div>
 <div class="dropdown admonition">
 <p class="admonition-title">Click here to see directory structure in work directory</p>
 <pre  class="mermaid">
@@ -265,27 +271,38 @@ Note down the Job ID to view the logger.</p>
     WD --&gt; SCDIR[&quot;`Self-cal directories:&lt;br&gt;selfcals_scan_*_spw_*_selfcal`&quot;]
     WD --&gt; TMS[&quot;`Target ms(s):&lt;br&gt;targets_scan_*_spw_*.ms`&quot;]
     WD --&gt; BACK[&quot;Backup directory:&lt;br&gt;backup&quot;]
-    WD --&gt; DS[&quot;`Dynamic spectra:&lt;br&gt;dynamic_spectra`&quot;]
     WD --&gt; LOG[&quot;Log directory:&lt;br&gt;logs&quot;]
-    WD --&gt; CALTABLE[&quot;Caltable directory:&lt;br&gt;caltables&quot;]
-    WD --&gt; IMG[&quot;`Image directory:&lt;br&gt;imagedir_f_*_t_*_w_briggs_*`&quot;]
-
     LOG --&gt; LOGF[&quot;*.log&quot;]
+    </pre></div>
+<div class="dropdown admonition">
+<p class="admonition-title">Click here to see directory structure in output directory</p>
+<pre  class="mermaid">
+        graph LR
+    WD[&quot;Output directory:&lt;br&gt;{outdir}&quot;] --&gt; CALTABLE[&quot;Caltable directory:&lt;br&gt;caltables&quot;]
+    WD --&gt; DS[&quot;`Dynamic spectra:&lt;br&gt;dynamic_spectra`&quot;]
+    DS --&gt; DSNPY[&quot;`Dynamic spectrum numpy files:&lt;br&gt;*.npy`&quot;]
+    DS --&gt; DSPNG[&quot;`Dynamic spectrum plots in PNG:&lt;br&gt;*.png`&quot;]
+    WD --&gt; IMG[&quot;`Image directory:&lt;br&gt;imagedir_f_*_t_*_w_briggs_*`&quot;]
     CALTABLE --&gt; ATT[&quot;`Attenuator values:&lt;br&gt;*_attval_scan_*.npy`&quot;]
     CALTABLE --&gt; CTBL[&quot;`Caltables:&lt;br&gt;calibrator_caltable.bcal/gcal/kcal`&quot;]
     CALTABLE --&gt; BPTBL[&quot;`Bandpass tables scaled:&lt;br&gt;calibrator_caltable_scan_*.bcal`&quot;]
     CALTABLE --&gt; SCTBL[&quot;`Self-cal tables:&lt;br&gt;selfcal_scan_*.gcal`&quot;]
-
     IMG --&gt; IMAGE[&quot;Fits image:&lt;br&gt;images&quot;]
     IMG --&gt; MODEL[&quot;Fits models:&lt;br&gt;models&quot;]
-    IMG --&gt; RES[&quot;Firs residual:&lt;br&gt;residuals&quot;]
-    IMG --&gt; PBDIR[&quot;Primary beams:&lt;br&gt;pbdir&quot;]
+    IMG --&gt; RES[&quot;Fits residual:&lt;br&gt;residuals&quot;]
     IMG --&gt; PBCOR[&quot;`Primary beam&lt;br&gt;corrected images:&lt;br&gt;pbcor_images`&quot;]
     IMG --&gt; TBIMG[&quot;`Brightness temperature images:&lt;br&gt;tb_images`&quot;]
     IMG --&gt; OVRPDF[&quot;Overlays of EUV:&lt;br&gt;PDF format:&lt;br&gt;overlays_pdfs&quot;]
     IMG --&gt; OVRPNG[&quot;Overlays of EUV:&lt;br&gt;PNG format:&lt;br&gt;overlays_pngs&quot;]
-    IMG --&gt; RADPNG[&quot;Radio images in HPC coordinate:&lt;br&gt;PNG format:&lt;br&gt;images_pngs&quot;]
-    IMG --&gt; RADPDF[&quot;Radio images in HPC coordinate:&lt;br&gt;PDF format:&lt;br&gt;images_pdfs&quot;]
+    IMAGE --&gt; IMAGEHPC[&quot;Radio images in HPC coordinate:&lt;br&gt;FITS format:&lt;br&gt;hpcs&quot;]
+    PBCOR --&gt; PBCORHPC[&quot;Radio images in HPC coordinate:&lt;br&gt;FITS format:&lt;br&gt;hpcs&quot;]
+    TBIMG --&gt; TBIMGHPC[&quot;Radio images in HPC coordinate:&lt;br&gt;FITS format:&lt;br&gt;hpcs&quot;]
+    IMAGE --&gt; IMAGEPDF[&quot;Quicklook in HPC coordinate:&lt;br&gt;PDF format:&lt;br&gt;pdfs&quot;]
+    IMAGE --&gt; IMAGEPNG[&quot;Quicklook in HPC coordinate:&lt;br&gt;PNG format:&lt;br&gt;pngs&quot;]
+    PBCOR --&gt; PBCORPDF[&quot;Quicklook in HPC coordinate:&lt;br&gt;PDF format:&lt;br&gt;pdfs&quot;]
+    PBCOR --&gt; PBCORPNG[&quot;Quicklook in HPC coordinate:&lt;br&gt;PNG format:&lt;br&gt;pngs&quot;]
+    TBIMG --&gt; TBIMGPDF[&quot;Quicklook in HPC coordinate:&lt;br&gt;PDF format:&lt;br&gt;pdfs&quot;]
+    TBIMG --&gt; TBIMGPNG[&quot;Quicklook in HPC coordinate:&lt;br&gt;PNG format:&lt;br&gt;pngs&quot;]
     </pre></div>
 </section>
 <section id="data-products">
@@ -293,22 +310,52 @@ Note down the Job ID to view the logger.</p>
 <p>Pipeline produces calibrated visibilities as well as several imaging products.</p>
 <section id="dynamic-spectrum">
 <h3>Dynamic spectrum<a class="headerlink" href="#dynamic-spectrum" title="Link to this heading">¶</a></h3>
-<p>Dynamic spectra for all (or the ones selected) target scans are available in <code class="docutils literal notranslate"><span class="pre">dynamic_spectra</span></code> directory inside the work directory.</p>
+<p>Dynamic spectra for all (or the ones selected) target scans are available in <code class="docutils literal notranslate"><span class="pre">dynamic_spectra</span></code> directory inside the output directory <code class="docutils literal notranslate"><span class="pre">&lt;outputdir&gt;</span></code>.</p>
 </section>
 <section id="calibrated-visibilities">
 <h3>Calibrated visibilities<a class="headerlink" href="#calibrated-visibilities" title="Link to this heading">¶</a></h3>
-<p>Calibrated measurements sets for all (or the ones selected) target scans will be available in workdir with naming format, <code class="docutils literal notranslate"><span class="pre">targets_scan_&lt;scan_number&gt;_spw_&lt;channel_range&gt;.ms</span></code>.</p>
+<p>Calibrated measurements sets for all (or the ones selected) target scans will be available in work directory <code class="docutils literal notranslate"><span class="pre">&lt;workdir&gt;</span></code> with naming format, <code class="docutils literal notranslate"><span class="pre">targets_scan_&lt;scan_number&gt;_spw_&lt;channel_range&gt;.ms</span></code>. Calibrated measurement sets will not be saved in output directory <code class="docutils literal notranslate"><span class="pre">&lt;outputdir&gt;</span></code> (unless same as <code class="docutils literal notranslate"><span class="pre">&lt;workdir&gt;</span></code>) to save space.</p>
 </section>
 <section id="imaging-products">
 <h3>Imaging products<a class="headerlink" href="#imaging-products" title="Link to this heading">¶</a></h3>
-<p>Imaging products are available in <code class="docutils literal notranslate"><span class="pre">imagedir_f_&lt;freqres&gt;_t_&lt;timeres&gt;_w_&lt;weight&gt;_&lt;robust&gt;</span></code> directory inside work directory. If imaging is pereformed with different time and frequency resolutions or different weighting schemes, seperate image directories with corresponding parameters will have the corresponding images.</p>
-<ol class="arabic simple">
-<li><p><strong>Image fits in RA/DEC</strong> - Fits images in RA/DEC coordinate are available in <code class="docutils literal notranslate"><span class="pre">imagedir_f_&lt;freqres&gt;_t_&lt;timeres&gt;_w_&lt;weight&gt;_&lt;robust&gt;/images</span></code> directory inside work directory. These are not primary beam corrected.</p></li>
+<p>Imaging products are available in <code class="docutils literal notranslate"><span class="pre">imagedir_f_&lt;freqres&gt;_t_&lt;timeres&gt;_w_&lt;weight&gt;_&lt;robust&gt;</span></code> directory inside output directory <code class="docutils literal notranslate"><span class="pre">&lt;outputdir&gt;</span></code>. If imaging is performed with different time and frequency resolutions or different weighting schemes, seperate image directories with corresponding parameters will have the corresponding images.</p>
+<ol class="arabic">
+<li><p><strong>Image fits in RA/DEC</strong> - Fits images in RA/DEC coordinate are available in <code class="docutils literal notranslate"><span class="pre">imagedir_f_&lt;freqres&gt;_t_&lt;timeres&gt;_w_&lt;weight&gt;_&lt;robust&gt;/images</span></code> directory inside work directory. These are not primary beam corrected.</p>
+<blockquote>
+<div><div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>All fits images have some MeerSOLAR specific metadata in the header and some image statistics.</p>
+<div class="dropdown admonition">
+<p class="admonition-title">Click here to see details of these metadata</p>
+<blockquote>
+<div><p>PIPELINE= ‘MeerSOLAR’ # Pipeline name</p>
+<p>AUTHOR  = ‘DevojyotiKansabanik,DeepanPatra’ # Pipeline developer</p>
+<p>BAND    = ‘U’ # MeerKAT band name, required for proper primary beam correction</p>
+<p>MAX     =  <code class="docutils literal notranslate"><span class="pre">&lt;maxval&gt;</span></code> # Maximum value on the solar disc</p>
+<p>MIN     =  <code class="docutils literal notranslate"><span class="pre">&lt;minval&gt;</span></code> # Minimum value on the solar disc</p>
+<p>RMS     =  <code class="docutils literal notranslate"><span class="pre">&lt;rms&gt;</span></code> # RMS value outside solar disc</p>
+<p>SUM     =  <code class="docutils literal notranslate"><span class="pre">&lt;sum&gt;</span></code> # Total sum on the solar disc</p>
+<p>MEAN    =  <code class="docutils literal notranslate"><span class="pre">&lt;mean&gt;</span></code> # Mean value on the solar disc</p>
+<p>MEDIAN  =  <code class="docutils literal notranslate"><span class="pre">&lt;median&gt;</span></code> # Median value on the solar disc</p>
+<p>RMSDYN  =  <code class="docutils literal notranslate"><span class="pre">&lt;rmsdyn&gt;</span></code> # RMS based dynamic range, <code class="docutils literal notranslate"><span class="pre">&lt;maxval/rms&gt;</span></code></p>
+<p>MIMADYN =  <code class="docutils literal notranslate"><span class="pre">&lt;minmaxdyn&gt;</span></code> # Min-max based dynamic range, <code class="docutils literal notranslate"><span class="pre">&lt;maxval/abs(minval)&gt;</span></code></p>
+</div></blockquote>
+</div>
+</div>
+</div></blockquote>
+</li>
 <li><p><strong>Primary beam corrected image fits</strong> - Primary beam corrected fits images are available in <code class="docutils literal notranslate"><span class="pre">imagedir_f_&lt;freqres&gt;_t_&lt;timeres&gt;_w_&lt;weight&gt;_&lt;robust&gt;/pbcor_images</span></code> directory inside work directory.</p></li>
 <li><p><strong>Brightness temperature image fits</strong> - Brightness temperature fits images are available in <code class="docutils literal notranslate"><span class="pre">imagedir_f_&lt;freqres&gt;_t_&lt;timeres&gt;_w_&lt;weight&gt;_&lt;robust&gt;/tb_images</span></code> directory inside work directory.</p></li>
 <li><p><strong>CLEAN model and residual fits</strong> - CLEAN model and residual images are available in <code class="docutils literal notranslate"><span class="pre">imagedir_f_&lt;freqres&gt;_t_&lt;timeres&gt;_w_&lt;weight&gt;_&lt;robust&gt;/models</span></code> and <code class="docutils literal notranslate"><span class="pre">imagedir_f_&lt;freqres&gt;_t_&lt;timeres&gt;_w_&lt;weight&gt;_&lt;robust&gt;/residuals</span></code> directory inside work directory. These are not saved only if <code class="docutils literal notranslate"><span class="pre">keep_backup</span></code> option is switched on.</p></li>
-<li><p><strong>Radio images in helioprojective coordinates</strong> - Directories like, <code class="docutils literal notranslate"><span class="pre">images,</span> <span class="pre">pbcor_images,</span> <span class="pre">tb_images</span></code> inside the image directory will have the helioprojective maps of corresponding images in PNG and PDF formats in <code class="docutils literal notranslate"><span class="pre">pngs</span></code> and <code class="docutils literal notranslate"><span class="pre">pdfs</span></code> directories inside the parent ones.</p></li>
-<li><p><strong>Overlays on GOES-SUVI EUV images</strong> - Overlays on GOES SUVI EUV images are saved in PNG and PDF formats in <code class="docutils literal notranslate"><span class="pre">imagedir_f_&lt;freqres&gt;_t_&lt;timeres&gt;_w_&lt;weight&gt;_&lt;robust&gt;/overlays_pngs</span></code> and <code class="docutils literal notranslate"><span class="pre">imagedir_f_&lt;freqres&gt;_t_&lt;timeres&gt;_w_&lt;weight&gt;_&lt;robust&gt;/overlays_pngs</span></code>, respectively.</p></li>
+<li><p><strong>Radio images in helioprojective coordinates</strong> - Directory names <code class="docutils literal notranslate"><span class="pre">hpcs</span></code> inside directories like, <code class="docutils literal notranslate"><span class="pre">images,</span> <span class="pre">pbcor_images,</span> <span class="pre">tb_images</span></code> inside the image directory will have the FITS images in helioprojective coordinates. Images in PNG and PDF formats are also available in <code class="docutils literal notranslate"><span class="pre">pngs</span></code> and <code class="docutils literal notranslate"><span class="pre">pdfs</span></code> directories inside the parent directories.</p>
+<blockquote>
+<div><div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Header of helioprojective maps have wavelength information in unit of <code class="docutils literal notranslate"><span class="pre">centimeter</span></code> or <code class="docutils literal notranslate"><span class="pre">meter</span></code>.</p>
+</div>
+</div></blockquote>
+</li>
+<li><p><strong>Overlays on GOES-SUVI EUV images</strong> - Overlays on GOES SUVI EUV (193 Å) images are saved in PNG and PDF formats in <code class="docutils literal notranslate"><span class="pre">imagedir_f_&lt;freqres&gt;_t_&lt;timeres&gt;_w_&lt;weight&gt;_&lt;robust&gt;/overlays_pngs</span></code> and <code class="docutils literal notranslate"><span class="pre">imagedir_f_&lt;freqres&gt;_t_&lt;timeres&gt;_w_&lt;weight&gt;_&lt;robust&gt;/overlays_pngs</span></code>, respectively.</p></li>
 </ol>
 </section>
 </section>

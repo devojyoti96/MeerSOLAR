@@ -163,14 +163,14 @@
 <div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
   <ul>
 <li class="toctree-l1"><a class="reference internal" href="../../../quickstart.html">Quickstart</a></li>
-<li class="toctree-l1 has-children"><a class="reference internal" href="../../../install.html">Installation and Initial Setup</a><input class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><div class="visually-hidden">Toggle navigation of Installation and Initial Setup</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../../../install.html">Installation</a><input class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><div class="visually-hidden">Toggle navigation of Installation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
 <li class="toctree-l2"><a class="reference internal" href="../../../install_conda.html">Install Conda: Anaconda or Miniconda</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../activate_conda.html">Create and Activate Conda Environment</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../install_meersolar.html">Install MeerSOLAR</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../../initial_setup.html">Initial Setup</a></li>
 </ul>
 </li>
-<li class="toctree-l1"><a class="reference internal" href="../../../idia_setup.html">IDIA-ilifu Setup</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../idia_setup.html">Installation on IDIA-ilifu</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../initial_setup.html">Initial Setup</a></li>
 <li class="toctree-l1 has-children"><a class="reference internal" href="../../../tutorial.html">Tutorial</a><input class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" role="switch" type="checkbox"/><label for="toctree-checkbox-2"><div class="visually-hidden">Toggle navigation of Tutorial</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
 <li class="toctree-l2"><a class="reference internal" href="../../../flowchart.html">MeerSOLAR Flowchart</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../runpipeline.html">Run MeerSOLAR Pipeline</a></li>
@@ -179,9 +179,9 @@
 <li class="toctree-l3"><a class="reference internal" href="../../../remotelogger.html">Remote MeerSOLAR Logger</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="../../../output.html">Directory Structure and Data Products</a></li>
 </ul>
 </li>
+<li class="toctree-l1"><a class="reference internal" href="../../../output.html">Directory Structure and Data Products</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../kill.html">Stop MeerSOLAR Job</a></li>
 <li class="toctree-l1 has-children"><a class="reference internal" href="../../../cli.html">Command line tools</a><input class="toctree-checkbox" id="toctree-checkbox-4" name="toctree-checkbox-4" role="switch" type="checkbox"/><label for="toctree-checkbox-4"><div class="visually-hidden">Toggle navigation of Command line tools</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
 <li class="toctree-l2"><a class="reference internal" href="../../../basic_cli.html">Basic CLI</a></li>
@@ -888,8 +888,7 @@
         <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;###########################</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
         <span class="n">applypbcor_basename</span> <span class="o">=</span> <span class="s2">&quot;apply_pbcor&quot;</span>
         <span class="n">applypbcor_cmd</span> <span class="o">=</span> <span class="p">(</span>
-            <span class="s2">&quot;run_meerpbcor --imagedir &quot;</span>
-            <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">imagedir</span><span class="p">)</span>
+            <span class="sa">f</span><span class="s2">&quot;run_meerpbcor </span><span class="si">{</span><span class="n">imagedir</span><span class="si">}</span><span class="s2">&quot;</span>
             <span class="o">+</span> <span class="s2">&quot; --workdir &quot;</span>
             <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">workdir</span><span class="p">)</span>
             <span class="o">+</span> <span class="s2">&quot; --cpu_frac &quot;</span>
@@ -1314,8 +1313,7 @@
 <span class="sd">    robust : float, optional</span>
 <span class="sd">        Briggs weighting robust parameter (-1 to 1)</span>
 <span class="sd">    pol : str, optional</span>
-<span class="sd">        Stokes</span>
-<span class="sd">    Parameters to image</span>
+<span class="sd">        Stokes parameters to image</span>
 <span class="sd">    freqres : float, optional</span>
 <span class="sd">        Frequency resolution of spectral chunk in MHz (default : -1, no spectral chunking)</span>
 <span class="sd">    timeres : float, optional</span>
@@ -1604,7 +1602,7 @@
     <span class="n">minuv</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
     <span class="n">image_freqres</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span>
     <span class="n">image_timeres</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span>
-    <span class="n">pol</span><span class="o">=</span><span class="s2">&quot;I&quot;</span><span class="p">,</span>
+    <span class="n">pol</span><span class="o">=</span><span class="s2">&quot;IQUV&quot;</span><span class="p">,</span>
     <span class="n">apply_parang</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
     <span class="n">clean_threshold</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span>
     <span class="n">use_multiscale</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
@@ -1738,26 +1736,26 @@
         <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Please provide a valid measurement set location.</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
         <span class="n">exit_job</span><span class="p">(</span><span class="n">start_time</span><span class="p">)</span>
         <span class="k">return</span> <span class="mi">1</span>
+    <span class="n">mspath</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">msname</span><span class="p">)</span>
+    <span class="c1">###################################</span>
+    <span class="c1"># Preparing working directories</span>
+    <span class="c1">###################################</span>
+    <span class="k">if</span> <span class="n">workdir</span> <span class="o">==</span> <span class="s2">&quot;&quot;</span><span class="p">:</span>
+        <span class="n">workdir</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="n">msname</span><span class="p">))</span> <span class="o">+</span> <span class="s2">&quot;/workdir&quot;</span>
+    <span class="n">workdir</span><span class="o">=</span><span class="n">workdir</span><span class="o">.</span><span class="n">rstrip</span><span class="p">(</span><span class="s2">&quot;/&quot;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">outdir</span><span class="o">==</span><span class="s2">&quot;&quot;</span><span class="p">:</span>
+        <span class="n">outdir</span><span class="o">=</span><span class="n">workdir</span>
+    <span class="n">outdir</span><span class="o">=</span><span class="n">outdir</span><span class="o">.</span><span class="n">rstrip</span><span class="p">(</span><span class="s2">&quot;/&quot;</span><span class="p">)</span>
+    <span class="n">caldir</span><span class="o">=</span><span class="n">outdir</span><span class="o">+</span><span class="s2">&quot;/caltables&quot;</span>  
+    <span class="n">caldir</span><span class="o">=</span><span class="n">caldir</span><span class="o">.</span><span class="n">rstrip</span><span class="p">(</span><span class="s2">&quot;/&quot;</span><span class="p">)</span>  
+    <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">workdir</span><span class="p">,</span><span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">outdir</span><span class="p">,</span><span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">caldir</span><span class="p">,</span><span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">mspath</span> <span class="o">!=</span> <span class="s2">&quot;&quot;</span> <span class="ow">and</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">mspath</span> <span class="o">+</span> <span class="s2">&quot;/dask-scratch-space&quot;</span><span class="p">):</span>
+        <span class="n">os</span><span class="o">.</span><span class="n">system</span><span class="p">(</span><span class="s2">&quot;rm -rf &quot;</span> <span class="o">+</span> <span class="n">mspath</span> <span class="o">+</span> <span class="s2">&quot;/dask-scratch-space &quot;</span> <span class="o">+</span> <span class="n">mspath</span> <span class="o">+</span> <span class="s2">&quot;/tmp&quot;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">workdir</span> <span class="o">!=</span> <span class="s2">&quot;&quot;</span> <span class="ow">and</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">workdir</span> <span class="o">+</span> <span class="s2">&quot;/dask-scratch-space&quot;</span><span class="p">):</span>
+        <span class="n">os</span><span class="o">.</span><span class="n">system</span><span class="p">(</span><span class="s2">&quot;rm -rf &quot;</span> <span class="o">+</span> <span class="n">workdir</span> <span class="o">+</span> <span class="s2">&quot;/dask-scratch-space &quot;</span> <span class="o">+</span> <span class="n">workdir</span> <span class="o">+</span> <span class="s2">&quot;/tmp&quot;</span><span class="p">)</span>
     <span class="k">try</span><span class="p">:</span>
-        <span class="n">mspath</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">msname</span><span class="p">)</span>
-        <span class="c1">###################################</span>
-        <span class="c1"># Preparing working directories</span>
-        <span class="c1">###################################</span>
-        <span class="k">if</span> <span class="n">workdir</span> <span class="o">==</span> <span class="s2">&quot;&quot;</span><span class="p">:</span>
-            <span class="n">workdir</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="n">msname</span><span class="p">))</span> <span class="o">+</span> <span class="s2">&quot;/workdir&quot;</span>
-        <span class="n">workdir</span><span class="o">=</span><span class="n">workdir</span><span class="o">.</span><span class="n">rstrip</span><span class="p">(</span><span class="s2">&quot;/&quot;</span><span class="p">)</span>
-        <span class="k">if</span> <span class="n">outdir</span><span class="o">==</span><span class="s2">&quot;&quot;</span><span class="p">:</span>
-            <span class="n">outdir</span><span class="o">=</span><span class="n">workdir</span>
-        <span class="n">outdir</span><span class="o">=</span><span class="n">outdir</span><span class="o">.</span><span class="n">rstrip</span><span class="p">(</span><span class="s2">&quot;/&quot;</span><span class="p">)</span>
-        <span class="n">caldir</span><span class="o">=</span><span class="n">outdir</span><span class="o">+</span><span class="s2">&quot;/caltables&quot;</span>  
-        <span class="n">caldir</span><span class="o">=</span><span class="n">caldir</span><span class="o">.</span><span class="n">rstrip</span><span class="p">(</span><span class="s2">&quot;/&quot;</span><span class="p">)</span>  
-        <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">workdir</span><span class="p">,</span><span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-        <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">outdir</span><span class="p">,</span><span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-        <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">caldir</span><span class="p">,</span><span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-        <span class="k">if</span> <span class="n">mspath</span> <span class="o">!=</span> <span class="s2">&quot;&quot;</span> <span class="ow">and</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">mspath</span> <span class="o">+</span> <span class="s2">&quot;/dask-scratch-space&quot;</span><span class="p">):</span>
-            <span class="n">os</span><span class="o">.</span><span class="n">system</span><span class="p">(</span><span class="s2">&quot;rm -rf &quot;</span> <span class="o">+</span> <span class="n">mspath</span> <span class="o">+</span> <span class="s2">&quot;/dask-scratch-space &quot;</span> <span class="o">+</span> <span class="n">mspath</span> <span class="o">+</span> <span class="s2">&quot;/tmp&quot;</span><span class="p">)</span>
-        <span class="k">if</span> <span class="n">workdir</span> <span class="o">!=</span> <span class="s2">&quot;&quot;</span> <span class="ow">and</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">workdir</span> <span class="o">+</span> <span class="s2">&quot;/dask-scratch-space&quot;</span><span class="p">):</span>
-            <span class="n">os</span><span class="o">.</span><span class="n">system</span><span class="p">(</span><span class="s2">&quot;rm -rf &quot;</span> <span class="o">+</span> <span class="n">workdir</span> <span class="o">+</span> <span class="s2">&quot;/dask-scratch-space &quot;</span> <span class="o">+</span> <span class="n">workdir</span> <span class="o">+</span> <span class="s2">&quot;/tmp&quot;</span><span class="p">)</span>
         <span class="c1">####################################</span>
         <span class="c1"># Job and process IDs</span>
         <span class="c1">####################################</span>
@@ -1768,6 +1766,7 @@
             <span class="n">jobid</span><span class="p">,</span>
             <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="n">msname</span><span class="p">),</span>
             <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="n">workdir</span><span class="p">),</span>
+            <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="n">outdir</span><span class="p">),</span>
             <span class="n">cpu_frac</span><span class="p">,</span>
             <span class="n">mem_frac</span><span class="p">,</span>
         <span class="p">)</span>
@@ -1775,6 +1774,7 @@
         <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;###########################&quot;</span><span class="p">)</span>
         <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;MeerSOLAR Job ID: </span><span class="si">{</span><span class="n">jobid</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
         <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Work directory: </span><span class="si">{</span><span class="n">workdir</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Final product directory: </span><span class="si">{</span><span class="n">outdir</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
         <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;###########################</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
         <span class="c1">#####################################</span>
         <span class="c1"># Moving into work directory</span>
@@ -1800,7 +1800,7 @@
                     <span class="sa">f</span><span class="s2">&quot;Best,</span><span class="se">\n</span><span class="s2">&quot;</span>
                     <span class="sa">f</span><span class="s2">&quot;MeerSOLAR&quot;</span>
                 <span class="p">)</span>
-            <span class="n">success_msg</span><span class="p">,</span> <span class="n">error_msg</span> <span class="o">=</span> <span class="n">send_notification</span><span class="p">(</span><span class="n">emails</span><span class="p">,</span> <span class="n">email_subject</span><span class="p">,</span> <span class="n">email_msg</span><span class="p">)</span>
+                <span class="n">success_msg</span><span class="p">,</span> <span class="n">error_msg</span> <span class="o">=</span> <span class="n">send_notification</span><span class="p">(</span><span class="n">emails</span><span class="p">,</span> <span class="n">email_subject</span><span class="p">,</span> <span class="n">email_msg</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="c1">####################################</span>
             <span class="c1"># Job name and logging password</span>
@@ -1838,7 +1838,7 @@
                     <span class="sa">f</span><span class="s2">&quot;Best,</span><span class="se">\n</span><span class="s2">&quot;</span>
                     <span class="sa">f</span><span class="s2">&quot;MeerSOLAR&quot;</span>
                 <span class="p">)</span>
-            <span class="n">success_msg</span><span class="p">,</span> <span class="n">error_msg</span> <span class="o">=</span> <span class="n">send_notification</span><span class="p">(</span><span class="n">emails</span><span class="p">,</span> <span class="n">email_subject</span><span class="p">,</span> <span class="n">email_msg</span><span class="p">)</span>
+                <span class="n">success_msg</span><span class="p">,</span> <span class="n">error_msg</span> <span class="o">=</span> <span class="n">send_notification</span><span class="p">(</span><span class="n">emails</span><span class="p">,</span> <span class="n">email_subject</span><span class="p">,</span> <span class="n">email_msg</span><span class="p">)</span>
 
         <span class="c1">#####################################</span>
         <span class="c1"># Settings for solar data</span>
@@ -2000,9 +2000,9 @@
                         <span class="n">remote_logger_waittime</span><span class="p">,</span>
                         <span class="n">remote_link</span><span class="o">=</span><span class="n">remote_link</span><span class="p">,</span>
                     <span class="p">)</span>
-                    <span class="n">datadir</span> <span class="o">=</span> <span class="n">get_datadir</span><span class="p">()</span>
+                    <span class="n">meersolar_cachedir</span> <span class="o">=</span> <span class="n">get_meersolar_cachedir</span><span class="p">()</span>
                     <span class="k">if</span> <span class="n">pid</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-                        <span class="n">save_pid</span><span class="p">(</span><span class="n">pid</span><span class="p">,</span> <span class="n">datadir</span> <span class="o">+</span> <span class="sa">f</span><span class="s2">&quot;/pids/pids_</span><span class="si">{</span><span class="n">jobid</span><span class="si">}</span><span class="s2">.txt&quot;</span><span class="p">)</span>
+                        <span class="n">save_pid</span><span class="p">(</span><span class="n">pid</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">meersolar_cachedir</span><span class="si">}</span><span class="s2">/pids/pids_</span><span class="si">{</span><span class="n">jobid</span><span class="si">}</span><span class="s2">.txt&quot;</span><span class="p">)</span>
                 <span class="k">return</span> <span class="mi">1</span>
 
         <span class="c1">##################################</span>
@@ -2020,9 +2020,9 @@
                         <span class="n">remote_logger_waittime</span><span class="p">,</span>
                         <span class="n">remote_link</span><span class="o">=</span><span class="n">remote_link</span><span class="p">,</span>
                     <span class="p">)</span>
-                    <span class="n">datadir</span> <span class="o">=</span> <span class="n">get_datadir</span><span class="p">()</span>
+                    <span class="n">meersolar_cachedir</span> <span class="o">=</span> <span class="n">get_meersolar_cachedir</span><span class="p">()</span>
                     <span class="k">if</span> <span class="n">pid</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-                        <span class="n">save_pid</span><span class="p">(</span><span class="n">pid</span><span class="p">,</span> <span class="n">datadir</span> <span class="o">+</span> <span class="sa">f</span><span class="s2">&quot;/pids/pids_</span><span class="si">{</span><span class="n">jobid</span><span class="si">}</span><span class="s2">.txt&quot;</span><span class="p">)</span>
+                        <span class="n">save_pid</span><span class="p">(</span><span class="n">pid</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">meersolar_cachedir</span><span class="si">}</span><span class="s2">/pids/pids_</span><span class="si">{</span><span class="n">jobid</span><span class="si">}</span><span class="s2">.txt&quot;</span><span class="p">)</span>
                 <span class="k">return</span> <span class="mi">1</span>
             <span class="n">msg</span> <span class="o">=</span> <span class="n">run_flag</span><span class="p">(</span>
                 <span class="n">calibrator_msname</span><span class="p">,</span>
@@ -2052,9 +2052,9 @@
                         <span class="n">remote_logger_waittime</span><span class="p">,</span>
                         <span class="n">remote_link</span><span class="o">=</span><span class="n">remote_link</span><span class="p">,</span>
                     <span class="p">)</span>
-                    <span class="n">datadir</span> <span class="o">=</span> <span class="n">get_datadir</span><span class="p">()</span>
+                    <span class="n">meersolar_cachedir</span> <span class="o">=</span> <span class="n">get_meersolar_cachedir</span><span class="p">()</span>
                     <span class="k">if</span> <span class="n">pid</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-                        <span class="n">save_pid</span><span class="p">(</span><span class="n">pid</span><span class="p">,</span> <span class="n">datadir</span> <span class="o">+</span> <span class="sa">f</span><span class="s2">&quot;/pids/pids_</span><span class="si">{</span><span class="n">jobid</span><span class="si">}</span><span class="s2">.txt&quot;</span><span class="p">)</span>
+                        <span class="n">save_pid</span><span class="p">(</span><span class="n">pid</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">meersolar_cachedir</span><span class="si">}</span><span class="s2">/pids/pids_</span><span class="si">{</span><span class="n">jobid</span><span class="si">}</span><span class="s2">.txt&quot;</span><span class="p">)</span>
                 <span class="k">return</span> <span class="mi">1</span>
             <span class="n">fluxcal_fields</span><span class="p">,</span> <span class="n">fluxcal_scans</span> <span class="o">=</span> <span class="n">get_fluxcals</span><span class="p">(</span><span class="n">calibrator_msname</span><span class="p">)</span>
             <span class="n">phasecal_fields</span><span class="p">,</span> <span class="n">phasecal_scans</span><span class="p">,</span> <span class="n">phasecal_fluxes</span> <span class="o">=</span> <span class="n">get_phasecals</span><span class="p">(</span>
@@ -2080,9 +2080,9 @@
                         <span class="n">remote_logger_waittime</span><span class="p">,</span>
                         <span class="n">remote_link</span><span class="o">=</span><span class="n">remote_link</span><span class="p">,</span>
                     <span class="p">)</span>
-                    <span class="n">datadir</span> <span class="o">=</span> <span class="n">get_datadir</span><span class="p">()</span>
+                    <span class="n">meersolar_cachedir</span> <span class="o">=</span> <span class="n">get_meersolar_cachedir</span><span class="p">()</span>
                     <span class="k">if</span> <span class="n">pid</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-                        <span class="n">save_pid</span><span class="p">(</span><span class="n">pid</span><span class="p">,</span> <span class="n">datadir</span> <span class="o">+</span> <span class="sa">f</span><span class="s2">&quot;/pids/pids_</span><span class="si">{</span><span class="n">jobid</span><span class="si">}</span><span class="s2">.txt&quot;</span><span class="p">)</span>
+                        <span class="n">save_pid</span><span class="p">(</span><span class="n">pid</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">meersolar_cachedir</span><span class="si">}</span><span class="s2">/pids/pids_</span><span class="si">{</span><span class="n">jobid</span><span class="si">}</span><span class="s2">.txt&quot;</span><span class="p">)</span>
                 <span class="k">return</span> <span class="mi">1</span>
 
         <span class="c1">###############################</span>
@@ -2100,9 +2100,9 @@
                         <span class="n">remote_logger_waittime</span><span class="p">,</span>
                         <span class="n">remote_link</span><span class="o">=</span><span class="n">remote_link</span><span class="p">,</span>
                     <span class="p">)</span>
-                    <span class="n">datadir</span> <span class="o">=</span> <span class="n">get_datadir</span><span class="p">()</span>
+                    <span class="n">meersolar_cachedir</span> <span class="o">=</span> <span class="n">get_meersolar_cachedir</span><span class="p">()</span>
                     <span class="k">if</span> <span class="n">pid</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-                        <span class="n">save_pid</span><span class="p">(</span><span class="n">pid</span><span class="p">,</span> <span class="n">datadir</span> <span class="o">+</span> <span class="sa">f</span><span class="s2">&quot;/pids/pids_</span><span class="si">{</span><span class="n">jobid</span><span class="si">}</span><span class="s2">.txt&quot;</span><span class="p">)</span>
+                        <span class="n">save_pid</span><span class="p">(</span><span class="n">pid</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">meersolar_cachedir</span><span class="si">}</span><span class="s2">/pids/pids_</span><span class="si">{</span><span class="n">jobid</span><span class="si">}</span><span class="s2">.txt&quot;</span><span class="p">)</span>
                 <span class="k">return</span> <span class="mi">1</span>
             <span class="n">msg</span> <span class="o">=</span> <span class="n">run_basic_cal_jobs</span><span class="p">(</span>
                 <span class="n">calibrator_msname</span><span class="p">,</span>
@@ -2126,9 +2126,9 @@
                         <span class="n">remote_logger_waittime</span><span class="p">,</span>
                         <span class="n">remote_link</span><span class="o">=</span><span class="n">remote_link</span><span class="p">,</span>
                     <span class="p">)</span>
-                    <span class="n">datadir</span> <span class="o">=</span> <span class="n">get_datadir</span><span class="p">()</span>
+                    <span class="n">meersolar_cachedir</span> <span class="o">=</span> <span class="n">get_meersolar_cachedir</span><span class="p">()</span>
                     <span class="k">if</span> <span class="n">pid</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-                        <span class="n">save_pid</span><span class="p">(</span><span class="n">pid</span><span class="p">,</span> <span class="n">datadir</span> <span class="o">+</span> <span class="sa">f</span><span class="s2">&quot;/pids/pids_</span><span class="si">{</span><span class="n">jobid</span><span class="si">}</span><span class="s2">.txt&quot;</span><span class="p">)</span>
+                        <span class="n">save_pid</span><span class="p">(</span><span class="n">pid</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">meersolar_cachedir</span><span class="si">}</span><span class="s2">/pids/pids_</span><span class="si">{</span><span class="n">jobid</span><span class="si">}</span><span class="s2">.txt&quot;</span><span class="p">)</span>
                 <span class="k">return</span> <span class="mi">1</span>
 
         <span class="c1">##########################################</span>
@@ -2144,9 +2144,9 @@
                     <span class="n">remote_logger_waittime</span><span class="p">,</span>
                     <span class="n">remote_link</span><span class="o">=</span><span class="n">remote_link</span><span class="p">,</span>
                 <span class="p">)</span>
-                <span class="n">datadir</span> <span class="o">=</span> <span class="n">get_datadir</span><span class="p">()</span>
+                <span class="n">meersolar_cachedir</span> <span class="o">=</span> <span class="n">get_meersolar_cachedir</span><span class="p">()</span>
                 <span class="k">if</span> <span class="n">pid</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-                    <span class="n">save_pid</span><span class="p">(</span><span class="n">pid</span><span class="p">,</span> <span class="n">datadir</span> <span class="o">+</span> <span class="sa">f</span><span class="s2">&quot;/pids/pids_</span><span class="si">{</span><span class="n">jobid</span><span class="si">}</span><span class="s2">.txt&quot;</span><span class="p">)</span>
+                    <span class="n">save_pid</span><span class="p">(</span><span class="n">pid</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">meersolar_cachedir</span><span class="si">}</span><span class="s2">/pids/pids_</span><span class="si">{</span><span class="n">jobid</span><span class="si">}</span><span class="s2">.txt&quot;</span><span class="p">)</span>
             <span class="k">return</span> <span class="mi">1</span>
         <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">glob</span><span class="o">.</span><span class="n">glob</span><span class="p">(</span><span class="n">caldir</span> <span class="o">+</span> <span class="s2">&quot;/*.gcal&quot;</span><span class="p">))</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
             <span class="nb">print</span><span class="p">(</span>
@@ -2354,9 +2354,9 @@
                         <span class="n">remote_logger_waittime</span><span class="p">,</span>
                         <span class="n">remote_link</span><span class="o">=</span><span class="n">remote_link</span><span class="p">,</span>
                     <span class="p">)</span>
-                    <span class="n">datadir</span> <span class="o">=</span> <span class="n">get_datadir</span><span class="p">()</span>
+                    <span class="n">meersolar_cachedir</span> <span class="o">=</span> <span class="n">get_meersolar_cachedir</span><span class="p">()</span>
                     <span class="k">if</span> <span class="n">pid</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-                        <span class="n">save_pid</span><span class="p">(</span><span class="n">pid</span><span class="p">,</span> <span class="n">datadir</span> <span class="o">+</span> <span class="sa">f</span><span class="s2">&quot;/pids/pids_</span><span class="si">{</span><span class="n">jobid</span><span class="si">}</span><span class="s2">.txt&quot;</span><span class="p">)</span>
+                        <span class="n">save_pid</span><span class="p">(</span><span class="n">pid</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">meersolar_cachedir</span><span class="si">}</span><span class="s2">/pids/pids_</span><span class="si">{</span><span class="n">jobid</span><span class="si">}</span><span class="s2">.txt&quot;</span><span class="p">)</span>
                 <span class="k">return</span> <span class="mi">1</span>
             <span class="c1">##################################</span>
             <span class="c1"># Waiting only spliting is started</span>
@@ -2386,9 +2386,9 @@
                         <span class="n">remote_logger_waittime</span><span class="p">,</span>
                         <span class="n">remote_link</span><span class="o">=</span><span class="n">remote_link</span><span class="p">,</span>
                     <span class="p">)</span>
-                    <span class="n">datadir</span> <span class="o">=</span> <span class="n">get_datadir</span><span class="p">()</span>
+                    <span class="n">meersolar_cachedir</span> <span class="o">=</span> <span class="n">get_meersolar_cachedir</span><span class="p">()</span>
                     <span class="k">if</span> <span class="n">pid</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-                        <span class="n">save_pid</span><span class="p">(</span><span class="n">pid</span><span class="p">,</span> <span class="n">datadir</span> <span class="o">+</span> <span class="sa">f</span><span class="s2">&quot;/pids/pids_</span><span class="si">{</span><span class="n">jobid</span><span class="si">}</span><span class="s2">.txt&quot;</span><span class="p">)</span>
+                        <span class="n">save_pid</span><span class="p">(</span><span class="n">pid</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">meersolar_cachedir</span><span class="si">}</span><span class="s2">/pids/pids_</span><span class="si">{</span><span class="n">jobid</span><span class="si">}</span><span class="s2">.txt&quot;</span><span class="p">)</span>
                 <span class="k">return</span> <span class="mi">1</span>
 
         <span class="n">cpu_frac</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="n">cpu_frac_bkp</span><span class="p">)</span>
@@ -2417,9 +2417,9 @@
                     <span class="n">remote_logger_waittime</span><span class="p">,</span>
                     <span class="n">remote_link</span><span class="o">=</span><span class="n">remote_link</span><span class="p">,</span>
                 <span class="p">)</span>
-                <span class="n">datadir</span> <span class="o">=</span> <span class="n">get_datadir</span><span class="p">()</span>
+                <span class="n">meersolar_cachedir</span> <span class="o">=</span> <span class="n">get_meersolar_cachedir</span><span class="p">()</span>
                 <span class="k">if</span> <span class="n">pid</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-                    <span class="n">save_pid</span><span class="p">(</span><span class="n">pid</span><span class="p">,</span> <span class="n">datadir</span> <span class="o">+</span> <span class="sa">f</span><span class="s2">&quot;/pids/pids_</span><span class="si">{</span><span class="n">jobid</span><span class="si">}</span><span class="s2">.txt&quot;</span><span class="p">)</span>
+                    <span class="n">save_pid</span><span class="p">(</span><span class="n">pid</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">meersolar_cachedir</span><span class="si">}</span><span class="s2">/pids/pids_</span><span class="si">{</span><span class="n">jobid</span><span class="si">}</span><span class="s2">.txt&quot;</span><span class="p">)</span>
             <span class="k">return</span> <span class="mi">1</span>
 
         <span class="k">if</span> <span class="n">do_applycal</span> <span class="ow">or</span> <span class="n">do_imaging</span><span class="p">:</span>
@@ -2455,9 +2455,9 @@
                             <span class="n">remote_logger_waittime</span><span class="p">,</span>
                             <span class="n">remote_link</span><span class="o">=</span><span class="n">remote_link</span><span class="p">,</span>
                         <span class="p">)</span>
-                        <span class="n">datadir</span> <span class="o">=</span> <span class="n">get_datadir</span><span class="p">()</span>
+                        <span class="n">meersolar_cachedir</span> <span class="o">=</span> <span class="n">get_meersolar_cachedir</span><span class="p">()</span>
                         <span class="k">if</span> <span class="n">pid</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-                            <span class="n">save_pid</span><span class="p">(</span><span class="n">pid</span><span class="p">,</span> <span class="n">datadir</span> <span class="o">+</span> <span class="sa">f</span><span class="s2">&quot;/pids/pids_</span><span class="si">{</span><span class="n">jobid</span><span class="si">}</span><span class="s2">.txt&quot;</span><span class="p">)</span>
+                            <span class="n">save_pid</span><span class="p">(</span><span class="n">pid</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">meersolar_cachedir</span><span class="si">}</span><span class="s2">/pids/pids_</span><span class="si">{</span><span class="n">jobid</span><span class="si">}</span><span class="s2">.txt&quot;</span><span class="p">)</span>
                     <span class="k">return</span> <span class="mi">1</span>
             <span class="k">else</span><span class="p">:</span>
                 <span class="nb">print</span><span class="p">(</span>
@@ -2471,9 +2471,9 @@
                         <span class="n">remote_logger_waittime</span><span class="p">,</span>
                         <span class="n">remote_link</span><span class="o">=</span><span class="n">remote_link</span><span class="p">,</span>
                     <span class="p">)</span>
-                    <span class="n">datadir</span> <span class="o">=</span> <span class="n">get_datadir</span><span class="p">()</span>
+                    <span class="n">meersolar_cachedir</span> <span class="o">=</span> <span class="n">get_meersolar_cachedir</span><span class="p">()</span>
                     <span class="k">if</span> <span class="n">pid</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-                        <span class="n">save_pid</span><span class="p">(</span><span class="n">pid</span><span class="p">,</span> <span class="n">datadir</span> <span class="o">+</span> <span class="sa">f</span><span class="s2">&quot;/pids/pids_</span><span class="si">{</span><span class="n">jobid</span><span class="si">}</span><span class="s2">.txt&quot;</span><span class="p">)</span>
+                        <span class="n">save_pid</span><span class="p">(</span><span class="n">pid</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">meersolar_cachedir</span><span class="si">}</span><span class="s2">/pids/pids_</span><span class="si">{</span><span class="n">jobid</span><span class="si">}</span><span class="s2">.txt&quot;</span><span class="p">)</span>
                 <span class="k">return</span> <span class="mi">1</span>
             <span class="k">if</span> <span class="n">do_sidereal_cor</span><span class="p">:</span>
                 <span class="n">msg</span> <span class="o">=</span> <span class="n">run_solar_siderealcor_jobs</span><span class="p">(</span>
@@ -2511,10 +2511,8 @@
         <span class="c1"># Imaging</span>
         <span class="c1">######################################</span>
         <span class="k">if</span> <span class="n">do_imaging</span><span class="p">:</span>
-            <span class="k">if</span> <span class="n">do_polcal</span> <span class="o">==</span> <span class="kc">False</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">do_polcal</span> <span class="o">==</span> <span class="kc">False</span><span class="p">:</span> <span class="c1"># Only if do_polcal is False, overwrite to make only Stokes I</span>
                 <span class="n">pol</span> <span class="o">=</span> <span class="s2">&quot;I&quot;</span>
-            <span class="k">else</span><span class="p">:</span>
-                <span class="n">pol</span> <span class="o">=</span> <span class="s2">&quot;IQUV&quot;</span>
             <span class="n">band</span> <span class="o">=</span> <span class="n">get_band_name</span><span class="p">(</span><span class="n">target_mslist</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
             <span class="n">msg</span> <span class="o">=</span> <span class="n">run_imaging_jobs</span><span class="p">(</span>
                 <span class="n">target_mslist</span><span class="p">,</span>
@@ -2552,9 +2550,9 @@
                         <span class="n">remote_logger_waittime</span><span class="p">,</span>
                         <span class="n">remote_link</span><span class="o">=</span><span class="n">remote_link</span><span class="p">,</span>
                     <span class="p">)</span>
-                    <span class="n">datadir</span> <span class="o">=</span> <span class="n">get_datadir</span><span class="p">()</span>
+                    <span class="n">meersolar_cachedir</span> <span class="o">=</span> <span class="n">get_meersolar_cachedir</span><span class="p">()</span>
                     <span class="k">if</span> <span class="n">pid</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-                        <span class="n">save_pid</span><span class="p">(</span><span class="n">pid</span><span class="p">,</span> <span class="n">datadir</span> <span class="o">+</span> <span class="sa">f</span><span class="s2">&quot;/pids/pids_</span><span class="si">{</span><span class="n">jobid</span><span class="si">}</span><span class="s2">.txt&quot;</span><span class="p">)</span>
+                        <span class="n">save_pid</span><span class="p">(</span><span class="n">pid</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">meersolar_cachedir</span><span class="si">}</span><span class="s2">/pids/pids_</span><span class="si">{</span><span class="n">jobid</span><span class="si">}</span><span class="s2">.txt&quot;</span><span class="p">)</span>
                 <span class="k">return</span> <span class="mi">1</span>
 
         <span class="c1">###########################</span>
@@ -2607,9 +2605,9 @@
                             <span class="n">remote_logger_waittime</span><span class="p">,</span>
                             <span class="n">remote_link</span><span class="o">=</span><span class="n">remote_link</span><span class="p">,</span>
                         <span class="p">)</span>
-                        <span class="n">datadir</span> <span class="o">=</span> <span class="n">get_datadir</span><span class="p">()</span>
+                        <span class="n">meersolar_cachedir</span> <span class="o">=</span> <span class="n">get_meersolar_cachedir</span><span class="p">()</span>
                         <span class="k">if</span> <span class="n">pid</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-                            <span class="n">save_pid</span><span class="p">(</span><span class="n">pid</span><span class="p">,</span> <span class="n">datadir</span> <span class="o">+</span> <span class="sa">f</span><span class="s2">&quot;/pids/pids_</span><span class="si">{</span><span class="n">jobid</span><span class="si">}</span><span class="s2">.txt&quot;</span><span class="p">)</span>
+                            <span class="n">save_pid</span><span class="p">(</span><span class="n">pid</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">meersolar_cachedir</span><span class="si">}</span><span class="s2">/pids/pids_</span><span class="si">{</span><span class="n">jobid</span><span class="si">}</span><span class="s2">.txt&quot;</span><span class="p">)</span>
                     <span class="k">return</span> <span class="mi">1</span>
                 <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Final image directory: </span><span class="si">{</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">imagedir</span><span class="p">)</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
         <span class="c1">###########################################</span>
@@ -2623,331 +2621,333 @@
             <span class="n">pid</span> <span class="o">=</span> <span class="n">start_ping_logger</span><span class="p">(</span>
                 <span class="n">jobid</span><span class="p">,</span> <span class="n">remote_job_id</span><span class="p">,</span> <span class="n">remote_logger_waittime</span><span class="p">,</span> <span class="n">remote_link</span><span class="o">=</span><span class="n">remote_link</span>
             <span class="p">)</span>
-            <span class="n">datadir</span> <span class="o">=</span> <span class="n">get_datadir</span><span class="p">()</span>
+            <span class="n">meersolar_cachedir</span> <span class="o">=</span> <span class="n">get_meersolar_cachedir</span><span class="p">()</span>
             <span class="k">if</span> <span class="n">pid</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-                <span class="n">save_pid</span><span class="p">(</span><span class="n">pid</span><span class="p">,</span> <span class="n">datadir</span> <span class="o">+</span> <span class="sa">f</span><span class="s2">&quot;/pids/pids_</span><span class="si">{</span><span class="n">jobid</span><span class="si">}</span><span class="s2">.txt&quot;</span><span class="p">)</span>
+                <span class="n">save_pid</span><span class="p">(</span><span class="n">pid</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">meersolar_cachedir</span><span class="si">}</span><span class="s2">/pids/pids_</span><span class="si">{</span><span class="n">jobid</span><span class="si">}</span><span class="s2">.txt&quot;</span><span class="p">)</span>
         <span class="k">return</span> <span class="mi">0</span>
     <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
         <span class="n">traceback</span><span class="o">.</span><span class="n">print_exc</span><span class="p">()</span>
         <span class="k">return</span> <span class="mi">1</span>
     <span class="k">finally</span><span class="p">:</span>
-        <span class="n">drop_cache</span><span class="p">(</span><span class="n">msname</span><span class="p">)</span></div>
+        <span class="n">drop_cache</span><span class="p">(</span><span class="n">msname</span><span class="p">)</span>
+        <span class="n">drop_cache</span><span class="p">(</span><span class="n">workdir</span><span class="p">)</span>
+        <span class="n">drop_cache</span><span class="p">(</span><span class="n">outdir</span><span class="p">)</span></div>
 
 
 
 <div class="viewcode-block" id="main">
 <a class="viewcode-back" href="../../../meersolar.pipeline.html#meersolar.pipeline.master_controller.main">[docs]</a>
 <span class="k">def</span> <span class="nf">main</span><span class="p">():</span>
+    <span class="n">parser</span> <span class="o">=</span> <span class="n">argparse</span><span class="o">.</span><span class="n">ArgumentParser</span><span class="p">(</span>
+        <span class="n">description</span><span class="o">=</span><span class="s2">&quot;Run MeerSOLAR for calibration and imaging of solar observations.&quot;</span><span class="p">,</span>
+        <span class="n">formatter_class</span><span class="o">=</span><span class="n">SmartDefaultsHelpFormatter</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="c1"># === Essential parameters ===</span>
+    <span class="n">essential</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">add_argument_group</span><span class="p">(</span>
+        <span class="s2">&quot;###################</span><span class="se">\n</span><span class="s2">Essential parameters</span><span class="se">\n</span><span class="s2">###################&quot;</span>
+    <span class="p">)</span>
+    <span class="n">essential</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s2">&quot;msname&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Measurement set name&quot;</span><span class="p">)</span>
+    <span class="n">essential</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;--workdir&quot;</span><span class="p">,</span>
+        <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span>
+        <span class="n">dest</span><span class="o">=</span><span class="s2">&quot;workdir&quot;</span><span class="p">,</span>
+        <span class="n">required</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Working directory&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">essential</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;--outdir&quot;</span><span class="p">,</span>
+        <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span>
+        <span class="n">dest</span><span class="o">=</span><span class="s2">&quot;outdir&quot;</span><span class="p">,</span>
+        <span class="n">required</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Output products directory&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="c1"># === Advanced calibration parameters ===</span>
+    <span class="n">advanced_cal</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">add_argument_group</span><span class="p">(</span>
+        <span class="s2">&quot;###################</span><span class="se">\n</span><span class="s2">Advanced calibration parameters</span><span class="se">\n</span><span class="s2">###################&quot;</span>
+    <span class="p">)</span>
+    <span class="n">advanced_cal</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;--solint&quot;</span><span class="p">,</span>
+        <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span>
+        <span class="n">default</span><span class="o">=</span><span class="s2">&quot;5min&quot;</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Solution interval for calibration (e.g. &#39;int&#39;, &#39;10s&#39;, &#39;5min&#39;, &#39;inf&#39;)&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">advanced_cal</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;--cal_uvrange&quot;</span><span class="p">,</span>
+        <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span>
+        <span class="n">default</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;UV range to filter data for calibration (e.g. &#39;&gt;100klambda&#39;, &#39;100~10000lambda&#39;)&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">advanced_cal</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;--no_polcal&quot;</span><span class="p">,</span>
+        <span class="n">action</span><span class="o">=</span><span class="s2">&quot;store_false&quot;</span><span class="p">,</span>
+        <span class="n">dest</span><span class="o">=</span><span class="s2">&quot;do_polcal&quot;</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Disable polarization calibration&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="c1"># === Advanced imaging and calibration parameters ===</span>
+    <span class="n">advanced_image</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">add_argument_group</span><span class="p">(</span>
+        <span class="s2">&quot;###################</span><span class="se">\n</span><span class="s2">Advanced imaging parameters</span><span class="se">\n</span><span class="s2">###################&quot;</span>
+    <span class="p">)</span>
+    <span class="n">advanced_image</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;--target_scans&quot;</span><span class="p">,</span>
+        <span class="n">nargs</span><span class="o">=</span><span class="s2">&quot;*&quot;</span><span class="p">,</span>
+        <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span>
+        <span class="n">default</span><span class="o">=</span><span class="p">[],</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;List of target scans to process (space-separated, e.g. 3 5 7)&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">advanced_image</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;--freqrange&quot;</span><span class="p">,</span>
+        <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span>
+        <span class="n">default</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Frequency range in MHz to select during imaging (comma-seperate, e.g. &#39;100~110,130~140&#39;)&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">advanced_image</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;--timerange&quot;</span><span class="p">,</span>
+        <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span>
+        <span class="n">default</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Time range to select during imaging (comma-seperated, e.g. &#39;2014/09/06/09:30:00~2014/09/06/09:45:00,2014/09/06/10:30:00~2014/09/06/10:45:00&#39;)&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">advanced_image</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;--image_freqres&quot;</span><span class="p">,</span>
+        <span class="nb">type</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span>
+        <span class="n">default</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Output image frequency resolution in MHz (-1 = full)&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">advanced_image</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;--image_timeres&quot;</span><span class="p">,</span>
+        <span class="nb">type</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span>
+        <span class="n">default</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Output image time resolution in seconds (-1 = full)&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">advanced_image</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;--pol&quot;</span><span class="p">,</span>
+        <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span>
+        <span class="n">default</span><span class="o">=</span><span class="s2">&quot;IQUV&quot;</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Stokes parameter(s) to image (e.g. &#39;I&#39;, &#39;XX&#39;, &#39;RR&#39;, &#39;IQUV&#39;)&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">advanced_image</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;--minuv&quot;</span><span class="p">,</span>
+        <span class="nb">type</span><span class="o">=</span><span class="nb">float</span><span class="p">,</span>
+        <span class="n">default</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Minimum baseline length (in wavelengths) to include in imaging&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">advanced_image</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;--weight&quot;</span><span class="p">,</span>
+        <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span>
+        <span class="n">default</span><span class="o">=</span><span class="s2">&quot;briggs&quot;</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Imaging weighting scheme (e.g. &#39;briggs&#39;, &#39;natural&#39;, &#39;uniform&#39;)&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">advanced_image</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;--robust&quot;</span><span class="p">,</span>
+        <span class="nb">type</span><span class="o">=</span><span class="nb">float</span><span class="p">,</span>
+        <span class="n">default</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Robust parameter for Briggs weighting (-2 to +2)&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">advanced_image</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;--no_multiscale&quot;</span><span class="p">,</span>
+        <span class="n">action</span><span class="o">=</span><span class="s2">&quot;store_false&quot;</span><span class="p">,</span>
+        <span class="n">dest</span><span class="o">=</span><span class="s2">&quot;use_multiscale&quot;</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Disable multiscale CLEAN for extended structures&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">advanced_image</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;--clean_threshold&quot;</span><span class="p">,</span>
+        <span class="nb">type</span><span class="o">=</span><span class="nb">float</span><span class="p">,</span>
+        <span class="n">default</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Clean threshold in sigma for final deconvolution (Note this is not auto-mask)&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">advanced_image</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;--do_pbcor&quot;</span><span class="p">,</span>
+        <span class="n">action</span><span class="o">=</span><span class="s2">&quot;store_true&quot;</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Apply primary beam correction after imaging&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">advanced_image</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;--no_apply_parang&quot;</span><span class="p">,</span>
+        <span class="n">action</span><span class="o">=</span><span class="s2">&quot;store_false&quot;</span><span class="p">,</span>
+        <span class="n">dest</span><span class="o">=</span><span class="s2">&quot;apply_parang&quot;</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Disable parallactic angle rotation during imaging&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">advanced_image</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;--cutout_rsun&quot;</span><span class="p">,</span>
+        <span class="nb">type</span><span class="o">=</span><span class="nb">float</span><span class="p">,</span>
+        <span class="n">default</span><span class="o">=</span><span class="mf">2.5</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Field of view cutout radius in solar radii&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">advanced_image</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;--no_solar_mask&quot;</span><span class="p">,</span>
+        <span class="n">action</span><span class="o">=</span><span class="s2">&quot;store_false&quot;</span><span class="p">,</span>
+        <span class="n">dest</span><span class="o">=</span><span class="s2">&quot;use_solar_mask&quot;</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Disable use solar disk mask during deconvolution&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">advanced_image</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;--no_overlay&quot;</span><span class="p">,</span>
+        <span class="n">action</span><span class="o">=</span><span class="s2">&quot;store_false&quot;</span><span class="p">,</span>
+        <span class="n">dest</span><span class="o">=</span><span class="s2">&quot;make_overlay&quot;</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Disable overlay plot on GOES SUVI after imaging&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="c1"># === Advanced options ===</span>
+    <span class="n">advanced</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">add_argument_group</span><span class="p">(</span>
+        <span class="s2">&quot;###################</span><span class="se">\n</span><span class="s2">Advanced pipeline parameters</span><span class="se">\n</span><span class="s2">###################&quot;</span>
+    <span class="p">)</span>
+    <span class="n">advanced</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;--non_solar_data&quot;</span><span class="p">,</span>
+        <span class="n">action</span><span class="o">=</span><span class="s2">&quot;store_false&quot;</span><span class="p">,</span>
+        <span class="n">dest</span><span class="o">=</span><span class="s2">&quot;solar_data&quot;</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Disable solar data mode&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">advanced</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;--non_ds&quot;</span><span class="p">,</span>
+        <span class="n">action</span><span class="o">=</span><span class="s2">&quot;store_false&quot;</span><span class="p">,</span>
+        <span class="n">dest</span><span class="o">=</span><span class="s2">&quot;make_ds&quot;</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Disable making solar dynamic spectra&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">advanced</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;--do_forcereset_weightflag&quot;</span><span class="p">,</span>
+        <span class="n">action</span><span class="o">=</span><span class="s2">&quot;store_true&quot;</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Force reset of weights and flags (disabled by default)&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">advanced</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;--no_noise_cal&quot;</span><span class="p">,</span>
+        <span class="n">action</span><span class="o">=</span><span class="s2">&quot;store_false&quot;</span><span class="p">,</span>
+        <span class="n">dest</span><span class="o">=</span><span class="s2">&quot;do_noise_cal&quot;</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Disable noise calibration&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">advanced</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;--no_cal_partition&quot;</span><span class="p">,</span>
+        <span class="n">action</span><span class="o">=</span><span class="s2">&quot;store_false&quot;</span><span class="p">,</span>
+        <span class="n">dest</span><span class="o">=</span><span class="s2">&quot;do_cal_partition&quot;</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Disable calibrator MS partitioning&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">advanced</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;--no_cal_flag&quot;</span><span class="p">,</span>
+        <span class="n">action</span><span class="o">=</span><span class="s2">&quot;store_false&quot;</span><span class="p">,</span>
+        <span class="n">dest</span><span class="o">=</span><span class="s2">&quot;do_cal_flag&quot;</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Disable initial flagging of calibrators&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">advanced</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;--no_import_model&quot;</span><span class="p">,</span>
+        <span class="n">action</span><span class="o">=</span><span class="s2">&quot;store_false&quot;</span><span class="p">,</span>
+        <span class="n">dest</span><span class="o">=</span><span class="s2">&quot;do_import_model&quot;</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Disable model import&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">advanced</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;--no_basic_cal&quot;</span><span class="p">,</span>
+        <span class="n">action</span><span class="o">=</span><span class="s2">&quot;store_false&quot;</span><span class="p">,</span>
+        <span class="n">dest</span><span class="o">=</span><span class="s2">&quot;do_basic_cal&quot;</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Disable basic gain calibration&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">advanced</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;--do_sidereal_cor&quot;</span><span class="p">,</span>
+        <span class="n">action</span><span class="o">=</span><span class="s2">&quot;store_true&quot;</span><span class="p">,</span>
+        <span class="n">dest</span><span class="o">=</span><span class="s2">&quot;do_sidereal_cor&quot;</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Sidereal motion correction for Sun (disabled by default)&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">advanced</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;--no_selfcal_split&quot;</span><span class="p">,</span>
+        <span class="n">action</span><span class="o">=</span><span class="s2">&quot;store_false&quot;</span><span class="p">,</span>
+        <span class="n">dest</span><span class="o">=</span><span class="s2">&quot;do_selfcal_split&quot;</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Disable split for self-calibration&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">advanced</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;--no_selfcal&quot;</span><span class="p">,</span>
+        <span class="n">action</span><span class="o">=</span><span class="s2">&quot;store_false&quot;</span><span class="p">,</span>
+        <span class="n">dest</span><span class="o">=</span><span class="s2">&quot;do_selfcal&quot;</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Disable self-calibration&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">advanced</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;--no_ap_selfcal&quot;</span><span class="p">,</span>
+        <span class="n">action</span><span class="o">=</span><span class="s2">&quot;store_false&quot;</span><span class="p">,</span>
+        <span class="n">dest</span><span class="o">=</span><span class="s2">&quot;do_ap_selfcal&quot;</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Disable amplitude-phase self-calibration&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">advanced</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;--no_solar_selfcal&quot;</span><span class="p">,</span>
+        <span class="n">action</span><span class="o">=</span><span class="s2">&quot;store_false&quot;</span><span class="p">,</span>
+        <span class="n">dest</span><span class="o">=</span><span class="s2">&quot;solar_selfcal&quot;</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Disable solar-specific self-calibration parameters&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">advanced</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;--no_target_split&quot;</span><span class="p">,</span>
+        <span class="n">action</span><span class="o">=</span><span class="s2">&quot;store_false&quot;</span><span class="p">,</span>
+        <span class="n">dest</span><span class="o">=</span><span class="s2">&quot;do_target_split&quot;</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Disable target data split&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">advanced</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;--no_applycal&quot;</span><span class="p">,</span>
+        <span class="n">action</span><span class="o">=</span><span class="s2">&quot;store_false&quot;</span><span class="p">,</span>
+        <span class="n">dest</span><span class="o">=</span><span class="s2">&quot;do_applycal&quot;</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Disable application of basic calibration solutions&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">advanced</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;--no_apply_selfcal&quot;</span><span class="p">,</span>
+        <span class="n">action</span><span class="o">=</span><span class="s2">&quot;store_false&quot;</span><span class="p">,</span>
+        <span class="n">dest</span><span class="o">=</span><span class="s2">&quot;do_apply_selfcal&quot;</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Disable application of self-calibration solutions&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">advanced</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;--no_imaging&quot;</span><span class="p">,</span>
+        <span class="n">action</span><span class="o">=</span><span class="s2">&quot;store_false&quot;</span><span class="p">,</span>
+        <span class="n">dest</span><span class="o">=</span><span class="s2">&quot;do_imaging&quot;</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Disable final imaging&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="c1"># === Advanced local system/ per node hardware resource parameters ===</span>
+    <span class="n">advanced_resource</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">add_argument_group</span><span class="p">(</span>
+        <span class="s2">&quot;###################</span><span class="se">\n</span><span class="s2">Advanced hardware resource parameters for local system or per node on HPC cluster</span><span class="se">\n</span><span class="s2">###################&quot;</span>
+    <span class="p">)</span>
+    <span class="n">advanced_resource</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;--cpu_frac&quot;</span><span class="p">,</span>
+        <span class="nb">type</span><span class="o">=</span><span class="nb">float</span><span class="p">,</span>
+        <span class="n">default</span><span class="o">=</span><span class="mf">0.8</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Fraction of CPU usuage per node&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">advanced_resource</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;--mem_frac&quot;</span><span class="p">,</span>
+        <span class="nb">type</span><span class="o">=</span><span class="nb">float</span><span class="p">,</span>
+        <span class="n">default</span><span class="o">=</span><span class="mf">0.8</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Fraction of memory usuage per node&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">advanced_resource</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;--keep_backup&quot;</span><span class="p">,</span>
+        <span class="n">action</span><span class="o">=</span><span class="s2">&quot;store_true&quot;</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Keep backup of intermediate steps&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">advanced_resource</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;--no_remote_logger&quot;</span><span class="p">,</span>
+        <span class="n">action</span><span class="o">=</span><span class="s2">&quot;store_false&quot;</span><span class="p">,</span>
+        <span class="n">dest</span><span class="o">=</span><span class="s2">&quot;remote_logger&quot;</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Disable remote logger&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">advanced_resource</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;--logger_alivetime&quot;</span><span class="p">,</span>
+        <span class="nb">type</span><span class="o">=</span><span class="nb">float</span><span class="p">,</span>
+        <span class="n">default</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Keep remote logger alive for this many hours (Otherwise, logger will be removed after 15 minutes of inactivity)&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="c1"># === Advanced local system/ per node hardware resource parameters ===</span>
+    <span class="n">advanced_hpc</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">add_argument_group</span><span class="p">(</span>
+        <span class="s2">&quot;###################</span><span class="se">\n</span><span class="s2">Advanced HPC settings</span><span class="se">\n</span><span class="s2">###################&quot;</span>
+    <span class="p">)</span>
+    <span class="n">advanced_hpc</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;--n_nodes&quot;</span><span class="p">,</span>
+        <span class="nb">type</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span>
+        <span class="n">default</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Number of compute nodes to use (0 means local cluster)&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">sys</span><span class="o">.</span><span class="n">argv</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="n">parser</span><span class="o">.</span><span class="n">print_help</span><span class="p">(</span><span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="p">)</span>
+        <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+
+    <span class="n">args</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">parse_args</span><span class="p">()</span>
+
     <span class="k">try</span><span class="p">:</span>
-        <span class="n">parser</span> <span class="o">=</span> <span class="n">argparse</span><span class="o">.</span><span class="n">ArgumentParser</span><span class="p">(</span>
-            <span class="n">description</span><span class="o">=</span><span class="s2">&quot;Run MeerSOLAR for calibration and imaging of solar observations.&quot;</span><span class="p">,</span>
-            <span class="n">formatter_class</span><span class="o">=</span><span class="n">SmartDefaultsHelpFormatter</span><span class="p">,</span>
-        <span class="p">)</span>
-        <span class="c1"># === Essential parameters ===</span>
-        <span class="n">essential</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">add_argument_group</span><span class="p">(</span>
-            <span class="s2">&quot;###################</span><span class="se">\n</span><span class="s2">Essential parameters</span><span class="se">\n</span><span class="s2">###################&quot;</span>
-        <span class="p">)</span>
-        <span class="n">essential</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s2">&quot;msname&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Measurement set name&quot;</span><span class="p">)</span>
-        <span class="n">essential</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
-            <span class="s2">&quot;--workdir&quot;</span><span class="p">,</span>
-            <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span>
-            <span class="n">dest</span><span class="o">=</span><span class="s2">&quot;workdir&quot;</span><span class="p">,</span>
-            <span class="n">required</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Working directory&quot;</span><span class="p">,</span>
-        <span class="p">)</span>
-        <span class="n">essential</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
-            <span class="s2">&quot;--outdir&quot;</span><span class="p">,</span>
-            <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span>
-            <span class="n">dest</span><span class="o">=</span><span class="s2">&quot;outdir&quot;</span><span class="p">,</span>
-            <span class="n">required</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Output products directory&quot;</span><span class="p">,</span>
-        <span class="p">)</span>
-
-        <span class="c1"># === Advanced calibration parameters ===</span>
-        <span class="n">advanced_cal</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">add_argument_group</span><span class="p">(</span>
-            <span class="s2">&quot;###################</span><span class="se">\n</span><span class="s2">Advanced calibration parameters</span><span class="se">\n</span><span class="s2">###################&quot;</span>
-        <span class="p">)</span>
-        <span class="n">advanced_cal</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
-            <span class="s2">&quot;--solint&quot;</span><span class="p">,</span>
-            <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span>
-            <span class="n">default</span><span class="o">=</span><span class="s2">&quot;5min&quot;</span><span class="p">,</span>
-            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Solution interval for calibration (e.g. &#39;int&#39;, &#39;10s&#39;, &#39;5min&#39;, &#39;inf&#39;)&quot;</span><span class="p">,</span>
-        <span class="p">)</span>
-        <span class="n">advanced_cal</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
-            <span class="s2">&quot;--cal_uvrange&quot;</span><span class="p">,</span>
-            <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span>
-            <span class="n">default</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span>
-            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;UV range to filter data for calibration (e.g. &#39;&gt;100klambda&#39;, &#39;100~10000lambda&#39;)&quot;</span><span class="p">,</span>
-        <span class="p">)</span>
-        <span class="n">advanced_cal</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
-            <span class="s2">&quot;--no_polcal&quot;</span><span class="p">,</span>
-            <span class="n">action</span><span class="o">=</span><span class="s2">&quot;store_false&quot;</span><span class="p">,</span>
-            <span class="n">dest</span><span class="o">=</span><span class="s2">&quot;do_polcal&quot;</span><span class="p">,</span>
-            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Disable polarization calibration&quot;</span><span class="p">,</span>
-        <span class="p">)</span>
-
-        <span class="c1"># === Advanced imaging and calibration parameters ===</span>
-        <span class="n">advanced_image</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">add_argument_group</span><span class="p">(</span>
-            <span class="s2">&quot;###################</span><span class="se">\n</span><span class="s2">Advanced imaging parameters</span><span class="se">\n</span><span class="s2">###################&quot;</span>
-        <span class="p">)</span>
-        <span class="n">advanced_image</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
-            <span class="s2">&quot;--target_scans&quot;</span><span class="p">,</span>
-            <span class="n">nargs</span><span class="o">=</span><span class="s2">&quot;*&quot;</span><span class="p">,</span>
-            <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span>
-            <span class="n">default</span><span class="o">=</span><span class="p">[],</span>
-            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;List of target scans to process (space-separated, e.g. 3 5 7)&quot;</span><span class="p">,</span>
-        <span class="p">)</span>
-        <span class="n">advanced_image</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
-            <span class="s2">&quot;--freqrange&quot;</span><span class="p">,</span>
-            <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span>
-            <span class="n">default</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span>
-            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Frequency range in MHz to select during imaging (comma-seperate, e.g. &#39;100~110,130~140&#39;)&quot;</span><span class="p">,</span>
-        <span class="p">)</span>
-        <span class="n">advanced_image</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
-            <span class="s2">&quot;--timerange&quot;</span><span class="p">,</span>
-            <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span>
-            <span class="n">default</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span>
-            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Time range to select during imaging (comma-seperated, e.g. &#39;2014/09/06/09:30:00~2014/09/06/09:45:00,2014/09/06/10:30:00~2014/09/06/10:45:00&#39;)&quot;</span><span class="p">,</span>
-        <span class="p">)</span>
-        <span class="n">advanced_image</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
-            <span class="s2">&quot;--image_freqres&quot;</span><span class="p">,</span>
-            <span class="nb">type</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span>
-            <span class="n">default</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span>
-            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Output image frequency resolution in MHz (-1 = full)&quot;</span><span class="p">,</span>
-        <span class="p">)</span>
-        <span class="n">advanced_image</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
-            <span class="s2">&quot;--image_timeres&quot;</span><span class="p">,</span>
-            <span class="nb">type</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span>
-            <span class="n">default</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span>
-            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Output image time resolution in seconds (-1 = full)&quot;</span><span class="p">,</span>
-        <span class="p">)</span>
-        <span class="n">advanced_image</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
-            <span class="s2">&quot;--pol&quot;</span><span class="p">,</span>
-            <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span>
-            <span class="n">default</span><span class="o">=</span><span class="s2">&quot;I&quot;</span><span class="p">,</span>
-            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Stokes parameter(s) to image (e.g. &#39;I&#39;, &#39;XX&#39;, &#39;RR&#39;, &#39;IQUV&#39;)&quot;</span><span class="p">,</span>
-        <span class="p">)</span>
-        <span class="n">advanced_image</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
-            <span class="s2">&quot;--minuv&quot;</span><span class="p">,</span>
-            <span class="nb">type</span><span class="o">=</span><span class="nb">float</span><span class="p">,</span>
-            <span class="n">default</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
-            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Minimum baseline length (in wavelengths) to include in imaging&quot;</span><span class="p">,</span>
-        <span class="p">)</span>
-        <span class="n">advanced_image</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
-            <span class="s2">&quot;--weight&quot;</span><span class="p">,</span>
-            <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span>
-            <span class="n">default</span><span class="o">=</span><span class="s2">&quot;briggs&quot;</span><span class="p">,</span>
-            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Imaging weighting scheme (e.g. &#39;briggs&#39;, &#39;natural&#39;, &#39;uniform&#39;)&quot;</span><span class="p">,</span>
-        <span class="p">)</span>
-        <span class="n">advanced_image</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
-            <span class="s2">&quot;--robust&quot;</span><span class="p">,</span>
-            <span class="nb">type</span><span class="o">=</span><span class="nb">float</span><span class="p">,</span>
-            <span class="n">default</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
-            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Robust parameter for Briggs weighting (-2 to +2)&quot;</span><span class="p">,</span>
-        <span class="p">)</span>
-        <span class="n">advanced_image</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
-            <span class="s2">&quot;--no_multiscale&quot;</span><span class="p">,</span>
-            <span class="n">action</span><span class="o">=</span><span class="s2">&quot;store_false&quot;</span><span class="p">,</span>
-            <span class="n">dest</span><span class="o">=</span><span class="s2">&quot;use_multiscale&quot;</span><span class="p">,</span>
-            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Disable multiscale CLEAN for extended structures&quot;</span><span class="p">,</span>
-        <span class="p">)</span>
-        <span class="n">advanced_image</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
-            <span class="s2">&quot;--clean_threshold&quot;</span><span class="p">,</span>
-            <span class="nb">type</span><span class="o">=</span><span class="nb">float</span><span class="p">,</span>
-            <span class="n">default</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span>
-            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Clean threshold in sigma for final deconvolution (Note this is not auto-mask)&quot;</span><span class="p">,</span>
-        <span class="p">)</span>
-        <span class="n">advanced_image</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
-            <span class="s2">&quot;--do_pbcor&quot;</span><span class="p">,</span>
-            <span class="n">action</span><span class="o">=</span><span class="s2">&quot;store_true&quot;</span><span class="p">,</span>
-            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Apply primary beam correction after imaging&quot;</span><span class="p">,</span>
-        <span class="p">)</span>
-        <span class="n">advanced_image</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
-            <span class="s2">&quot;--no_apply_parang&quot;</span><span class="p">,</span>
-            <span class="n">action</span><span class="o">=</span><span class="s2">&quot;store_false&quot;</span><span class="p">,</span>
-            <span class="n">dest</span><span class="o">=</span><span class="s2">&quot;apply_parang&quot;</span><span class="p">,</span>
-            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Disable parallactic angle rotation during imaging&quot;</span><span class="p">,</span>
-        <span class="p">)</span>
-        <span class="n">advanced_image</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
-            <span class="s2">&quot;--cutout_rsun&quot;</span><span class="p">,</span>
-            <span class="nb">type</span><span class="o">=</span><span class="nb">float</span><span class="p">,</span>
-            <span class="n">default</span><span class="o">=</span><span class="mf">2.5</span><span class="p">,</span>
-            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Field of view cutout radius in solar radii&quot;</span><span class="p">,</span>
-        <span class="p">)</span>
-        <span class="n">advanced_image</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
-            <span class="s2">&quot;--no_solar_mask&quot;</span><span class="p">,</span>
-            <span class="n">action</span><span class="o">=</span><span class="s2">&quot;store_false&quot;</span><span class="p">,</span>
-            <span class="n">dest</span><span class="o">=</span><span class="s2">&quot;use_solar_mask&quot;</span><span class="p">,</span>
-            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Disable use solar disk mask during deconvolution&quot;</span><span class="p">,</span>
-        <span class="p">)</span>
-        <span class="n">advanced_image</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
-            <span class="s2">&quot;--no_overlay&quot;</span><span class="p">,</span>
-            <span class="n">action</span><span class="o">=</span><span class="s2">&quot;store_false&quot;</span><span class="p">,</span>
-            <span class="n">dest</span><span class="o">=</span><span class="s2">&quot;make_overlay&quot;</span><span class="p">,</span>
-            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Disable overlay plot on GOES SUVI after imaging&quot;</span><span class="p">,</span>
-        <span class="p">)</span>
-
-        <span class="c1"># === Advanced options ===</span>
-        <span class="n">advanced</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">add_argument_group</span><span class="p">(</span>
-            <span class="s2">&quot;###################</span><span class="se">\n</span><span class="s2">Advanced pipeline parameters</span><span class="se">\n</span><span class="s2">###################&quot;</span>
-        <span class="p">)</span>
-        <span class="n">advanced</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
-            <span class="s2">&quot;--non_solar_data&quot;</span><span class="p">,</span>
-            <span class="n">action</span><span class="o">=</span><span class="s2">&quot;store_false&quot;</span><span class="p">,</span>
-            <span class="n">dest</span><span class="o">=</span><span class="s2">&quot;solar_data&quot;</span><span class="p">,</span>
-            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Disable solar data mode&quot;</span><span class="p">,</span>
-        <span class="p">)</span>
-        <span class="n">advanced</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
-            <span class="s2">&quot;--non_ds&quot;</span><span class="p">,</span>
-            <span class="n">action</span><span class="o">=</span><span class="s2">&quot;store_false&quot;</span><span class="p">,</span>
-            <span class="n">dest</span><span class="o">=</span><span class="s2">&quot;make_ds&quot;</span><span class="p">,</span>
-            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Disable making solar dynamic spectra&quot;</span><span class="p">,</span>
-        <span class="p">)</span>
-        <span class="n">advanced</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
-            <span class="s2">&quot;--do_forcereset_weightflag&quot;</span><span class="p">,</span>
-            <span class="n">action</span><span class="o">=</span><span class="s2">&quot;store_true&quot;</span><span class="p">,</span>
-            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Force reset of weights and flags (disabled by default)&quot;</span><span class="p">,</span>
-        <span class="p">)</span>
-        <span class="n">advanced</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
-            <span class="s2">&quot;--no_noise_cal&quot;</span><span class="p">,</span>
-            <span class="n">action</span><span class="o">=</span><span class="s2">&quot;store_false&quot;</span><span class="p">,</span>
-            <span class="n">dest</span><span class="o">=</span><span class="s2">&quot;do_noise_cal&quot;</span><span class="p">,</span>
-            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Disable noise calibration&quot;</span><span class="p">,</span>
-        <span class="p">)</span>
-        <span class="n">advanced</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
-            <span class="s2">&quot;--no_cal_partition&quot;</span><span class="p">,</span>
-            <span class="n">action</span><span class="o">=</span><span class="s2">&quot;store_false&quot;</span><span class="p">,</span>
-            <span class="n">dest</span><span class="o">=</span><span class="s2">&quot;do_cal_partition&quot;</span><span class="p">,</span>
-            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Disable calibrator MS partitioning&quot;</span><span class="p">,</span>
-        <span class="p">)</span>
-        <span class="n">advanced</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
-            <span class="s2">&quot;--no_cal_flag&quot;</span><span class="p">,</span>
-            <span class="n">action</span><span class="o">=</span><span class="s2">&quot;store_false&quot;</span><span class="p">,</span>
-            <span class="n">dest</span><span class="o">=</span><span class="s2">&quot;do_cal_flag&quot;</span><span class="p">,</span>
-            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Disable initial flagging of calibrators&quot;</span><span class="p">,</span>
-        <span class="p">)</span>
-        <span class="n">advanced</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
-            <span class="s2">&quot;--no_import_model&quot;</span><span class="p">,</span>
-            <span class="n">action</span><span class="o">=</span><span class="s2">&quot;store_false&quot;</span><span class="p">,</span>
-            <span class="n">dest</span><span class="o">=</span><span class="s2">&quot;do_import_model&quot;</span><span class="p">,</span>
-            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Disable model import&quot;</span><span class="p">,</span>
-        <span class="p">)</span>
-        <span class="n">advanced</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
-            <span class="s2">&quot;--no_basic_cal&quot;</span><span class="p">,</span>
-            <span class="n">action</span><span class="o">=</span><span class="s2">&quot;store_false&quot;</span><span class="p">,</span>
-            <span class="n">dest</span><span class="o">=</span><span class="s2">&quot;do_basic_cal&quot;</span><span class="p">,</span>
-            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Disable basic gain calibration&quot;</span><span class="p">,</span>
-        <span class="p">)</span>
-        <span class="n">advanced</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
-            <span class="s2">&quot;--do_sidereal_cor&quot;</span><span class="p">,</span>
-            <span class="n">action</span><span class="o">=</span><span class="s2">&quot;store_true&quot;</span><span class="p">,</span>
-            <span class="n">dest</span><span class="o">=</span><span class="s2">&quot;do_sidereal_cor&quot;</span><span class="p">,</span>
-            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Sidereal motion correction for Sun (disabled by default)&quot;</span><span class="p">,</span>
-        <span class="p">)</span>
-        <span class="n">advanced</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
-            <span class="s2">&quot;--no_selfcal_split&quot;</span><span class="p">,</span>
-            <span class="n">action</span><span class="o">=</span><span class="s2">&quot;store_false&quot;</span><span class="p">,</span>
-            <span class="n">dest</span><span class="o">=</span><span class="s2">&quot;do_selfcal_split&quot;</span><span class="p">,</span>
-            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Disable split for self-calibration&quot;</span><span class="p">,</span>
-        <span class="p">)</span>
-        <span class="n">advanced</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
-            <span class="s2">&quot;--no_selfcal&quot;</span><span class="p">,</span>
-            <span class="n">action</span><span class="o">=</span><span class="s2">&quot;store_false&quot;</span><span class="p">,</span>
-            <span class="n">dest</span><span class="o">=</span><span class="s2">&quot;do_selfcal&quot;</span><span class="p">,</span>
-            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Disable self-calibration&quot;</span><span class="p">,</span>
-        <span class="p">)</span>
-        <span class="n">advanced</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
-            <span class="s2">&quot;--no_ap_selfcal&quot;</span><span class="p">,</span>
-            <span class="n">action</span><span class="o">=</span><span class="s2">&quot;store_false&quot;</span><span class="p">,</span>
-            <span class="n">dest</span><span class="o">=</span><span class="s2">&quot;do_ap_selfcal&quot;</span><span class="p">,</span>
-            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Disable amplitude-phase self-calibration&quot;</span><span class="p">,</span>
-        <span class="p">)</span>
-        <span class="n">advanced</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
-            <span class="s2">&quot;--no_solar_selfcal&quot;</span><span class="p">,</span>
-            <span class="n">action</span><span class="o">=</span><span class="s2">&quot;store_false&quot;</span><span class="p">,</span>
-            <span class="n">dest</span><span class="o">=</span><span class="s2">&quot;solar_selfcal&quot;</span><span class="p">,</span>
-            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Disable solar-specific self-calibration parameters&quot;</span><span class="p">,</span>
-        <span class="p">)</span>
-        <span class="n">advanced</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
-            <span class="s2">&quot;--no_target_split&quot;</span><span class="p">,</span>
-            <span class="n">action</span><span class="o">=</span><span class="s2">&quot;store_false&quot;</span><span class="p">,</span>
-            <span class="n">dest</span><span class="o">=</span><span class="s2">&quot;do_target_split&quot;</span><span class="p">,</span>
-            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Disable target data split&quot;</span><span class="p">,</span>
-        <span class="p">)</span>
-        <span class="n">advanced</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
-            <span class="s2">&quot;--no_applycal&quot;</span><span class="p">,</span>
-            <span class="n">action</span><span class="o">=</span><span class="s2">&quot;store_false&quot;</span><span class="p">,</span>
-            <span class="n">dest</span><span class="o">=</span><span class="s2">&quot;do_applycal&quot;</span><span class="p">,</span>
-            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Disable application of basic calibration solutions&quot;</span><span class="p">,</span>
-        <span class="p">)</span>
-        <span class="n">advanced</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
-            <span class="s2">&quot;--no_apply_selfcal&quot;</span><span class="p">,</span>
-            <span class="n">action</span><span class="o">=</span><span class="s2">&quot;store_false&quot;</span><span class="p">,</span>
-            <span class="n">dest</span><span class="o">=</span><span class="s2">&quot;do_apply_selfcal&quot;</span><span class="p">,</span>
-            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Disable application of self-calibration solutions&quot;</span><span class="p">,</span>
-        <span class="p">)</span>
-        <span class="n">advanced</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
-            <span class="s2">&quot;--no_imaging&quot;</span><span class="p">,</span>
-            <span class="n">action</span><span class="o">=</span><span class="s2">&quot;store_false&quot;</span><span class="p">,</span>
-            <span class="n">dest</span><span class="o">=</span><span class="s2">&quot;do_imaging&quot;</span><span class="p">,</span>
-            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Disable final imaging&quot;</span><span class="p">,</span>
-        <span class="p">)</span>
-
-        <span class="c1"># === Advanced local system/ per node hardware resource parameters ===</span>
-        <span class="n">advanced_resource</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">add_argument_group</span><span class="p">(</span>
-            <span class="s2">&quot;###################</span><span class="se">\n</span><span class="s2">Advanced hardware resource parameters for local system or per node on HPC cluster</span><span class="se">\n</span><span class="s2">###################&quot;</span>
-        <span class="p">)</span>
-        <span class="n">advanced_resource</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
-            <span class="s2">&quot;--cpu_frac&quot;</span><span class="p">,</span>
-            <span class="nb">type</span><span class="o">=</span><span class="nb">float</span><span class="p">,</span>
-            <span class="n">default</span><span class="o">=</span><span class="mf">0.8</span><span class="p">,</span>
-            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Fraction of CPU usuage per node&quot;</span><span class="p">,</span>
-        <span class="p">)</span>
-        <span class="n">advanced_resource</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
-            <span class="s2">&quot;--mem_frac&quot;</span><span class="p">,</span>
-            <span class="nb">type</span><span class="o">=</span><span class="nb">float</span><span class="p">,</span>
-            <span class="n">default</span><span class="o">=</span><span class="mf">0.8</span><span class="p">,</span>
-            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Fraction of memory usuage per node&quot;</span><span class="p">,</span>
-        <span class="p">)</span>
-        <span class="n">advanced_resource</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
-            <span class="s2">&quot;--keep_backup&quot;</span><span class="p">,</span>
-            <span class="n">action</span><span class="o">=</span><span class="s2">&quot;store_true&quot;</span><span class="p">,</span>
-            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Keep backup of intermediate steps&quot;</span><span class="p">,</span>
-        <span class="p">)</span>
-        <span class="n">advanced_resource</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
-            <span class="s2">&quot;--no_remote_logger&quot;</span><span class="p">,</span>
-            <span class="n">action</span><span class="o">=</span><span class="s2">&quot;store_false&quot;</span><span class="p">,</span>
-            <span class="n">dest</span><span class="o">=</span><span class="s2">&quot;remote_logger&quot;</span><span class="p">,</span>
-            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Disable remote logger&quot;</span><span class="p">,</span>
-        <span class="p">)</span>
-        <span class="n">advanced_resource</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
-            <span class="s2">&quot;--logger_alivetime&quot;</span><span class="p">,</span>
-            <span class="nb">type</span><span class="o">=</span><span class="nb">float</span><span class="p">,</span>
-            <span class="n">default</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
-            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Keep remote logger alive for this many hours (Otherwise, logger will be removed after 15 minutes of inactivity)&quot;</span><span class="p">,</span>
-        <span class="p">)</span>
-
-        <span class="c1"># === Advanced local system/ per node hardware resource parameters ===</span>
-        <span class="n">advanced_hpc</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">add_argument_group</span><span class="p">(</span>
-            <span class="s2">&quot;###################</span><span class="se">\n</span><span class="s2">Advanced HPC settings</span><span class="se">\n</span><span class="s2">###################&quot;</span>
-        <span class="p">)</span>
-        <span class="n">advanced_hpc</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
-            <span class="s2">&quot;--n_nodes&quot;</span><span class="p">,</span>
-            <span class="nb">type</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span>
-            <span class="n">default</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
-            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Number of compute nodes to use (0 means local cluster)&quot;</span><span class="p">,</span>
-        <span class="p">)</span>
-
-        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">sys</span><span class="o">.</span><span class="n">argv</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
-            <span class="n">parser</span><span class="o">.</span><span class="n">print_help</span><span class="p">(</span><span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="p">)</span>
-            <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
-
-        <span class="n">args</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">parse_args</span><span class="p">()</span>
-
         <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">########################################&quot;</span><span class="p">)</span>
         <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Starting MeerSOLAR Pipeline....&quot;</span><span class="p">)</span>
         <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;#########################################</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
-
+        <span class="c1"># TODO: multi specification imaging parameters as json dic </span>
         <span class="n">msg</span> <span class="o">=</span> <span class="n">master_control</span><span class="p">(</span>
             <span class="n">msname</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">msname</span><span class="p">,</span>
             <span class="n">workdir</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">workdir</span><span class="p">,</span>
@@ -3006,7 +3006,11 @@
             <span class="n">remote_logger_waittime</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">logger_alivetime</span><span class="p">,</span>
         <span class="p">)</span>
     <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
-        <span class="n">traceback</span><span class="o">.</span><span class="n">print_exc</span><span class="p">()</span></div>
+        <span class="n">traceback</span><span class="o">.</span><span class="n">print_exc</span><span class="p">()</span>
+    <span class="k">finally</span><span class="p">:</span>
+        <span class="n">drop_cache</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">msname</span><span class="p">)</span>
+        <span class="n">drop_cache</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">workdir</span><span class="p">)</span>
+        <span class="n">drop_cache</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">outdir</span><span class="p">)</span></div>
 
 
 

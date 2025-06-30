@@ -1,4 +1,4 @@
-IDIA-ilifu Setup
-================
+Installation on IDIA-ilifu 
+==========================
 
 

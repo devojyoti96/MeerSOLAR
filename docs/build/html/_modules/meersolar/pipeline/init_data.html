@@ -163,14 +163,14 @@
 <div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
   <ul>
 <li class="toctree-l1"><a class="reference internal" href="../../../quickstart.html">Quickstart</a></li>
-<li class="toctree-l1 has-children"><a class="reference internal" href="../../../install.html">Installation and Initial Setup</a><input class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><div class="visually-hidden">Toggle navigation of Installation and Initial Setup</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../../../install.html">Installation</a><input class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><div class="visually-hidden">Toggle navigation of Installation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
 <li class="toctree-l2"><a class="reference internal" href="../../../install_conda.html">Install Conda: Anaconda or Miniconda</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../activate_conda.html">Create and Activate Conda Environment</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../install_meersolar.html">Install MeerSOLAR</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../../initial_setup.html">Initial Setup</a></li>
 </ul>
 </li>
-<li class="toctree-l1"><a class="reference internal" href="../../../idia_setup.html">IDIA-ilifu Setup</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../idia_setup.html">Installation on IDIA-ilifu</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../initial_setup.html">Initial Setup</a></li>
 <li class="toctree-l1 has-children"><a class="reference internal" href="../../../tutorial.html">Tutorial</a><input class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" role="switch" type="checkbox"/><label for="toctree-checkbox-2"><div class="visually-hidden">Toggle navigation of Tutorial</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
 <li class="toctree-l2"><a class="reference internal" href="../../../flowchart.html">MeerSOLAR Flowchart</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../runpipeline.html">Run MeerSOLAR Pipeline</a></li>
@@ -179,9 +179,9 @@
 <li class="toctree-l3"><a class="reference internal" href="../../../remotelogger.html">Remote MeerSOLAR Logger</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="../../../output.html">Directory Structure and Data Products</a></li>
 </ul>
 </li>
+<li class="toctree-l1"><a class="reference internal" href="../../../output.html">Directory Structure and Data Products</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../kill.html">Stop MeerSOLAR Job</a></li>
 <li class="toctree-l1 has-children"><a class="reference internal" href="../../../cli.html">Command line tools</a><input class="toctree-checkbox" id="toctree-checkbox-4" name="toctree-checkbox-4" role="switch" type="checkbox"/><label for="toctree-checkbox-4"><div class="visually-hidden">Toggle navigation of Command line tools</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
 <li class="toctree-l2"><a class="reference internal" href="../../../basic_cli.html">Basic CLI</a></li>
@@ -296,8 +296,10 @@
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">datadir</span> <span class="o">=</span> <span class="n">get_datadir</span><span class="p">()</span>
     <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">datadir</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-    <span class="n">linkfile</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">datadir</span><span class="si">}</span><span class="s2">/remotelink.txt&quot;</span>
-    <span class="n">emailfile</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">datadir</span><span class="si">}</span><span class="s2">/emails.txt&quot;</span>
+    <span class="n">meersolar_cachedir</span><span class="o">=</span><span class="n">get_meersolar_cachedir</span><span class="p">()</span>
+    <span class="n">username</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">getlogin</span><span class="p">()</span>
+    <span class="n">linkfile</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">meersolar_cachedir</span><span class="si">}</span><span class="s2">/remotelink_</span><span class="si">{</span><span class="n">username</span><span class="si">}</span><span class="s2">.txt&quot;</span>
+    <span class="n">emailfile</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">meersolar_cachedir</span><span class="si">}</span><span class="s2">/emails_</span><span class="si">{</span><span class="n">username</span><span class="si">}</span><span class="s2">.txt&quot;</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">linkfile</span><span class="p">):</span>
         <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">linkfile</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
             <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;&quot;</span><span class="p">)</span>

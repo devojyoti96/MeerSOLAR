@@ -1,5 +1,5 @@
-Installation and Initial Setup
-==============================
+Installation 
+============
 .. tip :: 
    If you are running **MeerSOLAR** on IDIA-ilifu, MeerSOLAR is installed already. User does not need to install it. Follow the **IDIA-ilifu Setup** page for help.
 
@@ -39,14 +39,14 @@ Create and Activate Conda
    
    activate_conda
    
-Install and setup MeerSOLAR
----------------------------
+Install MeerSOLAR
+------------------
 
 .. toctree::
    :maxdepth: 2
    
    install_meersolar
-   initial_setup
+
    
 
     

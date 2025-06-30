@@ -163,14 +163,14 @@
 <div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
   <ul>
 <li class="toctree-l1"><a class="reference internal" href="../../../quickstart.html">Quickstart</a></li>
-<li class="toctree-l1 has-children"><a class="reference internal" href="../../../install.html">Installation and Initial Setup</a><input class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><div class="visually-hidden">Toggle navigation of Installation and Initial Setup</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../../../install.html">Installation</a><input class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><div class="visually-hidden">Toggle navigation of Installation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
 <li class="toctree-l2"><a class="reference internal" href="../../../install_conda.html">Install Conda: Anaconda or Miniconda</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../activate_conda.html">Create and Activate Conda Environment</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../install_meersolar.html">Install MeerSOLAR</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../../initial_setup.html">Initial Setup</a></li>
 </ul>
 </li>
-<li class="toctree-l1"><a class="reference internal" href="../../../idia_setup.html">IDIA-ilifu Setup</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../idia_setup.html">Installation on IDIA-ilifu</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../initial_setup.html">Initial Setup</a></li>
 <li class="toctree-l1 has-children"><a class="reference internal" href="../../../tutorial.html">Tutorial</a><input class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" role="switch" type="checkbox"/><label for="toctree-checkbox-2"><div class="visually-hidden">Toggle navigation of Tutorial</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
 <li class="toctree-l2"><a class="reference internal" href="../../../flowchart.html">MeerSOLAR Flowchart</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../runpipeline.html">Run MeerSOLAR Pipeline</a></li>
@@ -179,9 +179,9 @@
 <li class="toctree-l3"><a class="reference internal" href="../../../remotelogger.html">Remote MeerSOLAR Logger</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="../../../output.html">Directory Structure and Data Products</a></li>
 </ul>
 </li>
+<li class="toctree-l1"><a class="reference internal" href="../../../output.html">Directory Structure and Data Products</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../kill.html">Stop MeerSOLAR Job</a></li>
 <li class="toctree-l1 has-children"><a class="reference internal" href="../../../cli.html">Command line tools</a><input class="toctree-checkbox" id="toctree-checkbox-4" name="toctree-checkbox-4" role="switch" type="checkbox"/><label for="toctree-checkbox-4"><div class="visually-hidden">Toggle navigation of Command line tools</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
 <li class="toctree-l2"><a class="reference internal" href="../../../basic_cli.html">Basic CLI</a></li>
@@ -229,44 +229,61 @@
         </div>
         <article role="main">
           <h1>Source code for meersolar.pipeline.basic_func</h1><div class="highlight"><pre>
-<span></span><span class="kn">import</span> <span class="nn">os</span><span class="o">,</span> <span class="nn">sys</span><span class="o">,</span> <span class="nn">glob</span><span class="o">,</span> <span class="nn">time</span><span class="o">,</span> <span class="nn">gc</span><span class="o">,</span> <span class="nn">tempfile</span><span class="o">,</span> <span class="nn">copy</span><span class="o">,</span> <span class="nn">traceback</span><span class="o">,</span> <span class="nn">resource</span><span class="o">,</span> <span class="nn">requests</span><span class="o">,</span> <span class="nn">threading</span><span class="o">,</span> <span class="nn">socket</span><span class="o">,</span> <span class="nn">argparse</span>
-
+<span></span><span class="c1"># General imports</span>
+<span class="c1">##################</span>
+<span class="kn">import</span> <span class="nn">os</span><span class="o">,</span> <span class="nn">sys</span><span class="o">,</span> <span class="nn">glob</span><span class="o">,</span> <span class="nn">time</span><span class="o">,</span> <span class="nn">gc</span><span class="o">,</span> <span class="nn">tempfile</span><span class="o">,</span> <span class="nn">copy</span><span class="o">,</span> <span class="nn">warnings</span>
+<span class="kn">import</span> <span class="nn">subprocess</span><span class="o">,</span> <span class="nn">contextlib</span><span class="o">,</span> <span class="nn">ctypes</span><span class="o">,</span> <span class="nn">platform</span>
+<span class="kn">import</span> <span class="nn">traceback</span><span class="o">,</span> <span class="nn">resource</span><span class="o">,</span> <span class="nn">requests</span><span class="o">,</span> <span class="nn">threading</span><span class="o">,</span> <span class="nn">socket</span><span class="o">,</span> <span class="nn">argparse</span>
 <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s2">&quot;QT_OPENGL&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;software&quot;</span>
 <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s2">&quot;QT_QPA_PLATFORM&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;offscreen&quot;</span>
-<span class="kn">import</span> <span class="nn">matplotlib.ticker</span> <span class="k">as</span> <span class="nn">ticker</span><span class="o">,</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span><span class="o">,</span> <span class="nn">matplotlib</span><span class="o">,</span> <span class="nn">subprocess</span><span class="o">,</span> <span class="nn">contextlib</span><span class="o">,</span> <span class="nn">ctypes</span><span class="o">,</span> <span class="nn">platform</span>
+<span class="kn">import</span> <span class="nn">matplotlib</span><span class="o">,</span> <span class="nn">matplotlib.ticker</span> <span class="k">as</span> <span class="nn">ticker</span><span class="o">,</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span> 
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span><span class="o">,</span> <span class="nn">dask</span><span class="o">,</span> <span class="nn">psutil</span><span class="o">,</span> <span class="nn">logging</span><span class="o">,</span> <span class="nn">sunpy</span><span class="o">,</span> <span class="nn">tempfile</span><span class="o">,</span> <span class="nn">shutil</span>
 <span class="kn">import</span> <span class="nn">astropy.units</span> <span class="k">as</span> <span class="nn">u</span><span class="o">,</span> <span class="nn">string</span><span class="o">,</span> <span class="nn">secrets</span>
 <span class="kn">from</span> <span class="nn">contextlib</span> <span class="kn">import</span> <span class="n">contextmanager</span>
-<span class="kn">from</span> <span class="nn">astropy.coordinates</span> <span class="kn">import</span> <span class="n">EarthLocation</span><span class="p">,</span> <span class="n">SkyCoord</span>
-<span class="kn">from</span> <span class="nn">sunpy.map</span> <span class="kn">import</span> <span class="n">Map</span>
-<span class="kn">from</span> <span class="nn">sunpy.coordinates</span> <span class="kn">import</span> <span class="n">frames</span><span class="p">,</span> <span class="n">sun</span>
 <span class="kn">from</span> <span class="nn">datetime</span> <span class="kn">import</span> <span class="n">datetime</span> <span class="k">as</span> <span class="n">dt</span><span class="p">,</span> <span class="n">timezone</span><span class="p">,</span> <span class="n">timedelta</span>
+<span class="kn">from</span> <span class="nn">scipy.ndimage</span> <span class="kn">import</span> <span class="n">gaussian_filter</span>
+<span class="kn">from</span> <span class="nn">watchdog.observers</span> <span class="kn">import</span> <span class="n">Observer</span>
+<span class="kn">from</span> <span class="nn">watchdog.events</span> <span class="kn">import</span> <span class="n">FileSystemEventHandler</span>
+
+<span class="c1">#General,CASA,dask imports</span>
+<span class="c1">##########################</span>
+<span class="kn">from</span> <span class="nn">casatools</span> <span class="kn">import</span> <span class="n">msmetadata</span><span class="p">,</span> <span class="n">ms</span> <span class="k">as</span> <span class="n">casamstool</span><span class="p">,</span> <span class="n">table</span><span class="p">,</span> <span class="n">agentflagger</span>
 <span class="kn">from</span> <span class="nn">casatasks</span> <span class="kn">import</span> <span class="p">(</span>
     <span class="n">casalog</span><span class="p">,</span>
     <span class="n">importfits</span><span class="p">,</span>
     <span class="n">listpartition</span><span class="p">,</span>
 <span class="p">)</span>
-<span class="kn">from</span> <span class="nn">scipy.ndimage</span> <span class="kn">import</span> <span class="n">gaussian_filter</span>
-<span class="kn">from</span> <span class="nn">casatools</span> <span class="kn">import</span> <span class="n">msmetadata</span><span class="p">,</span> <span class="n">ms</span> <span class="k">as</span> <span class="n">casamstool</span><span class="p">,</span> <span class="n">table</span><span class="p">,</span> <span class="n">agentflagger</span>
+<span class="kn">from</span> <span class="nn">casatasks</span> <span class="kn">import</span> <span class="n">casalog</span>
 <span class="kn">from</span> <span class="nn">dask.distributed</span> <span class="kn">import</span> <span class="n">Client</span><span class="p">,</span> <span class="n">LocalCluster</span>
 <span class="kn">from</span> <span class="nn">dask</span> <span class="kn">import</span> <span class="n">delayed</span><span class="p">,</span> <span class="n">compute</span><span class="p">,</span> <span class="n">config</span>
+
+<span class="c1"># Astropy imports</span>
+<span class="c1">##################</span>
+<span class="kn">from</span> <span class="nn">astropy.wcs</span> <span class="kn">import</span> <span class="n">FITSFixedWarning</span>
+<span class="n">warnings</span><span class="o">.</span><span class="n">simplefilter</span><span class="p">(</span><span class="s1">&#39;ignore&#39;</span><span class="p">,</span> <span class="n">category</span><span class="o">=</span><span class="n">FITSFixedWarning</span><span class="p">)</span>
+<span class="kn">from</span> <span class="nn">astropy.coordinates</span> <span class="kn">import</span> <span class="n">EarthLocation</span><span class="p">,</span> <span class="n">SkyCoord</span><span class="p">,</span> <span class="n">AltAz</span><span class="p">,</span> <span class="n">get_sun</span>
 <span class="kn">from</span> <span class="nn">astropy.time</span> <span class="kn">import</span> <span class="n">Time</span>
-<span class="kn">from</span> <span class="nn">astropy.coordinates</span> <span class="kn">import</span> <span class="n">get_sun</span><span class="p">,</span> <span class="n">SkyCoord</span>
 <span class="kn">from</span> <span class="nn">astropy.io</span> <span class="kn">import</span> <span class="n">fits</span>
 <span class="kn">from</span> <span class="nn">astropy.wcs</span> <span class="kn">import</span> <span class="n">WCS</span>
-<span class="kn">from</span> <span class="nn">casatasks</span> <span class="kn">import</span> <span class="n">casalog</span>
 <span class="kn">from</span> <span class="nn">astropy.visualization</span> <span class="kn">import</span> <span class="n">ImageNormalize</span><span class="p">,</span> <span class="n">PowerStretch</span><span class="p">,</span> <span class="n">LogStretch</span>
-<span class="kn">from</span> <span class="nn">matplotlib.gridspec</span> <span class="kn">import</span> <span class="n">GridSpec</span>
-<span class="kn">from</span> <span class="nn">matplotlib.patches</span> <span class="kn">import</span> <span class="n">Ellipse</span><span class="p">,</span> <span class="n">Rectangle</span>
-<span class="kn">from</span> <span class="nn">matplotlib.colors</span> <span class="kn">import</span> <span class="n">ListedColormap</span>
-<span class="kn">from</span> <span class="nn">matplotlib</span> <span class="kn">import</span> <span class="n">cm</span>
+<span class="kn">from</span> <span class="nn">astroquery.jplhorizons</span> <span class="kn">import</span> <span class="n">Horizons</span>
+
+<span class="c1"># Sunpy imports</span>
+<span class="c1">################</span>
+<span class="kn">from</span> <span class="nn">sunpy.map</span> <span class="kn">import</span> <span class="n">Map</span>
+<span class="kn">from</span> <span class="nn">sunpy.coordinates</span> <span class="kn">import</span> <span class="n">frames</span><span class="p">,</span> <span class="n">sun</span>
 <span class="kn">from</span> <span class="nn">sunpy</span> <span class="kn">import</span> <span class="n">timeseries</span> <span class="k">as</span> <span class="n">ts</span>
 <span class="kn">from</span> <span class="nn">sunpy.net</span> <span class="kn">import</span> <span class="n">Fido</span><span class="p">,</span> <span class="n">attrs</span> <span class="k">as</span> <span class="n">a</span>
 <span class="kn">from</span> <span class="nn">sunpy.coordinates</span> <span class="kn">import</span> <span class="n">SphericalScreen</span>
 <span class="kn">from</span> <span class="nn">sunpy.map.maputils</span> <span class="kn">import</span> <span class="n">all_coordinates_from_map</span>
 <span class="kn">from</span> <span class="nn">sunpy.time</span> <span class="kn">import</span> <span class="n">parse_time</span>
-<span class="kn">from</span> <span class="nn">watchdog.observers</span> <span class="kn">import</span> <span class="n">Observer</span>
-<span class="kn">from</span> <span class="nn">watchdog.events</span> <span class="kn">import</span> <span class="n">FileSystemEventHandler</span>
+
+<span class="c1"># Matplotlib imports</span>
+<span class="c1">#####################</span>
+<span class="kn">from</span> <span class="nn">matplotlib.gridspec</span> <span class="kn">import</span> <span class="n">GridSpec</span>
+<span class="kn">from</span> <span class="nn">matplotlib.patches</span> <span class="kn">import</span> <span class="n">Ellipse</span><span class="p">,</span> <span class="n">Rectangle</span>
+<span class="kn">from</span> <span class="nn">matplotlib.colors</span> <span class="kn">import</span> <span class="n">ListedColormap</span>
+<span class="kn">from</span> <span class="nn">matplotlib</span> <span class="kn">import</span> <span class="n">cm</span>
 
 <span class="k">try</span><span class="p">:</span>
     <span class="n">logfile</span> <span class="o">=</span> <span class="n">casalog</span><span class="o">.</span><span class="n">logfile</span><span class="p">()</span>
@@ -287,6 +304,19 @@
     <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">datadir_path</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
     <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">datadir_path</span><span class="si">}</span><span class="s2">/pids&quot;</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">datadir_path</span></div>
+
+    
+<div class="viewcode-block" id="get_meersolar_cachedir">
+<a class="viewcode-back" href="../../../meersolar.pipeline.html#meersolar.pipeline.basic_func.get_meersolar_cachedir">[docs]</a>
+<span class="k">def</span> <span class="nf">get_meersolar_cachedir</span><span class="p">():</span>
+    <span class="n">homedir</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;HOME&quot;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">homedir</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">homedir</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">expanduser</span><span class="p">(</span><span class="s2">&quot;~&quot;</span><span class="p">)</span>
+    <span class="n">username</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">getlogin</span><span class="p">()</span>
+    <span class="n">meersolar_cachedir</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">homedir</span><span class="si">}</span><span class="s2">/.meersolar&quot;</span>
+    <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">meersolar_cachedir</span><span class="p">,</span><span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">meersolar_cachedir</span><span class="si">}</span><span class="s2">/pids&quot;</span><span class="p">,</span><span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">meersolar_cachedir</span></div>
 
 
 
@@ -320,7 +350,7 @@
 
 <div class="viewcode-block" id="suppress_casa_output">
 <a class="viewcode-back" href="../../../meersolar.pipeline.html#meersolar.pipeline.basic_func.suppress_casa_output">[docs]</a>
-<span class="nd">@contextlib</span><span class="o">.</span><span class="n">contextmanager</span>
+<span class="nd">@contextmanager</span>
 <span class="k">def</span> <span class="nf">suppress_casa_output</span><span class="p">():</span>
     <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">devnull</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">fnull</span><span class="p">:</span>
         <span class="n">old_stdout</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">dup</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
@@ -554,37 +584,35 @@
 <div class="viewcode-block" id="get_remote_logger_link">
 <a class="viewcode-back" href="../../../meersolar.pipeline.html#meersolar.pipeline.basic_func.get_remote_logger_link">[docs]</a>
 <span class="k">def</span> <span class="nf">get_remote_logger_link</span><span class="p">():</span>
-    <span class="n">datadir</span> <span class="o">=</span> <span class="n">get_datadir</span><span class="p">()</span>
-    <span class="n">link_file</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">datadir</span><span class="p">,</span> <span class="s2">&quot;remotelink.txt&quot;</span><span class="p">)</span>
-    <span class="k">try</span><span class="p">:</span>
-        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">link_file</span><span class="p">,</span> <span class="s2">&quot;r&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
-            <span class="n">lines</span> <span class="o">=</span> <span class="p">[</span><span class="n">line</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span> <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">f</span> <span class="k">if</span> <span class="n">line</span><span class="o">.</span><span class="n">strip</span><span class="p">()]</span>
-    <span class="k">except</span> <span class="ne">FileNotFoundError</span><span class="p">:</span>
-        <span class="k">return</span> <span class="s2">&quot;&quot;</span>
-    <span class="k">if</span> <span class="ow">not</span> <span class="n">lines</span><span class="p">:</span>
-        <span class="k">return</span> <span class="s2">&quot;&quot;</span>
-    <span class="n">remote_link</span> <span class="o">=</span> <span class="n">lines</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
-    <span class="k">try</span><span class="p">:</span>
-        <span class="n">count</span><span class="o">=</span><span class="mi">0</span>
-        <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
-            <span class="n">res</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">remote_link</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
-            <span class="k">if</span> <span class="n">res</span><span class="o">.</span><span class="n">status_code</span> <span class="o">==</span> <span class="mi">200</span><span class="p">:</span>
-                <span class="k">return</span> <span class="n">remote_link</span>
-            <span class="k">else</span><span class="p">:</span>
-                <span class="n">count</span><span class="o">+=</span><span class="mi">1</span>
-                <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
-            <span class="k">if</span> <span class="n">count</span><span class="o">&gt;</span><span class="mi">5</span><span class="p">:</span>
-                <span class="k">return</span> <span class="s2">&quot;&quot;</span>
-    <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
-        <span class="k">return</span> <span class="s2">&quot;&quot;</span></div>
-
+    <span class="n">meersolar_cachedir</span> <span class="o">=</span> <span class="n">get_meersolar_cachedir</span><span class="p">()</span>
+    <span class="n">username</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">getlogin</span><span class="p">()</span>
+    <span class="n">link_file</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">meersolar_cachedir</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;remotelink_</span><span class="si">{</span><span class="n">username</span><span class="si">}</span><span class="s2">.txt&quot;</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">5</span><span class="p">):</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isfile</span><span class="p">(</span><span class="n">link_file</span><span class="p">):</span>
+                <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">link_file</span><span class="p">,</span> <span class="s2">&quot;r&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+                    <span class="n">lines</span> <span class="o">=</span> <span class="p">[</span><span class="n">line</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span> <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">f</span> <span class="k">if</span> <span class="n">line</span><span class="o">.</span><span class="n">strip</span><span class="p">()]</span>
+                <span class="k">if</span> <span class="n">lines</span><span class="p">:</span>
+                    <span class="n">remote_link</span> <span class="o">=</span> <span class="n">lines</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+                    <span class="k">if</span> <span class="n">remote_link</span><span class="p">:</span>
+                        <span class="k">try</span><span class="p">:</span>
+                            <span class="n">res</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">remote_link</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+                            <span class="k">if</span> <span class="n">res</span><span class="o">.</span><span class="n">status_code</span> <span class="o">==</span> <span class="mi">200</span><span class="p">:</span>
+                                <span class="k">return</span> <span class="n">remote_link</span>
+                        <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+                            <span class="k">pass</span>
+        <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+            <span class="k">pass</span>
+        <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+    <span class="k">return</span> <span class="s2">&quot;&quot;</span></div>
 
 
 <div class="viewcode-block" id="get_emails">
 <a class="viewcode-back" href="../../../meersolar.pipeline.html#meersolar.pipeline.basic_func.get_emails">[docs]</a>
 <span class="k">def</span> <span class="nf">get_emails</span><span class="p">():</span>
-    <span class="n">datadir</span> <span class="o">=</span> <span class="n">get_datadir</span><span class="p">()</span>
-    <span class="n">email_file</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">datadir</span><span class="p">,</span> <span class="s2">&quot;emails.txt&quot;</span><span class="p">)</span>
+    <span class="n">meersolar_cachedir</span> <span class="o">=</span> <span class="n">get_meersolar_cachedir</span><span class="p">()</span>
+    <span class="n">username</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">getlogin</span><span class="p">()</span>
+    <span class="n">email_file</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">meersolar_cachedir</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;emails_</span><span class="si">{</span><span class="n">username</span><span class="si">}</span><span class="s2">.txt&quot;</span><span class="p">)</span>
     <span class="k">try</span><span class="p">:</span>
         <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">email_file</span><span class="p">,</span> <span class="s2">&quot;r&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
             <span class="n">lines</span> <span class="o">=</span> <span class="p">[</span><span class="n">line</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span> <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">f</span> <span class="k">if</span> <span class="n">line</span><span class="o">.</span><span class="n">strip</span><span class="p">()]</span>
@@ -670,8 +698,8 @@
 <span class="k">def</span> <span class="nf">ping_logger</span><span class="p">(</span><span class="n">jobid</span><span class="p">,</span> <span class="n">remote_jobid</span><span class="p">,</span> <span class="n">stop_event</span><span class="p">,</span> <span class="n">remote_link</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Ping a job-specific keep-alive endpoint periodically until stop_event is set.&quot;&quot;&quot;</span>
     <span class="n">pid</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">getpid</span><span class="p">()</span>
-    <span class="n">datadir</span> <span class="o">=</span> <span class="n">get_datadir</span><span class="p">()</span>
-    <span class="n">save_pid</span><span class="p">(</span><span class="n">pid</span><span class="p">,</span> <span class="n">datadir</span> <span class="o">+</span> <span class="sa">f</span><span class="s2">&quot;/pids/pids_</span><span class="si">{</span><span class="n">jobid</span><span class="si">}</span><span class="s2">.txt&quot;</span><span class="p">)</span>
+    <span class="n">meersolar_cachedir</span> <span class="o">=</span> <span class="n">get_meersolar_cachedir</span><span class="p">()</span>
+    <span class="n">save_pid</span><span class="p">(</span><span class="n">pid</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">meersolar_cachedir</span><span class="si">}</span><span class="s2">/pids/pids_</span><span class="si">{</span><span class="n">jobid</span><span class="si">}</span><span class="s2">.txt&quot;</span><span class="p">)</span>
     <span class="n">interval</span> <span class="o">=</span> <span class="mi">10</span>  <span class="c1"># 10 min interval</span>
     <span class="k">if</span> <span class="n">remote_link</span> <span class="o">!=</span> <span class="s2">&quot;&quot;</span><span class="p">:</span>
         <span class="n">url</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">remote_link</span><span class="si">}</span><span class="s2">/api/ping/</span><span class="si">{</span><span class="n">remote_jobid</span><span class="si">}</span><span class="s2">&quot;</span>
@@ -1442,7 +1470,6 @@
 <a class="viewcode-back" href="../../../meersolar.pipeline.html#meersolar.pipeline.basic_func.make_meer_overlay">[docs]</a>
 <span class="k">def</span> <span class="nf">make_meer_overlay</span><span class="p">(</span>
     <span class="n">meerkat_image</span><span class="p">,</span>
-    <span class="n">workdir</span><span class="p">,</span>
     <span class="n">suvi_wavelength</span><span class="o">=</span><span class="mi">195</span><span class="p">,</span>
     <span class="n">plot_file_prefix</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
     <span class="n">plot_meer_colormap</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
@@ -1451,7 +1478,8 @@
     <span class="n">do_sharpen_suvi</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
     <span class="n">xlim</span><span class="o">=</span><span class="p">[</span><span class="o">-</span><span class="mi">1600</span><span class="p">,</span> <span class="mi">1600</span><span class="p">],</span>
     <span class="n">ylim</span><span class="o">=</span><span class="p">[</span><span class="o">-</span><span class="mi">1600</span><span class="p">,</span> <span class="mi">1600</span><span class="p">],</span>
-    <span class="n">extension</span><span class="o">=</span><span class="s2">&quot;png&quot;</span><span class="p">,</span>
+    <span class="n">extensions</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;png&quot;</span><span class="p">],</span>
+    <span class="n">outdirs</span><span class="o">=</span><span class="p">[],</span>
     <span class="n">showgui</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
 <span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
@@ -1461,8 +1489,6 @@
 <span class="sd">    ----------</span>
 <span class="sd">    meerkat_image : str</span>
 <span class="sd">        MeerKAT image</span>
-<span class="sd">    workdir : str</span>
-<span class="sd">        Work directory</span>
 <span class="sd">    suvi_wavelength : float, optional</span>
 <span class="sd">        GOES SUVI wavelength, options: 94, 131, 171, 195, 284, 304 Å</span>
 <span class="sd">    plot_file_prefix : str, optional</span>
@@ -1479,22 +1505,29 @@
 <span class="sd">        X-axis limit in arcsec</span>
 <span class="sd">    tlim : list, optional</span>
 <span class="sd">        Y-axis limit in arcsec</span>
-<span class="sd">    extension : str, optional</span>
-<span class="sd">        Image file extension</span>
+<span class="sd">    extensions : list, optional</span>
+<span class="sd">        Image file extensions</span>
+<span class="sd">    outdirs : list, optional</span>
+<span class="sd">        Output directories for each extensions</span>
 <span class="sd">    showgui : bool, optional</span>
 <span class="sd">        Show GUI</span>
 
 <span class="sd">    Returns</span>
 <span class="sd">    -------</span>
-<span class="sd">    str</span>
-<span class="sd">        Plot file name</span>
+<span class="sd">    list</span>
+<span class="sd">        Plot file names</span>
 <span class="sd">    &quot;&quot;&quot;</span>
+    <span class="nd">@delayed</span>
+    <span class="k">def</span> <span class="nf">reproject_map</span><span class="p">(</span><span class="n">smap</span><span class="p">,</span> <span class="n">target_header</span><span class="p">):</span>
+        <span class="k">with</span> <span class="n">SphericalScreen</span><span class="p">(</span><span class="n">smap</span><span class="o">.</span><span class="n">observer_coordinate</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">smap</span><span class="o">.</span><span class="n">reproject_to</span><span class="p">(</span><span class="n">target_header</span><span class="p">)</span>
     <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="s1">&#39;sunpy&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">setLevel</span><span class="p">(</span><span class="n">logging</span><span class="o">.</span><span class="n">ERROR</span><span class="p">)</span>
+    <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="s1">&#39;reproject.common&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">setLevel</span><span class="p">(</span><span class="n">logging</span><span class="o">.</span><span class="n">ERROR</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">showgui</span><span class="p">:</span>
         <span class="n">matplotlib</span><span class="o">.</span><span class="n">use</span><span class="p">(</span><span class="s2">&quot;TkAgg&quot;</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
         <span class="n">matplotlib</span><span class="o">.</span><span class="n">use</span><span class="p">(</span><span class="s2">&quot;Agg&quot;</span><span class="p">)</span>
-    <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">workdir</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">workdir</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="n">meerkat_image</span><span class="p">))</span>
     <span class="n">meermap</span> <span class="o">=</span> <span class="n">get_meermap</span><span class="p">(</span><span class="n">meerkat_image</span><span class="p">)</span>
     <span class="n">obs_datetime</span> <span class="o">=</span> <span class="n">fits</span><span class="o">.</span><span class="n">getheader</span><span class="p">(</span><span class="n">meerkat_image</span><span class="p">)[</span><span class="s2">&quot;DATE-OBS&quot;</span><span class="p">]</span>
     <span class="n">obs_date</span> <span class="o">=</span> <span class="n">obs_datetime</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;T&quot;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
@@ -1517,10 +1550,8 @@
         <span class="n">instrument</span><span class="o">=</span><span class="n">suvi_map</span><span class="o">.</span><span class="n">instrument</span><span class="p">,</span>
         <span class="n">wavelength</span><span class="o">=</span><span class="n">suvi_map</span><span class="o">.</span><span class="n">wavelength</span><span class="p">,</span>
     <span class="p">)</span>
-    <span class="k">with</span> <span class="n">SphericalScreen</span><span class="p">(</span><span class="n">meermap</span><span class="o">.</span><span class="n">observer_coordinate</span><span class="p">):</span>
-        <span class="n">meer_reprojected</span> <span class="o">=</span> <span class="n">meermap</span><span class="o">.</span><span class="n">reproject_to</span><span class="p">(</span><span class="n">projected_header</span><span class="p">)</span>
-    <span class="k">with</span> <span class="n">SphericalScreen</span><span class="p">(</span><span class="n">suvi_map</span><span class="o">.</span><span class="n">observer_coordinate</span><span class="p">):</span>
-        <span class="n">suvi_reprojected</span> <span class="o">=</span> <span class="n">suvi_map</span><span class="o">.</span><span class="n">reproject_to</span><span class="p">(</span><span class="n">projected_header</span><span class="p">)</span>
+    <span class="n">reprojected</span> <span class="o">=</span> <span class="p">[</span><span class="n">reproject_map</span><span class="p">(</span><span class="n">m</span><span class="p">,</span> <span class="n">projected_header</span><span class="p">)</span> <span class="k">for</span> <span class="n">m</span> <span class="ow">in</span> <span class="p">[</span><span class="n">meermap</span><span class="p">,</span><span class="n">suvi_map</span><span class="p">]]</span>
+    <span class="n">meer_reprojected</span><span class="p">,</span><span class="n">suvi_reprojected</span> <span class="o">=</span> <span class="n">compute</span><span class="p">(</span><span class="o">*</span><span class="n">reprojected</span><span class="p">)</span>
     <span class="n">meertime</span> <span class="o">=</span> <span class="n">meermap</span><span class="o">.</span><span class="n">meta</span><span class="p">[</span><span class="s2">&quot;date-obs&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;.&quot;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
     <span class="n">suvitime</span> <span class="o">=</span> <span class="n">suvi_map</span><span class="o">.</span><span class="n">meta</span><span class="p">[</span><span class="s2">&quot;date-obs&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;.&quot;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
     <span class="k">if</span> <span class="n">plot_meer_colormap</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">contour_levels</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
@@ -1624,11 +1655,19 @@
     <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="n">contour_levels</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
         <span class="n">ax_contour</span><span class="o">.</span><span class="n">coords</span><span class="o">.</span><span class="n">grid</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span>
     <span class="n">fig</span><span class="o">.</span><span class="n">tight_layout</span><span class="p">()</span>
+    <span class="n">plot_file_list</span><span class="o">=</span><span class="p">[]</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;#######################&quot;</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">plot_file_prefix</span><span class="p">:</span>
-        <span class="n">plot_file</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">workdir</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="n">plot_file_prefix</span><span class="si">}</span><span class="s2">.</span><span class="si">{</span><span class="n">extension</span><span class="si">}</span><span class="s2">&quot;</span>
-        <span class="n">plt</span><span class="o">.</span><span class="n">savefig</span><span class="p">(</span><span class="n">plot_file</span><span class="p">,</span> <span class="n">bbox_inches</span><span class="o">=</span><span class="s2">&quot;tight&quot;</span><span class="p">)</span>
-        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;#######################&quot;</span><span class="p">)</span>
-        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Plot saved: </span><span class="si">{</span><span class="n">plot_file</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">extensions</span><span class="p">)):</span>
+            <span class="n">ext</span><span class="o">=</span><span class="n">extensions</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">savedir</span><span class="o">=</span><span class="n">outdirs</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+            <span class="k">except</span><span class="p">:</span>
+                <span class="n">savedir</span><span class="o">=</span><span class="n">workdir</span>
+            <span class="n">plot_file</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">savedir</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="n">plot_file_prefix</span><span class="si">}</span><span class="s2">.</span><span class="si">{</span><span class="n">ext</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="n">plt</span><span class="o">.</span><span class="n">savefig</span><span class="p">(</span><span class="n">plot_file</span><span class="p">,</span> <span class="n">bbox_inches</span><span class="o">=</span><span class="s2">&quot;tight&quot;</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Plot saved: </span><span class="si">{</span><span class="n">plot_file</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="n">plot_file_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">plot_file</span><span class="p">)</span>
         <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;#######################</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
         <span class="n">plot_file</span> <span class="o">=</span> <span class="kc">None</span>
@@ -1638,7 +1677,7 @@
         <span class="n">plt</span><span class="o">.</span><span class="n">close</span><span class="p">(</span><span class="s2">&quot;all&quot;</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
         <span class="n">plt</span><span class="o">.</span><span class="n">close</span><span class="p">(</span><span class="n">fig</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">plot_file</span></div>
+    <span class="k">return</span> <span class="n">plot_file_list</span></div>
 
 
 
@@ -2838,10 +2877,6 @@
 <span class="sd">    float</span>
 <span class="sd">        Solar elevation in degree</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="kn">import</span> <span class="nn">astropy.units</span> <span class="k">as</span> <span class="nn">u</span>
-    <span class="kn">from</span> <span class="nn">astropy.coordinates</span> <span class="kn">import</span> <span class="n">AltAz</span><span class="p">,</span> <span class="n">EarthLocation</span><span class="p">,</span> <span class="n">get_sun</span><span class="p">,</span> <span class="n">SkyCoord</span>
-    <span class="kn">from</span> <span class="nn">astropy.time</span> <span class="kn">import</span> <span class="n">Time</span>
-
     <span class="n">lat</span> <span class="o">=</span> <span class="o">-</span><span class="mf">30.7130</span>
     <span class="n">lon</span> <span class="o">=</span> <span class="mf">21.4430</span>
     <span class="n">elev</span> <span class="o">=</span> <span class="mi">1038</span>
@@ -3069,8 +3104,10 @@
     <span class="n">msmd</span><span class="o">.</span><span class="n">done</span><span class="p">()</span>
     <span class="n">mid_time</span> <span class="o">=</span> <span class="n">times</span><span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">times</span><span class="p">)</span> <span class="o">/</span> <span class="mi">2</span><span class="p">)]</span>
     <span class="n">mid_timestamp</span> <span class="o">=</span> <span class="n">mjdsec_to_timestamp</span><span class="p">(</span><span class="n">mid_time</span><span class="p">)</span>
-    <span class="n">mid_time_mjd</span> <span class="o">=</span> <span class="n">Time</span><span class="p">(</span><span class="n">mid_timestamp</span><span class="p">,</span> <span class="nb">format</span><span class="o">=</span><span class="s2">&quot;isot&quot;</span><span class="p">)</span>
-    <span class="n">sun_coord</span> <span class="o">=</span> <span class="n">get_sun</span><span class="p">(</span><span class="n">mid_time_mjd</span><span class="p">)</span>
+    <span class="n">astro_time</span><span class="o">=</span><span class="n">Time</span><span class="p">(</span><span class="n">mid_timestamp</span><span class="p">,</span><span class="n">scale</span><span class="o">=</span><span class="s1">&#39;utc&#39;</span><span class="p">)</span>
+    <span class="n">sun_jpl</span> <span class="o">=</span> <span class="n">Horizons</span><span class="p">(</span><span class="nb">id</span><span class="o">=</span><span class="s1">&#39;10&#39;</span><span class="p">,</span> <span class="n">location</span><span class="o">=</span><span class="s1">&#39;500&#39;</span><span class="p">,</span> <span class="n">epochs</span><span class="o">=</span><span class="n">astro_time</span><span class="o">.</span><span class="n">jd</span><span class="p">)</span>
+    <span class="n">eph</span> <span class="o">=</span> <span class="n">sun_jpl</span><span class="o">.</span><span class="n">ephemerides</span><span class="p">()</span>
+    <span class="n">sun_coord</span> <span class="o">=</span> <span class="n">SkyCoord</span><span class="p">(</span><span class="n">ra</span><span class="o">=</span><span class="n">eph</span><span class="p">[</span><span class="s1">&#39;RA&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">deg</span><span class="p">,</span> <span class="n">dec</span><span class="o">=</span><span class="n">eph</span><span class="p">[</span><span class="s1">&#39;DEC&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">deg</span><span class="p">,</span> <span class="n">frame</span><span class="o">=</span><span class="s1">&#39;icrs&#39;</span><span class="p">)</span>
     <span class="n">sun_ra</span> <span class="o">=</span> <span class="p">(</span>
         <span class="nb">str</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">sun_coord</span><span class="o">.</span><span class="n">ra</span><span class="o">.</span><span class="n">hms</span><span class="o">.</span><span class="n">h</span><span class="p">))</span>
         <span class="o">+</span> <span class="s2">&quot;h&quot;</span>
@@ -4123,13 +4160,65 @@
 
 
 
+<div class="viewcode-block" id="save_in_hpc">
+<a class="viewcode-back" href="../../../meersolar.pipeline.html#meersolar.pipeline.basic_func.save_in_hpc">[docs]</a>
+<span class="k">def</span> <span class="nf">save_in_hpc</span><span class="p">(</span><span class="n">fits_image</span><span class="p">,</span><span class="n">outdir</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span><span class="n">xlim</span><span class="o">=</span><span class="p">[</span><span class="o">-</span><span class="mi">1600</span><span class="p">,</span> <span class="mi">1600</span><span class="p">],</span><span class="n">ylim</span><span class="o">=</span><span class="p">[</span><span class="o">-</span><span class="mi">1600</span><span class="p">,</span> <span class="mi">1600</span><span class="p">]):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Save solar image in helioprojective coordinates</span>
+<span class="sd">    </span>
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    fits_image : str</span>
+<span class="sd">        FITS image name</span>
+<span class="sd">    outdir : str, optional</span>
+<span class="sd">        Output directory</span>
+<span class="sd">    xlim : list</span>
+<span class="sd">        X axis limit in arcsecond</span>
+<span class="sd">    ylim : list</span>
+<span class="sd">        Y axis limit in arcsecond</span>
+<span class="sd">    </span>
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    str</span>
+<span class="sd">        FITS image in helioprojective coordinate</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">fits_header</span><span class="o">=</span><span class="n">fits</span><span class="o">.</span><span class="n">getheader</span><span class="p">(</span><span class="n">fits_image</span><span class="p">)</span>
+    <span class="n">meermap</span><span class="o">=</span><span class="n">get_meermap</span><span class="p">(</span><span class="n">fits_image</span><span class="p">)</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">xlim</span><span class="p">)</span><span class="o">==</span><span class="mi">2</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">ylim</span><span class="p">)</span><span class="o">==</span><span class="mi">2</span><span class="p">:</span>
+        <span class="n">top_right</span> <span class="o">=</span> <span class="n">SkyCoord</span><span class="p">(</span>
+            <span class="n">xlim</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">arcsec</span><span class="p">,</span> <span class="n">ylim</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">arcsec</span><span class="p">,</span> <span class="n">frame</span><span class="o">=</span><span class="n">meermap</span><span class="o">.</span><span class="n">coordinate_frame</span>
+        <span class="p">)</span>
+        <span class="n">bottom_left</span> <span class="o">=</span> <span class="n">SkyCoord</span><span class="p">(</span>
+            <span class="n">xlim</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">arcsec</span><span class="p">,</span> <span class="n">ylim</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">arcsec</span><span class="p">,</span> <span class="n">frame</span><span class="o">=</span><span class="n">meermap</span><span class="o">.</span><span class="n">coordinate_frame</span>
+        <span class="p">)</span>
+        <span class="n">meermap</span> <span class="o">=</span> <span class="n">meermap</span><span class="o">.</span><span class="n">submap</span><span class="p">(</span><span class="n">bottom_left</span><span class="p">,</span> <span class="n">top_right</span><span class="o">=</span><span class="n">top_right</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">outdir</span><span class="o">==</span><span class="s2">&quot;&quot;</span><span class="p">:</span>
+        <span class="n">outdir</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="n">fits_image</span><span class="p">))</span>
+    <span class="n">outfile</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">outdir</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">fits_image</span><span class="p">)</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;.fits&#39;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span><span class="si">}</span><span class="s2">_HPC.fits&quot;</span>
+    <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">outfile</span><span class="p">):</span>
+        <span class="n">os</span><span class="o">.</span><span class="n">system</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;rm -rf </span><span class="si">{</span><span class="n">outfile</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="n">meermap</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">outfile</span><span class="p">,</span><span class="n">filetype</span><span class="o">=</span><span class="s2">&quot;fits&quot;</span><span class="p">)</span>
+    <span class="n">data</span><span class="o">=</span><span class="n">fits</span><span class="o">.</span><span class="n">getdata</span><span class="p">(</span><span class="n">outfile</span><span class="p">)</span>
+    <span class="n">data</span><span class="o">=</span><span class="n">data</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">newaxis</span><span class="p">,</span><span class="n">np</span><span class="o">.</span><span class="n">newaxis</span><span class="p">,</span><span class="o">...</span><span class="p">]</span>
+    <span class="n">hpc_header</span><span class="o">=</span><span class="n">fits</span><span class="o">.</span><span class="n">getheader</span><span class="p">(</span><span class="n">outfile</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="p">[</span>
+        <span class="s2">&quot;NAXIS&quot;</span><span class="p">,</span> <span class="s2">&quot;NAXIS3&quot;</span><span class="p">,</span> <span class="s2">&quot;NAXIS4&quot;</span><span class="p">,</span> <span class="s2">&quot;BUNIT&quot;</span><span class="p">,</span> <span class="s2">&quot;CTYPE3&quot;</span><span class="p">,</span> <span class="s2">&quot;CRPIX3&quot;</span><span class="p">,</span> <span class="s2">&quot;CRVAL3&quot;</span><span class="p">,</span> <span class="s2">&quot;CDELT3&quot;</span><span class="p">,</span> <span class="s2">&quot;CUNIT3&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;CTYPE4&quot;</span><span class="p">,</span> <span class="s2">&quot;CRPIX4&quot;</span><span class="p">,</span> <span class="s2">&quot;CRVAL4&quot;</span><span class="p">,</span> <span class="s2">&quot;CDELT4&quot;</span><span class="p">,</span> <span class="s2">&quot;CUNIT4&quot;</span><span class="p">,</span> <span class="s2">&quot;AUTHOR&quot;</span><span class="p">,</span> <span class="s2">&quot;PIPELINE&quot;</span><span class="p">,</span> <span class="s2">&quot;BAND&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;MAX&quot;</span><span class="p">,</span> <span class="s2">&quot;MIN&quot;</span><span class="p">,</span> <span class="s2">&quot;RMS&quot;</span><span class="p">,</span> <span class="s2">&quot;SUM&quot;</span><span class="p">,</span> <span class="s2">&quot;MEAN&quot;</span><span class="p">,</span> <span class="s2">&quot;MEDIAN&quot;</span><span class="p">,</span> <span class="s2">&quot;RMSDYN&quot;</span><span class="p">,</span> <span class="s2">&quot;MIMADYN&quot;</span>
+    <span class="p">]:</span>
+        <span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">fits_header</span><span class="p">:</span>
+            <span class="n">hpc_header</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">fits_header</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
+    <span class="n">fits</span><span class="o">.</span><span class="n">writeto</span><span class="p">(</span><span class="n">outfile</span><span class="p">,</span><span class="n">data</span><span class="o">=</span><span class="n">data</span><span class="p">,</span><span class="n">header</span><span class="o">=</span><span class="n">hpc_header</span><span class="p">,</span><span class="n">overwrite</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span> 
+    <span class="k">return</span> <span class="n">outfile</span></div>
+
+
 <div class="viewcode-block" id="plot_in_hpc">
 <a class="viewcode-back" href="../../../meersolar.pipeline.html#meersolar.pipeline.basic_func.plot_in_hpc">[docs]</a>
 <span class="k">def</span> <span class="nf">plot_in_hpc</span><span class="p">(</span>
     <span class="n">fits_image</span><span class="p">,</span>
     <span class="n">draw_limb</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-    <span class="n">extension</span><span class="o">=</span><span class="s2">&quot;png&quot;</span><span class="p">,</span>
-    <span class="n">outdir</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span>
+    <span class="n">extensions</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;png&quot;</span><span class="p">],</span>
+    <span class="n">outdirs</span><span class="o">=</span><span class="p">[],</span>
     <span class="n">plot_range</span><span class="o">=</span><span class="p">[],</span>
     <span class="n">power</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span>
     <span class="n">xlim</span><span class="o">=</span><span class="p">[</span><span class="o">-</span><span class="mi">1600</span><span class="p">,</span> <span class="mi">1600</span><span class="p">],</span>
@@ -4147,10 +4236,10 @@
 <span class="sd">        Name of the fits image</span>
 <span class="sd">    draw_limb : bool, optional</span>
 <span class="sd">        Draw solar limb or not</span>
-<span class="sd">    extension : str, optional</span>
-<span class="sd">        Output file extension</span>
-<span class="sd">    outdir : str, optional</span>
-<span class="sd">        Output directory</span>
+<span class="sd">    extensions : list, optional</span>
+<span class="sd">        Output file extensions</span>
+<span class="sd">    outdirs : list, optional</span>
+<span class="sd">        Output directories for each extensions</span>
 <span class="sd">    plot_range : list, optional</span>
 <span class="sd">        Plot range</span>
 <span class="sd">    power : float, optional</span>
@@ -4168,20 +4257,18 @@
 
 <span class="sd">    Returns</span>
 <span class="sd">    -------</span>
-<span class="sd">    outfile</span>
-<span class="sd">        Saved plot name</span>
+<span class="sd">    outfiles</span>
+<span class="sd">        Saved plot file names</span>
 <span class="sd">    sunpy.Map</span>
 <span class="sd">        MeerKAT image in helioprojective co-ordinate</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="s1">&#39;sunpy&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">setLevel</span><span class="p">(</span><span class="n">logging</span><span class="o">.</span><span class="n">ERROR</span><span class="p">)</span>
-    <span class="n">MEERLAT</span> <span class="o">=</span> <span class="o">-</span><span class="mf">30.7133</span>
-    <span class="n">MEERLON</span> <span class="o">=</span> <span class="mf">21.4429</span>
-    <span class="n">MEERALT</span> <span class="o">=</span> <span class="mf">1086.6</span>
-    <span class="n">meer_hdu</span> <span class="o">=</span> <span class="n">fits</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">fits_image</span><span class="p">)</span>  <span class="c1"># Opening MeerKAT fits file</span>
-    <span class="n">meer_header</span> <span class="o">=</span> <span class="n">meer_hdu</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">header</span>  <span class="c1"># meer header</span>
-    <span class="n">meer_data</span> <span class="o">=</span> <span class="n">meer_hdu</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">data</span>
-    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">meer_data</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">2</span><span class="p">:</span>
-        <span class="n">meer_data</span> <span class="o">=</span> <span class="n">meer_data</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="p">:,</span> <span class="p">:]</span>  <span class="c1"># meer data</span>
+    <span class="k">if</span> <span class="n">showgui</span> <span class="o">==</span> <span class="kc">False</span><span class="p">:</span>
+        <span class="n">matplotlib</span><span class="o">.</span><span class="n">use</span><span class="p">(</span><span class="s2">&quot;Agg&quot;</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">matplotlib</span><span class="o">.</span><span class="n">use</span><span class="p">(</span><span class="s2">&quot;TkAgg&quot;</span><span class="p">)</span>
+    <span class="n">matplotlib</span><span class="o">.</span><span class="n">rcParams</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="s2">&quot;font.size&quot;</span><span class="p">:</span> <span class="mi">12</span><span class="p">})</span>
+    <span class="n">fits_image</span> <span class="o">=</span> <span class="n">fits_image</span><span class="o">.</span><span class="n">rstrip</span><span class="p">(</span><span class="s2">&quot;/&quot;</span><span class="p">)</span>
+    <span class="n">meer_header</span> <span class="o">=</span> <span class="n">fits</span><span class="o">.</span><span class="n">getheader</span><span class="p">(</span><span class="n">fits_image</span><span class="p">)</span>  <span class="c1"># Opening MeerKAT fits file</span>
     <span class="k">if</span> <span class="n">meer_header</span><span class="p">[</span><span class="s2">&quot;CTYPE3&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;FREQ&quot;</span><span class="p">:</span>
         <span class="n">frequency</span> <span class="o">=</span> <span class="n">meer_header</span><span class="p">[</span><span class="s2">&quot;CRVAL3&quot;</span><span class="p">]</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">Hz</span>
     <span class="k">elif</span> <span class="n">meer_header</span><span class="p">[</span><span class="s2">&quot;CTYPE4&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;FREQ&quot;</span><span class="p">:</span>
@@ -4198,61 +4285,6 @@
     <span class="k">except</span><span class="p">:</span>
         <span class="n">pixel_nuit</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
     <span class="n">obstime</span> <span class="o">=</span> <span class="n">Time</span><span class="p">(</span><span class="n">meer_header</span><span class="p">[</span><span class="s2">&quot;date-obs&quot;</span><span class="p">])</span>
-    <span class="n">meerpos</span> <span class="o">=</span> <span class="n">EarthLocation</span><span class="p">(</span>
-        <span class="n">lat</span><span class="o">=</span><span class="n">MEERLAT</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">deg</span><span class="p">,</span> <span class="n">lon</span><span class="o">=</span><span class="n">MEERLON</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">deg</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="n">MEERALT</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">m</span>
-    <span class="p">)</span>
-    <span class="n">meer_gcrs</span> <span class="o">=</span> <span class="n">SkyCoord</span><span class="p">(</span><span class="n">meerpos</span><span class="o">.</span><span class="n">get_gcrs</span><span class="p">(</span><span class="n">obstime</span><span class="p">))</span>  <span class="c1"># Converting into GCRS coordinate</span>
-    <span class="n">reference_coord</span> <span class="o">=</span> <span class="n">SkyCoord</span><span class="p">(</span>
-        <span class="n">meer_header</span><span class="p">[</span><span class="s2">&quot;crval1&quot;</span><span class="p">]</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">Unit</span><span class="p">(</span><span class="n">meer_header</span><span class="p">[</span><span class="s2">&quot;cunit1&quot;</span><span class="p">]),</span>
-        <span class="n">meer_header</span><span class="p">[</span><span class="s2">&quot;crval2&quot;</span><span class="p">]</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">Unit</span><span class="p">(</span><span class="n">meer_header</span><span class="p">[</span><span class="s2">&quot;cunit2&quot;</span><span class="p">]),</span>
-        <span class="n">frame</span><span class="o">=</span><span class="s2">&quot;gcrs&quot;</span><span class="p">,</span>
-        <span class="n">obstime</span><span class="o">=</span><span class="n">obstime</span><span class="p">,</span>
-        <span class="n">obsgeoloc</span><span class="o">=</span><span class="n">meer_gcrs</span><span class="o">.</span><span class="n">cartesian</span><span class="p">,</span>
-        <span class="n">obsgeovel</span><span class="o">=</span><span class="n">meer_gcrs</span><span class="o">.</span><span class="n">velocity</span><span class="o">.</span><span class="n">to_cartesian</span><span class="p">(),</span>
-        <span class="n">distance</span><span class="o">=</span><span class="n">meer_gcrs</span><span class="o">.</span><span class="n">hcrs</span><span class="o">.</span><span class="n">distance</span><span class="p">,</span>
-    <span class="p">)</span>
-    <span class="n">reference_coord_arcsec</span> <span class="o">=</span> <span class="n">reference_coord</span><span class="o">.</span><span class="n">transform_to</span><span class="p">(</span>
-        <span class="n">frames</span><span class="o">.</span><span class="n">Helioprojective</span><span class="p">(</span><span class="n">observer</span><span class="o">=</span><span class="n">meer_gcrs</span><span class="p">)</span>
-    <span class="p">)</span>
-    <span class="n">cdelt1</span> <span class="o">=</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">meer_header</span><span class="p">[</span><span class="s2">&quot;cdelt1&quot;</span><span class="p">])</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">deg</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">arcsec</span><span class="p">)</span>
-    <span class="n">cdelt2</span> <span class="o">=</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">meer_header</span><span class="p">[</span><span class="s2">&quot;cdelt2&quot;</span><span class="p">])</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">deg</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">arcsec</span><span class="p">)</span>
-    <span class="n">P1</span> <span class="o">=</span> <span class="n">sun</span><span class="o">.</span><span class="n">P</span><span class="p">(</span><span class="n">obstime</span><span class="p">)</span>  <span class="c1"># Relative rotation angle</span>
-    <span class="n">new_meer_header</span> <span class="o">=</span> <span class="n">sunpy</span><span class="o">.</span><span class="n">map</span><span class="o">.</span><span class="n">make_fitswcs_header</span><span class="p">(</span>
-        <span class="n">meer_data</span><span class="p">,</span>
-        <span class="n">reference_coord_arcsec</span><span class="p">,</span>
-        <span class="n">reference_pixel</span><span class="o">=</span><span class="n">u</span><span class="o">.</span><span class="n">Quantity</span><span class="p">(</span>
-            <span class="p">[</span><span class="n">meer_header</span><span class="p">[</span><span class="s2">&quot;crpix1&quot;</span><span class="p">]</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="n">meer_header</span><span class="p">[</span><span class="s2">&quot;crpix2&quot;</span><span class="p">]</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">pixel</span>
-        <span class="p">),</span>
-        <span class="n">scale</span><span class="o">=</span><span class="n">u</span><span class="o">.</span><span class="n">Quantity</span><span class="p">([</span><span class="n">cdelt1</span><span class="p">,</span> <span class="n">cdelt2</span><span class="p">]</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">arcsec</span> <span class="o">/</span> <span class="n">u</span><span class="o">.</span><span class="n">pix</span><span class="p">),</span>
-        <span class="n">rotation_angle</span><span class="o">=-</span><span class="n">P1</span><span class="p">,</span>
-        <span class="n">wavelength</span><span class="o">=</span><span class="n">frequency</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">MHz</span><span class="p">)</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="mi">2</span><span class="p">),</span>
-        <span class="n">observatory</span><span class="o">=</span><span class="s2">&quot;MeerKAT&quot;</span><span class="p">,</span>
-    <span class="p">)</span>
-    <span class="n">meer_map</span> <span class="o">=</span> <span class="n">Map</span><span class="p">(</span><span class="n">meer_data</span><span class="p">,</span> <span class="n">new_meer_header</span><span class="p">)</span>
-    <span class="n">meer_map_rotate</span> <span class="o">=</span> <span class="n">meer_map</span><span class="o">.</span><span class="n">rotate</span><span class="p">()</span>
-    <span class="k">if</span> <span class="n">showgui</span> <span class="o">==</span> <span class="kc">False</span><span class="p">:</span>
-        <span class="n">matplotlib</span><span class="o">.</span><span class="n">use</span><span class="p">(</span><span class="s2">&quot;Agg&quot;</span><span class="p">)</span>
-    <span class="k">else</span><span class="p">:</span>
-        <span class="n">matplotlib</span><span class="o">.</span><span class="n">use</span><span class="p">(</span><span class="s2">&quot;TkAgg&quot;</span><span class="p">)</span>
-    <span class="k">if</span> <span class="n">outdir</span> <span class="o">==</span> <span class="s2">&quot;&quot;</span><span class="p">:</span>
-        <span class="n">outdir</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">getcwd</span><span class="p">()</span>
-    <span class="n">matplotlib</span><span class="o">.</span><span class="n">rcParams</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="s2">&quot;font.size&quot;</span><span class="p">:</span> <span class="mi">12</span><span class="p">})</span>
-    <span class="n">fits_image</span> <span class="o">=</span> <span class="n">fits_image</span><span class="o">.</span><span class="n">rstrip</span><span class="p">(</span><span class="s2">&quot;/&quot;</span><span class="p">)</span>
-    <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">outdir</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">contour_levels</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
-        <span class="n">output_image</span> <span class="o">=</span> <span class="p">(</span>
-            <span class="n">outdir</span>
-            <span class="o">+</span> <span class="s2">&quot;/&quot;</span>
-            <span class="o">+</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">fits_image</span><span class="p">)</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;.fits&quot;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
-            <span class="o">+</span> <span class="sa">f</span><span class="s2">&quot;_contour.</span><span class="si">{</span><span class="n">extension</span><span class="si">}</span><span class="s2">&quot;</span>
-        <span class="p">)</span>
-    <span class="k">else</span><span class="p">:</span>
-        <span class="n">output_image</span> <span class="o">=</span> <span class="p">(</span>
-            <span class="n">outdir</span>
-            <span class="o">+</span> <span class="s2">&quot;/&quot;</span>
-            <span class="o">+</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">fits_image</span><span class="p">)</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;.fits&quot;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
-            <span class="o">+</span> <span class="sa">f</span><span class="s2">&quot;.</span><span class="si">{</span><span class="n">extension</span><span class="si">}</span><span class="s2">&quot;</span>
-        <span class="p">)</span>
     <span class="n">meer_map_rotate</span> <span class="o">=</span> <span class="n">get_meermap</span><span class="p">(</span><span class="n">fits_image</span><span class="p">,</span> <span class="n">band</span><span class="o">=</span><span class="n">band</span><span class="p">)</span>
     <span class="n">top_right</span> <span class="o">=</span> <span class="n">SkyCoord</span><span class="p">(</span>
         <span class="n">xlim</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">arcsec</span><span class="p">,</span> <span class="n">ylim</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">arcsec</span><span class="p">,</span> <span class="n">frame</span><span class="o">=</span><span class="n">meer_map_rotate</span><span class="o">.</span><span class="n">coordinate_frame</span>
@@ -4375,12 +4407,35 @@
     <span class="k">elif</span> <span class="n">pixel_unit</span> <span class="o">==</span> <span class="s2">&quot;JY/BEAM&quot;</span><span class="p">:</span>
         <span class="n">cbar</span><span class="o">.</span><span class="n">set_label</span><span class="p">(</span><span class="s2">&quot;Flux density (Jy/beam)&quot;</span><span class="p">)</span>
     <span class="n">fig</span><span class="o">.</span><span class="n">tight_layout</span><span class="p">()</span>
-    <span class="n">fig</span><span class="o">.</span><span class="n">savefig</span><span class="p">(</span><span class="n">output_image</span><span class="p">)</span>
+    <span class="n">output_image_list</span><span class="o">=</span><span class="p">[]</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">extensions</span><span class="p">)):</span>    
+        <span class="n">ext</span><span class="o">=</span><span class="n">extensions</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">outdir</span><span class="o">=</span><span class="n">outdirs</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+        <span class="k">except</span><span class="p">:</span>
+            <span class="n">outdir</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="n">fits_image</span><span class="p">))</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">contour_levels</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">output_image</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="n">outdir</span>
+                <span class="o">+</span> <span class="s2">&quot;/&quot;</span>
+                <span class="o">+</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">fits_image</span><span class="p">)</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;.fits&quot;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+                <span class="o">+</span> <span class="sa">f</span><span class="s2">&quot;_contour.</span><span class="si">{</span><span class="n">ext</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">output_image</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="n">outdir</span>
+                <span class="o">+</span> <span class="s2">&quot;/&quot;</span>
+                <span class="o">+</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">fits_image</span><span class="p">)</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;.fits&quot;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+                <span class="o">+</span> <span class="sa">f</span><span class="s2">&quot;.</span><span class="si">{</span><span class="n">ext</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="p">)</span>
+        <span class="n">output_image_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">output_image</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">output_image</span> <span class="ow">in</span> <span class="n">output_image_list</span><span class="p">:</span>
+        <span class="n">fig</span><span class="o">.</span><span class="n">savefig</span><span class="p">(</span><span class="n">output_image</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">showgui</span><span class="p">:</span>
         <span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
     <span class="n">plt</span><span class="o">.</span><span class="n">close</span><span class="p">(</span><span class="n">fig</span><span class="p">)</span>
     <span class="n">plt</span><span class="o">.</span><span class="n">close</span><span class="p">(</span><span class="s2">&quot;all&quot;</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">output_image</span><span class="p">,</span> <span class="n">cropped_map</span></div>
+    <span class="k">return</span> <span class="n">output_image_list</span><span class="p">,</span> <span class="n">cropped_map</span></div>
 
 
 
@@ -4549,8 +4604,8 @@
 <span class="sd">    int</span>
 <span class="sd">        Number of running processes</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">datadir</span> <span class="o">=</span> <span class="n">get_datadir</span><span class="p">()</span>
-    <span class="n">pid_file</span> <span class="o">=</span> <span class="n">datadir</span> <span class="o">+</span> <span class="sa">f</span><span class="s2">&quot;/pids/pids_</span><span class="si">{</span><span class="n">jobid</span><span class="si">}</span><span class="s2">.txt&quot;</span>
+    <span class="n">meersolar_cachedir</span> <span class="o">=</span> <span class="n">get_meersolar_cachedir</span><span class="p">()</span>
+    <span class="n">pid_file</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">meersolar_cachedir</span><span class="si">}</span><span class="s2">/pids/pids_</span><span class="si">{</span><span class="n">jobid</span><span class="si">}</span><span class="s2">.txt&quot;</span>
     <span class="n">pids</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">loadtxt</span><span class="p">(</span><span class="n">pid_file</span><span class="p">,</span> <span class="n">unpack</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
     <span class="n">n_process</span> <span class="o">=</span> <span class="mi">0</span>
     <span class="k">for</span> <span class="n">pid</span> <span class="ow">in</span> <span class="n">pids</span><span class="p">:</span>
@@ -4593,13 +4648,13 @@
 <span class="sd">    int</span>
 <span class="sd">        Job ID in the format YYYYMMDDHHMMSSmmm (milliseconds)</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">datadir</span> <span class="o">=</span> <span class="n">get_datadir</span><span class="p">()</span>
-    <span class="n">jobid_file</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">datadir</span><span class="p">,</span> <span class="s2">&quot;jobids.txt&quot;</span><span class="p">)</span>
+    <span class="n">meersolar_cachedir</span> <span class="o">=</span> <span class="n">get_meersolar_cachedir</span><span class="p">()</span>
+    <span class="n">jobid_file</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">meersolar_cachedir</span><span class="p">,</span> <span class="s2">&quot;jobids.txt&quot;</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">jobid_file</span><span class="p">):</span>
         <span class="n">prev_jobids</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">loadtxt</span><span class="p">(</span><span class="n">jobid_file</span><span class="p">,</span> <span class="n">unpack</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="s2">&quot;int64&quot;</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">prev_jobids</span><span class="o">.</span><span class="n">size</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
             <span class="n">prev_jobids</span> <span class="o">=</span> <span class="p">[]</span>
-        <span class="k">elif</span> <span class="n">np</span><span class="o">.</span><span class="n">isscalar</span><span class="p">(</span><span class="n">prev_jobids</span><span class="p">):</span>
+        <span class="k">elif</span> <span class="n">prev_jobids</span><span class="o">.</span><span class="n">size</span><span class="o">==</span><span class="mi">1</span><span class="p">:</span>
             <span class="n">prev_jobids</span> <span class="o">=</span> <span class="p">[</span><span class="nb">str</span><span class="p">(</span><span class="n">prev_jobids</span><span class="p">)]</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="n">prev_jobids</span> <span class="o">=</span> <span class="p">[</span><span class="nb">str</span><span class="p">(</span><span class="n">jid</span><span class="p">)</span> <span class="k">for</span> <span class="n">jid</span> <span class="ow">in</span> <span class="n">prev_jobids</span><span class="p">]</span>
@@ -4631,7 +4686,7 @@
 
 <div class="viewcode-block" id="save_main_process_info">
 <a class="viewcode-back" href="../../../meersolar.pipeline.html#meersolar.pipeline.basic_func.save_main_process_info">[docs]</a>
-<span class="k">def</span> <span class="nf">save_main_process_info</span><span class="p">(</span><span class="n">pid</span><span class="p">,</span> <span class="n">jobid</span><span class="p">,</span> <span class="n">msname</span><span class="p">,</span> <span class="n">basedir</span><span class="p">,</span> <span class="n">cpu_frac</span><span class="p">,</span> <span class="n">mem_frac</span><span class="p">):</span>
+<span class="k">def</span> <span class="nf">save_main_process_info</span><span class="p">(</span><span class="n">pid</span><span class="p">,</span> <span class="n">jobid</span><span class="p">,</span> <span class="n">msname</span><span class="p">,</span> <span class="n">workdir</span><span class="p">,</span> <span class="n">outdir</span><span class="p">,</span> <span class="n">cpu_frac</span><span class="p">,</span> <span class="n">mem_frac</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Save MeerSOLAR main processes info</span>
 
@@ -4643,8 +4698,10 @@
 <span class="sd">        MeerSOLAR Job ID</span>
 <span class="sd">    msname : str</span>
 <span class="sd">        Main measurement set</span>
-<span class="sd">    basedir : str</span>
-<span class="sd">        Base directory</span>
+<span class="sd">    workdir : str</span>
+<span class="sd">        Work directory</span>
+<span class="sd">    outdir : str</span>
+<span class="sd">        Output directory</span>
 <span class="sd">    cpu_frac : float</span>
 <span class="sd">        CPU fraction of the job</span>
 <span class="sd">    mem_frac : float</span>
@@ -4655,8 +4712,8 @@
 <span class="sd">    str</span>
 <span class="sd">        Job info file name</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">datadir</span> <span class="o">=</span> <span class="n">get_datadir</span><span class="p">()</span>
-    <span class="n">prev_main_pids</span> <span class="o">=</span> <span class="n">glob</span><span class="o">.</span><span class="n">glob</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">datadir</span><span class="si">}</span><span class="s2">/main_pids_*.txt&quot;</span><span class="p">)</span>
+    <span class="n">meersolar_cachedir</span> <span class="o">=</span> <span class="n">get_meersolar_cachedir</span><span class="p">()</span>
+    <span class="n">prev_main_pids</span> <span class="o">=</span> <span class="n">glob</span><span class="o">.</span><span class="n">glob</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">meersolar_cachedir</span><span class="si">}</span><span class="s2">/main_pids_*.txt&quot;</span><span class="p">)</span>
     <span class="n">prev_jobids</span> <span class="o">=</span> <span class="p">[</span>
         <span class="nb">str</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">i</span><span class="p">)</span><span class="o">.</span><span class="n">rstrip</span><span class="p">(</span><span class="s2">&quot;.txt&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;main_pids_&quot;</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
         <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">prev_main_pids</span>
@@ -4672,10 +4729,10 @@
                 <span class="n">filtered_prev_jobids</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">job_id</span><span class="p">)</span>
             <span class="k">else</span><span class="p">:</span>
                 <span class="n">os</span><span class="o">.</span><span class="n">system</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;rm -rf </span><span class="si">{</span><span class="n">prev_main_pids</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-                <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">datadir</span><span class="si">}</span><span class="s2">/pids/pids_</span><span class="si">{</span><span class="n">job_id</span><span class="si">}</span><span class="s2">.txt&quot;</span><span class="p">):</span>
-                    <span class="n">os</span><span class="o">.</span><span class="n">system</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;rm -rf </span><span class="si">{</span><span class="n">datadir</span><span class="si">}</span><span class="s2">/pids/pids_</span><span class="si">{</span><span class="n">job_id</span><span class="si">}</span><span class="s2">.txt&quot;</span><span class="p">)</span>
-    <span class="n">main_job_file</span> <span class="o">=</span> <span class="n">datadir</span> <span class="o">+</span> <span class="sa">f</span><span class="s2">&quot;/main_pids_</span><span class="si">{</span><span class="n">jobid</span><span class="si">}</span><span class="s2">.txt&quot;</span>
-    <span class="n">main_str</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">jobid</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">pid</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">msname</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">basedir</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">cpu_frac</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">mem_frac</span><span class="si">}</span><span class="s2">&quot;</span>
+                <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">meersolar_cachedir</span><span class="si">}</span><span class="s2">/pids/pids_</span><span class="si">{</span><span class="n">job_id</span><span class="si">}</span><span class="s2">.txt&quot;</span><span class="p">):</span>
+                    <span class="n">os</span><span class="o">.</span><span class="n">system</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;rm -rf </span><span class="si">{</span><span class="n">meersolar_cachedir</span><span class="si">}</span><span class="s2">/pids/pids_</span><span class="si">{</span><span class="n">job_id</span><span class="si">}</span><span class="s2">.txt&quot;</span><span class="p">)</span>
+    <span class="n">main_job_file</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">meersolar_cachedir</span><span class="si">}</span><span class="s2">/main_pids_</span><span class="si">{</span><span class="n">jobid</span><span class="si">}</span><span class="s2">.txt&quot;</span>
+    <span class="n">main_str</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">jobid</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">pid</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">msname</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">workdir</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">outdir</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">cpu_frac</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">mem_frac</span><span class="si">}</span><span class="s2">&quot;</span>
     <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">main_job_file</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
         <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">main_str</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">main_job_file</span></div>
@@ -4706,7 +4763,6 @@
 <span class="sd">    str</span>
 <span class="sd">        Log file name</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">datadir</span> <span class="o">=</span> <span class="n">get_datadir</span><span class="p">()</span>
     <span class="n">batch_file</span> <span class="o">=</span> <span class="n">workdir</span> <span class="o">+</span> <span class="s2">&quot;/&quot;</span> <span class="o">+</span> <span class="n">basename</span> <span class="o">+</span> <span class="s2">&quot;.batch&quot;</span>
     <span class="n">cmd_batch</span> <span class="o">=</span> <span class="n">workdir</span> <span class="o">+</span> <span class="s2">&quot;/&quot;</span> <span class="o">+</span> <span class="n">basename</span> <span class="o">+</span> <span class="s2">&quot;_cmd.batch&quot;</span>
     <span class="n">finished_touch_file</span> <span class="o">=</span> <span class="n">workdir</span> <span class="o">+</span> <span class="s2">&quot;/.Finished_&quot;</span> <span class="o">+</span> <span class="n">basename</span>
@@ -5309,6 +5365,86 @@
     <span class="n">msmd</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
     <span class="k">return</span> <span class="nb">round</span><span class="p">(</span><span class="n">frac_bandwidth</span> <span class="o">*</span> <span class="mf">100.0</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span></div>
 
+
+<div class="viewcode-block" id="create_circular_mask_array">
+<a class="viewcode-back" href="../../../meersolar.pipeline.html#meersolar.pipeline.basic_func.create_circular_mask_array">[docs]</a>
+<span class="k">def</span> <span class="nf">create_circular_mask_array</span><span class="p">(</span><span class="n">data</span><span class="p">,</span><span class="n">radius</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Creating circular mask of a Numpy array</span>
+<span class="sd">    </span>
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    data : numpy.array</span>
+<span class="sd">        2D numpy array</span>
+<span class="sd">    radius : int</span>
+<span class="sd">        Radius in pixels</span>
+<span class="sd">    </span>
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    numpy.array</span>
+<span class="sd">        Mask array</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">shape</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">shape</span>
+    <span class="n">center</span> <span class="o">=</span> <span class="p">(</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">//</span> <span class="mi">2</span><span class="p">,</span> <span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">//</span> <span class="mi">2</span><span class="p">)</span>
+    <span class="n">Y</span><span class="p">,</span> <span class="n">X</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ogrid</span><span class="p">[:</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="p">:</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]]</span>
+    <span class="n">dist_from_center</span> <span class="o">=</span> <span class="p">(</span><span class="n">X</span> <span class="o">-</span> <span class="n">center</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span><span class="o">**</span><span class="mi">2</span> <span class="o">+</span> <span class="p">(</span><span class="n">Y</span> <span class="o">-</span> <span class="n">center</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span><span class="o">**</span><span class="mi">2</span>
+    <span class="n">mask</span> <span class="o">=</span> <span class="n">dist_from_center</span> <span class="o">&lt;=</span> <span class="n">radius</span><span class="o">**</span><span class="mi">2</span>
+    <span class="k">return</span> <span class="n">mask</span></div>
+
+
+<div class="viewcode-block" id="calc_solar_image_stat">
+<a class="viewcode-back" href="../../../meersolar.pipeline.html#meersolar.pipeline.basic_func.calc_solar_image_stat">[docs]</a>
+<span class="k">def</span> <span class="nf">calc_solar_image_stat</span><span class="p">(</span><span class="n">imagename</span><span class="p">,</span><span class="n">disc_size</span><span class="o">=</span><span class="mi">18</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Calculate solar image dynamic range</span>
+<span class="sd">    </span>
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    imagename : str</span>
+<span class="sd">        Fits image name</span>
+<span class="sd">    disc_size : float, optional</span>
+<span class="sd">        Solar disc size in arcmin (default : 18)</span>
+<span class="sd">    </span>
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    float</span>
+<span class="sd">        Maximum value</span>
+<span class="sd">    float</span>
+<span class="sd">        Minimum value</span>
+<span class="sd">    float</span>
+<span class="sd">        RMS values</span>
+<span class="sd">    float</span>
+<span class="sd">        Total value</span>
+<span class="sd">    float</span>
+<span class="sd">        Mean value</span>
+<span class="sd">    float</span>
+<span class="sd">        Median value</span>
+<span class="sd">    float</span>
+<span class="sd">        RMS dynamic range</span>
+<span class="sd">    float</span>
+<span class="sd">        Min-max dynamic range</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">data</span><span class="o">=</span><span class="n">fits</span><span class="o">.</span><span class="n">getdata</span><span class="p">(</span><span class="n">imagename</span><span class="p">)</span>
+    <span class="n">header</span><span class="o">=</span><span class="n">fits</span><span class="o">.</span><span class="n">getheader</span><span class="p">(</span><span class="n">imagename</span><span class="p">)</span>
+    <span class="n">pix_size</span><span class="o">=</span><span class="nb">abs</span><span class="p">(</span><span class="n">header</span><span class="p">[</span><span class="s2">&quot;CDELT1&quot;</span><span class="p">])</span><span class="o">*</span><span class="mf">3600.0</span> <span class="c1"># In arcsec</span>
+    <span class="n">radius</span><span class="o">=</span><span class="nb">int</span><span class="p">((</span><span class="n">disc_size</span><span class="o">*</span><span class="mi">60</span><span class="p">)</span><span class="o">/</span><span class="n">pix_size</span><span class="p">)</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span><span class="o">&gt;</span><span class="mi">2</span><span class="p">:</span>
+        <span class="n">data</span><span class="o">=</span><span class="n">data</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="o">...</span><span class="p">]</span>
+    <span class="n">mask</span><span class="o">=</span><span class="n">create_circular_mask_array</span><span class="p">(</span><span class="n">data</span><span class="p">,</span><span class="n">radius</span><span class="p">)</span>
+    <span class="n">masked_data</span><span class="o">=</span><span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+    <span class="n">masked_data</span><span class="p">[</span><span class="n">mask</span><span class="p">]</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">nan</span>
+    <span class="n">unmasked_data</span><span class="o">=</span><span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+    <span class="n">unmasked_data</span><span class="p">[</span><span class="o">~</span><span class="n">mask</span><span class="p">]</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">nan</span>
+    <span class="n">maxval</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">nanmax</span><span class="p">(</span><span class="n">unmasked_data</span><span class="p">)</span>
+    <span class="n">minval</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">nanmin</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+    <span class="n">rms</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">nanstd</span><span class="p">(</span><span class="n">masked_data</span><span class="p">)</span>
+    <span class="n">total_val</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">nansum</span><span class="p">(</span><span class="n">unmasked_data</span><span class="p">)</span>
+    <span class="n">rms_dyn</span><span class="o">=</span><span class="n">maxval</span><span class="o">/</span><span class="n">rms</span>
+    <span class="n">minmax_dyn</span><span class="o">=</span><span class="n">maxval</span><span class="o">/</span><span class="nb">abs</span><span class="p">(</span><span class="n">minval</span><span class="p">)</span>
+    <span class="n">mean_val</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">nanmean</span><span class="p">(</span><span class="n">unmasked_data</span><span class="p">)</span>
+    <span class="n">median_val</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">nanmedian</span><span class="p">(</span><span class="n">unmasked_data</span><span class="p">)</span>
+    <span class="k">del</span> <span class="n">data</span><span class="p">,</span> <span class="n">mask</span><span class="p">,</span> <span class="n">unmasked_data</span><span class="p">,</span> <span class="n">masked_data</span>
+    <span class="k">return</span> <span class="n">maxval</span><span class="p">,</span> <span class="n">minval</span><span class="p">,</span> <span class="n">rms</span><span class="p">,</span> <span class="n">total_val</span><span class="p">,</span> <span class="n">mean_val</span><span class="p">,</span> <span class="n">median_val</span><span class="p">,</span> <span class="n">rms_dyn</span><span class="p">,</span> <span class="n">minmax_dyn</span></div>
 
 
 <div class="viewcode-block" id="calc_dyn_range">

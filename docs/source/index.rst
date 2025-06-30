@@ -32,7 +32,9 @@ Contents
    quickstart
    install
    idia_setup
+   initial_setup
    tutorial
+   output
    kill
    cli
    ack
