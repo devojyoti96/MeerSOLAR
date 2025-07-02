@@ -5,7 +5,7 @@ Install MeerSOLAR from PyPI or source code.
 Install MeerSOLAR from PyPI
 ---------------------------
 
-Install latest version of MeerSOLAR pipeline from PyPI as:
+Install latest stable version of MeerSOLAR pipeline, use PyPI as:
 
 .. code-block :: bash
 

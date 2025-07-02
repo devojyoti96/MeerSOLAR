@@ -7,4 +7,4 @@ This page provides details of API of different modules of MeerSOLAR pipeline.
    
    meersolar.pipeline
    meersolar.crystalball
-   
+   meersolar.data

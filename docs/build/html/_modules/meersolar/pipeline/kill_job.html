@@ -5,7 +5,7 @@
     <meta name="color-scheme" content="light dark"><link rel="index" title="Index" href="../../../genindex.html" /><link rel="search" title="Search" href="../../../search.html" />
 
     <!-- Generated with Sphinx 7.4.7 and Furo 2024.01.29 -->
-        <title>meersolar.crystalball.ms - MeerSOLAR</title>
+        <title>meersolar.pipeline.kill_job - MeerSOLAR</title>
       <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=a746c00c" />
     <link rel="stylesheet" type="text/css" href="../../../_static/styles/furo.css?v=135e06be" />
     <link rel="stylesheet" type="text/css" href="../../../_static/copybutton.css?v=76b2166b" />
@@ -229,45 +229,91 @@
           </label>
         </div>
         <article role="main">
-          <h1>Source code for meersolar.crystalball.ms</h1><div class="highlight"><pre>
-<span></span><span class="c1"># -*- coding: utf-8 -*-</span>
+          <h1>Source code for meersolar.pipeline.kill_job</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">signal</span>
+<span class="kn">from</span> <span class="nn">meersolar.pipeline.basic_func</span> <span class="kn">import</span> <span class="o">*</span>
 
-<span class="kn">import</span> <span class="nn">logging</span>
+<div class="viewcode-block" id="kill_process_and_children">
+<a class="viewcode-back" href="../../../meersolar.pipeline.html#meersolar.pipeline.kill_job.kill_process_and_children">[docs]</a>
+<span class="k">def</span> <span class="nf">kill_process_and_children</span><span class="p">(</span><span class="n">pid</span><span class="p">):</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">parent</span> <span class="o">=</span> <span class="n">psutil</span><span class="o">.</span><span class="n">Process</span><span class="p">(</span><span class="n">pid</span><span class="p">)</span>
+        <span class="n">children</span> <span class="o">=</span> <span class="n">parent</span><span class="o">.</span><span class="n">children</span><span class="p">(</span><span class="n">recursive</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">child</span> <span class="ow">in</span> <span class="n">children</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">child</span><span class="o">.</span><span class="n">kill</span><span class="p">()</span>
+            <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+                <span class="k">pass</span>
+        <span class="n">parent</span><span class="o">.</span><span class="n">kill</span><span class="p">()</span>
+    <span class="k">except</span> <span class="p">(</span><span class="n">psutil</span><span class="o">.</span><span class="n">NoSuchProcess</span><span class="p">,</span> <span class="ne">ProcessLookupError</span><span class="p">):</span>
+        <span class="k">pass</span></div>
 
-<span class="kn">import</span> <span class="nn">pyrap.tables</span> <span class="k">as</span> <span class="nn">pt</span>
-
-<span class="n">log</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
 
 
-<div class="viewcode-block" id="ms_preprocess">
-<a class="viewcode-back" href="../../../meersolar.crystalball.html#meersolar.crystalball.ms.ms_preprocess">[docs]</a>
-<span class="k">def</span> <span class="nf">ms_preprocess</span><span class="p">(</span><span class="n">args</span><span class="p">):</span>
+<div class="viewcode-block" id="force_kill_pids_with_children">
+<a class="viewcode-back" href="../../../meersolar.pipeline.html#meersolar.pipeline.kill_job.force_kill_pids_with_children">[docs]</a>
+<span class="k">def</span> <span class="nf">force_kill_pids_with_children</span><span class="p">(</span><span class="n">pids</span><span class="p">,</span> <span class="n">max_tries</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">wait_time</span><span class="o">=</span><span class="mf">0.5</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Adds output column if missing.</span>
-
-<span class="sd">    Returns</span>
-<span class="sd">    -------</span>
-<span class="sd">    ms_rows : int</span>
-<span class="sd">        number of Measurement Set Rows</span>
+<span class="sd">    Repeatedly try to kill all PIDs (and their children) until none remain.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">for</span> <span class="n">attempt</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">max_tries</span><span class="p">):</span>
+        <span class="n">remaining</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">pid</span> <span class="ow">in</span> <span class="n">np</span><span class="o">.</span><span class="n">atleast_1d</span><span class="p">(</span><span class="n">pids</span><span class="p">):</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">kill_process_and_children</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">pid</span><span class="p">))</span>
+            <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+                <span class="n">remaining</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">pid</span><span class="p">)</span>
 
-    <span class="c1"># check output column</span>
-    <span class="k">with</span> <span class="n">pt</span><span class="o">.</span><span class="n">table</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">ms</span><span class="p">,</span> <span class="n">readonly</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span> <span class="k">as</span> <span class="n">ms</span><span class="p">:</span>
-        <span class="c1"># Return if nothing todo</span>
-        <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">output_column</span> <span class="ow">in</span> <span class="n">ms</span><span class="o">.</span><span class="n">colnames</span><span class="p">():</span>
-            <span class="k">return</span> <span class="n">ms</span><span class="o">.</span><span class="n">nrows</span><span class="p">(),</span> <span class="n">ms</span><span class="o">.</span><span class="n">coldatatype</span><span class="p">(</span><span class="s1">&#39;DATA&#39;</span><span class="p">)</span>
+        <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="n">wait_time</span><span class="p">)</span>
 
-        <span class="n">log</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;inserting new column </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">args</span><span class="o">.</span><span class="n">output_column</span><span class="p">)</span>
-        <span class="n">desc</span> <span class="o">=</span> <span class="n">ms</span><span class="o">.</span><span class="n">getcoldesc</span><span class="p">(</span><span class="s2">&quot;DATA&quot;</span><span class="p">)</span>
-        <span class="n">desc</span><span class="p">[</span><span class="s1">&#39;name&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">args</span><span class="o">.</span><span class="n">output_column</span>
-        <span class="c1"># python version hates spaces, who knows why</span>
-        <span class="n">desc</span><span class="p">[</span><span class="s1">&#39;comment&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">desc</span><span class="p">[</span><span class="s1">&#39;comment&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot; &quot;</span><span class="p">,</span> <span class="s2">&quot;_&quot;</span><span class="p">)</span>
-        <span class="n">dminfo</span> <span class="o">=</span> <span class="n">ms</span><span class="o">.</span><span class="n">getdminfo</span><span class="p">(</span><span class="s2">&quot;DATA&quot;</span><span class="p">)</span>
-        <span class="n">dminfo</span><span class="p">[</span><span class="s2">&quot;NAME&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">%s</span><span class="s2">-</span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">dminfo</span><span class="p">[</span><span class="s2">&quot;NAME&quot;</span><span class="p">],</span> <span class="n">args</span><span class="o">.</span><span class="n">output_column</span><span class="p">)</span>
-        <span class="n">ms</span><span class="o">.</span><span class="n">addcols</span><span class="p">(</span><span class="n">desc</span><span class="p">,</span> <span class="n">dminfo</span><span class="p">)</span>
+        <span class="n">remaining</span> <span class="o">=</span> <span class="p">[</span><span class="n">pid</span> <span class="k">for</span> <span class="n">pid</span> <span class="ow">in</span> <span class="n">np</span><span class="o">.</span><span class="n">atleast_1d</span><span class="p">(</span><span class="n">pids</span><span class="p">)</span> <span class="k">if</span> <span class="n">psutil</span><span class="o">.</span><span class="n">pid_exists</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">pid</span><span class="p">))]</span>
 
-        <span class="k">return</span> <span class="n">ms</span><span class="o">.</span><span class="n">nrows</span><span class="p">(),</span> <span class="n">ms</span><span class="o">.</span><span class="n">coldatatype</span><span class="p">(</span><span class="s1">&#39;DATA&#39;</span><span class="p">)</span></div>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">remaining</span><span class="p">:</span>
+            <span class="k">break</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">pids</span> <span class="o">=</span> <span class="n">remaining</span></div>
 
+
+
+<div class="viewcode-block" id="kill_meerjob">
+<a class="viewcode-back" href="../../../meersolar.pipeline.html#meersolar.pipeline.kill_job.kill_meerjob">[docs]</a>
+<span class="k">def</span> <span class="nf">kill_meerjob</span><span class="p">():</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Kill MeerSOLAR Job</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">parser</span> <span class="o">=</span> <span class="n">argparse</span><span class="o">.</span><span class="n">ArgumentParser</span><span class="p">(</span><span class="n">description</span><span class="o">=</span><span class="s2">&quot;Kill MeerSOLAR Job&quot;</span><span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;--jobid&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span> <span class="n">required</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s2">&quot;MeerSOLAR Job ID to kill&quot;</span>
+    <span class="p">)</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">sys</span><span class="o">.</span><span class="n">argv</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="n">parser</span><span class="o">.</span><span class="n">print_help</span><span class="p">(</span><span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="p">)</span>
+        <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">args</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">parse_args</span><span class="p">()</span>
+    <span class="n">meersolar_cachedir</span><span class="o">=</span><span class="n">get_meersolar_cachedir</span><span class="p">()</span>
+    <span class="n">jobfile_name</span> <span class="o">=</span>  <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">meersolar_cachedir</span><span class="si">}</span><span class="s2">/main_pids_</span><span class="si">{</span><span class="n">args</span><span class="o">.</span><span class="n">jobid</span><span class="si">}</span><span class="s2">.txt&quot;</span>
+    <span class="n">results</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">loadtxt</span><span class="p">(</span><span class="n">jobfile_name</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="s2">&quot;str&quot;</span><span class="p">,</span> <span class="n">unpack</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">main_pid</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">results</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+    <span class="n">msname</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">results</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span>
+    <span class="n">workdir</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">results</span><span class="p">[</span><span class="mi">3</span><span class="p">])</span>
+    <span class="n">outdir</span><span class="o">=</span><span class="nb">str</span><span class="p">(</span><span class="n">results</span><span class="p">[</span><span class="mi">4</span><span class="p">])</span>
+    <span class="n">pid_file</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">meersolar_cachedir</span><span class="si">}</span><span class="s2">/pids/pids_</span><span class="si">{</span><span class="n">args</span><span class="o">.</span><span class="n">jobid</span><span class="si">}</span><span class="s2">.txt&quot;</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">os</span><span class="o">.</span><span class="n">kill</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">main_pid</span><span class="p">),</span> <span class="n">signal</span><span class="o">.</span><span class="n">SIGKILL</span><span class="p">)</span>
+    <span class="k">except</span><span class="p">:</span>
+        <span class="k">pass</span>
+    <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">pid_file</span><span class="p">):</span>
+        <span class="n">pids</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">loadtxt</span><span class="p">(</span><span class="n">pid_file</span><span class="p">,</span> <span class="n">unpack</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="s2">&quot;int&quot;</span><span class="p">)</span>
+        <span class="n">force_kill_pids_with_children</span><span class="p">(</span><span class="n">pids</span><span class="p">)</span>
+    <span class="n">os</span><span class="o">.</span><span class="n">system</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;rm -rf </span><span class="si">{</span><span class="n">workdir</span><span class="si">}</span><span class="s2">/tmp_meersolar_*&quot;</span><span class="p">)</span>
+    <span class="n">drop_cache</span><span class="p">(</span><span class="n">msname</span><span class="p">)</span>
+    <span class="n">drop_cache</span><span class="p">(</span><span class="n">workdir</span><span class="p">)</span>
+    <span class="n">drop_cache</span><span class="p">(</span><span class="n">basedir</span><span class="p">)</span>
+    <span class="n">drop_cache</span><span class="p">(</span><span class="n">meersolar_cachedir</span><span class="p">)</span></div>
+
+
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s2">&quot;__main__&quot;</span><span class="p">:</span>
+    <span class="n">kill_meerjob</span><span class="p">()</span>
 </pre></div>
         </article>
       </div>

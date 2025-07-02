@@ -193,6 +193,7 @@
 <li class="toctree-l1 has-children"><a class="reference internal" href="../../../meersolar.html">API Reference</a><input class="toctree-checkbox" id="toctree-checkbox-5" name="toctree-checkbox-5" role="switch" type="checkbox"/><label for="toctree-checkbox-5"><div class="visually-hidden">Toggle navigation of API Reference</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
 <li class="toctree-l2"><a class="reference internal" href="../../../meersolar.pipeline.html">Meersolar Pipeline Module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../meersolar.crystalball.html">Crystalball Module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../meersolar.data.html">MeerSOLAR Pre-compiled Modules</a></li>
 </ul>
 </li>
 </ul>
@@ -229,19 +230,15 @@
         </div>
         <article role="main">
           <h1>Source code for meersolar.pipeline.master_controller</h1><div class="highlight"><pre>
-<span></span><span class="kn">import</span> <span class="nn">os</span><span class="o">,</span> <span class="nn">glob</span><span class="o">,</span> <span class="nn">psutil</span><span class="o">,</span> <span class="nn">copy</span><span class="o">,</span> <span class="nn">time</span><span class="o">,</span> <span class="nn">traceback</span><span class="o">,</span> <span class="nn">argparse</span><span class="o">,</span> <span class="nn">socket</span>
+<span></span><span class="kn">import</span> <span class="nn">socket</span>
 <span class="kn">from</span> <span class="nn">multiprocessing</span> <span class="kn">import</span> <span class="n">Process</span><span class="p">,</span> <span class="n">Event</span>
 <span class="kn">from</span> <span class="nn">meersolar.pipeline.basic_func</span> <span class="kn">import</span> <span class="o">*</span>
-<span class="kn">from</span> <span class="nn">meersolar.pipeline.init_data</span> <span class="kn">import</span> <span class="n">init_meersolar_data</span>
-<span class="kn">from</span> <span class="nn">meersolar.data.sendmail</span> <span class="kn">import</span> <span class="n">send_paircars_notification</span> <span class="k">as</span> <span class="n">send_notification</span>
-<span class="kn">from</span> <span class="nn">casatasks</span> <span class="kn">import</span> <span class="n">casalog</span>
 
 <span class="k">try</span><span class="p">:</span>
     <span class="n">logfile</span> <span class="o">=</span> <span class="n">casalog</span><span class="o">.</span><span class="n">logfile</span><span class="p">()</span>
     <span class="n">os</span><span class="o">.</span><span class="n">system</span><span class="p">(</span><span class="s2">&quot;rm -rf &quot;</span> <span class="o">+</span> <span class="n">logfile</span><span class="p">)</span>
 <span class="k">except</span><span class="p">:</span>
     <span class="k">pass</span>
-
 
 <div class="viewcode-block" id="run_flag">
 <a class="viewcode-back" href="../../../meersolar.pipeline.html#meersolar.pipeline.master_controller.run_flag">[docs]</a>
@@ -1729,7 +1726,7 @@
 <span class="sd">    int</span>
 <span class="sd">        Success message</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-
+    <span class="kn">from</span> <span class="nn">meersolar.pipeline.init_data</span> <span class="kn">import</span> <span class="n">init_meersolar_data</span>
     <span class="n">init_meersolar_data</span><span class="p">()</span>
     <span class="n">msname</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="n">msname</span><span class="o">.</span><span class="n">rstrip</span><span class="p">(</span><span class="s2">&quot;/&quot;</span><span class="p">))</span>
     <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">msname</span><span class="p">)</span> <span class="o">==</span> <span class="kc">False</span><span class="p">:</span>
@@ -1800,6 +1797,7 @@
                     <span class="sa">f</span><span class="s2">&quot;Best,</span><span class="se">\n</span><span class="s2">&quot;</span>
                     <span class="sa">f</span><span class="s2">&quot;MeerSOLAR&quot;</span>
                 <span class="p">)</span>
+                <span class="kn">from</span> <span class="nn">meersolar.data.sendmail</span> <span class="kn">import</span> <span class="n">send_paircars_notification</span> <span class="k">as</span> <span class="n">send_notification</span>
                 <span class="n">success_msg</span><span class="p">,</span> <span class="n">error_msg</span> <span class="o">=</span> <span class="n">send_notification</span><span class="p">(</span><span class="n">emails</span><span class="p">,</span> <span class="n">email_subject</span><span class="p">,</span> <span class="n">email_msg</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="c1">####################################</span>
@@ -1838,6 +1836,7 @@
                     <span class="sa">f</span><span class="s2">&quot;Best,</span><span class="se">\n</span><span class="s2">&quot;</span>
                     <span class="sa">f</span><span class="s2">&quot;MeerSOLAR&quot;</span>
                 <span class="p">)</span>
+                <span class="kn">from</span> <span class="nn">meersolar.data.sendmail</span> <span class="kn">import</span> <span class="n">send_paircars_notification</span> <span class="k">as</span> <span class="n">send_notification</span>
                 <span class="n">success_msg</span><span class="p">,</span> <span class="n">error_msg</span> <span class="o">=</span> <span class="n">send_notification</span><span class="p">(</span><span class="n">emails</span><span class="p">,</span> <span class="n">email_subject</span><span class="p">,</span> <span class="n">email_msg</span><span class="p">)</span>
 
         <span class="c1">#####################################</span>

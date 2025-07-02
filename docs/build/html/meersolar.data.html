@@ -3,10 +3,10 @@
   <head><meta charset="utf-8"/>
     <meta name="viewport" content="width=device-width,initial-scale=1"/>
     <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
-<link rel="index" title="Index" href="genindex.html" /><link rel="search" title="Search" href="search.html" /><link rel="next" title="Installation on IDIA-ilifu" href="idia_setup.html" /><link rel="prev" title="Create and Activate Conda Environment" href="activate_conda.html" />
+<link rel="index" title="Index" href="genindex.html" /><link rel="search" title="Search" href="search.html" /><link rel="prev" title="Crystalball Module" href="meersolar.crystalball.html" />
 
     <!-- Generated with Sphinx 7.4.7 and Furo 2024.01.29 -->
-        <title>Install MeerSOLAR - MeerSOLAR</title>
+        <title>MeerSOLAR Pre-compiled Modules - MeerSOLAR</title>
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=a746c00c" />
     <link rel="stylesheet" type="text/css" href="_static/styles/furo.css?v=135e06be" />
     <link rel="stylesheet" type="text/css" href="_static/copybutton.css?v=76b2166b" />
@@ -164,10 +164,10 @@
 <div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
   <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="quickstart.html">Quickstart</a></li>
-<li class="toctree-l1 current has-children"><a class="reference internal" href="install.html">Installation</a><input checked="" class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><div class="visually-hidden">Toggle navigation of Installation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="current">
+<li class="toctree-l1 has-children"><a class="reference internal" href="install.html">Installation</a><input class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><div class="visually-hidden">Toggle navigation of Installation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
 <li class="toctree-l2"><a class="reference internal" href="install_conda.html">Install Conda: Anaconda or Miniconda</a></li>
 <li class="toctree-l2"><a class="reference internal" href="activate_conda.html">Create and Activate Conda Environment</a></li>
-<li class="toctree-l2 current current-page"><a class="current reference internal" href="#">Install MeerSOLAR</a></li>
+<li class="toctree-l2"><a class="reference internal" href="install_meersolar.html">Install MeerSOLAR</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="idia_setup.html">Installation on IDIA-ilifu</a></li>
@@ -191,10 +191,10 @@
 </li>
 <li class="toctree-l1"><a class="reference internal" href="ack.html">Acknowledging</a></li>
 <li class="toctree-l1"><a class="reference internal" href="lic.html">LICENSE</a></li>
-<li class="toctree-l1 has-children"><a class="reference internal" href="meersolar.html">API Reference</a><input class="toctree-checkbox" id="toctree-checkbox-5" name="toctree-checkbox-5" role="switch" type="checkbox"/><label for="toctree-checkbox-5"><div class="visually-hidden">Toggle navigation of API Reference</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l1 current has-children"><a class="reference internal" href="meersolar.html">API Reference</a><input checked="" class="toctree-checkbox" id="toctree-checkbox-5" name="toctree-checkbox-5" role="switch" type="checkbox"/><label for="toctree-checkbox-5"><div class="visually-hidden">Toggle navigation of API Reference</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="current">
 <li class="toctree-l2"><a class="reference internal" href="meersolar.pipeline.html">Meersolar Pipeline Module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="meersolar.crystalball.html">Crystalball Module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="meersolar.data.html">MeerSOLAR Pre-compiled Modules</a></li>
+<li class="toctree-l2 current current-page"><a class="current reference internal" href="#">MeerSOLAR Pre-compiled Modules</a></li>
 </ul>
 </li>
 </ul>
@@ -217,7 +217,7 @@
         </a>
         <div class="content-icon-container">
           <div class="edit-this-page">
-  <a class="muted-link" href="https://github.com/devojyoti96/MeerSOLAR/edit/master/docs/source/install_meersolar.rst" title="Edit this page">
+  <a class="muted-link" href="https://github.com/devojyoti96/MeerSOLAR/edit/master/docs/source/meersolar.data.rst" title="Edit this page">
     <svg aria-hidden="true" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
       <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
       <path d="M4 20h4l10.5 -10.5a1.5 1.5 0 0 0 -4 -4l-10.5 10.5v4" />
@@ -239,26 +239,10 @@
           </label>
         </div>
         <article role="main">
-          <section id="install-meersolar">
-<h1>Install MeerSOLAR<a class="headerlink" href="#install-meersolar" title="Link to this heading">¶</a></h1>
-<p>Install MeerSOLAR from PyPI or source code.</p>
-<section id="install-meersolar-from-pypi">
-<h2>Install MeerSOLAR from PyPI<a class="headerlink" href="#install-meersolar-from-pypi" title="Link to this heading">¶</a></h2>
-<p>Install latest stable version of MeerSOLAR pipeline, use PyPI as:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>pip<span class="w"> </span>install<span class="w"> </span>meersolar
-</pre></div>
-</div>
-</section>
-<section id="install-meersolar-from-source-code">
-<h2>Install MeerSOLAR from source code<a class="headerlink" href="#install-meersolar-from-source-code" title="Link to this heading">¶</a></h2>
-<p>Install development version from <a class="reference external" href="https://github.com/devojyoti96/MeerSOLAR">https://github.com/devojyoti96/MeerSOLAR</a></p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>git<span class="w"> </span>clone<span class="w"> </span>https://github.com/devojyoti96/MeerSOLAR.git
-
-<span class="nb">cd</span><span class="w"> </span>MeerSOLAR
-
-pip<span class="w"> </span>install<span class="w"> </span>.
-</pre></div>
-</div>
+          <section id="meersolar-pre-compiled-modules">
+<h1>MeerSOLAR Pre-compiled Modules<a class="headerlink" href="#meersolar-pre-compiled-modules" title="Link to this heading">¶</a></h1>
+<section id="module-meersolar.data.sendmail">
+<span id="meersolar-data-sendmail-module"></span><h2>meersolar.data.sendmail module<a class="headerlink" href="#module-meersolar.data.sendmail" title="Link to this heading">¶</a></h2>
 </section>
 </section>
 
@@ -267,23 +251,15 @@ pip<span class="w"> </span>install<span class="w"> </span>.
       <footer>
         
         <div class="related-pages">
-          <a class="next-page" href="idia_setup.html">
-              <div class="page-info">
-                <div class="context">
-                  <span>Next</span>
-                </div>
-                <div class="title">Installation on IDIA-ilifu</div>
-              </div>
-              <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
-            </a>
-          <a class="prev-page" href="activate_conda.html">
+          
+          <a class="prev-page" href="meersolar.crystalball.html">
               <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
               <div class="page-info">
                 <div class="context">
                   <span>Previous</span>
                 </div>
                 
-                <div class="title">Create and Activate Conda Environment</div>
+                <div class="title">Crystalball Module</div>
                 
               </div>
             </a>
@@ -317,9 +293,8 @@ pip<span class="w"> </span>install<span class="w"> </span>.
         <div class="toc-tree-container">
           <div class="toc-tree">
             <ul>
-<li><a class="reference internal" href="#">Install MeerSOLAR</a><ul>
-<li><a class="reference internal" href="#install-meersolar-from-pypi">Install MeerSOLAR from PyPI</a></li>
-<li><a class="reference internal" href="#install-meersolar-from-source-code">Install MeerSOLAR from source code</a></li>
+<li><a class="reference internal" href="#">MeerSOLAR Pre-compiled Modules</a><ul>
+<li><a class="reference internal" href="#module-meersolar.data.sendmail">meersolar.data.sendmail module</a></li>
 </ul>
 </li>
 </ul>

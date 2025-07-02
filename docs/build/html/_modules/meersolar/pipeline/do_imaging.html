@@ -193,6 +193,7 @@
 <li class="toctree-l1 has-children"><a class="reference internal" href="../../../meersolar.html">API Reference</a><input class="toctree-checkbox" id="toctree-checkbox-5" name="toctree-checkbox-5" role="switch" type="checkbox"/><label for="toctree-checkbox-5"><div class="visually-hidden">Toggle navigation of API Reference</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
 <li class="toctree-l2"><a class="reference internal" href="../../../meersolar.pipeline.html">Meersolar Pipeline Module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../meersolar.crystalball.html">Crystalball Module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../meersolar.data.html">MeerSOLAR Pre-compiled Modules</a></li>
 </ul>
 </li>
 </ul>
@@ -229,10 +230,7 @@
         </div>
         <article role="main">
           <h1>Source code for meersolar.pipeline.do_imaging</h1><div class="highlight"><pre>
-<span></span><span class="kn">import</span> <span class="nn">os</span><span class="o">,</span> <span class="nn">glob</span><span class="o">,</span> <span class="nn">resource</span><span class="o">,</span> <span class="nn">traceback</span><span class="o">,</span> <span class="nn">psutil</span><span class="o">,</span> <span class="nn">time</span><span class="o">,</span> <span class="nn">copy</span><span class="o">,</span> <span class="nn">math</span><span class="o">,</span> <span class="nn">argparse</span>
-<span class="kn">from</span> <span class="nn">meersolar.pipeline.basic_func</span> <span class="kn">import</span> <span class="o">*</span>
-<span class="kn">from</span> <span class="nn">dask</span> <span class="kn">import</span> <span class="n">delayed</span><span class="p">,</span> <span class="n">compute</span>
-<span class="kn">from</span> <span class="nn">casatasks</span> <span class="kn">import</span> <span class="n">casalog</span>
+<span></span><span class="kn">from</span> <span class="nn">meersolar.pipeline.basic_func</span> <span class="kn">import</span> <span class="o">*</span>
 
 <span class="k">try</span><span class="p">:</span>
     <span class="n">logfile</span> <span class="o">=</span> <span class="n">casalog</span><span class="o">.</span><span class="n">logfile</span><span class="p">()</span>
@@ -582,7 +580,7 @@
         <span class="c1"># Spectral imaging configuration</span>
         <span class="c1">#####################################</span>
         <span class="k">if</span> <span class="n">nchan</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
-            <span class="n">wsclean_args</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;-channels-out </span><span class="si">{</span><span class="n">nchan</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="n">wsclean_args</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;-channels-out </span><span class="si">{</span><span class="nb">int</span><span class="p">(</span><span class="n">nchan</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
             <span class="n">wsclean_args</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;-no-mf-weighting&quot;</span><span class="p">)</span>
             <span class="n">wsclean_args</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;-join-channels&quot;</span><span class="p">)</span>
 
@@ -590,7 +588,7 @@
         <span class="c1"># Temporal imaging configuration</span>
         <span class="c1">#####################################</span>
         <span class="k">if</span> <span class="n">ntime</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
-            <span class="n">wsclean_args</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;-intervals-out </span><span class="si">{</span><span class="n">ntime</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="n">wsclean_args</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;-intervals-out </span><span class="si">{</span><span class="nb">int</span><span class="p">(</span><span class="n">ntime</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
 
         <span class="c1">################################################</span>
         <span class="c1"># Creating and using a solar mask</span>
@@ -997,7 +995,7 @@
                 <span class="n">freqs</span> <span class="o">=</span> <span class="n">msmd</span><span class="o">.</span><span class="n">chanfreqs</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">unit</span><span class="o">=</span><span class="s2">&quot;MHz&quot;</span><span class="p">)</span>
                 <span class="n">msmd</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
                 <span class="n">bw</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">freqs</span><span class="p">)</span> <span class="o">-</span> <span class="nb">min</span><span class="p">(</span><span class="n">freqs</span><span class="p">)</span>
-                <span class="n">nchan</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">math</span><span class="o">.</span><span class="n">ceil</span><span class="p">(</span><span class="n">bw</span> <span class="o">/</span> <span class="n">freqres</span><span class="p">))</span>
+                <span class="n">nchan</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="nb">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">ceil</span><span class="p">(</span><span class="n">bw</span> <span class="o">/</span> <span class="n">freqres</span><span class="p">)))</span>
                 <span class="n">nchan_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">nchan</span><span class="p">)</span>
 
         <span class="c1">######################################</span>

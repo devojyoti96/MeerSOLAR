@@ -58,10 +58,3 @@ meersolar.crystalball.wsclean module
    :undoc-members:
    :show-inheritance:
 
-Module contents
----------------
-
-.. automodule:: meersolar.crystalball
-   :members:
-   :undoc-members:
-   :show-inheritance:
