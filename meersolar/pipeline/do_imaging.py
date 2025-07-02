@@ -1,7 +1,4 @@
-import os, glob, resource, traceback, psutil, time, copy, math, argparse
 from meersolar.pipeline.basic_func import *
-from dask import delayed, compute
-from casatasks import casalog
 
 try:
     logfile = casalog.logfile()
@@ -346,7 +343,7 @@ def perform_imaging(
         # Spectral imaging configuration
         #####################################
         if nchan > 1:
-            wsclean_args.append(f"-channels-out {nchan}")
+            wsclean_args.append(f"-channels-out {int(nchan)}")
             wsclean_args.append("-no-mf-weighting")
             wsclean_args.append("-join-channels")
 
@@ -354,7 +351,7 @@ def perform_imaging(
         # Temporal imaging configuration
         #####################################
         if ntime > 1:
-            wsclean_args.append(f"-intervals-out {ntime}")
+            wsclean_args.append(f"-intervals-out {int(ntime)}")
 
         ################################################
         # Creating and using a solar mask
@@ -758,7 +755,7 @@ def run_all_imaging(
                 freqs = msmd.chanfreqs(0, unit="MHz")
                 msmd.close()
                 bw = max(freqs) - min(freqs)
-                nchan = max(1, math.ceil(bw / freqres))
+                nchan = max(1, int(np.ceil(bw / freqres)))
                 nchan_list.append(nchan)
 
         ######################################

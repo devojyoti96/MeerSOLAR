@@ -1,11 +1,6 @@
-import os, time, psutil, numpy as np, glob, traceback, gc, copy
-import dask.array as da, argparse
 from meersolar.pipeline.basic_func import *
 from meersolar.pipeline.flagging import single_ms_flag
 from meersolar.pipeline.import_model import import_fluxcal_models
-from casatools import table, ms as casamstool, msmetadata
-from dask import delayed, compute, config
-from casatasks import casalog
 
 try:
     logfile = casalog.logfile()

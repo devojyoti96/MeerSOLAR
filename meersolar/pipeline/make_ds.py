@@ -1,7 +1,11 @@
 from meersolar.pipeline.basic_func import *
-import argparse, os, glob, sys, traceback, time
 
-
+try:
+    logfile = casalog.logfile()
+    os.system("rm -rf " + logfile)
+except:
+    pass
+    
 def make_ds(
     msname,
     workdir,

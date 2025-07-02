@@ -1,9 +1,6 @@
-import os, numpy as np, copy, psutil, gc, traceback, resource, time, argparse
-from astropy.io import fits
+import resource
 from meersolar.pipeline.basic_func import *
-from dask import delayed, compute, config
 from functools import partial
-from casatasks import casalog
 
 try:
     casalogfile = casalog.logfile()

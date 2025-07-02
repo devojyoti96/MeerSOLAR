@@ -1,9 +1,4 @@
-import sys, psutil, traceback
-import os, numpy as np, time, glob, argparse
 from meersolar.pipeline.basic_func import *
-from casatasks import casalog
-from casatools import msmetadata
-from dask import delayed, compute
 
 try:
     logfile = casalog.logfile()

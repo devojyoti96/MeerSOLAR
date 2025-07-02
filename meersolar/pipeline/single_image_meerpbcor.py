@@ -1,14 +1,8 @@
-import numpy as np, copy, psutil, os, astropy.units as u, warnings, gc, traceback, time, argparse, sys
-from astropy.io import fits
 from numpy.linalg import inv
-from astropy.coordinates import AltAz, EarthLocation, SkyCoord
-from astropy.time import Time
 from astropy.wcs import WCS
 from scipy.interpolate import RectBivariateSpline
 from joblib import Parallel, delayed as joblid_delayed
-from astropy.wcs import FITSFixedWarning
 from meersolar.pipeline.basic_func import *
-from casatasks import casalog
 
 try:
     casalogfile = casalog.logfile()

@@ -1,9 +1,11 @@
-import argparse
-import os
-import tempfile, sys
-from meersolar.pipeline.basic_func import drop_cache
+from meersolar.pipeline.basic_func import *
 from casatasks import listobs
 
+try:
+    casalogfile = casalog.logfile()
+    os.system("rm -rf " + casalogfile)
+except:
+    pass
 
 def show_listobs(msname):
     if not os.path.exists(msname):

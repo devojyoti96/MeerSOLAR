@@ -1,10 +1,5 @@
-import sys, traceback, time, gc
-import os, numpy as np, copy, glob, argparse
-from datetime import datetime as dt, timezone
 from functools import partial
 from meersolar.pipeline.basic_func import *
-from dask import delayed, compute, config
-from casatasks import casalog
 
 try:
     logfile = casalog.logfile()

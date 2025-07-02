@@ -1,16 +1,12 @@
-import os, glob, psutil, copy, time, traceback, argparse, socket
+import socket
 from multiprocessing import Process, Event
 from meersolar.pipeline.basic_func import *
-from meersolar.pipeline.init_data import init_meersolar_data
-from meersolar.data.sendmail import send_paircars_notification as send_notification
-from casatasks import casalog
 
 try:
     logfile = casalog.logfile()
     os.system("rm -rf " + logfile)
 except:
     pass
-
 
 def run_flag(
     msname, workdir, flag_calibrators=True, jobid=0, cpu_frac=0.8, mem_frac=0.8
@@ -1448,7 +1444,7 @@ def master_control(
     int
         Success message
     """
-
+    from meersolar.pipeline.init_data import init_meersolar_data
     init_meersolar_data()
     msname = os.path.abspath(msname.rstrip("/"))
     if os.path.exists(msname) == False:
@@ -1519,6 +1515,7 @@ def master_control(
                     f"Best,\n"
                     f"MeerSOLAR"
                 )
+                from meersolar.data.sendmail import send_paircars_notification as send_notification
                 success_msg, error_msg = send_notification(emails, email_subject, email_msg)
         else:
             ####################################
@@ -1557,6 +1554,7 @@ def master_control(
                     f"Best,\n"
                     f"MeerSOLAR"
                 )
+                from meersolar.data.sendmail import send_paircars_notification as send_notification
                 success_msg, error_msg = send_notification(emails, email_subject, email_msg)
 
         #####################################

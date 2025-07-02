@@ -1,5 +1,4 @@
 from meersolar.pipeline.basic_func import *
-import requests, os, psutil, argparse, sys
 from parfive import Downloader
 
 all_filenames = [

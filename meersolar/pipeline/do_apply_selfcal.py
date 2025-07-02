@@ -1,12 +1,5 @@
-import numpy as np, glob, os, copy, warnings, traceback, gc, argparse
-from casatools import table
-from scipy.interpolate import CubicSpline
-from scipy.ndimage import gaussian_filter1d
-from scipy.interpolate import interp1d
 from meersolar.pipeline.basic_func import *
 from meersolar.pipeline.do_apply_basiccal import applysol
-from dask import delayed, compute
-from casatasks import casalog
 
 try:
     logfile = casalog.logfile()
