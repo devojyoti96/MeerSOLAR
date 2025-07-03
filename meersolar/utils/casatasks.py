@@ -1,9 +1,10 @@
 from .all_depend import *
+from .basic_utils import *
+from .resource_utils import *
 
 #############################
 # General CASA tasks
 #############################
-
 
 def check_scan_in_caltable(caltable, scan):
     """
