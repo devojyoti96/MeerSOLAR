@@ -3,7 +3,7 @@ from meersolar.pipeline.basic_func import *
 try:
     logfile = casalog.logfile()
     os.system("rm -rf " + logfile)
-except:
+except BaseException:
     pass
 
 
@@ -47,27 +47,31 @@ def rename_image(
     )
     header = fits.getheader(imagename)
     time = header["DATE-OBS"]
-    astro_time=Time(time,scale='utc')
-    sun_jpl = Horizons(id='10', location='500', epochs=astro_time.jd)
+    astro_time = Time(time, scale="utc")
+    sun_jpl = Horizons(id="10", location="500", epochs=astro_time.jd)
     eph = sun_jpl.ephemerides()
-    sun_coords = SkyCoord(ra=eph['RA'][0]*u.deg, dec=eph['DEC'][0]*u.deg, frame='icrs')
-    maxval, minval, rms, total_val, mean_val, median_val, rms_dyn, minmax_dyn = calc_solar_image_stat(imagename,disc_size=18)
+    sun_coords = SkyCoord(
+        ra=eph["RA"][0] * u.deg, dec=eph["DEC"][0] * u.deg, frame="icrs"
+    )
+    maxval, minval, rms, total_val, mean_val, median_val, rms_dyn, minmax_dyn = (
+        calc_solar_image_stat(imagename, disc_size=18)
+    )
     with fits.open(imagename, mode="update") as hdul:
         hdr = hdul[0].header
         hdr["AUTHOR"] = "DevojyotiKansabanik,DeepanPatra"
         if band != "":
             hdr["BAND"] = band
-        hdr["PIPELINE"]="MeerSOLAR"
+        hdr["PIPELINE"] = "MeerSOLAR"
         hdr["CRVAL1"] = sun_coords.ra.deg
         hdr["CRVAL2"] = sun_coords.dec.deg
-        hdr["MAX"]=maxval
-        hdr["MIN"]=minval
-        hdr["RMS"]=rms
-        hdr["SUM"]=total_val
-        hdr["MEAN"]=mean_val
-        hdr["MEDIAN"]=median_val
-        hdr["RMSDYN"]=rms_dyn
-        hdr["MIMADYN"]=minmax_dyn
+        hdr["MAX"] = maxval
+        hdr["MIN"] = minval
+        hdr["RMS"] = rms
+        hdr["SUM"] = total_val
+        hdr["MEAN"] = mean_val
+        hdr["MEDIAN"] = median_val
+        hdr["RMSDYN"] = rms_dyn
+        hdr["MIMADYN"] = minmax_dyn
     freq = round(header["CRVAL3"] / 10**6, 2)
     t_str = "".join(time.split("T")[0].split("-")) + (
         "".join(time.split("T")[-1].split(":"))
@@ -78,26 +82,26 @@ def rename_image(
     if "MFS" in imagename:
         new_name += "_MFS"
     new_name = new_name + ".fits"
-    if imagedir=="":
-        imagedir=os.path.dirname(os.path.abspath(imagename))
+    if imagedir == "":
+        imagedir = os.path.dirname(os.path.abspath(imagename))
     new_name = imagedir + "/" + new_name
     os.system("mv " + imagename + " " + new_name)
-    hpcdir=f"{os.path.dirname(imagedir)}/images/hpcs"
+    hpcdir = f"{os.path.dirname(imagedir)}/images/hpcs"
     os.makedirs(hpcdir, exist_ok=True)
-    save_in_hpc(new_name,outdir=hpcdir)
+    save_in_hpc(new_name, outdir=hpcdir)
     if make_plots:
         try:
             pngdir = f"{os.path.dirname(imagedir)}/images/pngs"
             pdfdir = f"{os.path.dirname(imagedir)}/images/pdfs"
             os.makedirs(pngdir, exist_ok=True)
             os.makedirs(pdfdir, exist_ok=True)
-            outimages,cropped_map=plot_in_hpc(
+            outimages, cropped_map = plot_in_hpc(
                 new_name,
                 draw_limb=True,
-                extensions=["png","pdf"],
-                outdirs=[pngdir,pdfdir],
+                extensions=["png", "pdf"],
+                outdirs=[pngdir, pdfdir],
             )
-        except:
+        except BaseException:
             pass
     if make_overlay:
         try:
@@ -105,12 +109,12 @@ def rename_image(
             overlay_pdfdir = f"{os.path.dirname(imagedir)}/overlays_pdfs"
             os.makedirs(overlay_pngdir, exist_ok=True)
             os.makedirs(overlay_pdfdir, exist_ok=True)
-            outimages=make_meer_overlay(
+            outimages = make_meer_overlay(
                 new_name,
                 plot_file_prefix=os.path.basename(new_name).split(".fits")[0]
                 + "_suvi_meerkat_overlay",
-                extensions=["png","pdf"],
-                outdirs=[overlay_pngdir,overlay_pdfdir]
+                extensions=["png", "pdf"],
+                outdirs=[overlay_pngdir, overlay_pdfdir],
             )
         except Exception as e:
             traceback.print_exc()
@@ -223,7 +227,7 @@ def perform_imaging(
         os.path.basename(logfile).split(".log")[0], logfile, verbose=False
     )
     sub_observer = None
-    if os.path.exists(f"{workdir}/jobname_password.npy") and logfile != None:
+    if os.path.exists(f"{workdir}/jobname_password.npy") and logfile is not None:
         time.sleep(5)
         jobname, password = np.load(
             f"{workdir}/jobname_password.npy", allow_pickle=True
@@ -304,7 +308,7 @@ def perform_imaging(
         prefix = workdir + "/imaging_" + os.path.basename(msname).split(".ms")[0]
         if imagedir == "":
             imagedir = workdir
-        os.makedirs(imagedir,exist_ok=True)
+        os.makedirs(imagedir, exist_ok=True)
         if weight == "briggs":
             weight += " " + str(robust)
         if threshold <= 1:
@@ -365,7 +369,7 @@ def perform_imaging(
                 fits_mask = create_circular_mask(
                     msname, cellsize, imsize, mask_radius=mask_radius
                 )
-            if fits_mask != None and os.path.exists(fits_mask):
+            if fits_mask is not None and os.path.exists(fits_mask):
                 wsclean_args.append("-fits-mask " + fits_mask)
         final_list = []
         for i in range(len(start_chans)):
@@ -418,11 +422,11 @@ def perform_imaging(
                     pollist = [i.upper() for i in list(pol)]
                     if len(pollist) == 1:
                         imagelist = sorted(glob.glob(prefix + "*image.fits"))
-                        if savemodel == False:
+                        if not savemodel:
                             os.system("rm -rf " + prefix + "*model.fits")
                         else:
                             modellist = sorted(glob.glob(prefix + "*model.fits"))
-                        if saveres == False:
+                        if not saveres:
                             os.system("rm -rf " + prefix + "*residual.fits")
                         else:
                             reslist = sorted(glob.glob(prefix + "*residual.fits"))
@@ -447,7 +451,7 @@ def perform_imaging(
                             )
                             imagelist.append(image_cube)
                         del stokeslist
-                        if savemodel == False:
+                        if not savemodel:
                             os.system("rm -rf " + prefix + "*model.fits")
                         else:
                             modellist = []
@@ -470,7 +474,7 @@ def perform_imaging(
                                 )
                                 modellist.append(model_cube)
                             del stokeslist
-                        if saveres == False:
+                        if not saveres:
                             os.system("rm -rf " + prefix + "*residual.fits")
                         else:
                             reslist = []
@@ -498,7 +502,7 @@ def perform_imaging(
                     # Renaming images
                     ######################
                     if len(imagelist) > 0:
-                        os.makedirs(imagedir + "/images",exist_ok=True)
+                        os.makedirs(imagedir + "/images", exist_ok=True)
                         final_image_list = []
                         for imagename in imagelist:
                             renamed_image = rename_image(
@@ -514,7 +518,7 @@ def perform_imaging(
                         final_list.append(final_image_list)
                         if savemodel and len(modellist) > 0:
                             final_model_list = []
-                            os.makedirs(imagedir + "/models",exist_ok=True)
+                            os.makedirs(imagedir + "/models", exist_ok=True)
                             for modelname in modellist:
                                 renamed_model = rename_image(
                                     modelname,
@@ -529,7 +533,7 @@ def perform_imaging(
                             final_list.append(final_model_list)
                         if saveres and len(reslist) > 0:
                             final_res_list = []
-                            os.makedirs(imagedir + "/residuals",exist_ok=True)
+                            os.makedirs(imagedir + "/residuals", exist_ok=True)
                             for resname in reslist:
                                 renamed_res = rename_image(
                                     resname,
@@ -594,7 +598,7 @@ def run_all_imaging(
     threshold=1.0,
     use_multiscale=True,
     use_solar_mask=True,
-    imaging_params={}, #TODO
+    imaging_params={},  # TODO
     savemodel=False,
     saveres=False,
     band="",
@@ -667,7 +671,7 @@ def run_all_imaging(
     start_time = time.time()
     mslist = sorted(mslist)
     observer = None
-    if mainlogger == None:
+    if mainlogger is None:
         mainlog_file = workdir + "/logs/imaging_targets.mainlog"
         mainlogger, mainlog_file = create_logger(
             os.path.basename(mainlog_file).split(".mainlog")[0],
@@ -675,7 +679,10 @@ def run_all_imaging(
             verbose=False,
         )
         observer = None
-        if os.path.exists(f"{workdir}/jobname_password.npy") and mainlog_file != None:
+        if (
+            os.path.exists(f"{workdir}/jobname_password.npy")
+            and mainlog_file is not None
+        ):
             time.sleep(5)
             jobname, password = np.load(
                 f"{workdir}/jobname_password.npy", allow_pickle=True
@@ -690,9 +697,9 @@ def run_all_imaging(
     ###########################
     container_name = "meerwsclean"
     container_present = check_udocker_container(container_name)
-    if container_present == False:
+    if not container_present:
         container_name = initialize_wsclean_container(name=container_name)
-        if container_name == None:
+        if container_name is None:
             print(
                 "Container {container_name} is not initiated. First initiate container and then run."
             )
@@ -762,7 +769,7 @@ def run_all_imaging(
         # Resetting maximum file limit
         ######################################
         soft_limit, hard_limit = resource.getrlimit(resource.RLIMIT_NOFILE)
-        new_soft_limit = max(soft_limit, int(0.8*hard_limit))
+        new_soft_limit = max(soft_limit, int(0.8 * hard_limit))
         if soft_limit < new_soft_limit:
             resource.setrlimit(resource.RLIMIT_NOFILE, (new_soft_limit, hard_limit))
         total_fd = 0
@@ -774,10 +781,10 @@ def run_all_imaging(
             per_job_fd = (
                 npol * (nchan + 1) * ntime * 4 * 2
             )  # 4 types of images, 2 is fudge factor
-            total_fd+=per_job_fd
+            total_fd += per_job_fd
         n_jobs = max(1, int(new_soft_limit / total_fd))
         n_jobs = min(len(mslist), n_jobs)
-        
+
         #################################
         # Dask client setup
         #################################
@@ -809,7 +816,7 @@ def run_all_imaging(
             possible_sizes = np.sort(np.array(possible_sizes))
             possible_sizes = possible_sizes[possible_sizes >= imsize]
             imsize = max(1024, int(possible_sizes[0]))
-            os.makedirs(workdir + "/logs",exist_ok=True)
+            os.makedirs(workdir + "/logs", exist_ok=True)
             logfile = (
                 workdir
                 + "/logs/imaging_"
@@ -891,14 +898,15 @@ def run_all_imaging(
         for ms in mslist:
             drop_cache(ms)
         drop_cache(workdir)
-            
+
+
 def main():
     parser = argparse.ArgumentParser(
         description="Perform spectropolarimetric snapshot imaging",
         formatter_class=SmartDefaultsHelpFormatter,
     )
 
-    ## Essential parameters
+    # Essential parameters
     basic_args = parser.add_argument_group(
         "###################\nEssential parameters\n###################"
     )
@@ -922,7 +930,7 @@ def main():
         help="Output directory for imaging products",
     )
 
-    ## Advanced parameters
+    # Advanced parameters
     adv_args = parser.add_argument_group(
         "###################\nAdvanced imaging parameters\n###################"
     )
@@ -1036,7 +1044,7 @@ def main():
         help="Do not make generate helioprojective plots",
     )
 
-    ## Resource management parameters
+    # Resource management parameters
     hard_args = parser.add_argument_group(
         "###################\nHardware resource management parameters\n###################"
     )
@@ -1070,18 +1078,18 @@ def main():
 
     if args.workdir == "" or not os.path.exists(args.workdir):
         first_ms = args.mslist.split(",")[0]
-        workdir = os.path.dirname(os.path.abspath(first_ms)) + "/workdir"     
+        workdir = os.path.dirname(os.path.abspath(first_ms)) + "/workdir"
     else:
         workdir = args.workdir
-    os.makedirs(workdir,exist_ok=True)
-        
+    os.makedirs(workdir, exist_ok=True)
+
     if args.outdir == "" or not os.path.exists(args.outdir):
-        outdir=workdir
+        outdir = workdir
     else:
         outdir = args.outdir
-    os.makedirs(outdir,exist_ok=True)
+    os.makedirs(outdir, exist_ok=True)
 
-    os.makedirs(workdir + "/logs/",exist_ok=True)
+    os.makedirs(workdir + "/logs/", exist_ok=True)
 
     mainlog_file = workdir + "/logs/imaging_targets.mainlog"
     mainlogger, mainlog_file = create_logger(

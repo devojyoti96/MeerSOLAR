@@ -3,7 +3,7 @@ from meersolar.pipeline.basic_func import *
 try:
     logfile = casalog.logfile()
     os.system("rm -rf " + logfile)
-except:
+except BaseException:
     pass
 
 
@@ -98,7 +98,7 @@ def main():
         formatter_class=SmartDefaultsHelpFormatter,
     )
 
-    ## Essential parameters
+    # Essential parameters
     basic_args = parser.add_argument_group(
         "###################\nEssential parameters\n###################"
     )
@@ -107,11 +107,9 @@ def main():
         type=str,
         help="Comma-separated list of measurement sets (required positional argument)",
     )
-    basic_args.add_argument(
-        "--workdir", type=str, default="", help="Working directory"
-    )
+    basic_args.add_argument("--workdir", type=str, default="", help="Working directory")
 
-    ## Resource management parameters
+    # Resource management parameters
     hard_args = parser.add_argument_group(
         "###################\nHardware resource management parameters\n###################"
     )
@@ -143,12 +141,8 @@ def main():
         help="Maximum memory fraction to use",
         metavar="Float",
     )
-    hard_args.add_argument(
-        "--logfile", type=str, default=None, help="Log file"
-    )
-    hard_args.add_argument(
-        "--jobid", type=int, default=0, help="Job ID"
-    )
+    hard_args.add_argument("--logfile", type=str, default=None, help="Log file")
+    hard_args.add_argument("--jobid", type=int, default=0, help="Job ID")
 
     if len(sys.argv) == 1:
         parser.print_help(sys.stderr)
@@ -165,11 +159,11 @@ def main():
         )
     else:
         workdir = args.workdir
-    os.makedirs(workdir,exist_ok=True)
+    os.makedirs(workdir, exist_ok=True)
 
     logfile = args.logfile
     observer = None
-    if os.path.exists(f"{workdir}/jobname_password.npy") and logfile != None:
+    if os.path.exists(f"{workdir}/jobname_password.npy") and logfile is not None:
         time.sleep(5)
         jobname, password = np.load(
             f"{workdir}/jobname_password.npy", allow_pickle=True
@@ -210,6 +204,6 @@ def main():
 if __name__ == "__main__":
     result = main()
     print(
-        "\n###################\Sidereal motion corrections are done.\n###################\n"
+        "\n###################\\Sidereal motion corrections are done.\n###################\n"
     )
     os._exit(result)

@@ -3,7 +3,7 @@ from meersolar.pipeline.basic_func import *
 try:
     logfile = casalog.logfile()
     os.system("rm -rf " + logfile)
-except:
+except BaseException:
     pass
 
 
@@ -377,7 +377,7 @@ def run_postcal_flag(
     #################################################
     if datacolumn == "corrected" or datacolumn == "CORRECTED_DATA":
         corcolumn_present = check_datacolumn_valid(msname, datacolumn="CORRECTED_DATA")
-        if corcolumn_present == False:
+        if not corcolumn_present:
             print(
                 "Corrected data column is chosen for flagging, but it is not present."
             )
@@ -527,7 +527,7 @@ def single_round_cal_and_flag(
             os.system("rm -rf " + pangle_caltable)
 
         result = get_submsname_scans(msname)
-        if result != None:  # If multi-ms
+        if result is not None:  # If multi-ms
             mslist, scans = result
         else:
             print("Please provide a multi-MS with scans partitioned.")
@@ -563,8 +563,8 @@ def single_round_cal_and_flag(
         applycal_gaintable = []
         applycal_gainfield = []
         applycal_interp = []
-    
-        if len(fluxcal_mslist)==0 and len(phasecal_mslist)==0:
+
+        if len(fluxcal_mslist) == 0 and len(phasecal_mslist) == 0:
             print("No flux calibrator or phase calibrator is present.")
             return 1, []
 
@@ -599,7 +599,7 @@ def single_round_cal_and_flag(
             delay_caltable = merge_caltables(
                 delaycal_tables, delay_caltable, keepcopy=False
             )
-            if delay_caltable != None and os.path.exists(delay_caltable):
+            if delay_caltable is not None and os.path.exists(delay_caltable):
                 tb = table()
                 tb.open(delay_caltable, nomodify=False)
                 flag = tb.getcol("FLAG")
@@ -644,7 +644,7 @@ def single_round_cal_and_flag(
             bpass_caltable = merge_caltables(
                 bandpass_tables, bpass_caltable, keepcopy=False
             )
-            if bpass_caltable != None and os.path.exists(bpass_caltable):
+            if bpass_caltable is not None and os.path.exists(bpass_caltable):
                 applycal_gaintable.append(bpass_caltable)
                 applycal_gainfield.append("")
                 applycal_interp.append("nearestflag")
@@ -696,7 +696,7 @@ def single_round_cal_and_flag(
         # Gain calibrations on phasecals
         ######################################
         if do_phasecal == False and (
-            gain_caltable != None and os.path.exists(gain_caltable)
+            gain_caltable is not None and os.path.exists(gain_caltable)
         ):
             applycal_gaintable.append(gain_caltable)
             applycal_gainfield.append("")
@@ -709,7 +709,7 @@ def single_round_cal_and_flag(
             # Gain calibration
             ##############################
             if len(phasecal_mslist) == 0 and (
-                gain_caltable != None and os.path.exists(gain_caltable)
+                gain_caltable is not None and os.path.exists(gain_caltable)
             ):
                 applycal_gaintable.append(gain_caltable)
                 applycal_gainfield.append("")
@@ -756,7 +756,7 @@ def single_round_cal_and_flag(
                     os.system("rm -rf " + caltable_prefix + ".listfcal")
                 from casatasks import fluxscale
 
-                if gain_caltable != None and os.path.exists(gain_caltable) == False:
+                if gain_caltable is not None and os.path.exists(gain_caltable) == False:
                     print(
                         "Gain calibration was not successful and did not produce gain caltable."
                     )
@@ -769,7 +769,7 @@ def single_round_cal_and_flag(
                             reference=fluxcal_fields,
                             transfer=phasecal_fields,
                         )
-                    if fluxscale_caltable != None and os.path.exists(
+                    if fluxscale_caltable is not None and os.path.exists(
                         fluxscale_caltable
                     ):
                         if os.path.exists(gain_caltable):
@@ -834,11 +834,11 @@ def single_round_cal_and_flag(
                 leakage_caltable = merge_caltables(
                     leakage_tables, leakage_caltable, keepcopy=False
                 )
-                if leakage_caltable != None and os.path.exists(leakage_caltable):
+                if leakage_caltable is not None and os.path.exists(leakage_caltable):
                     applycal_gaintable.append(leakage_caltable)
                     applycal_gainfield.append("")
                     applycal_interp.append("nearest,nearestflag")
-                    if parang == False:
+                    if not parang:
                         parang = True
 
         ########################################
@@ -903,19 +903,21 @@ def single_round_cal_and_flag(
                     pangle_tables, pangle_caltable, keepcopy=False
                 )
 
-                if kcross_caltable != None and os.path.exists(kcross_caltable):
+                if kcross_caltable is not None and os.path.exists(kcross_caltable):
                     applycal_gaintable.append(kcross_caltable)
                     applycal_gainfield.append("")
                     applycal_interp.append("nearest")
-                    if parang == False:
+                    if not parang:
                         parang = True
-                    if crossphase_caltable != None and os.path.exists(
+                    if crossphase_caltable is not None and os.path.exists(
                         crossphase_caltable
                     ):
                         applycal_gaintable.append(crossphase_caltable)
                         applycal_gainfield.append("")
                         applycal_interp.append("nearest,nearestflag")
-                        if pangle_caltable != None and os.path.exists(pangle_caltable):
+                        if pangle_caltable is not None and os.path.exists(
+                            pangle_caltable
+                        ):
                             applycal_gaintable.append(pangle_caltable)
                             applycal_gainfield.append("")
                             applycal_interp.append("nearest,nearestflag")
@@ -960,7 +962,7 @@ def single_round_cal_and_flag(
                     gaintable=applycal_gaintable,
                     gainfield=applycal_gainfield,
                     interp=applycal_interp,
-                    calwt=[False]*len(applycal_gainfield),
+                    calwt=[False] * len(applycal_gainfield),
                     parang=parang,
                     n_threads=n_threads,
                 )
@@ -1013,37 +1015,37 @@ def single_round_cal_and_flag(
         ###############################
         delay_caltable = (
             delay_caltable
-            if (delay_caltable != None and os.path.exists(delay_caltable))
+            if (delay_caltable is not None and os.path.exists(delay_caltable))
             else None
         )
         bpass_caltable = (
             bpass_caltable
-            if (bpass_caltable != None and os.path.exists(bpass_caltable))
+            if (bpass_caltable is not None and os.path.exists(bpass_caltable))
             else None
         )
         gain_caltable = (
             gain_caltable
-            if (gain_caltable != None and os.path.exists(gain_caltable))
+            if (gain_caltable is not None and os.path.exists(gain_caltable))
             else None
         )
         leakage_caltable = (
             leakage_caltable
-            if (leakage_caltable != None and os.path.exists(leakage_caltable))
+            if (leakage_caltable is not None and os.path.exists(leakage_caltable))
             else None
         )
         kcross_caltable = (
             kcross_caltable
-            if (kcross_caltable != None and os.path.exists(kcross_caltable))
+            if (kcross_caltable is not None and os.path.exists(kcross_caltable))
             else None
         )
         crossphase_caltable = (
             crossphase_caltable
-            if (crossphase_caltable != None and os.path.exists(crossphase_caltable))
+            if (crossphase_caltable is not None and os.path.exists(crossphase_caltable))
             else None
         )
         pangle_caltable = (
             pangle_caltable
-            if (pangle_caltable != None and os.path.exists(pangle_caltable))
+            if (pangle_caltable is not None and os.path.exists(pangle_caltable))
             else None
         )
         return 0, [
@@ -1154,9 +1156,9 @@ def run_basic_cal_rounds(
             refant = get_refant(msname)
         if uvrange == "":
             uvrange = ">200lambda"
-        print ("#########################################")
-        print (f"Using UV-range for calibration: {uvrange}")
-        print ("#########################################")
+        print("#########################################")
+        print(f"Using UV-range for calibration: {uvrange}")
+        print("#########################################")
         for cal_round in range(1, n_rounds + 1):
             print("\n#################################")
             print(f"Calibration round: {cal_round}")
@@ -1193,7 +1195,7 @@ def run_basic_cal_rounds(
                 print("Backup directory: " + workdir + "/backup")
                 os.makedirs(workdir + "/backup", exist_ok=True)
                 for caltable in caltables:
-                    if caltable != None and os.path.exists(caltable):
+                    if caltable is not None and os.path.exists(caltable):
                         cal_ext = os.path.basename(caltable).split(".")[-1]
                         outputname = (
                             workdir
@@ -1232,7 +1234,7 @@ def main():
         formatter_class=SmartDefaultsHelpFormatter,
     )
 
-    ## Essential parameters
+    # Essential parameters
     basic_args = parser.add_argument_group(
         "###################\nEssential parameters\n###################"
     )
@@ -1256,7 +1258,7 @@ def main():
         help="Caltables directory (default: auto-created in the workdir MS)",
     )
 
-    ## Advanced parameters
+    # Advanced parameters
     adv_args = parser.add_argument_group(
         "###################\nAdvanced calibration parameters\n###################"
     )
@@ -1279,7 +1281,7 @@ def main():
         help="Keep backup of measurement set after each calibration round",
     )
 
-    ## Resource management parameters
+    # Resource management parameters
     hard_args = parser.add_argument_group(
         "###################\nHardware resource management parameters\n###################"
     )
@@ -1309,13 +1311,13 @@ def main():
         workdir = os.path.dirname(os.path.abspath(args.msname)) + "/workdir"
     else:
         workdir = args.workdir
-    os.makedirs(workdir,exist_ok=True)
-        
-    if args.caldir=="" or not os.path.exists(args.caldir):
-        caldir=f"{workdir}/caltables"
+    os.makedirs(workdir, exist_ok=True)
+
+    if args.caldir == "" or not os.path.exists(args.caldir):
+        caldir = f"{workdir}/caltables"
     else:
-        caldir=args.caldir
-    os.makedirs(caldir,exist_ok=True)
+        caldir = args.caldir
+    os.makedirs(caldir, exist_ok=True)
 
     logfile = args.logfile
     observer = None

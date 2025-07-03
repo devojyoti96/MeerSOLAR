@@ -4,7 +4,7 @@ from meersolar.pipeline.basic_func import *
 try:
     casalogfile = casalog.logfile()
     os.system("rm -rf " + casalogfile)
-except:
+except BaseException:
     pass
 
 
@@ -23,8 +23,8 @@ def get_fits_freq(image_file):
 
 def run_pbcor(imagename, pbdir, pbcor_dir, apply_parang, jobid=0, ncpu=8):
     cmd = f"run_single_meerpbcor {imagename} --pbdir {pbdir} --pbcor_dir {pbcor_dir} --ncpu {ncpu} --jobid {jobid}"
-    print (cmd)
-    if apply_parang == False:
+    print(cmd)
+    if not apply_parang:
         cmd += " --no_apply_parang"
     a = os.system(f"{cmd} > {imagename}.tmp")
     os.system(f"rm -rf {imagename}.tmp")
@@ -65,7 +65,7 @@ def pbcor_all_images(
     int
         Success message
     """
-    imagedir=imagedir.rstrip("/")
+    imagedir = imagedir.rstrip("/")
     pbdir = f"{os.path.dirname(imagedir)}/pbdir"
     pbcor_dir = f"{os.path.dirname(imagedir)}/pbcor_images"
     os.makedirs(pbdir, exist_ok=True)
@@ -133,17 +133,17 @@ def pbcor_all_images(
             for r in results:
                 if r == 0:
                     successful_pbcor += 1
-                    
+
         ############################################
         # Saving fits in helioprojective coordinates
         ############################################
-        if successful_pbcor>0:
-            hpcdir=f"{pbcor_dir}/hpcs"
+        if successful_pbcor > 0:
+            hpcdir = f"{pbcor_dir}/hpcs"
             pbcor_images = glob.glob(f"{pbcor_dir}/*.fits")
             os.makedirs(hpcdir, exist_ok=True)
             print("Saving primary beam corrected images helioprojective coordinates...")
             for image in pbcor_images:
-                save_in_hpc(image,outdir=hpcdir)
+                save_in_hpc(image, outdir=hpcdir)
             if make_plots:
                 print("Making plots of primary beam corrected images ...")
                 pngdir = f"{pbcor_dir}/pngs"
@@ -152,22 +152,22 @@ def pbcor_all_images(
                 os.makedirs(pdfdir, exist_ok=True)
                 for image in pbcor_images:
                     try:
-                        outimages=plot_in_hpc(
+                        outimages = plot_in_hpc(
                             image,
                             draw_limb=True,
-                            extensions=["png","pdf"],
-                            outdirs=[pngdir,pdfdir]
+                            extensions=["png", "pdf"],
+                            outdirs=[pngdir, pdfdir],
                         )
-                    except:
-                        junkpng=f"{pngdir}/{os.path.basename(image).split('.fits')[0]}.png.junk"
-                        junkpdf=f"{pngdir}/{os.path.basename(image).split('.fits')[0]}.pdf.junk"
+                    except BaseException:
+                        junkpng = f"{pngdir}/{os.path.basename(image).split('.fits')[0]}.png.junk"
+                        junkpdf = f"{pngdir}/{os.path.basename(image).split('.fits')[0]}.pdf.junk"
                         os.system(f"touch {junkpng}")
                         os.system(f"touch {junkpdf}")
-                                  
+
         ####################################
         # Making brightness temperature maps
         ####################################
-        if successful_pbcor> 0 and make_TB:
+        if successful_pbcor > 0 and make_TB:
             for pbcor_image in pbcor_images:
                 tb_image = (
                     tb_dir
@@ -176,17 +176,17 @@ def pbcor_all_images(
                     + "_TB.fits"
                 )
                 generate_tb_map(pbcor_image, outfile=tb_image)
-                
+
             ############################################
             # Saving fits in helioprojective coordinates
             ###########################################
-            hpcdir=f"{tb_dir}/hpcs"
+            hpcdir = f"{tb_dir}/hpcs"
             tb_images = glob.glob(f"{tb_dir}/*.fits")
             os.makedirs(hpcdir, exist_ok=True)
             print("Saving brightness temperature maps helioprojective coordinates...")
             for image in tb_images:
-                save_in_hpc(image,outdir=hpcdir)
-                
+                save_in_hpc(image, outdir=hpcdir)
+
             if make_plots:
                 print("Making plots of brightness temperature maps..")
                 pngdir = f"{tb_dir}/pngs"
@@ -194,20 +194,20 @@ def pbcor_all_images(
                 os.makedirs(pngdir, exist_ok=True)
                 os.makedirs(pdfdir, exist_ok=True)
                 for image in tb_images:
-                    outimages=plot_in_hpc(
+                    outimages = plot_in_hpc(
                         image,
                         draw_limb=True,
-                        extensions=["png","pdf"],
-                        outdirs=[pngdir,pdfdir]
+                        extensions=["png", "pdf"],
+                        outdirs=[pngdir, pdfdir],
                     )
-            
+
         #########################################
         # Final calculations
         #########################################
         print(f"Total input images: {len(images)}")
         print(f"Total corrected images: {len(pbcor_images)}")
         if make_TB:
-            print(f"Total brightness temperatures maps: {len(tb_images)}") 
+            print(f"Total brightness temperatures maps: {len(tb_images)}")
         os.system(f"rm -rf {pbdir}/dask-scratch-space")
         return 0
     except Exception as e:
@@ -226,14 +226,14 @@ def main():
         formatter_class=SmartDefaultsHelpFormatter,
     )
 
-    ## Essential parameters
+    # Essential parameters
     basic_args = parser.add_argument_group(
         "###################\nEssential parameters\n###################"
     )
     basic_args.add_argument("imagedir", help="Path to image directory")
     basic_args.add_argument("--workdir", default="", help="Path to work directory")
 
-    ## Advanced parameters
+    # Advanced parameters
     adv_args = parser.add_argument_group(
         "###################\nAdvanced parameters\n###################"
     )
@@ -256,7 +256,7 @@ def main():
         help="Do not apply parallactic angle correction",
     )
 
-    ## Resource management parameters
+    # Resource management parameters
     hard_args = parser.add_argument_group(
         "###################\nHardware resource management parameters\n###################"
     )
@@ -276,12 +276,12 @@ def main():
         sys.exit(1)
 
     args = parser.parse_args()
-    
+
     if args.workdir == "" or not os.path.exists(args.workdir):
         workdir = os.path.dirname(os.path.abspath(args.msname)) + "/workdir"
     else:
         workdir = args.workdir
-    os.makedirs(workdir,exist_ok=True)
+    os.makedirs(workdir, exist_ok=True)
 
     pid = os.getpid()
     meersolar_cachedir = get_meersolar_cachedir()

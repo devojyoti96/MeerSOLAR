@@ -3,7 +3,7 @@ from meersolar.pipeline.basic_func import *
 try:
     logfile = casalog.logfile()
     os.system("rm -rf " + logfile)
-except:
+except BaseException:
     pass
 
 datadir = get_datadir()
@@ -365,7 +365,7 @@ def import_all_models(msname, workdir, cpu_frac=0.8, mem_frac=0.8):
         mspath = os.path.dirname(os.path.abspath(msname))
         os.chdir(mspath)
         result = get_submsname_scans(msname)
-        if result != None:  # If multi-ms
+        if result is not None:  # If multi-ms
             mslist, scans = result
         else:
             print("Please provide a multi-MS with scans partitioned.")
@@ -427,7 +427,7 @@ def main():
         description=usage, formatter_class=SmartDefaultsHelpFormatter
     )
 
-    ## Essential parameters
+    # Essential parameters
     basic_args = parser.add_argument_group(
         "###################\nEssential parameters\n###################"
     )
@@ -436,7 +436,7 @@ def main():
         "--workdir", type=str, default="", help="Name of work directory"
     )
 
-    ## Resource management parameters
+    # Resource management parameters
     hard_args = parser.add_argument_group(
         "###################\nHardware resource management parameters\n###################"
     )

@@ -4,7 +4,7 @@ from meersolar.pipeline.basic_func import *
 try:
     logfile = casalog.logfile()
     os.system("rm -rf " + logfile)
-except:
+except BaseException:
     pass
 
 
@@ -72,7 +72,7 @@ def single_ms_flag(
                         cmdreason="badchan",
                         flagbackup=False,
                     )
-            except:
+            except BaseException:
                 pass
 
         ##############################
@@ -89,7 +89,7 @@ def single_ms_flag(
                         cmdreason="badant",
                         flagbackup=False,
                     )
-            except:
+            except BaseException:
                 pass
 
         #################################
@@ -105,7 +105,7 @@ def single_ms_flag(
                     autocorr=flag_autocorr,
                     flagbackup=False,
                 )
-        except:
+        except BaseException:
             pass
 
         #################################
@@ -121,7 +121,7 @@ def single_ms_flag(
                         datacolumn=datacolumn,
                         flagbackup=False,
                     )
-            except:
+            except BaseException:
                 pass
 
         ####################################################
@@ -151,7 +151,7 @@ def single_ms_flag(
             corcolumn_present = check_datacolumn_valid(
                 msname, datacolumn="CORRECTED_DATA"
             )
-            if corcolumn_present == False:
+            if not corcolumn_present:
                 print(
                     "Corrected data column is chosen for flagging, but it is not present.\n"
                 )
@@ -164,7 +164,7 @@ def single_ms_flag(
         #################################################
         if datacolumn == "data" or datacolumn == "DATA":
             datacolumn_present = check_datacolumn_valid(msname, datacolumn="DATA")
-            if datacolumn_present == False:
+            if not datacolumn_present:
                 print("Data column is chosen for flagging, but it is not present.\n")
                 return
             else:
@@ -213,7 +213,7 @@ def single_ms_flag(
                         datacolumn=datacolumn,
                         ntime=ntime,
                     )
-            except:
+            except BaseException:
                 pass
 
         #############
@@ -238,7 +238,7 @@ def single_ms_flag(
                     datacolumn=datacolumn,
                     ntime=ntime,
                 )
-        except:
+        except BaseException:
             pass
 
         ##############
@@ -264,7 +264,7 @@ def single_ms_flag(
                     writeflags=True,
                     ntime=ntime,
                 )
-        except:
+        except BaseException:
             pass
     except Exception as e:
         traceback.print_exc()
@@ -407,7 +407,7 @@ def main():
         description=usage, formatter_class=SmartDefaultsHelpFormatter
     )
 
-    ## Essential parameters
+    # Essential parameters
     basic_args = parser.add_argument_group(
         "###################\nEssential parameters\n###################"
     )
@@ -453,7 +453,7 @@ def main():
         help="Do not backup flags",
     )
 
-    ## Resource management parameters
+    # Resource management parameters
     hard_args = parser.add_argument_group(
         "###################\nHardware resource management parameters\n###################"
     )

@@ -1,6 +1,7 @@
 import signal
 from meersolar.pipeline.basic_func import *
 
+
 def kill_process_and_children(pid):
     try:
         parent = psutil.Process(pid)
@@ -49,17 +50,17 @@ def kill_meerjob():
         parser.print_help(sys.stderr)
         sys.exit(1)
     args = parser.parse_args()
-    meersolar_cachedir=get_meersolar_cachedir()
-    jobfile_name =  f"{meersolar_cachedir}/main_pids_{args.jobid}.txt"
+    meersolar_cachedir = get_meersolar_cachedir()
+    jobfile_name = f"{meersolar_cachedir}/main_pids_{args.jobid}.txt"
     results = np.loadtxt(jobfile_name, dtype="str", unpack=True)
     main_pid = int(results[1])
     msname = str(results[2])
     workdir = str(results[3])
-    outdir=str(results[4])
+    outdir = str(results[4])
     pid_file = f"{meersolar_cachedir}/pids/pids_{args.jobid}.txt"
     try:
         os.kill(int(main_pid), signal.SIGKILL)
-    except:
+    except BaseException:
         pass
     if os.path.exists(pid_file):
         pids = np.loadtxt(pid_file, unpack=True, dtype="int")

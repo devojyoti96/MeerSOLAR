@@ -23,7 +23,8 @@ def load_regions(region_file):
         tmpfile.write(rf.read().lower().encode())
         tmpfile.flush()
         include_regions = read_ds9(tmpfile.name)
-        log.info("Read %s inclusion region(s) from %s",
-                 len(include_regions), region_file)
+        log.info(
+            "Read %s inclusion region(s) from %s", len(include_regions), region_file
+        )
 
         return include_regions

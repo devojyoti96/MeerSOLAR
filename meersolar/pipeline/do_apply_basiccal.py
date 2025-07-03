@@ -6,7 +6,7 @@ from meersolar.pipeline.basic_func import *
 try:
     logfile = casalog.logfile()
     os.system("rm -rf " + logfile)
-except:
+except BaseException:
     pass
 
 
@@ -208,7 +208,7 @@ def applysol(
             print("Solutions are already applied.")
             return 0
         else:
-            if os.path.exists(msname + check_file) and force_apply == True:
+            if os.path.exists(msname + check_file) and force_apply:
                 with suppress_casa_output():
                     clearcal(vis=msname)
                     flagdata(vis=msname, mode="unflag", spw="0", flagbackup=False)
@@ -221,7 +221,7 @@ def applysol(
                     gainfield=gainfield,
                     applymode=applymode,
                     interp=interp,
-                    calwt=[False]*len(gaintable),
+                    calwt=[False] * len(gaintable),
                     parang=parang,
                     flagbackup=False,
                 )
@@ -496,7 +496,7 @@ def main():
         formatter_class=SmartDefaultsHelpFormatter,
     )
 
-    ## Essential parameters
+    # Essential parameters
     basic_args = parser.add_argument_group(
         "###################\nEssential parameters\n###################"
     )
@@ -515,7 +515,7 @@ def main():
         "--caldir", type=str, default="", help="Directory containing calibration tables"
     )
 
-    ## Advanced parameters
+    # Advanced parameters
     adv_args = parser.add_argument_group(
         "###################\nAdvanced parameters\n###################"
     )
@@ -544,7 +544,7 @@ def main():
         "--do_post_flag", action="store_true", help="Perform post-calibration flagging"
     )
 
-    ## Resource management parameters
+    # Resource management parameters
     hard_args = parser.add_argument_group(
         "###################\nHardware resource management parameters\n###################"
     )
@@ -577,8 +577,8 @@ def main():
     else:
         workdir = args.workdir
 
-    os.makedirs(workdir,exist_ok=True)
-    
+    os.makedirs(workdir, exist_ok=True)
+
     logfile = args.logfile
     observer = None
 

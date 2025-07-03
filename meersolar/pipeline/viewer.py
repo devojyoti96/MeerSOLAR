@@ -1,6 +1,10 @@
-import os, platform, ctypes
-import sys, numpy as np
-import traceback, argparse
+import os
+import platform
+import ctypes
+import sys
+import numpy as np
+import traceback
+import argparse
 from collections import deque
 from threading import Thread
 from PyQt5.QtWidgets import (
@@ -23,6 +27,7 @@ from watchdog.events import FileSystemEventHandler
 LOG_DIR = None
 POSIX_FADV_DONTNEED = 4
 libc = ctypes.CDLL("libc.so.6")
+
 
 #####################################
 # Resource management
@@ -72,16 +77,18 @@ def drop_cache(path, verbose=False):
     else:
         if verbose:
             print(f"[cache drop] Path does not exist or is not valid: {path}")
-   
+
+
 def get_meersolar_cachedir():
-    homedir=os.environ.get("HOME")
+    homedir = os.environ.get("HOME")
     if homedir is None:
-        homedir=os.path.expanduser("~")
+        homedir = os.path.expanduser("~")
     username = os.getlogin()
-    meersolar_cachedir=f"{homedir}/.meersolar"
-    os.makedirs(meersolar_cachedir,exist_ok=True)
+    meersolar_cachedir = f"{homedir}/.meersolar"
+    os.makedirs(meersolar_cachedir, exist_ok=True)
     return meersolar_cachedir
-            
+
+
 class SmartDefaultsHelpFormatter(argparse.ArgumentDefaultsHelpFormatter):
     def _get_help_string(self, action):
         # Don't show default for boolean flags
@@ -283,7 +290,8 @@ class LogViewer(QWidget):
         try:
             with open(new_log_path, "r") as f:
                 full_data = f.read()
-                # Split, filter blank lines, and rejoin with original line endings
+                # Split, filter blank lines, and rejoin with original line
+                # endings
                 lines = [
                     line for line in full_data.splitlines(keepends=True) if line.strip()
                 ]
@@ -311,14 +319,13 @@ class LogViewer(QWidget):
             self.tail_watcher.stop()
         QApplication.quit()
 
+
 def main():
     global LOG_DIR
     parser = argparse.ArgumentParser(
         description="MeerSOLAR Logger", formatter_class=SmartDefaultsHelpFormatter
     )
-    parser.add_argument(
-        "--jobid", type=str, default=None, help="MeerSOLAR Job ID"
-    )
+    parser.add_argument("--jobid", type=str, default=None, help="MeerSOLAR Job ID")
     parser.add_argument(
         "--logdir",
         type=str,
@@ -326,7 +333,7 @@ def main():
         help="Name of log directory",
     )
     args = parser.parse_args()
-    
+
     if args.jobid is None and args.logdir is None:
         print("Please provide either job ID or log directory.")
         sys.exit(1)
@@ -363,7 +370,7 @@ def main():
     os.environ.setdefault("XDG_RUNTIME_DIR", f"{LOG_DIR}/xdgtmp")
     os.environ["XDG_RUNTIME_DIR"] = f"{LOG_DIR}/xdgtmp"
     os.environ["TMPDIR"] = f"{LOG_DIR}/xdgtmp"
-    
+
     try:
         app = QApplication(sys.argv)
         app.setStyleSheet(
@@ -388,6 +395,3 @@ def main():
     finally:
         if LOG_DIR is not None and os.path.exists(LOG_DIR):
             drop_cache(LOG_DIR)
-        
-        
-        

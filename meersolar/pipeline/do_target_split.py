@@ -3,7 +3,7 @@ from meersolar.pipeline.basic_func import *
 try:
     logfile = casalog.logfile()
     os.system("rm -rf " + logfile)
-except:
+except BaseException:
     pass
 
 
@@ -227,7 +227,7 @@ def split_target_scans(
             timebin = str(timeres) + "s"
         else:
             timebin = ""
-        if fullpol == False:
+        if not fullpol:
             corr = "XX,YY"
         else:
             corr = ""
@@ -427,7 +427,7 @@ def main():
         description="Split target scans", formatter_class=SmartDefaultsHelpFormatter
     )
 
-    ## Essential parameters
+    # Essential parameters
     basic_args = parser.add_argument_group(
         "###################\nEssential parameters\n###################"
     )
@@ -443,7 +443,7 @@ def main():
         help="Name of work directory",
     )
 
-    ## Advanced parameters
+    # Advanced parameters
     adv_args = parser.add_argument_group(
         "###################\nAdvanced parameters\n###################"
     )
@@ -525,7 +525,7 @@ def main():
         "--merge_spws", action="store_true", help="Merge spectral windows"
     )
 
-    ## Resource management parameters
+    # Resource management parameters
     hard_args = parser.add_argument_group(
         "###################\nHardware resource management parameters\n###################"
     )
@@ -557,12 +557,8 @@ def main():
         help="Maximum memory fraction to use",
         metavar="Float",
     )
-    hard_args.add_argument(
-        "--logfile", type=str, default=None, help="Log file"
-    )
-    hard_args.add_argument(
-        "--jobid", type=int, default=0, help="Job ID"
-    )
+    hard_args.add_argument("--logfile", type=str, default=None, help="Log file")
+    hard_args.add_argument("--jobid", type=int, default=0, help="Job ID")
 
     if len(sys.argv) == 1:
         parser.print_help(sys.stderr)
@@ -577,7 +573,7 @@ def main():
         if args.workdir and os.path.exists(args.workdir)
         else os.path.dirname(os.path.abspath(args.msname)) + "/workdir"
     )
-    os.makedirs(workdir,exist_ok=True)
+    os.makedirs(workdir, exist_ok=True)
 
     logfile = args.logfile
     observer = None

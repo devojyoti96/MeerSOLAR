@@ -7,7 +7,7 @@ from meersolar.pipeline.basic_func import *
 try:
     casalogfile = casalog.logfile()
     os.system("rm -rf " + casalogfile)
-except:
+except BaseException:
     pass
 
 warnings.simplefilter("ignore", category=FITSFixedWarning)
@@ -174,7 +174,7 @@ def load_beam(image_file, band=""):
     if band == "":
         try:
             band = hdr["BAND"]
-        except:
+        except BaseException:
             if freq1 >= 544 and freq2 <= 1088:  # UHF band
                 band = "U"
             elif freq1 >= 856 and freq2 <= 1712:  # L band
@@ -446,7 +446,7 @@ def get_image_beam(
         try:
             jones_array = np.load(pbfile, allow_pickle=True)
             fresh_run = False
-        except:
+        except BaseException:
             fresh_run = True
             os.system(f"rm -rf {pbfile}")
     #################################
@@ -459,7 +459,7 @@ def get_image_beam(
         # Load beam
         ############################
         beam_results = load_beam(image_file, band=band)
-        if beam_results == None:
+        if beam_results is None:
             return
         lm_coords, beam = beam_results
         j00_r, j00_i, j01_r, j01_i, j10_r, j10_i, j11_r, j11_i = get_beam_interpolator(
@@ -526,9 +526,9 @@ def get_image_beam(
             if verbose:
                 print(f"Beam saved in: {pbfile}")
     if apply_parang:
-        jones_array = apply_parallactic_rotation(
-            jones_array, p_angle
-        ).T  # This is to account B'=P(X)BP(-X) parallactic trasnform on brightness matrix
+        # This is to account B'=P(X)BP(-X) parallactic trasnform on brightness
+        # matrix
+        jones_array = apply_parallactic_rotation(jones_array, p_angle).T
     jones_array = jones_array.reshape(jones_array.shape[0], jones_array.shape[1], 2, 2)
     gc.collect()
     if verbose:
@@ -585,7 +585,7 @@ def get_pbcor_image(
             n_cpu=int(n_cpu),
             verbose=verbose,
         )
-        if type(beam) != np.ndarray:
+        if not isinstance(beam, np.ndarray):
             print(f"Error in correct beam for image: {os.path.basename(image_file)}")
             return
         det = beam[..., 0, 0] * beam[..., 1, 1] - beam[..., 0, 1] * beam[..., 1, 0]
@@ -644,7 +644,7 @@ def main():
         formatter_class=SmartDefaultsHelpFormatter,
     )
 
-    ## Essential parameters
+    # Essential parameters
     basic_args = parser.add_argument_group(
         "###################\nEssential parameters\n###################"
     )
@@ -664,7 +664,7 @@ def main():
         help="Name of primary beam corrected image directory",
     )
 
-    ## Advanced parameters
+    # Advanced parameters
     adv_args = parser.add_argument_group(
         "###################\nAdvanced parameters\n###################"
     )
@@ -674,9 +674,7 @@ def main():
         dest="save_beam",
         help="Do not save beam to disk",
     )
-    adv_args.add_argument(
-        "--band", type=str, default="", help="Band name"
-    )
+    adv_args.add_argument("--band", type=str, default="", help="Band name")
     adv_args.add_argument(
         "--no_apply_parang",
         action="store_false",
@@ -685,7 +683,7 @@ def main():
     )
     adv_args.add_argument("--verbose", action="store_true", help="Verbose output")
 
-    ## Resource management parameters
+    # Resource management parameters
     hard_args = parser.add_argument_group(
         "###################\nHardware resource management parameters\n###################"
     )
@@ -696,9 +694,7 @@ def main():
         help="Number of CPU threads to use",
         metavar="Integer",
     )
-    hard_args.add_argument(
-        "--jobid", type=int, default=0, help="Job ID"
-    )
+    hard_args.add_argument("--jobid", type=int, default=0, help="Job ID")
 
     if len(sys.argv) == 1:
         parser.print_help(sys.stderr)
@@ -706,7 +702,7 @@ def main():
 
     args = parser.parse_args()
     pid = os.getpid()
-    meersolar_cachedir=get_meersolar_cachedir()
+    meersolar_cachedir = get_meersolar_cachedir()
     save_pid(pid, f"{meersolar_cachedir}/pids/pids_{args.jobid}.txt")
 
     try:

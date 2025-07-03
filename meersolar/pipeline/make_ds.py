@@ -3,9 +3,10 @@ from meersolar.pipeline.basic_func import *
 try:
     logfile = casalog.logfile()
     os.system("rm -rf " + logfile)
-except:
+except BaseException:
     pass
-    
+
+
 def make_ds(
     msname,
     workdir,
@@ -71,7 +72,7 @@ def make_ds(
                 cpu_frac=cpu_frac,
                 mem_frac=mem_frac,
             )
-        if os.path.samefile(outdir,workdir)==False:
+        if os.path.samefile(outdir, workdir) == False:
             os.system(f"mv {workdir}/dynamic_spectra {outdir}")
         ds_file_name = os.path.basename(msname).split(".ms")[0] + "_DS"
         ds_files = glob.glob(f"{outdir}/dynamic_spectra/{ds_file_name}*.{extension}")
@@ -109,7 +110,6 @@ def main():
         required=True,
         help="Output directory",
     )
-    
 
     # === Advanced parameters ===
     adv_args = parser.add_argument_group(
@@ -178,9 +178,9 @@ def main():
         workdir = os.path.dirname(os.path.abspath(first_ms)) + "/workdir"
     else:
         workdir = args.workdir
-    os.makedirs(workdir,exist_ok=True)
+    os.makedirs(workdir, exist_ok=True)
 
-    os.makedirs(workdir + "/logs/",exist_ok=True)
+    os.makedirs(workdir + "/logs/", exist_ok=True)
 
     logfile = args.logfile
     observer = None

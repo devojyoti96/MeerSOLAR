@@ -1,5 +1,6 @@
 from meersolar.pipeline.basic_func import *
 
+
 def show_job_status(clean_old_jobs=False):
     """
     Show MeerSOLAR jobs status
@@ -9,7 +10,7 @@ def show_job_status(clean_old_jobs=False):
     clean_old_jobs : bool, optional
         Clean old informations for stopped jobs
     """
-    meersolar_cachedir=get_meersolar_cachedir()
+    meersolar_cachedir = get_meersolar_cachedir()
     try:
         main_pid_files = glob.glob(f"{meersolar_cachedir}/main_pids_*.txt")
         if len(main_pid_files) == 0:
@@ -29,11 +30,17 @@ def show_job_status(clean_old_jobs=False):
                     running = "Running/Waiting"
                 else:
                     running = "Done/Stopped"
-                print(f"Job ID: {jobid}, Work direcory: {workdir}, Output directory: {outdir}, Status: {running}")
-                print ("#########################################################################################")
+                print(
+                    f"Job ID: {jobid}, Work direcory: {workdir}, Output directory: {outdir}, Status: {running}"
+                )
+                print(
+                    "#########################################################################################"
+                )
                 if clean_old_jobs and running == "Done/Stopped":
                     os.system(f"rm -rf {pid_file}")
-                    if os.path.exists(f"rm -rf {meersolar_cachedir}/pids/pids_{jobid}.txt"):
+                    if os.path.exists(
+                        f"rm -rf {meersolar_cachedir}/pids/pids_{jobid}.txt"
+                    ):
                         os.system(f"rm -rf {meersolar_cachedir}/pids/pids_{jobid}.txt")
     except Exception as e:
         traceback.print_exc()
@@ -70,7 +77,6 @@ def main():
             show_job_status(clean_old_jobs=args.clean_old_jobs)
     except Exception as e:
         traceback.print_exc()
-        
 
 
 if __name__ == "__main__":

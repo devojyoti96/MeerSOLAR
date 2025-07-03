@@ -7,7 +7,7 @@ from loguru import logger
 
 
 class InterceptHandler(logging.Handler):
-    """ Intercept logging messages and reroute them to the loguru. """
+    """Intercept logging messages and reroute them to the loguru."""
 
     def emit(self, record):
         # Get corresponding Loguru level if it exists
@@ -22,8 +22,11 @@ class InterceptHandler(logging.Handler):
             frame = frame.f_back
             depth += 1
 
-        (logger.opt(depth=depth, exception=record.exc_info)
-               .log(level, record.getMessage()))
+        (
+            logger.opt(depth=depth, exception=record.exc_info).log(
+                level, record.getMessage()
+            )
+        )
 
 
 logging.basicConfig(handlers=[InterceptHandler()], level=0)
@@ -40,9 +43,7 @@ fmt = " | ".join([tim_fmt, lvl_fmt, src_fmt, msg_fmt])
 
 config = {
     "handlers": [
-        {"sink": sys.stderr,
-         "level": "INFO",
-         "format": fmt},
+        {"sink": sys.stderr, "level": "INFO", "format": fmt},
         # {"sink": "{time:YYYYMMDD_HHmmss}_crystalball.log",
         #  "level": "DEBUG",
         #  "format": fmt,

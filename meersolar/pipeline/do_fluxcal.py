@@ -5,7 +5,7 @@ from meersolar.pipeline.import_model import import_fluxcal_models
 try:
     logfile = casalog.logfile()
     os.system("rm -rf " + logfile)
-except:
+except BaseException:
     pass
 
 
@@ -288,8 +288,8 @@ def get_power_diff(
     ########################################
     # Determining chunk size
     ########################################
-    cal_mssize = get_ms_size(cal_msname,only_autocorr=True)
-    source_mssize = get_ms_size(source_msname,only_autocorr=True)
+    cal_mssize = get_ms_size(cal_msname, only_autocorr=True)
+    source_mssize = get_ms_size(source_msname, only_autocorr=True)
     total_mssize = cal_mssize + source_mssize
     scale_factor_size = nant * ntime * scale_factor.nbytes / (1024.0**3)
     att_ant_array_size = (npol * nchan * nant * 16) / (1024.0**3)
@@ -710,7 +710,7 @@ def run_noise_cal(
         )
         if keep_backup:
             print("Backup directory: " + workdir + "/backup")
-            os.makedirs(workdir + "/backup",exist_ok=True)
+            os.makedirs(workdir + "/backup", exist_ok=True)
             os.system(
                 "mv "
                 + noisecal_ms
@@ -758,7 +758,7 @@ def main():
         formatter_class=SmartDefaultsHelpFormatter,
     )
 
-    ## Essential parameters
+    # Essential parameters
     basic_args = parser.add_argument_group(
         "###################\nEssential parameters\n###################"
     )
@@ -782,7 +782,7 @@ def main():
         help="Directory for calibration products (default: auto-created in the workdir MS)",
     )
 
-    ## Advanced parameters
+    # Advanced parameters
     adv_args = parser.add_argument_group(
         "###################\nAdvanced parameters\n###################"
     )
@@ -792,7 +792,7 @@ def main():
         help="Keep backup of measurement set after each round",
     )
 
-    ## Resource management parameters
+    # Resource management parameters
     hard_args = parser.add_argument_group(
         "###################\nHardware resource management parameters\n###################"
     )
@@ -819,16 +819,16 @@ def main():
 
     # === Set up workdir ===
     if args.workdir == "" or not os.path.exists(args.workdir):
-        workdir = os.path.dirname(os.path.abspath(args.msname)) + "/workdir"            
+        workdir = os.path.dirname(os.path.abspath(args.msname)) + "/workdir"
     else:
         workdir = args.workdir
-    os.makedirs(workdir,exist_ok=True)
-    
-    if args.caldir=="" or not os.path.exists(args.caldir):
-        caldir=f"{workdir}/caltables"
+    os.makedirs(workdir, exist_ok=True)
+
+    if args.caldir == "" or not os.path.exists(args.caldir):
+        caldir = f"{workdir}/caltables"
     else:
-        caldir=args.caldir
-    os.makedirs(caldir,exist_ok=True)
+        caldir = args.caldir
+    os.makedirs(caldir, exist_ok=True)
 
     logfile = args.logfile
     observer = None

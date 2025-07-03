@@ -3,7 +3,7 @@ from meersolar.pipeline.basic_func import *
 try:
     logfile = casalog.logfile()
     os.system("rm -rf " + logfile)
-except:
+except BaseException:
     pass
 
 
@@ -58,7 +58,7 @@ def single_mstransform(
     print(
         f"Transforming scan : {scan}, channel averaging: {width}, time averaging: '{timebin}'\n"
     )
-    if timebin == "" or timebin == None:
+    if timebin == "" or timebin is None:
         timeaverage = False
     else:
         timeaverage = True
@@ -163,7 +163,7 @@ def partion_ms(
         for i in fields.split(","):
             try:
                 i = int(i)
-            except:
+            except BaseException:
                 pass
             field_list.append(i)
         for field in field_list:
@@ -195,7 +195,7 @@ def partion_ms(
     msmd.close()
     msmd.done()
     field = ",".join(field_list)
-    if fullpol == False:
+    if not fullpol:
         corr = "XX,YY"
     else:
         corr = ""
@@ -205,7 +205,7 @@ def partion_ms(
     scan_sizes = []
     for scan in scan_list:
         scan_sizes.append(get_ms_scan_size(msname, int(scan)))
-    total_required_size = round(2*np.nansum(scan_sizes), 2)
+    total_required_size = round(2 * np.nansum(scan_sizes), 2)
     task = delayed(single_mstransform)(dry_run=True)
     mem_limit = run_limited_memory_task(task, dask_dir=workdir)
     os.environ["TMPDIR"] = workdir
@@ -239,7 +239,7 @@ def partion_ms(
         dask_cluster.close()
         splited_ms_list_copy = copy.deepcopy(splited_ms_list)
         for ms in splited_ms_list:
-            if ms == None:
+            if ms is None:
                 splited_ms_list_copy.remove(ms)
         splited_ms_list = copy.deepcopy(splited_ms_list_copy)
         outputms = outputms.rstrip("/")
@@ -273,7 +273,7 @@ def main():
         formatter_class=SmartDefaultsHelpFormatter,
     )
 
-    ## Essential parameters
+    # Essential parameters
     basic_args = parser.add_argument_group(
         "###################\nEssential parameters\n###################"
     )
@@ -290,7 +290,7 @@ def main():
     )
     basic_args.add_argument("--workdir", type=str, required=True, help="Work directory")
 
-    ## Advanced parameters
+    # Advanced parameters
     adv_args = parser.add_argument_group(
         "###################\nAdvanced parameters\n###################"
     )
@@ -332,7 +332,7 @@ def main():
         help="Split all polarizations (default: False)",
     )
 
-    ## Resource management parameters
+    # Resource management parameters
     hard_args = parser.add_argument_group(
         "###################\nHardware resource management parameters\n###################"
     )
@@ -370,7 +370,7 @@ def main():
         workdir = os.path.dirname(os.path.abspath(args.msname)) + "/workdir"
     else:
         workdir = args.workdir
-    os.makedirs(workdir,exist_ok=True)
+    os.makedirs(workdir, exist_ok=True)
 
     logfile = args.logfile
     observer = None

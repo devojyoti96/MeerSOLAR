@@ -5,7 +5,7 @@ from functools import partial
 try:
     casalogfile = casalog.logfile()
     os.system("rm -rf " + casalogfile)
-except:
+except BaseException:
     pass
 
 
@@ -110,7 +110,7 @@ def single_selfcal_iteration(
         if mem < 0:
             mem = round(psutil.virtual_memory().available / (1024**3), 2)
         msname = msname.rstrip("/")
-        if use_previous_model == False:
+        if not use_previous_model:
             delmod(vis=msname, otf=True, scr=True)
         prefix = (
             selfcaldir
@@ -204,10 +204,10 @@ def single_selfcal_iteration(
         nintervals_list = []
         for i in range(len(chanrange_list)):
             chanrange = chanrange_list[i]
-            ###########################################################################
+            ###################################################################
             # Spectral variation is kept fixed at 10% level.
             # Because selfcal is done along temporal axis, where variation matters most
-            ###########################################################################
+            ###################################################################
             if min_tol_factor <= 0:
                 min_tol_factor = 1.0
             nintervals, _ = get_optimal_image_interval(
@@ -259,7 +259,7 @@ def single_selfcal_iteration(
                 fits_mask = create_circular_mask(
                     msname, cellsize, imsize, mask_radius=mask_radius
                 )
-            if fits_mask != None and os.path.exists(fits_mask):
+            if fits_mask is not None and os.path.exists(fits_mask):
                 wsclean_args.append("-fits-mask " + fits_mask)
 
         ######################################
@@ -293,10 +293,10 @@ def single_selfcal_iteration(
             if imsize >= 2048 and 4 * max(multiscale_scales) < 1024:
                 per_chanrange_wsclean_args.append("-parallel-deconvolution 1024")
 
-            ###########################################################################
+            ###################################################################
             # Spectral variation is kept fixed at 10% level.
             # Because selfcal is done along temporal axis, where variation matters most
-            ###########################################################################
+            ###################################################################
             if len(scale_bias_list) > 1:
                 if min_tol_factor <= 0:
                     min_tol_factor = 1.0
@@ -398,7 +398,7 @@ def single_selfcal_iteration(
         # Restoring flags if applymode is calflag
         #########################################
         if applymode == "calflag":
-            with suppress_casa_output():    
+            with suppress_casa_output():
                 flags = flagmanager(vis=msname, mode="list")
             keys = flags.keys()
             for k in keys:
@@ -409,14 +409,18 @@ def single_selfcal_iteration(
                     if "applycal" in version:
                         try:
                             with suppress_casa_output():
-                                flagmanager(vis=msname, mode="restore", versionname=version)
-                                flagmanager(vis=msname, mode="delete", versionname=version)
-                        except:
+                                flagmanager(
+                                    vis=msname, mode="restore", versionname=version
+                                )
+                                flagmanager(
+                                    vis=msname, mode="delete", versionname=version
+                                )
+                        except BaseException:
                             pass
 
-        ##########################################################################
+        #######################################################################
         # Final frequency averaged images for backup or calculating dynamic ranges
-        ##########################################################################
+        #######################################################################
         final_image = prefix.replace("present", f"{round_number}") + "_I_image.fits"
         final_model = prefix.replace("present", f"{round_number}") + "_I_model.fits"
         final_residual = (
@@ -631,7 +635,7 @@ def do_selfcal(
     logger, logfile = create_logger(
         os.path.basename(logfile).split(".log")[0], logfile, verbose=False
     )
-    if os.path.exists(f"{workdir}/jobname_password.npy") and logfile != None:
+    if os.path.exists(f"{workdir}/jobname_password.npy") and logfile is not None:
         time.sleep(5)
         jobname, password = np.load(
             f"{workdir}/jobname_password.npy", allow_pickle=True
@@ -646,8 +650,8 @@ def do_selfcal(
     try:
         msname = os.path.abspath(msname.rstrip("/"))
         selfcaldir = selfcaldir.rstrip("/")
-        os.makedirs(selfcaldir,exist_ok=True)
-        
+        os.makedirs(selfcaldir, exist_ok=True)
+
         os.chdir(selfcaldir)
         selfcalms = selfcaldir + "/selfcal_" + os.path.basename(msname)
         if os.path.exists(selfcalms):
@@ -670,7 +674,7 @@ def do_selfcal(
                     with suppress_casa_output():
                         flagmanager(vis=msname, mode="restore", versionname=version)
                         flagmanager(vis=msname, mode="delete", versionname=version)
-                except:
+                except BaseException:
                     pass
         if os.path.exists(msname + ".flagversions"):
             os.system("rm -rf " + msname + ".flagversions")
@@ -1037,9 +1041,11 @@ def do_selfcal(
 
 def main():
     starttime = time.time()
-    parser = argparse.ArgumentParser(description="Self-calibration",formatter_class=SmartDefaultsHelpFormatter)
-    
-    ## Essential parameters
+    parser = argparse.ArgumentParser(
+        description="Self-calibration", formatter_class=SmartDefaultsHelpFormatter
+    )
+
+    # Essential parameters
     basic_args = parser.add_argument_group(
         "###################\nEssential parameters\n###################"
     )
@@ -1049,13 +1055,21 @@ def main():
         help="Comma-separated list of measurement sets (required positional argument)",
     )
     basic_args.add_argument(
-        "--workdir", type=str, default="", required=True, help="Working directory", 
+        "--workdir",
+        type=str,
+        default="",
+        required=True,
+        help="Working directory",
     )
     basic_args.add_argument(
-        "--caldir", type=str, default="", required=True, help="Caltable directory",
+        "--caldir",
+        type=str,
+        default="",
+        required=True,
+        help="Caltable directory",
     )
-    
-    ## Advanced parameters
+
+    # Advanced parameters
     adv_args = parser.add_argument_group(
         "###################\nAdvanced calibration and imaging parameters\n###################"
     )
@@ -1101,9 +1115,7 @@ def main():
         help="Fractional change in DR to determine convergence",
         metavar="Float",
     )
-    adv_args.add_argument(
-        "--solint", type=str, default="60s", help="Solution interval"
-    )
+    adv_args.add_argument("--solint", type=str, default="60s", help="Solution interval")
     adv_args.add_argument(
         "--uvrange",
         type=str,
@@ -1117,9 +1129,7 @@ def main():
         help="Minimum UV-lambda used for imaging",
         metavar="Float",
     )
-    adv_args.add_argument(
-        "--weight", type=str, default="briggs", help="Imaging weight"
-    )
+    adv_args.add_argument("--weight", type=str, default="briggs", help="Imaging weight")
     adv_args.add_argument(
         "--robust",
         type=float,
@@ -1141,17 +1151,25 @@ def main():
         help="Minimum tolerable variation in temporal direction in percentage",
         metavar="Float",
     )
-    adv_args.add_argument("--no_apcal", action="store_false", dest="do_apcal", help="Do not perform ap-selfcal")
     adv_args.add_argument(
-        "--no_solar_selfcal", action="store_false", dest="solar_selfcal", help="Do not perform solar self-calibration"
+        "--no_apcal",
+        action="store_false",
+        dest="do_apcal",
+        help="Do not perform ap-selfcal",
+    )
+    adv_args.add_argument(
+        "--no_solar_selfcal",
+        action="store_false",
+        dest="solar_selfcal",
+        help="Do not perform solar self-calibration",
     )
     adv_args.add_argument(
         "--keep_backup",
         action="store_true",
         help="Keep backup of self-calibration rounds",
     )
-    
-    ## Resource management parameters
+
+    # Resource management parameters
     hard_args = parser.add_argument_group(
         "###################\nHardware resource management parameters\n###################"
     )
@@ -1169,9 +1187,7 @@ def main():
         help="Memory fraction to use",
         metavar="Float",
     )
-    hard_args.add_argument(
-        "--jobid", type=int, default=0, help="Job ID"
-    )
+    hard_args.add_argument("--jobid", type=int, default=0, help="Job ID")
 
     if len(sys.argv) == 1:
         parser.print_help(sys.stderr)
@@ -1182,24 +1198,24 @@ def main():
     pid = os.getpid()
     save_pid(pid, datadir + f"/pids/pids_{args.jobid}.txt")
     if args.workdir == "" or os.path.exists(args.workdir) == False:
-        workdir = os.path.dirname(os.path.abspath(args.msname)) + "/workdir"            
+        workdir = os.path.dirname(os.path.abspath(args.msname)) + "/workdir"
     else:
         workdir = args.workdir
-    os.makedirs(workdir,exist_ok=True)
-    
-    if args.caldir=="" or not os.path.exists(args.caldir):
-        caldir=f"{workdir}/caltables"
+    os.makedirs(workdir, exist_ok=True)
+
+    if args.caldir == "" or not os.path.exists(args.caldir):
+        caldir = f"{workdir}/caltables"
     else:
-        caldir=args.caldir
-    os.makedirs(caldir,exist_ok=True)
-        
-    os.makedirs(workdir + "/logs",exist_ok=True)
+        caldir = args.caldir
+    os.makedirs(caldir, exist_ok=True)
+
+    os.makedirs(workdir + "/logs", exist_ok=True)
     mainlog_file = workdir + "/logs/selfcal_targets.mainlog"
     mainlogger, mainlog_file = create_logger(
         os.path.basename(mainlog_file).split(".mainlog")[0], mainlog_file, verbose=False
     )
     observer = None
-    if os.path.exists(f"{workdir}/jobname_password.npy") and mainlog_file != None:
+    if os.path.exists(f"{workdir}/jobname_password.npy") and mainlog_file is not None:
         time.sleep(5)
         jobname, password = np.load(
             f"{workdir}/jobname_password.npy", allow_pickle=True
@@ -1213,9 +1229,9 @@ def main():
     ###########################
     container_name = "meerwsclean"
     container_present = check_udocker_container(container_name)
-    if container_present == False:
+    if not container_present:
         container_name = initialize_wsclean_container(name=container_name)
-        if container_name == None:
+        if container_name is None:
             print(
                 "Container {container_name} is not initiated. First initiate container and then run."
             )
@@ -1283,9 +1299,7 @@ def main():
             soft_limit, hard_limit = resource.getrlimit(resource.RLIMIT_NOFILE)
             new_soft_limit = max(soft_limit, int(0.8 * hard_limit))
             if soft_limit < new_soft_limit:
-                resource.setrlimit(
-                    resource.RLIMIT_NOFILE, (new_soft_limit, hard_limit)
-                )
+                resource.setrlimit(resource.RLIMIT_NOFILE, (new_soft_limit, hard_limit))
 
             num_fd_list = []
             for ms in mslist:
@@ -1308,15 +1322,13 @@ def main():
             n_jobs = max(1, int(new_soft_limit / total_fd))
             n_jobs = min(len(mslist), n_jobs)
 
-            dask_client, dask_cluster, n_jobs, n_threads, mem_limit = (
-                get_dask_client(
-                    n_jobs,
-                    dask_dir=args.workdir,
-                    cpu_frac=float(args.cpu_frac),
-                    mem_frac=float(args.mem_frac),
-                    min_cpu_per_job=3,
-                    min_mem_per_job=min_mem_per_job,
-                )
+            dask_client, dask_cluster, n_jobs, n_threads, mem_limit = get_dask_client(
+                n_jobs,
+                dask_dir=args.workdir,
+                cpu_frac=float(args.cpu_frac),
+                mem_frac=float(args.mem_frac),
+                min_cpu_per_job=3,
+                min_mem_per_job=min_mem_per_job,
             )
             tasks = []
             for ms in mslist:
@@ -1360,7 +1372,7 @@ def main():
                     final_gain_caltable = caldir + f"/selfcal_scan_{scan}.gcal"
                     os.system(f"cp -r {gcal} {final_gain_caltable}")
                     gcal_list.append(final_gain_caltable)
-            if args.keep_backup == False:
+            if not args.keep_backup:
                 for ms in mslist:
                     selfcaldir = (
                         args.workdir
@@ -1372,17 +1384,13 @@ def main():
             if len(gcal_list) > 0:
                 mainlogger.info(f"Final selfcal caltables: {gcal_list}")
                 mainlogger.info("################################################")
-                mainlogger.info(
-                    f"Total time taken: {round(time.time()-starttime,2)}s"
-                )
+                mainlogger.info(f"Total time taken: {round(time.time()-starttime,2)}s")
                 mainlogger.info("################################################")
                 msg = 0
             else:
                 mainlogger.info("No self-calibration is successful.")
                 mainlogger.info("################################################")
-                mainlogger.info(
-                    f"Total time taken: {round(time.time()-starttime,2)}s"
-                )
+                mainlogger.info(f"Total time taken: {round(time.time()-starttime,2)}s")
                 mainlogger.info("################################################")
                 msg = 1
     except Exception as e:

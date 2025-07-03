@@ -5,8 +5,9 @@ from meersolar.pipeline.basic_func import *
 try:
     logfile = casalog.logfile()
     os.system("rm -rf " + logfile)
-except:
+except BaseException:
     pass
+
 
 def run_flag(
     msname, workdir, flag_calibrators=True, jobid=0, cpu_frac=0.8, mem_frac=0.8
@@ -74,7 +75,7 @@ def run_flag(
     )
     logfile = workdir + "/logs/" + flag_basename + ".log"
     flagging_cmd += f" --logfile {logfile}"
-    os.makedirs(workdir + "/logs",exist_ok=True)
+    os.makedirs(workdir + "/logs", exist_ok=True)
     batch_file = create_batch_script_nonhpc(flagging_cmd, workdir, flag_basename)
     print(flagging_cmd + "\n")
     os.system("bash " + batch_file)
@@ -132,7 +133,7 @@ def run_import_model(msname, workdir, jobid=0, cpu_frac=0.8, mem_frac=0.8):
     model_basename = "modeling_" + os.path.basename(msname).split(".ms")[0]
     logfile = workdir + "/logs/" + model_basename + ".log"
     import_model_cmd += f" --logfile {logfile}"
-    os.makedirs(workdir + "/logs",exist_ok=True)
+    os.makedirs(workdir + "/logs", exist_ok=True)
     batch_file = create_batch_script_nonhpc(import_model_cmd, workdir, model_basename)
     print(import_model_cmd + "\n")
     os.system("bash " + batch_file)
@@ -213,7 +214,7 @@ def run_basic_cal_jobs(
         basic_cal_cmd += " --keep_backup"
     logfile = workdir + "/logs/" + cal_basename + ".log"
     basic_cal_cmd += f" --logfile {logfile}"
-    os.makedirs(workdir + "/logs",exist_ok=True)
+    os.makedirs(workdir + "/logs", exist_ok=True)
     batch_file = create_batch_script_nonhpc(basic_cal_cmd, workdir, cal_basename)
     print(basic_cal_cmd + "\n")
     os.system("bash " + batch_file)
@@ -279,7 +280,7 @@ def run_noise_diode_cal(
         )
         logfile = workdir + "/logs/" + noisecal_basename + ".log"
         noise_cal_cmd += f" --logfile {logfile}"
-        os.makedirs(workdir + "/logs",exist_ok=True)
+        os.makedirs(workdir + "/logs", exist_ok=True)
         batch_file = create_batch_script_nonhpc(
             noise_cal_cmd, workdir, noisecal_basename
         )
@@ -370,7 +371,7 @@ def run_partion(
     partition_basename = f"partition_cal"
     logfile = workdir + "/logs/" + partition_basename + ".log"
     split_cmd += f" --logfile {logfile}"
-    os.makedirs(workdir + "/logs",exist_ok=True)
+    os.makedirs(workdir + "/logs", exist_ok=True)
     batch_file = create_batch_script_nonhpc(split_cmd, workdir, partition_basename)
     print(split_cmd + "\n")
     os.system("bash " + batch_file)
@@ -503,7 +504,7 @@ def run_target_split_jobs(
             )
         logfile = workdir + "/logs/" + split_basename + ".log"
         split_cmd += f" --logfile {logfile}"
-        os.makedirs(workdir + "/logs",exist_ok=True)
+        os.makedirs(workdir + "/logs", exist_ok=True)
         batch_file = create_batch_script_nonhpc(split_cmd, workdir, split_basename)
         print(split_cmd + "\n")
         os.system("bash " + batch_file)
@@ -569,7 +570,7 @@ def run_solar_siderealcor_jobs(
             + " --jobid "
             + str(jobid)
         )
-        os.makedirs(workdir + "/logs",exist_ok=True)
+        os.makedirs(workdir + "/logs", exist_ok=True)
         logfile = workdir + "/logs/" + sidereal_basename + ".log"
         sidereal_cor_cmd += f" --logfile {logfile}"
         batch_file = create_batch_script_nonhpc(
@@ -640,9 +641,9 @@ def run_apply_pbcor(
             + " --jobid "
             + str(jobid)
         )
-        if apply_parang == False:
+        if not apply_parang:
             applypbcor_cmd += " --no_apply_parang"
-        os.makedirs(workdir + "/logs",exist_ok=True)
+        os.makedirs(workdir + "/logs", exist_ok=True)
         logfile = workdir + "/logs/" + applypbcor_basename + ".log"
         applypbcor_cmd += f" --logfile {logfile}"
         batch_file = create_batch_script_nonhpc(
@@ -733,7 +734,7 @@ def run_apply_basiccal_sol(
             applycal_cmd += " --use_only_bandpass"
         if overwrite_datacolumn:
             applycal_cmd += " --overwrite_datacolumn"
-        os.makedirs(workdir + "/logs",exist_ok=True)
+        os.makedirs(workdir + "/logs", exist_ok=True)
         logfile = workdir + "/logs/" + applycal_basename + ".log"
         applycal_cmd += f" --logfile {logfile}"
         batch_file = create_batch_script_nonhpc(
@@ -819,7 +820,7 @@ def run_apply_selfcal_sol(
         )
         if overwrite_datacolumn:
             applycal_cmd += " --overwrite_datacolumn"
-        os.makedirs(workdir + "/logs",exist_ok=True)
+        os.makedirs(workdir + "/logs", exist_ok=True)
         logfile = workdir + "/logs/" + applycal_basename + ".log"
         applycal_cmd += f" --logfile {logfile}"
         batch_file = create_batch_script_nonhpc(
@@ -965,13 +966,13 @@ def run_selfcal_jobs(
             selfcal_cmd += " --weight " + str(weight)
         if robust != "":
             selfcal_cmd += " --robust " + str(robust)
-        if do_apcal == False:
+        if not do_apcal:
             selfcal_cmd += " --no_apcal"
-        if solar_selfcal == False:
+        if not solar_selfcal:
             selfcal_cmd += " --no_solar_selfcal"
         if keep_backup:
             selfcal_cmd += " --keep_backup"
-        os.makedirs(workdir + "/logs",exist_ok=True)
+        os.makedirs(workdir + "/logs", exist_ok=True)
         batch_file = create_batch_script_nonhpc(selfcal_cmd, workdir, selfcal_basename)
         print(selfcal_cmd + "\n")
         os.system("bash " + batch_file)
@@ -1105,15 +1106,15 @@ def run_imaging_jobs(
             + " --jobid "
             + str(jobid)
         )
-        if use_solar_mask == False:
+        if not use_solar_mask:
             imaging_cmd += " --no_solar_mask"
-        if savemodel == False:
+        if not savemodel:
             imaging_cmd += " --no_savemodel"
-        if saveres == False:
+        if not saveres:
             imaging_cmd += " --no_saveres"
-        if use_multiscale == False:
+        if not use_multiscale:
             imaging_cmd += " --no_multiscale"
-        if make_overlay == False:
+        if not make_overlay:
             imaging_cmd += " --no_make_overlay"
         if freqrange != "":
             imaging_cmd += " --freqrange " + str(freqrange)
@@ -1121,7 +1122,7 @@ def run_imaging_jobs(
             imaging_cmd += " --timerange " + str(timerange)
         if band != "":
             imaging_cmd += " --band " + str(band)
-        os.makedirs(workdir + "/logs",exist_ok=True)
+        os.makedirs(workdir + "/logs", exist_ok=True)
         batch_file = create_batch_script_nonhpc(imaging_cmd, workdir, imaging_basename)
         print(imaging_cmd + "\n")
         os.system("bash " + batch_file)
@@ -1143,7 +1144,9 @@ def run_imaging_jobs(
         return 1
 
 
-def run_ds_jobs(msname, workdir, outdir, target_scans=[], jobid=0, cpu_frac=0.8, mem_frac=0.8):
+def run_ds_jobs(
+    msname, workdir, outdir, target_scans=[], jobid=0, cpu_frac=0.8, mem_frac=0.8
+):
     """
     Make dynamic spectra of the target scans
 
@@ -1174,7 +1177,7 @@ def run_ds_jobs(msname, workdir, outdir, target_scans=[], jobid=0, cpu_frac=0.8,
         ds_basename = "ds_targets"
         target_scans = " ".join([str(s) for s in target_scans])
         ds_cmd = f"run_makeds {msname} --workdir {workdir} --outdir {outdir} --cpu_frac {cpu_frac} --mem_frac {mem_frac} --jobid {jobid} --target_scans {target_scans}"
-        os.makedirs(workdir + "/logs",exist_ok=True)
+        os.makedirs(workdir + "/logs", exist_ok=True)
         logfile = workdir + "/logs/" + ds_basename + ".log"
         ds_cmd += f" --logfile {logfile}"
         batch_file = create_batch_script_nonhpc(ds_cmd, workdir, ds_basename)
@@ -1445,6 +1448,7 @@ def master_control(
         Success message
     """
     from meersolar.pipeline.init_data import init_meersolar_data
+
     init_meersolar_data()
     msname = os.path.abspath(msname.rstrip("/"))
     if os.path.exists(msname) == False:
@@ -1457,15 +1461,15 @@ def master_control(
     ###################################
     if workdir == "":
         workdir = os.path.dirname(os.path.abspath(msname)) + "/workdir"
-    workdir=workdir.rstrip("/")
-    if outdir=="":
-        outdir=workdir
-    outdir=outdir.rstrip("/")
-    caldir=outdir+"/caltables"  
-    caldir=caldir.rstrip("/")  
-    os.makedirs(workdir,exist_ok=True)
-    os.makedirs(outdir,exist_ok=True)
-    os.makedirs(caldir,exist_ok=True)
+    workdir = workdir.rstrip("/")
+    if outdir == "":
+        outdir = workdir
+    outdir = outdir.rstrip("/")
+    caldir = outdir + "/caltables"
+    caldir = caldir.rstrip("/")
+    os.makedirs(workdir, exist_ok=True)
+    os.makedirs(outdir, exist_ok=True)
+    os.makedirs(caldir, exist_ok=True)
     if mspath != "" and os.path.exists(mspath + "/dask-scratch-space"):
         os.system("rm -rf " + mspath + "/dask-scratch-space " + mspath + "/tmp")
     if workdir != "" and os.path.exists(workdir + "/dask-scratch-space"):
@@ -1503,7 +1507,7 @@ def master_control(
                 print("Please provide a valid remote link.")
                 remote_logger = False
 
-        if remote_logger == False:
+        if not remote_logger:
             emails = get_emails()
             timestamp = dt.utcnow().strftime("%Y-%m-%dT%H:%M:%S")
             if emails != "":
@@ -1515,8 +1519,13 @@ def master_control(
                     f"Best,\n"
                     f"MeerSOLAR"
                 )
-                from meersolar.data.sendmail import send_paircars_notification as send_notification
-                success_msg, error_msg = send_notification(emails, email_subject, email_msg)
+                from meersolar.data.sendmail import (
+                    send_paircars_notification as send_notification,
+                )
+
+                success_msg, error_msg = send_notification(
+                    emails, email_subject, email_msg
+                )
         else:
             ####################################
             # Job name and logging password
@@ -1554,19 +1563,24 @@ def master_control(
                     f"Best,\n"
                     f"MeerSOLAR"
                 )
-                from meersolar.data.sendmail import send_paircars_notification as send_notification
-                success_msg, error_msg = send_notification(emails, email_subject, email_msg)
+                from meersolar.data.sendmail import (
+                    send_paircars_notification as send_notification,
+                )
+
+                success_msg, error_msg = send_notification(
+                    emails, email_subject, email_msg
+                )
 
         #####################################
         # Settings for solar data
         #####################################
         if solar_data:
-            if use_solar_mask == False:
+            if not use_solar_mask:
                 print("Use solar mask during CLEANing.")
                 use_solar_mask = True
-            if solar_selfcal == False:
+            if not solar_selfcal:
                 solar_selfcal = True
-            full_FoV=False
+            full_FoV = False
         else:
             if do_noise_cal:
                 print(
@@ -1578,7 +1592,7 @@ def master_control(
                 use_solar_mask = False
             if solar_selfcal:
                 solar_selfcal = False
-            full_FoV=True
+            full_FoV = True
 
         ###################################################
         # Target spliting spectral and temporal chunks
@@ -1591,25 +1605,25 @@ def master_control(
         #################################################
         # Determining maximum allowed frequency averaging
         #################################################
-        max_freqres = calc_bw_smearing_freqwidth(msname,full_FoV=full_FoV)
-        if image_freqres>0:
+        max_freqres = calc_bw_smearing_freqwidth(msname, full_FoV=full_FoV)
+        if image_freqres > 0:
             freqavg = round(min(image_freqres, max_freqres), 1)
         else:
-            freqavg = round(max_freqres,1)
+            freqavg = round(max_freqres, 1)
 
         ################################################
         # Determining maximum allowed temporal averaging
         ################################################
-        if solar_data: # For solar data, it is assumed Sun is tracked. 
+        if solar_data:  # For solar data, it is assumed Sun is tracked.
             max_timeres = calc_time_smearing_timewidth(msname)
         else:
             max_timeres = min(
                 calc_time_smearing_timewidth(msname), max_time_solar_smearing(msname)
             )
-        if image_timeres>0:
+        if image_timeres > 0:
             timeavg = round(min(image_timeres, max_timeres), 1)
         else:
-            timeavg = round(max_timeres,1)
+            timeavg = round(max_timeres, 1)
 
         #########################################
         # Target ms frequency chunk based on band
@@ -1638,14 +1652,16 @@ def master_control(
             chanres = msmd.chanres(0, unit="MHz")[0]
             msmd.close()
             total_bw = chanres * (end_chan - start_chan)
-            nchunk=int(total_bw/image_freqres)
-            if nchunk>max(4,n_nodes): # Maximum 4 chunking or number of compute nodes
-                nchunk=max(4,n_nodes)
-                target_freq_chunk=total_bw/nchunk
+            nchunk = int(total_bw / image_freqres)
+            if nchunk > max(
+                4, n_nodes
+            ):  # Maximum 4 chunking or number of compute nodes
+                nchunk = max(4, n_nodes)
+                target_freq_chunk = total_bw / nchunk
             else:
-                nchnuk=1
-                target_freq_chunk=image_freqres
-        
+                nchnuk = 1
+                target_freq_chunk = image_freqres
+
         #############################
         # Reset any previous weights
         ############################
@@ -1694,7 +1710,8 @@ def master_control(
         ##############################
         # Run partitioning jobs
         ##############################
-        # If do partition or calibrator ms is not present in case of basic calibration is requested
+        # If do partition or calibrator ms is not present in case of basic
+        # calibration is requested
         calibrator_msname = workdir + "/calibrator.ms"
         if do_basic_cal and (
             do_cal_partition or os.path.exists(calibrator_msname) == False
@@ -1876,7 +1893,7 @@ def master_control(
         ############################################
         # Spliting only if self-cal is requested
         if do_selfcal:
-            if do_selfcal_split == False:
+            if not do_selfcal_split:
                 selfcal_target_mslist = glob.glob(workdir + "/selfcals_scan*.ms")
                 if len(selfcal_target_mslist) == 0:
                     print(
@@ -1888,7 +1905,7 @@ def master_control(
                 prefix = "selfcals"
                 try:
                     time_interval = float(solint)
-                except:
+                except BaseException:
                     if "s" in solint:
                         time_interval = float(solint.split("s")[0])
                     elif "min" in solint:
@@ -2228,7 +2245,9 @@ def master_control(
         # Imaging
         ######################################
         if do_imaging:
-            if do_polcal == False: # Only if do_polcal is False, overwrite to make only Stokes I
+            if (
+                do_polcal == False
+            ):  # Only if do_polcal is False, overwrite to make only Stokes I
                 pol = "I"
             band = get_band_name(target_mslist[0])
             msg = run_imaging_jobs(
@@ -2661,7 +2680,7 @@ def main():
         print("\n########################################")
         print("Starting MeerSOLAR Pipeline....")
         print("#########################################\n")
-        # TODO: multi specification imaging parameters as json dic 
+        # TODO: multi specification imaging parameters as json dic
         msg = master_control(
             msname=args.msname,
             workdir=args.workdir,

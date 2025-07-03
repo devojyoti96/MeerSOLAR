@@ -4,7 +4,7 @@ from meersolar.pipeline.do_apply_basiccal import applysol
 try:
     logfile = casalog.logfile()
     os.system("rm -rf " + logfile)
-except:
+except BaseException:
     pass
 
 
@@ -161,7 +161,7 @@ def main():
         formatter_class=SmartDefaultsHelpFormatter,
     )
 
-    ## Essential parameters
+    # Essential parameters
     basic_args = parser.add_argument_group(
         "###################\nEssential parameters\n###################"
     )
@@ -183,7 +183,7 @@ def main():
         help="Directory containing self-calibration tables",
     )
 
-    ## Advanced parameters
+    # Advanced parameters
     adv_args = parser.add_argument_group(
         "###################\nAdvanced parameters\n###################"
     )
@@ -204,7 +204,7 @@ def main():
         help="Force apply calibration even if already applied",
     )
 
-    ## Resource management parameters
+    # Resource management parameters
     hard_args = parser.add_argument_group(
         "###################\nHardware resource management parameters\n###################"
     )
@@ -236,7 +236,7 @@ def main():
         workdir = os.path.dirname(os.path.abspath(mslist[0])) + "/workdir"
     else:
         workdir = args.workdir
-    os.makedirs(workdir,exist_ok=True)
+    os.makedirs(workdir, exist_ok=True)
 
     logfile = args.logfile
     observer = None

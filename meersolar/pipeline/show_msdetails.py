@@ -4,8 +4,9 @@ from casatasks import listobs
 try:
     casalogfile = casalog.logfile()
     os.system("rm -rf " + casalogfile)
-except:
+except BaseException:
     pass
+
 
 def show_listobs(msname):
     if not os.path.exists(msname):
@@ -33,6 +34,7 @@ def main():
         sys.exit(1)
     args = parser.parse_args()
     show_listobs(args.msname)
+
 
 if __name__ == "__main__":
     main()

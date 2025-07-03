@@ -34,7 +34,7 @@ def download_with_parfive(record_id, update=False, output_dir="zenodo_download")
     dl = Downloader(max_conn=min(total_cpu, len(all_filenames)))
     for file_url, filename in urls:
         if filename in all_filenames:
-            if os.path.exists(f"{output_dir}/{filename}") == False or update == True:
+            if os.path.exists(f"{output_dir}/{filename}") == False or update:
                 if os.path.exists(f"{output_dir}/{filename}"):
                     os.system(f"rm -rf {output_dir}/{filename}")
                 dl.enqueue_file(file_url, path=output_dir, filename=filename)
@@ -56,7 +56,7 @@ def init_meersolar_data(update=False, remote_link=None, emails=None):
     """
     datadir = get_datadir()
     os.makedirs(datadir, exist_ok=True)
-    meersolar_cachedir=get_meersolar_cachedir()
+    meersolar_cachedir = get_meersolar_cachedir()
     username = os.getlogin()
     linkfile = f"{meersolar_cachedir}/remotelink_{username}.txt"
     emailfile = f"{meersolar_cachedir}/emails_{username}.txt"
