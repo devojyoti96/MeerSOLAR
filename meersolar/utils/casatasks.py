@@ -6,6 +6,7 @@ from .resource_utils import *
 # General CASA tasks
 #############################
 
+
 def check_scan_in_caltable(caltable, scan):
     """
     Check scan number available in caltable or not

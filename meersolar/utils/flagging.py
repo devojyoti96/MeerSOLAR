@@ -1,4 +1,6 @@
 from .all_depend import *
+from .basic_utils import *
+from .resource_utils import *
 
 ###############################
 # Flagging related functions
@@ -176,37 +178,42 @@ def flag_outside_uvrange(vis, uvrange, n_threads=-1, flagbackup=True):
     limit_threads(n_threads=n_threads)
     from casatasks import flagdata
 
-    if "lambda" in uvrange:
-        islambda = True
-        uvrange = uvrange.replace("lambda", "")
-    else:
-        islambda = False
-    if "~" in uvrange:
-        low, high = uvrange.split("~")
-        if islambda:
-            low = f"{low}lambda"
-            high = f"{high}lambda"
-        cmds = [
-            {"mode": "manual", "uvrange": f"<{low}", "flagbackup": flagbackup},
-            {"mode": "manual", "uvrange": f">{high}", "flagbackup": flagbackup},
-        ]
-    elif ">" in uvrange:
-        low = uvrange.split(">")[-1]
-        if islambda:
-            low = f"{low}lambda"
-        cmds = [
-            {"mode": "manual", "uvrange": f"<{low}", "flagbackup": flagbackup},
-        ]
-    elif "<" in uvrange:
-        if islambda:
-            high = f"{high}lambda"
-        cmds = [
-            {"mode": "manual", "uvrange": f">{high}", "flagbackup": flagbackup},
-        ]
-    else:
-        cmds = []
-    if len(cmds) > 0:
-        for cmd in cmds:
-            print(f"Flagging command: {cmd}")
-            flagdata(vis=vis, **cmd)
-    return
+    try:
+        if "lambda" in uvrange:
+            islambda = True
+            uvrange = uvrange.replace("lambda", "")
+        else:
+            islambda = False
+        if "~" in uvrange:
+            low, high = uvrange.split("~")
+            if islambda:
+                low = f"{low}lambda"
+                high = f"{high}lambda"
+            cmds = [
+                {"mode": "manual", "uvrange": f"<{low}", "flagbackup": flagbackup},
+                {"mode": "manual", "uvrange": f">{high}", "flagbackup": flagbackup},
+            ]
+        elif ">" in uvrange:
+            low = uvrange.split(">")[-1]
+            if islambda:
+                low = f"{low}lambda"
+            cmds = [
+                {"mode": "manual", "uvrange": f"<{low}", "flagbackup": flagbackup},
+            ]
+        elif "<" in uvrange:
+            high = uvrange.split("<")[-1]
+            if islambda:
+                high = f"{high}lambda"
+            cmds = [
+                {"mode": "manual", "uvrange": f">{high}", "flagbackup": flagbackup},
+            ]
+        else:
+            cmds = []
+        if len(cmds) > 0:
+            for cmd in cmds:
+                print(f"Flagging command: {cmd}")
+                flagdata(vis=vis, **cmd)
+        return 0
+    except Exception as e:
+        traceback.print_exc()
+        return 1

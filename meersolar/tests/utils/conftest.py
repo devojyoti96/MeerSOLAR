@@ -51,6 +51,16 @@ def dummy_submsname(tmp_path):
 
 
 @pytest.fixture
+def dummy_image():
+    ref_imagename = (
+        "/media/devojyoti/Data1/meersolar/meersolar/tests/data/test_image.fits"
+    )
+    if not os.path.exists(ref_imagename):
+        pytest.skip("Reference image is not found.")
+    return ref_imagename
+
+
+@pytest.fixture
 def mock_npy_data():
     # Dummy phase calibrator name and flux
     phasecals = ["J0431+2037"]

@@ -1,9 +1,10 @@
 from .all_depend import *
+from .basic_utils import *
+from .udocker_utils import *
 
 ##########################
 # Image analysis related
 ##########################
-
 
 def create_circular_mask(msname, cellsize, imsize, mask_radius=20):
     """
@@ -27,7 +28,7 @@ def create_circular_mask(msname, cellsize, imsize, mask_radius=20):
     """
     try:
         msname = msname.rstrip("/")
-        imagename_prefix = msname.split(".ms")[0] + "_solar"
+        imagename_prefix = os.path.dirname(os.path.abspath(msname))+"/"+os.path.basename(msname).split(".ms")[0] + "_solar"
         wsclean_args = [
             "-quiet",
             "-scale " + str(cellsize) + "asec",
@@ -144,14 +145,14 @@ def calc_solar_image_stat(imagename, disc_size=18):
     masked_data[mask] = np.nan
     unmasked_data = copy.deepcopy(data)
     unmasked_data[~mask] = np.nan
-    maxval = np.nanmax(unmasked_data)
-    minval = np.nanmin(data)
-    rms = np.nanstd(masked_data)
-    total_val = np.nansum(unmasked_data)
-    rms_dyn = maxval / rms
-    minmax_dyn = maxval / abs(minval)
-    mean_val = np.nanmean(unmasked_data)
-    median_val = np.nanmedian(unmasked_data)
+    maxval = round(float(np.nanmax(unmasked_data)),2)
+    minval = round(float(np.nanmin(data)),2)
+    rms = round(float(np.nanstd(masked_data)),2)
+    total_val = round(float(np.nansum(unmasked_data)),2)
+    rms_dyn = round(maxval / rms,2)
+    minmax_dyn = round(maxval / abs(minval),2)
+    mean_val = round(float(np.nanmean(unmasked_data)),2)
+    median_val = round(float(np.nanmedian(unmasked_data)),2)
     del data, mask, unmasked_data, masked_data
     return maxval, minval, rms, total_val, mean_val, median_val, rms_dyn, minmax_dyn
 
@@ -215,7 +216,7 @@ def calc_dyn_range(imagename, modelname, residualname, fits_mask=""):
         model_flux += np.nansum(model[mask_data] if use_mask else model)
 
     rmsvalue = rmsvalue / np.sqrt(len(residualname))
-    return model_flux, round(dr1, 2), round(rmsvalue, 2)
+    return float(model_flux), round(float(dr1), 2), round(float(rmsvalue), 2)
 
 
 def generate_tb_map(imagename, outfile=""):
@@ -274,7 +275,7 @@ def cutout_image(fits_file, output_file, x_deg=2):
         Output image name
     """
     from astropy.wcs import WCS
-
+    warnings.filterwarnings("ignore", category=FITSFixedWarning)
     hdu = fits.open(fits_file)[0]
     data = hdu.data  # shape: (nfreq, nstokes, ny, nx)
     header = hdu.header
@@ -399,7 +400,6 @@ def make_stokes_wsclean_imagecube(
 ):
     """
     Convert WSClean images into a Stokes cube image.
-
 
     Parameters
     ----------
