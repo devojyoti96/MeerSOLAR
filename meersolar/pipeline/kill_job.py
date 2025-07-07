@@ -68,7 +68,7 @@ def kill_meerjob():
     os.system(f"rm -rf {workdir}/tmp_meersolar_*")
     drop_cache(msname)
     drop_cache(workdir)
-    drop_cache(basedir)
+    drop_cache(outdir)
     drop_cache(meersolar_cachedir)
 
 
