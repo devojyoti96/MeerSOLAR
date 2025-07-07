@@ -6,6 +6,7 @@ from .udocker_utils import *
 # Image analysis related
 ##########################
 
+
 def create_circular_mask(msname, cellsize, imsize, mask_radius=20):
     """
     Create fits solar mask
@@ -28,7 +29,12 @@ def create_circular_mask(msname, cellsize, imsize, mask_radius=20):
     """
     try:
         msname = msname.rstrip("/")
-        imagename_prefix = os.path.dirname(os.path.abspath(msname))+"/"+os.path.basename(msname).split(".ms")[0] + "_solar"
+        imagename_prefix = (
+            os.path.dirname(os.path.abspath(msname))
+            + "/"
+            + os.path.basename(msname).split(".ms")[0]
+            + "_solar"
+        )
         wsclean_args = [
             "-quiet",
             "-scale " + str(cellsize) + "asec",
@@ -145,14 +151,14 @@ def calc_solar_image_stat(imagename, disc_size=18):
     masked_data[mask] = np.nan
     unmasked_data = copy.deepcopy(data)
     unmasked_data[~mask] = np.nan
-    maxval = round(float(np.nanmax(unmasked_data)),2)
-    minval = round(float(np.nanmin(data)),2)
-    rms = round(float(np.nanstd(masked_data)),2)
-    total_val = round(float(np.nansum(unmasked_data)),2)
-    rms_dyn = round(maxval / rms,2)
-    minmax_dyn = round(maxval / abs(minval),2)
-    mean_val = round(float(np.nanmean(unmasked_data)),2)
-    median_val = round(float(np.nanmedian(unmasked_data)),2)
+    maxval = round(float(np.nanmax(unmasked_data)), 2)
+    minval = round(float(np.nanmin(data)), 2)
+    rms = round(float(np.nanstd(masked_data)), 2)
+    total_val = round(float(np.nansum(unmasked_data)), 2)
+    rms_dyn = round(maxval / rms, 2)
+    minmax_dyn = round(maxval / abs(minval), 2)
+    mean_val = round(float(np.nanmean(unmasked_data)), 2)
+    median_val = round(float(np.nanmedian(unmasked_data)), 2)
     del data, mask, unmasked_data, masked_data
     return maxval, minval, rms, total_val, mean_val, median_val, rms_dyn, minmax_dyn
 
@@ -275,6 +281,7 @@ def cutout_image(fits_file, output_file, x_deg=2):
         Output image name
     """
     from astropy.wcs import WCS
+
     warnings.filterwarnings("ignore", category=FITSFixedWarning)
     hdu = fits.open(fits_file)[0]
     data = hdu.data  # shape: (nfreq, nstokes, ny, nx)

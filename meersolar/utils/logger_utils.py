@@ -1,5 +1,6 @@
 from .all_depend import *
 from .basic_utils import *
+from .proc_manage_utils import *
 
 
 ##################################
@@ -128,7 +129,7 @@ def ping_logger(jobid, remote_jobid, stop_event, remote_link=""):
     """Ping a job-specific keep-alive endpoint periodically until stop_event is set."""
     pid = os.getpid()
     meersolar_cachedir = get_meersolar_cachedir()
-    save_pid(pid, f"{meersolar_cachedir}/pids/pids_{jobid}.txt")
+    save_pid(pid, f"{meersolar_cachedir}pids/pids_{jobid}.txt")
     interval = 10  # 10 min interval
     if remote_link != "":
         url = f"{remote_link}/api/ping/{remote_jobid}"

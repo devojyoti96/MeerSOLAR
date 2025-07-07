@@ -38,7 +38,7 @@ def calc_maxuv(msname, chan_number=-1):
     uv = np.sqrt(u**2 + v**2)
     uv[uv == 0] = np.nan
     maxuv = np.nanmax(uv)
-    return round(float(maxuv),2), round(float(maxuv / wavelength),2)
+    return round(float(maxuv), 2), round(float(maxuv / wavelength), 2)
 
 
 def calc_minuv(msname, chan_number=-1):
@@ -73,7 +73,7 @@ def calc_minuv(msname, chan_number=-1):
     uv = np.sqrt(u**2 + v**2)
     uv[uv == 0] = np.nan
     minuv = np.nanmin(uv)
-    return round(float(minuv),2), round(float(minuv / wavelength),2)
+    return round(float(minuv), 2), round(float(minuv / wavelength), 2)
 
 
 def calc_field_of_view(msname, FWHM=True):
@@ -106,7 +106,7 @@ def calc_field_of_view(msname, FWHM=True):
     else:
         FOV = 2.04 * wavelength / dish_dia
     fov_arcsec = np.rad2deg(FOV) * 3600  # In arcsecs
-    return round(float(fov_arcsec),2)
+    return round(float(fov_arcsec), 2)
 
 
 def get_optimal_image_interval(
@@ -235,7 +235,7 @@ def calc_psf(msname, chan_number=-1):
     """
     maxuv_m, maxuv_l = calc_maxuv(msname, chan_number=chan_number)
     psf = np.rad2deg(1.2 / maxuv_l) * 3600.0  # In arcsec
-    return round(float(psf),2)
+    return round(float(psf), 2)
 
 
 def calc_npix_in_psf(weight, robust=0.0):

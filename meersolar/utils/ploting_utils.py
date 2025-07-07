@@ -1,6 +1,10 @@
 from .all_depend import *
-from .proc_manage_utils import get_dask_client
+from .basic_utils import *
+from .proc_manage_utils import *
 from .ms_metadata import *
+from sunpy.timeseries import TimeSeries
+import matplotlib
+import matplotlib.pyplot as plt
 
 #################################
 # Plotting related functions
@@ -213,9 +217,7 @@ def plot_in_hpc(
     sunpy.Map
         MeerKAT image in helioprojective co-ordinate
     """
-    import matplotlib
     import matplotlib.ticker as ticker
-    import matplotlib.pyplot as plt
     from matplotlib.patches import Ellipse, Rectangle
     from matplotlib.colors import ListedColormap
     from matplotlib import cm
@@ -398,376 +400,6 @@ def plot_in_hpc(
     return output_image_list, cropped_map
 
 
-def make_ds_plot(dsfiles, plot_file=None, showgui=False):
-    """
-    Make dynamic spectrum plot
-
-    Parameters
-    ----------
-    dsfile : list
-        DS files list
-    plot_file : str, optional
-        Plot file name to save the plot
-    showgui : bool, optional
-        Show GUI
-
-    Returns
-    -------
-    str
-        Plot name
-    """
-    import matplotlib
-    import matplotlib.pyplot as plt
-    from matplotlib.gridspec import GridSpec
-
-    if showgui:
-        matplotlib.use("TkAgg")
-    else:
-        matplotlib.use("Agg")
-    matplotlib.rcParams.update({"font.size": 18})
-    for i, dsfile in enumerate(dsfiles):
-        freqs_i, times_i, timestamps_i, data_i = np.load(dsfile, allow_pickle=True)
-        if i == 0:
-            freqs = freqs_i
-            times = times_i
-            timestamps = timestamps_i
-            data = data_i
-        else:
-            gapsize = int(
-                (np.nanmin(times_i) - np.nanmax(times)) / (times[1] - times[0])
-            )
-            if gapsize < 10:
-                last_time_median = np.nanmedian(data[:, -1], axis=0)
-                new_time_median = np.nanmedian(data_i[:, 0], axis=0)
-                data_i = (data_i / new_time_median) * last_time_median
-            # Insert vertical NaN gap (1 column wide)
-            gap = np.full((data.shape[0], gapsize), np.nan)
-            data = np.concatenate([data, gap, data_i], axis=1)
-            # Insert dummy time and timestamp
-            times = np.append(times, np.nan)
-            timestamps = np.append(timestamps, "GAP")
-            # Append new values
-            times = np.append(times, times_i)
-            timestamps = np.append(timestamps, timestamps_i)
-            # (Optional) Check or merge freqs if needed — assuming same across files
-    # Normalize by median bandshape
-    median_bandshape = np.nanmedian(data, axis=-1)
-    pos = np.where(np.isnan(median_bandshape) == False)[0]
-    data /= median_bandshape[:, None]
-    data = data[min(pos) : max(pos), :]
-    freqs = freqs[min(pos) : max(pos)]
-    temp_times = times[np.isnan(times) == False]
-    maxtimepos = np.argmax(temp_times)
-    mintimepos = np.argmin(temp_times)
-    datestamp = f"{timestamps[mintimepos].split('T')[0]}"
-    tstart = f"{timestamps[mintimepos].split('T')[0]} {':'.join(timestamps[mintimepos].split('T')[-1].split(':')[:2])}"
-    tend = f"{timestamps[maxtimepos].split('T')[0]} {':'.join(timestamps[maxtimepos].split('T')[-1].split(':')[:2])}"
-    print(f"Time range : {tstart}~{tend}")
-    results = Fido.search(
-        a.Time(tstart, tend), a.Instrument("XRS"), a.Resolution("avg1m")
-    )
-    files = Fido.fetch(results, path=os.path.dirname(dsfiles[0]), overwrite=False)
-    goes_tseries = ts.TimeSeries(files, concatenate=True)
-    goes_tseries = goes_tseries.truncate(tstart, tend)
-    timeseries = np.nanmean(data, axis=0)
-    # Normalization
-    data_std = np.nanstd(data)
-    data_median = np.nanmedian(data)
-    norm = ImageNormalize(
-        data,
-        stretch=LogStretch(1),
-        vmin=0.99 * np.nanmin(data),
-        vmax=0.99 * np.nanmax(data),
-    )
-    # Create figure and GridSpec layout
-    fig = plt.figure(figsize=(18, 10))
-    gs = GridSpec(nrows=3, ncols=2, width_ratios=[1, 0.03], height_ratios=[4, 1.5, 2])
-    # Axes
-    ax_spec = fig.add_subplot(gs[0, 0])
-    ax_ts = fig.add_subplot(gs[1, 0])
-    ax_goes = fig.add_subplot(gs[2, 0])
-    cax = fig.add_subplot(gs[:, 1])  # colorbar spans both rows
-    # Plot dynamic spectrum
-    im = ax_spec.imshow(data, aspect="auto", origin="lower", norm=norm, cmap="magma")
-    ax_spec.set_ylabel("Frequency (MHz)")
-    ax_spec.set_xticklabels([])  # Remove x-axis labels from top plot
-    # Y-ticks
-    yticks = ax_spec.get_yticks()
-    yticks = yticks[(yticks >= 0) & (yticks < len(freqs))]
-    ax_spec.set_yticks(yticks)
-    ax_spec.set_yticklabels([f"{freqs[int(i)]:.1f}" for i in yticks])
-    # Plot time series
-    ax_ts.plot(timeseries)
-    ax_ts.set_xlim(0, len(timeseries) - 1)
-    ax_ts.set_ylabel("Mean \n flux density")
-    goes_tseries.plot(axes=ax_goes)
-    goes_times = goes_tseries.time
-    times_dt = goes_times.to_datetime()
-    ax_goes.set_xlim(times_dt[0], times_dt[-1])
-    ax_goes.set_ylabel(r"Flux ($\frac{W}{m^2}$)")
-    ax_goes.legend(ncol=2, loc="upper right")
-    ax_goes.set_title("GOES light curve", fontsize=14)
-    ax_ts.set_title("MeerKAT light curve", fontsize=14)
-    ax_spec.set_title("MeerKAT dynamic spectrum", fontsize=14)
-    ax_goes.set_xlabel("Time (UTC)")
-    # Format x-ticks
-    ax_ts.set_xticks([])
-    ax_ts.set_xticklabels([])
-    # Colorbar
-    cbar = fig.colorbar(im, cax=cax)
-    cbar.set_label("Flux density (arb. unit)")
-    plt.tight_layout()
-    # Save or show
-    if plot_file:
-        plt.savefig(plot_file, bbox_inches="tight")
-        print(f"Plot saved: {plot_file}")
-    if showgui:
-        plt.show()
-        plt.close(fig)
-        plt.close("all")
-    else:
-        plt.close(fig)
-    return plot_file
-
-
-##############################
-# Extract dynamic spectrum
-##############################
-def make_ds_file_per_scan(msname, save_file, scan, datacolumn):
-    """
-    Extract dynamic spectrum from measurement set
-
-    Parameters
-    ----------
-    msname : str
-        Measurement set name
-    save_file : str
-        File name to save dynamic spectrum
-    scan : int
-        Scan number
-    datacolumn : str
-        Data column name
-
-    Returns
-    -------
-    str
-        Dynamic spectrum file
-    """
-    if os.path.exists(f"{save_file}.npy") == False:
-        mstool = casamstool()
-        try:
-            all_data = []
-            for ant in range(5):
-                print(f"Extracting data for antenna :{ant}, scan: {scan}")
-                mstool.open(msname)
-                mstool.selectpolarization(["I"])
-                mstool.select(
-                    {"antenna1": ant, "antenna2": ant, "scan_number": int(scan)}
-                )
-                data_dic = mstool.getdata(datacolumn)
-                mstool.close()
-                if datacolumn == "CORRECTED_DATA":
-                    data = np.abs(data_dic["corrected_data"][0, ...])
-                else:
-                    data = np.abs(data_dic["data"][0, ...])
-                del data_dic
-                m = np.nanmedian(data, axis=1)
-                data = data / m[:, None]
-                all_data.append(data)
-                del data
-        except Exception as e:
-            print("Auto-corrrelations are not present. Using short baselines.")
-            count = 0
-            all_data = []
-            while count <= 5:
-                for i in range(5):
-                    for j in range(5):
-                        if i != j:
-                            print(
-                                f"Extracting data for antennas :{i} and {j}, scan: {scan}"
-                            )
-                            mstool.open(msname)
-                            mstool.selectpolarization(["I"])
-                            mstool.select(
-                                {
-                                    "antenna1": i,
-                                    "antenna2": j,
-                                    "scan_number": int(scan),
-                                }
-                            )
-                            data_dic = mstool.getdata(datacolumn)
-                            mstool.close()
-                            if datacolumn == "CORRECTED_DATA":
-                                data = np.abs(data_dic["corrected_data"][0, ...])
-                            else:
-                                data = np.abs(data_dic["data"][0, ...])
-                            del data_dic
-                            m = np.nanmedian(data, axis=1)
-                            data = data / m[:, None]
-                            all_data.append(data)
-                            del data
-                            count += 1
-        all_data = np.array(all_data)
-        data = np.nanmedian(all_data, axis=0)
-        bad_chans = get_bad_chans(msname)
-        bad_chans = bad_chans.replace("0:", "").split(";")
-        for bad_chan in bad_chans:
-            s = int(bad_chan.split("~")[0])
-            e = int(bad_chan.split("~")[-1]) + 1
-            data[s:e, :] = np.nan
-        msmd = msmetadata()
-        msmd.open(msname)
-        freqs = msmd.chanfreqs(0, unit="MHz")
-        times = msmd.timesforscans(int(scan))
-        timestamps = [mjdsec_to_timestamp(mjdsec, str_format=0) for mjdsec in times]
-        msmd.close()
-        np.save(
-            f"{save_file}.npy",
-            np.array([freqs, times, timestamps, data], dtype="object"),
-        )
-        del msmd, mstool, data
-    return f"{save_file}.npy"
-
-
-def make_solar_DS(
-    msname,
-    workdir,
-    ds_file_name="",
-    extension="png",
-    target_scans=[],
-    scans=[],
-    merge_scan=False,
-    showgui=False,
-    cpu_frac=0.8,
-    mem_frac=0.8,
-):
-    """
-    Make solar dynamic spectrum and plots
-
-    Parameters
-    ----------
-    msname : str
-        Measurement set name'
-    workdir : str
-        Work directory
-    ds_file_name : str, optional
-        DS file name prefix
-    extension : str, optional
-        Image file extension
-    target_scans : list, optional
-        Target scans
-    scans : list, optional
-        Scan list
-    merge_scan : bool, optional
-        Merge scans in one plot or not
-    showgui : bool, optional
-        Show GUI
-    cpu_frac : float, optional
-        CPU fraction to use
-    mem_frac : float, optional
-        Memory fraction to use
-    """
-    warnings.filterwarnings("ignore", category=RuntimeWarning)
-    os.makedirs(f"{workdir}/dynamic_spectra", exist_ok=True)
-    print("##############################################")
-    print(f"Start making dynamic spectra for ms: {msname}")
-    print("##############################################")
-    if len(target_scans) > 0:
-        temp_target_scans = []
-        for s in target_scans:
-            temp_target_scans.append(int(s))
-        target_scans = temp_target_scans
-
-    ##################################
-    # Making and ploting
-    ##################################
-    if len(scans) == 0:
-        scans, cal_scans, f_scans, g_scans, p_scans = get_cal_target_scans(msname)
-    valid_scans = get_valid_scans(msname)
-    final_scans = []
-    scan_size_list = []
-    msmd = msmetadata()
-    mstool = casamstool()
-    for scan in scans:
-        if scan in valid_scans:
-            if len(target_scans) == 0 or (
-                len(target_scans) > 0 and int(scan) in target_scans
-            ):
-                final_scans.append(int(scan))
-                msmd.open(msname)
-                nchan = msmd.nchan(0)
-                nant = msmd.nantennas()
-                msmd.close()
-                mstool.open(msname)
-                mstool.select({"scan_number": int(scan)})
-                nrow = mstool.nrow(True)
-                mstool.close()
-                nbaselines = int(nant + (nant * (nant - 1) / 2))
-                scan_size = (5 * (nrow / nbaselines) * 16) / (1024**3)
-                scan_size_list.append(scan_size)
-    if len(final_scans) == 0:
-        print("No scans to make dynamic spectra.")
-        return
-    del scans
-    scans = sorted(final_scans)
-    print(f"Scans: {scans}")
-    msname = msname.rstrip("/")
-    if ds_file_name == "":
-        ds_file_name = os.path.basename(msname).split(".ms")[0] + "_DS"
-    hascor = check_datacolumn_valid(msname, datacolumn="CORRECTED_DATA")
-    if hascor:
-        datacolumn = "CORRECTED_DATA"
-    else:
-        datacolumn = "DATA"
-    mspath = os.path.dirname(msname)
-    mem_limit = max(scan_size_list)
-    dask_client, dask_cluster, n_jobs, n_threads, mem_limit = get_dask_client(
-        len(scans),
-        dask_dir=workdir,
-        cpu_frac=cpu_frac,
-        mem_frac=mem_frac,
-        min_mem_per_job=mem_limit / 0.6,
-    )
-    tasks = []
-    for scan in scans:
-        tasks.append(
-            delayed(make_ds_file_per_scan)(
-                msname,
-                f"{workdir}/dynamic_spectra/{ds_file_name}_scan_{scan}",
-                scan,
-                datacolumn,
-            )
-        )
-    compute(*tasks)
-    dask_client.close()
-    dask_cluster.close()
-    ds_files = [
-        f"{workdir}/dynamic_spectra/{ds_file_name}_scan_{scan}.npy" for scan in scans
-    ]
-    print(f"DS files: {ds_files}")
-    if not merge_scan:
-        plots = []
-        for dsfile in ds_files:
-            plot_file = make_ds_plot(
-                [dsfile],
-                plot_file=dsfile.replace(".npy", f".{extension}"),
-                showgui=showgui,
-            )
-            plots.append(plot_file)
-    else:
-        plot_file = make_ds_plot(
-            ds_files,
-            plot_file=f"{workdir}/dynamic_spectra/{ds_file_name}.{extension}",
-            showgui=showgui,
-        )
-    gc.collect()
-    goes_files = glob.glob(f"{workdir}/dynamic_spectra/sci*.nc")
-    for f in goes_files:
-        os.system(f"rm -rf {f}")
-    os.system(f"rm -rf {workdir}/dask-scratch-space {workdir}/tmp")
-    return
-
-
 def plot_goes_full_timeseries(
     msname, workdir, plot_file_prefix=None, extension="png", showgui=False
 ):
@@ -792,10 +424,6 @@ def plot_goes_full_timeseries(
     str
         Plot file name
     """
-    import matplotlib
-    import matplotlib.pyplot as plt
-    from sunpy.timeseries import Timeseries
-
     os.makedirs(workdir, exist_ok=True)
     if showgui:
         matplotlib.use("TkAgg")
@@ -1163,3 +791,240 @@ def make_meer_overlay(
     else:
         plt.close(fig)
     return plot_file_list
+
+
+##############################
+# Extract dynamic spectrum
+##############################
+def make_ds_file_per_scan(msname, save_file, scan, datacolumn):
+    """
+    Extract dynamic spectrum from measurement set
+
+    Parameters
+    ----------
+    msname : str
+        Measurement set name
+    save_file : str
+        File name to save dynamic spectrum
+    scan : int
+        Scan number
+    datacolumn : str
+        Data column name
+
+    Returns
+    -------
+    str
+        Dynamic spectrum file
+    """
+    if os.path.exists(f"{save_file}.npy") == False:
+        mstool = casamstool()
+        try:
+            all_data = []
+            for ant in range(5):
+                print(f"Extracting data for antenna :{ant}, scan: {scan}")
+                mstool.open(msname)
+                mstool.selectpolarization(["I"])
+                mstool.select(
+                    {"antenna1": ant, "antenna2": ant, "scan_number": int(scan)}
+                )
+                data_dic = mstool.getdata(datacolumn)
+                mstool.close()
+                if datacolumn == "CORRECTED_DATA":
+                    data = np.abs(data_dic["corrected_data"][0, ...])
+                else:
+                    data = np.abs(data_dic["data"][0, ...])
+                del data_dic
+                m = np.nanmedian(data, axis=1)
+                data = data / m[:, None]
+                all_data.append(data)
+                del data
+        except Exception as e:
+            print("Auto-corrrelations are not present. Using short baselines.")
+            count = 0
+            all_data = []
+            while count <= 5:
+                for i in range(5):
+                    for j in range(5):
+                        if i != j:
+                            print(
+                                f"Extracting data for antennas :{i} and {j}, scan: {scan}"
+                            )
+                            mstool.open(msname)
+                            mstool.selectpolarization(["I"])
+                            mstool.select(
+                                {
+                                    "antenna1": i,
+                                    "antenna2": j,
+                                    "scan_number": int(scan),
+                                }
+                            )
+                            data_dic = mstool.getdata(datacolumn)
+                            mstool.close()
+                            if datacolumn == "CORRECTED_DATA":
+                                data = np.abs(data_dic["corrected_data"][0, ...])
+                            else:
+                                data = np.abs(data_dic["data"][0, ...])
+                            del data_dic
+                            m = np.nanmedian(data, axis=1)
+                            data = data / m[:, None]
+                            all_data.append(data)
+                            del data
+                            count += 1
+        all_data = np.array(all_data)
+        data = np.nanmedian(all_data, axis=0)
+        bad_chans = get_bad_chans(msname)
+        if bad_chans != "":
+            bad_chans = bad_chans.replace("0:", "").split(";")
+            for bad_chan in bad_chans:
+                s = int(bad_chan.split("~")[0])
+                e = int(bad_chan.split("~")[-1]) + 1
+                data[s:e, :] = np.nan
+        msmd = msmetadata()
+        msmd.open(msname)
+        freqs = msmd.chanfreqs(0, unit="MHz")
+        times = msmd.timesforscans(int(scan))
+        timestamps = [mjdsec_to_timestamp(mjdsec, str_format=0) for mjdsec in times]
+        msmd.close()
+        np.save(
+            save_file,
+            np.array([freqs, times, timestamps, data], dtype="object"),
+        )
+        del msmd, mstool, data
+    if ".npy" in save_file:
+        return save_file
+    else:
+        return f"{save_file}.npy"
+
+
+def make_ds_plot(dsfiles, plot_file=None, showgui=False):
+    """
+    Make dynamic spectrum plot
+
+    Parameters
+    ----------
+    dsfile : list
+        DS files list
+    plot_file : str, optional
+        Plot file name to save the plot
+    showgui : bool, optional
+        Show GUI
+
+    Returns
+    -------
+    str
+        Plot name
+    """
+    from matplotlib.gridspec import GridSpec
+
+    if showgui:
+        matplotlib.use("TkAgg")
+    else:
+        matplotlib.use("Agg")
+    matplotlib.rcParams.update({"font.size": 18})
+    if type(dsfiles) == str:
+        dsfiles = [dsfiles]
+    for i, dsfile in enumerate(dsfiles):
+        freqs_i, times_i, timestamps_i, data_i = np.load(dsfile, allow_pickle=True)
+        if i == 0:
+            freqs = freqs_i
+            times = times_i
+            timestamps = timestamps_i
+            data = data_i
+        else:
+            gapsize = int(
+                (np.nanmin(times_i) - np.nanmax(times)) / (times[1] - times[0])
+            )
+            if gapsize < 10:
+                last_time_median = np.nanmedian(data[:, -1], axis=0)
+                new_time_median = np.nanmedian(data_i[:, 0], axis=0)
+                data_i = (data_i / new_time_median) * last_time_median
+            # Insert vertical NaN gap (1 column wide)
+            gap = np.full((data.shape[0], gapsize), np.nan)
+            data = np.concatenate([data, gap, data_i], axis=1)
+            # Insert dummy time and timestamp
+            times = np.append(times, np.nan)
+            timestamps = np.append(timestamps, "GAP")
+            # Append new values
+            times = np.append(times, times_i)
+            timestamps = np.append(timestamps, timestamps_i)
+            # (Optional) Check or merge freqs if needed — assuming same across files
+    # Normalize by median bandshape
+    median_bandshape = np.nanmedian(data, axis=-1)
+    pos = np.where(np.isnan(median_bandshape) == False)[0]
+    data /= median_bandshape[:, None]
+    data = data[min(pos) : max(pos), :]
+    freqs = freqs[min(pos) : max(pos)]
+    temp_times = times[np.isnan(times) == False]
+    maxtimepos = np.argmax(temp_times)
+    mintimepos = np.argmin(temp_times)
+    datestamp = f"{timestamps[mintimepos].split('T')[0]}"
+    tstart = f"{timestamps[mintimepos].split('T')[0]} {':'.join(timestamps[mintimepos].split('T')[-1].split(':')[:2])}"
+    tend = f"{timestamps[maxtimepos].split('T')[0]} {':'.join(timestamps[maxtimepos].split('T')[-1].split(':')[:2])}"
+    print(f"Time range : {tstart}~{tend}")
+    results = Fido.search(
+        a.Time(tstart, tend), a.Instrument("XRS"), a.Resolution("avg1m")
+    )
+    files = Fido.fetch(results, path=os.path.dirname(dsfiles[0]), overwrite=False)
+    goes_tseries = TimeSeries(files, concatenate=True)
+    for goes_f in files:
+        os.system(f"rm -rf {goes_f}")
+    goes_tseries = goes_tseries.truncate(tstart, tend)
+    timeseries = np.nanmean(data, axis=0)
+    # Normalization
+    data_std = np.nanstd(data)
+    data_median = np.nanmedian(data)
+    norm = ImageNormalize(
+        data,
+        stretch=LogStretch(1),
+        vmin=0.99 * np.nanmin(data),
+        vmax=0.99 * np.nanmax(data),
+    )
+    # Create figure and GridSpec layout
+    fig = plt.figure(figsize=(18, 10))
+    gs = GridSpec(nrows=3, ncols=2, width_ratios=[1, 0.03], height_ratios=[4, 1.5, 2])
+    # Axes
+    ax_spec = fig.add_subplot(gs[0, 0])
+    ax_ts = fig.add_subplot(gs[1, 0])
+    ax_goes = fig.add_subplot(gs[2, 0])
+    cax = fig.add_subplot(gs[:, 1])  # colorbar spans both rows
+    # Plot dynamic spectrum
+    im = ax_spec.imshow(data, aspect="auto", origin="lower", norm=norm, cmap="magma")
+    ax_spec.set_ylabel("Frequency (MHz)")
+    ax_spec.set_xticklabels([])  # Remove x-axis labels from top plot
+    # Y-ticks
+    yticks = ax_spec.get_yticks()
+    yticks = yticks[(yticks >= 0) & (yticks < len(freqs))]
+    ax_spec.set_yticks(yticks)
+    ax_spec.set_yticklabels([f"{freqs[int(i)]:.1f}" for i in yticks])
+    # Plot time series
+    ax_ts.plot(timeseries)
+    ax_ts.set_xlim(0, len(timeseries) - 1)
+    ax_ts.set_ylabel("Mean \n flux density")
+    goes_tseries.plot(axes=ax_goes)
+    goes_times = goes_tseries.time
+    times_dt = goes_times.to_datetime()
+    ax_goes.set_xlim(times_dt[0], times_dt[-1])
+    ax_goes.set_ylabel(r"Flux ($\frac{W}{m^2}$)")
+    ax_goes.legend(ncol=2, loc="upper right")
+    ax_goes.set_title("GOES light curve", fontsize=14)
+    ax_ts.set_title("MeerKAT light curve", fontsize=14)
+    ax_spec.set_title("MeerKAT dynamic spectrum", fontsize=14)
+    ax_goes.set_xlabel("Time (UTC)")
+    # Format x-ticks
+    ax_ts.set_xticks([])
+    ax_ts.set_xticklabels([])
+    # Colorbar
+    cbar = fig.colorbar(im, cax=cax)
+    cbar.set_label("Flux density (arb. unit)")
+    plt.tight_layout()
+    # Save or show
+    if plot_file:
+        plt.savefig(plot_file, bbox_inches="tight")
+        print(f"Plot saved: {plot_file}")
+    if showgui:
+        plt.show()
+        plt.close(fig)
+        plt.close("all")
+    else:
+        plt.close(fig)
+    return plot_file
