@@ -1,13 +1,37 @@
+import logging
+import psutil
+import dask
+import numpy as np
+import argparse
+import traceback
+import warnings
+import copy
+import time
+import glob
+import sys
+import os
+from casatasks import casalog
+from casatools import msmetadata, table
+from dask import delayed, compute
 from scipy.interpolate import CubicSpline
 from scipy.ndimage import gaussian_filter1d
 from scipy.interpolate import interp1d
-from meersolar.pipeline.basic_func import *
+from meersolar.utils.basic_utils import suppress_casa_output, get_datadir
+from meersolar.utils.resource_utils import drop_cache, limit_threads
+from meersolar.utils.logger_utils import init_logger, clean_shutdown, SmartDefaultsHelpFormatter
+from meersolar.utils.proc_manage_utils import run_limited_memory_task, get_dask_client, save_pid
+from meersolar.utils.ms_metadata import get_ms_size, check_datacolumn_valid
+from meersolar.pipeline.flagging import single_ms_flag
+logging.getLogger("distributed").setLevel(logging.WARNING)
+
 
 try:
     logfile = casalog.logfile()
     os.system("rm -rf " + logfile)
 except BaseException:
     pass
+    
+datadir = get_datadir()
 
 
 def interpolate_nans(data):
@@ -190,7 +214,6 @@ def applysol(
     """
     limit_threads(n_threads=n_threads)
     from casatasks import applycal, flagdata, split, clearcal
-    from meersolar.pipeline.flagging import single_ms_flag
 
     if dry_run:
         process = psutil.Process(os.getpid())
@@ -240,7 +263,6 @@ def applysol(
                 os.system(f"mv {outputvis} {msname}")
             for t in touch_file_names:
                 os.system(f"touch {msname}/{t}")
-            gc.collect()
         if do_post_flag:
             print(f"Post calibration flagging on: {msname}")
             if overwrite_datacolumn:
@@ -416,20 +438,28 @@ def run_all_applysol(
         )
         tasks = []
         if len(scaled_bandpass_list) > 0:
-            scaled_bandpass_scans = [
-                int(a.split("scan_")[-1].split(".bcal")[0])
-                for a in scaled_bandpass_list
-            ]
+            scaled_bandpass_scans=[]
+            try:
+                scaled_bandpass_scans = [
+                    int(a.split("scan_")[-1].split(".bcal")[0])
+                    for a in scaled_bandpass_list
+                ]
+            except:
+                pass
         msmd = msmetadata()
         for ms in mslist:
             msmd.open(ms)
             scans = msmd.scannumbers()
             msmd.close()
             for scan in scans:
-                if len(scaled_bandpass_list) > 0:
+                if len(scaled_bandpass_scans) > 0:
                     pos = scaled_bandpass_scans.index(scan)
                     bpass_table = scaled_bandpass_list[pos]
                 else:
+                    print ("Bandpass tables with attenuation scaling are not found.") 
+                    if os.path.exists(f"{workdir}/.attcal"):
+                        os.system(f"rm -rf {workdir}/.attcal")
+                    os.system(f"touch {workdir}/.noattcal")
                     bpass_table = bandpass_table[0]
                 interp = []
                 final_gaintable = gaintable + [bpass_table]

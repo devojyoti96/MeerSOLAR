@@ -12,6 +12,7 @@ def rename_image(
     imagedir="",
     pol="",
     band="",
+    attcal="NOINFO",
     cutout_rsun=2.5,
     make_overlay=True,
     make_plots=True,
@@ -29,6 +30,8 @@ def rename_image(
         Stokes parameters
     band : str, optional
         Observing band
+    attcal : str, optional
+        Solar attenuation calibrated or not 
     cutout_rsun : float, optional
         Cutout in solar radii from center (default: 2.5 solar radii)
     make_overlay : bool, optional
@@ -72,6 +75,7 @@ def rename_image(
         hdr["MEDIAN"] = median_val
         hdr["RMSDYN"] = rms_dyn
         hdr["MIMADYN"] = minmax_dyn
+        hdr["ATTCAL"]= str(attcal)
     freq = round(header["CRVAL3"] / 10**6, 2)
     t_str = "".join(time.split("T")[0].split("-")) + (
         "".join(time.split("T")[-1].split(":"))
@@ -239,6 +243,12 @@ def perform_imaging(
                 jobname=jobname,
                 password=password,
             )
+    if os.path.exists(f"{workdir}/.attcal"):
+        attcal=True
+    elif os.path.exists(f"{workdir}/.noattcal"):
+        attcal=False
+    else:
+        attcal="NOINFO"
     try:
         msname = msname.rstrip("/")
         msname = os.path.abspath(msname)
@@ -510,6 +520,7 @@ def perform_imaging(
                                 imagedir=imagedir + "/images",
                                 pol=pol,
                                 band=band,
+                                attcal=attcal,
                                 cutout_rsun=cutout_rsun,
                                 make_overlay=make_overlay,
                                 make_plots=make_plots,
@@ -525,6 +536,7 @@ def perform_imaging(
                                     imagedir=imagedir + "/models",
                                     pol=pol,
                                     band=band,
+                                    attcal=attcal,
                                     cutout_rsun=cutout_rsun,
                                     make_overlay=False,
                                     make_plots=False,
@@ -540,6 +552,7 @@ def perform_imaging(
                                     imagedir=imagedir + "/residuals",
                                     pol=pol,
                                     band=band,
+                                    attcal=attcal,
                                     cutout_rsun=cutout_rsun,
                                     make_overlay=False,
                                     make_plots=False,

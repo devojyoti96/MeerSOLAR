@@ -1,13 +1,31 @@
-from meersolar.pipeline.basic_func import *
+import psutil
+import dask
+import numpy as np
+import argparse
+import traceback
+import time
+import sys
+import os
+import logging
+from casatasks import casalog
+from dask import delayed, compute
+from meersolar.utils.basic_utils import suppress_casa_output, get_datadir
+from meersolar.utils.resource_utils import drop_cache, limit_threads
+from meersolar.utils.logger_utils import init_logger, clean_shutdown, SmartDefaultsHelpFormatter
+from meersolar.utils.proc_manage_utils import run_limited_memory_task, get_dask_client, save_pid
+from meersolar.utils.ms_metadata import get_band_name,get_fluxcals,get_phasecals,get_polcals,get_ms_scans, get_submsname_scans
+from meersolar.utils.casatasks import correct_missing_col_subms
+logging.getLogger("distributed").setLevel(logging.WARNING)
+
 
 try:
     logfile = casalog.logfile()
     os.system("rm -rf " + logfile)
 except BaseException:
     pass
-
+    
+    
 datadir = get_datadir()
-
 
 def get_polmodel_coeff(model_file):
     """
@@ -272,7 +290,7 @@ def import_phasecal_models(
         return 1
 
 
-def import_polcal_model(
+def import_polcal_models(
     mslist, polcal_fields, polcal_scans, workdir, cpu_frac=0.8, mem_frac=0.8
 ):
     """
@@ -369,7 +387,7 @@ def import_all_models(msname, workdir, cpu_frac=0.8, mem_frac=0.8):
             mslist, scans = result
         else:
             print("Please provide a multi-MS with scans partitioned.")
-            return 1, []
+            return 1, 1, 1
         fluxcal_fields, fluxcal_scans = get_fluxcals(msname)
         phasecal_fields, phasecal_scans, phasecal_flux_list = get_phasecals(msname)
         polcal_fields, polcal_scans = get_polcals(msname)
@@ -389,7 +407,7 @@ def import_all_models(msname, workdir, cpu_frac=0.8, mem_frac=0.8):
             cpu_frac=cpu_frac,
             mem_frac=mem_frac,
         )
-        polcal_result = import_polcal_model(
+        polcal_result = import_polcal_models(
             mslist,
             polcal_fields,
             polcal_scans,
@@ -478,7 +496,7 @@ def main():
     try:
         if args.msname and os.path.exists(args.msname):
             fluxcal_result, phasecal_result, polcal_result = import_all_models(
-                args.msname,
+                os.path.abspath(args.msname),
                 workdir,
                 cpu_frac=args.cpu_frac,
                 mem_frac=args.mem_frac,

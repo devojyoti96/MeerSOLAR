@@ -1,123 +1,48 @@
-from meersolar.pipeline.basic_func import *
+import logging
+import psutil
+import dask
+import numpy as np
+import argparse
+import traceback
+import time
+import sys
+import os
+from casatasks import casalog
+from casatools import msmetadata
+from dask import delayed, compute
+from meersolar.utils.basic_utils import get_datadir, suppress_casa_output, split_into_chunks
+from meersolar.utils.resource_utils import drop_cache, limit_threads
+from meersolar.utils.logger_utils import init_logger, clean_shutdown, SmartDefaultsHelpFormatter
+from meersolar.utils.proc_manage_utils import run_limited_memory_task, get_dask_client, save_pid, get_nprocess_meersolar
+from meersolar.utils.ms_metadata import get_pol_names, get_cal_target_scans, get_valid_scans, get_timeranges_for_scan, get_bad_chans, get_common_spw
+from meersolar.utils.casatasks import single_mstransform
+logging.getLogger("distributed").setLevel(logging.WARNING)
+
 
 try:
     logfile = casalog.logfile()
     os.system("rm -rf " + logfile)
 except BaseException:
     pass
-
+    
+datadir = get_datadir()
 
 def chanlist_to_str(lst):
     lst = sorted(lst)
     ranges = []
     start = lst[0]
-
     for i in range(1, len(lst)):
         if lst[i] != lst[i - 1] + 1:
-            ranges.append(f"{start}~{lst[i - 1]}")
+            if lst[i - 1]>start:
+                ranges.append(f"{start}~{lst[i - 1]}")
+            elif lst[i - 1]==start:
+                ranges.append(f"{start}")
             start = lst[i]
-    ranges.append(f"{start}~{lst[-1]}")
+    if lst[-1]>start:
+        ranges.append(f"{start}~{lst[-1]}")
+    elif lst[-1]==start:
+        ranges.append(f"{start}")
     return ";".join(ranges)
-
-
-def split_scan(
-    msname="",
-    outputvis="",
-    scan="",
-    width="",
-    timebin="",
-    datacolumn="",
-    spw="",
-    corr="",
-    timerange="",
-    n_threads=-1,
-    dry_run=False,
-):
-    """
-    Split a single target scan
-
-    Parameters
-    ----------
-    msname : str
-        Measurement set
-    outputvis : str
-        Output measurement set
-    scan : int
-        Scan number
-    width : int
-        Channel width
-    timebin : str
-        Timebin width
-    datacolumn : str
-        Datacolumn to split
-    spw : str, optional
-        Spectral window to split
-    corr : str, optional
-        Correlation to split
-    timerange : str, optional
-        Time range to split
-    n_threads : int, optional
-        Number of OpenMP threads
-
-    Returns
-    -------
-    str
-        Splited measurement set
-    """
-    limit_threads(n_threads=n_threads)
-    from casatasks import split, flagdata, initweights
-    from casatools import msmetadata
-
-    msmd = msmetadata()
-    if dry_run:
-        process = psutil.Process(os.getpid())
-        mem = round(process.memory_info().rss / 1024**3, 2)  # in GB
-        return mem
-    msmd.open(msname)
-    fields = msmd.fieldsforscan(int(scan))
-    msmd.close()
-    del msmd
-    fields_str = ""
-    for f in fields:
-        fields_str += str(f) + ","
-    fields_str = fields_str[:-1]
-    if os.path.exists(f"{outputvis}/.splited") == False:
-        if os.path.exists(outputvis):
-            os.system("rm -rf " + outputvis)
-        if os.path.exists(outputvis + ".flagversions"):
-            os.system("rm -rf " + outputvis + ".flagversions")
-        print(f"Spliting scan : {scan} of ms: {msname}\n")
-        print(
-            f"split(vis='{msname}',outputvis='{outputvis}',field='{fields_str}',scan='{scan}',spw='{spw}',correlation='{corr}',timerange='{timerange}',width={width},timebin='{timebin}',datacolumn='{datacolumn}')\n"
-        )
-        with suppress_casa_output():
-            split(
-                vis=msname,
-                outputvis=outputvis,
-                field=fields_str,
-                correlation=corr,
-                scan=scan,
-                spw=spw,
-                timerange=timerange,
-                width=width,
-                timebin=timebin,
-                datacolumn=datacolumn,
-            )
-        ##########################################
-        # Initiate proper weighting
-        ##########################################
-        print("Initiating weights ....")
-        with suppress_casa_output():
-            initweights(vis=outputvis, wtmode="ones", dowtsp=True)
-            flagdata(
-                vis=outputvis,
-                mode="clip",
-                clipzeros=True,
-                datacolumn="data",
-                flagbackup=False,
-            )
-        os.system(f"touch {outputvis}/.splited")
-    return outputvis
 
 
 def split_target_scans(
@@ -208,8 +133,6 @@ def split_target_scans(
         #######################################
         # Extracting time frequency information
         #######################################
-        from casatools import msmetadata
-
         msmd = msmetadata()
         msmd.open(msname)
         chanres = msmd.chanres(0, unit="MHz")[0]
@@ -227,11 +150,8 @@ def split_target_scans(
             timebin = str(timeres) + "s"
         else:
             timebin = ""
-        if not fullpol:
-            corr = "XX,YY"
-        else:
-            corr = ""
-
+        corr = get_pol_names(msname,fullpol=fullpol)
+       
         #############################
         # Making spectral chunks
         #############################
@@ -296,7 +216,7 @@ def split_target_scans(
         #############################################
         # Memory limit
         #############################################
-        task = delayed(split_scan)(dry_run=True)
+        task = delayed(single_mstransform)(dry_run=True)
         mem_limit = run_limited_memory_task(task, dask_dir=workdir)
         #######################
         dask_client, dask_cluster, max_n_jobs, n_threads, mem_limit = get_dask_client(
@@ -329,17 +249,20 @@ def split_target_scans(
                     print(f"{outputvis} is already splited successfully.")
                     splited_ms_list.append(outputvis)
                 else:
-                    task = delayed(split_scan)(
-                        msname,
-                        outputvis,
-                        scan,
-                        chanwidth,
-                        timebin,
-                        datacolumn,
+                    task=delayed(single_mstransform)(
+                        msname=msname,
+                        outputms=outputvis,
+                        field="",
+                        scan=scan,
+                        width=chanwidth,
+                        timebin=timebin,
+                        datacolumn="DATA",
+                        spw="0:" + chanrange,
                         corr=corr,
                         timerange=timerange,
-                        spw="0:" + chanrange,
+                        numsubms="auto",
                         n_threads=n_threads,
+                        dry_run=False,
                     )
                     tasks.append(task)
         #####################################

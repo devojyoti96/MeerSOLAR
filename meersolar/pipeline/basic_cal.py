@@ -1,4 +1,27 @@
-from meersolar.pipeline.basic_func import *
+import logging
+import psutil
+import dask
+import numpy as np
+import argparse
+import traceback
+import copy
+import time
+import sys
+import os
+from casatasks import casalog
+from casatools import msmetadata, table
+from dask import delayed, compute
+from meersolar.utils.basic_utils import suppress_casa_output, get_datadir, mjdsec_to_timestamp
+from meersolar.utils.resource_utils import drop_cache, limit_threads
+from meersolar.utils.logger_utils import init_logger, clean_shutdown, SmartDefaultsHelpFormatter
+from meersolar.utils.proc_manage_utils import run_limited_memory_task, get_dask_client, save_pid
+from meersolar.utils.flagging import do_flag_backup
+from meersolar.utils.ms_metadata import get_ms_size, get_ms_scan_size, get_fluxcals, get_phasecals, get_polcals, get_cal_target_scans, get_bad_chans, get_bad_ants, get_valid_scans, check_datacolumn_valid, get_chunk_size, get_submsname_scans, get_refant
+from meersolar.utils.casatasks import correct_missing_col_subms
+from meersolar.utils.calibration import determine_noise_diode_cal_scan, merge_caltables
+from meersolar.pipeline.flagging import single_ms_flag
+from meersolar.pipeline.import_model import import_fluxcal_models
+logging.getLogger("distributed").setLevel(logging.WARNING)
 
 try:
     logfile = casalog.logfile()
@@ -6,6 +29,7 @@ try:
 except BaseException:
     pass
 
+datadir=get_datadir()
 
 def run_delaycal(
     msname="",
@@ -891,8 +915,10 @@ def single_round_cal_and_flag(
                 pangle_tables = []
                 for r in results:
                     kcross_tables.append(r[0])
-                    crosspphase_tables.append(r[1])
-                    pangle_tables.append(r[2])
+                    if len(r)>1:
+                        crossphase_tables.append(r[1])
+                    if len(r)>2:
+                        pangle_tables.append(r[2])
                 kcross_caltable = merge_caltables(
                     kcross_tables, kcross_caltable, keepcopy=False
                 )
@@ -1213,6 +1239,7 @@ def run_basic_cal_rounds(
                 print("##################\n")
                 return 1, []
         print("##################")
+        print ("Basic calibration is done successfully.")
         print("Total time taken : ", time.time() - start_time)
         print("##################\n")
         return 0, caltables

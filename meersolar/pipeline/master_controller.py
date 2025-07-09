@@ -1490,7 +1490,7 @@ def master_control(
             mem_frac,
         )
         start_time = time.time()
-        print("###########################")
+        print("\n###########################")
         print(f"MeerSOLAR Job ID: {jobid}")
         print(f"Work directory: {workdir}")
         print(f"Final product directory: {outdir}")
@@ -1628,16 +1628,25 @@ def master_control(
         #########################################
         # Target ms frequency chunk based on band
         #########################################
-        bad_spws = get_bad_chans(msname).split("0:")[-1].split(";")
-        good_start = []
-        good_end = []
-        for i in range(len(bad_spws) - 1):
-            start_chan = int(bad_spws[i].split("~")[-1]) + 1
-            end_chan = int(bad_spws[i + 1].split("~")[0]) - 1
-            good_start.append(start_chan)
-            good_end.append(end_chan)
-        start_chan = min(good_start)
-        end_chan = max(good_end)
+        bad_spws = get_bad_chans(msname)
+        if bad_spws!="":
+            bad_spws=bad_spws.split("0:")[-1].split(";")
+            good_start = []
+            good_end = []
+            for i in range(len(bad_spws) - 1):
+                start_chan = int(bad_spws[i].split("~")[-1]) + 1
+                end_chan = int(bad_spws[i + 1].split("~")[0]) - 1
+                good_start.append(start_chan)
+                good_end.append(end_chan)
+            start_chan = min(good_start)
+            end_chan = max(good_end)
+        else:
+            msmd = msmetadata()
+            msmd.open(msname)
+            nchan = msmd.nchan(0)
+            msmd.close()
+            start_chan=0
+            end_chan=nchan
         spw = f"0:{start_chan}~{end_chan}"
 
         #############################################################
@@ -1706,6 +1715,16 @@ def master_control(
                 print(
                     "!!!! WARNING: Error in running noise-diode based flux calibration. Flux density calibration may not be correct. !!!!"
                 )
+                if os.path.exists(f"{workdir}/.attcal"):
+                    os.system(f"rm -rf {workdir}/.attcal")
+                os.system(f"touch {workdir}/.noattcal")
+            else:
+                if os.path.exists(f"{workdir}/.noattcal"):
+                    os.system(f"rm -rf {workdir}/.noattcal")
+                os.system(f"touch {workdir}/.attcal")
+        else:
+            if os.path.exists(f"{workdir}/.attcal")==False:
+                os.system(f"touch {workdir}/.noattcal")
 
         ##############################
         # Run partitioning jobs

@@ -1,6 +1,25 @@
-from meersolar.pipeline.basic_func import *
+import logging
+import psutil
+import dask
+import numpy as np
+import argparse
+import traceback
+import warnings
+import time
+import sys
+import os
+from casatasks import casalog
+from casatools import msmetadata, ms as casamstool, table
+from dask import delayed, compute
+from meersolar.utils.basic_utils import suppress_casa_output, get_datadir, mjdsec_to_timestamp
+from meersolar.utils.resource_utils import drop_cache, limit_threads
+from meersolar.utils.logger_utils import init_logger, clean_shutdown, SmartDefaultsHelpFormatter
+from meersolar.utils.proc_manage_utils import run_limited_memory_task, get_dask_client, save_pid
+from meersolar.utils.ms_metadata import get_ms_size, get_ms_scan_size, get_fluxcals, get_cal_target_scans, get_bad_chans, get_bad_ants, get_valid_scans
+from meersolar.utils.calibration import determine_noise_diode_cal_scan
 from meersolar.pipeline.flagging import single_ms_flag
 from meersolar.pipeline.import_model import import_fluxcal_models
+logging.getLogger("distributed").setLevel(logging.WARNING)
 
 try:
     logfile = casalog.logfile()
@@ -8,6 +27,7 @@ try:
 except BaseException:
     pass
 
+datadir=get_datadir()
 
 def split_casatask(
     msname="", outputvis="", scan="", time_range="", n_threads=-1, dry_run=False
@@ -115,6 +135,8 @@ def get_on_off_power(msname="", scale_factor="", ant_list=[], dry_run=False):
     ----------
     msname : str
         Measurement set name
+    scale_factor : numpy.array
+        Scaling factor for on-off gain offset in fluxcal scan (shape: npol, nchan)
     ant_list : list
         Antenna id list
 
@@ -135,11 +157,9 @@ def get_on_off_power(msname="", scale_factor="", ant_list=[], dry_run=False):
     data_dict = mstool.getdata(["DATA", "FLAG"], ifraxis=True)
     mstool.close()
     del mstool
-    gc.collect()
     data_source = np.abs(data_dict["data"]).astype(np.float32)
     data_source[data_dict["flag"]] = np.nan
     del data_dict
-    gc.collect()
     n_total = data_source.shape[-1]
     n_tstamps = (n_total // 2) * 2
     antslice = slice(min(ant_list), max(ant_list) + 1)
@@ -158,7 +178,6 @@ def get_on_off_power(msname="", scale_factor="", ant_list=[], dry_run=False):
         axis=-1,
     )
     del data_source
-    gc.collect()
     return diff_source
 
 
@@ -173,7 +192,7 @@ def get_att_per_ant(cal_msname, source_msname, scale_factor, ant_list=[]):
     source_msname : str
         Source scan with noise diode
     scale_factor : numpy.array
-        Scaling factor for on-off gain offset in fluxcal scan
+        Scaling factor for on-off gain offset in fluxcal scan (shape: npol, nchan)
     ant_list : list, optional
         Antenna list, default: all antennas
 
@@ -190,11 +209,9 @@ def get_att_per_ant(cal_msname, source_msname, scale_factor, ant_list=[]):
         del msmd
         ant_list = [i for i in range(nant)]
     cal_diff = get_on_off_power(cal_msname, scale_factor, ant_list=ant_list)
-    gc.collect()
     source_diff = get_on_off_power(
         source_msname, scale_factor * 0 + 1, ant_list=ant_list
     )
-    gc.collect()
     att = source_diff / cal_diff
     del source_diff, cal_diff
     return att
@@ -264,7 +281,6 @@ def get_power_diff(
     ntime = int(nrow / nbaselines)
     msmd.close()
     del msmd
-    gc.collect()
     ####################################
     # Calculate mean on-off gain offset
     ####################################
@@ -278,13 +294,10 @@ def get_power_diff(
     del tb
     G = (ongain - offgain) / offgain  # Power offset
     del ongain, offgain
-    gc.collect()
     G_mean = np.nanmean(G, axis=-1)  # Averaged over antennas
     del G
-    gc.collect()
     scale_factor = 1 / (1 + G_mean)
     del G_mean
-    gc.collect()
     ########################################
     # Determining chunk size
     ########################################

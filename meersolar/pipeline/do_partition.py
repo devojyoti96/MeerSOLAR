@@ -1,101 +1,30 @@
-from meersolar.pipeline.basic_func import *
+import logging
+import dask
+import numpy as np
+import argparse
+import traceback
+import copy
+import time
+import sys
+import os
+from casatasks import casalog
+from casatools import msmetadata
+from dask import delayed, compute
+from meersolar.utils.basic_utils import get_datadir, suppress_casa_output, split_into_chunks
+from meersolar.utils.resource_utils import drop_cache, limit_threads, tmp_with_cache_rel
+from meersolar.utils.logger_utils import init_logger, clean_shutdown, SmartDefaultsHelpFormatter
+from meersolar.utils.proc_manage_utils import run_limited_memory_task, get_dask_client, save_pid, get_nprocess_meersolar
+from meersolar.utils.ms_metadata import get_pol_names, get_cal_target_scans, get_valid_scans, get_timeranges_for_scan, get_bad_chans, get_common_spw, get_ms_scan_size
+from meersolar.utils.casatasks import single_mstransform
+logging.getLogger("distributed").setLevel(logging.WARNING)
 
 try:
     logfile = casalog.logfile()
     os.system("rm -rf " + logfile)
 except BaseException:
     pass
-
-
-def single_mstransform(
-    msname="",
-    outputms="",
-    field="",
-    scan="",
-    width=1,
-    timebin="",
-    corr="",
-    datacolumn="DATA",
-    n_threads=-1,
-    dry_run=False,
-):
-    """
-    Perform mstransform of a single scan
-
-    Parameters
-    ----------
-    msname : str
-        Name of the measurement set
-    outputms : str
-        Output ms name
-    field : str, optional
-        Field name
-    scan : str, optional
-        Scans to split
-    width : int, optional
-        Number of channels to average
-    timebin : str, optional
-        Time to average
-    corr : str, optional
-        Correlation to split
-    datacolumn : str, optional
-        Data column to split
-    n_threads : int, optional
-        Number of CPU threads
-
-    Returns
-    -------
-    str
-        Output measurement set name
-    """
-    limit_threads(n_threads=n_threads)
-    from casatasks import mstransform
-
-    if dry_run:
-        process = psutil.Process(os.getpid())
-        mem = round(process.memory_info().rss / 1024**3, 2)  # in GB
-        return mem
-    print(
-        f"Transforming scan : {scan}, channel averaging: {width}, time averaging: '{timebin}'\n"
-    )
-    if timebin == "" or timebin is None:
-        timeaverage = False
-    else:
-        timeaverage = True
-    if width > 1:
-        chanaverage = True
-    else:
-        chanaverage = False
-    outputms = outputms.rstrip("/")
-    if os.path.exists(outputms):
-        os.system("rm -rf " + outputms)
-    if os.path.exists(outputms + ".flagversions"):
-        os.system("rm -rf " + outputms + ".flagversions")
-    try:
-        with suppress_casa_output():
-            mstransform(
-                vis=msname,
-                outputvis=outputms,
-                field=field,
-                scan=scan,
-                datacolumn=datacolumn,
-                createmms=True,
-                correlation=corr,
-                timeaverage=timeaverage,
-                timebin=timebin,
-                chanaverage=chanaverage,
-                chanbin=int(width),
-                nthreads=2,
-                separationaxis="scan",
-                numsubms=1,
-            )
-        gc.collect()
-        return outputms
-    except Exception as e:
-        if os.path.exists(outputms):
-            os.system("rm -rf " + outputms)
-        return
-
+    
+datadir = get_datadir()
 
 def partion_ms(
     msname,
@@ -145,8 +74,6 @@ def partion_ms(
     print("Paritioning measurement set: " + msname)
     print("##################\n")
     print("Determining valid scan list ....")
-    from casatools import msmetadata
-
     start_time = time.time()
     valid_scans = get_valid_scans(msname, min_scan_time=1)
     msmd = msmetadata()
@@ -195,10 +122,8 @@ def partion_ms(
     msmd.close()
     msmd.done()
     field = ",".join(field_list)
-    if not fullpol:
-        corr = "XX,YY"
-    else:
-        corr = ""
+    corr = get_pol_names(msname,fullpol=fullpol)
+    
     ###########################
     # Dask local cluster setup
     ###########################
@@ -224,14 +149,15 @@ def partion_ms(
             scan = scan_list[i]
             outputvis = os.path.join(temp_workdir, f"scan_{scan}.ms")
             task = delayed(single_mstransform)(
-                msname,
-                outputvis,
+                msname=msname,
+                outputms=outputvis,
                 scan=str(scan),
                 field="",
                 corr=corr,
                 width=width,
                 timebin=timebin,
                 n_threads=n_threads,
+                numsubms=1,
             )
             tasks.append(task)
         splited_ms_list = compute(*tasks)
@@ -260,7 +186,6 @@ def partion_ms(
     print("##################")
     print("Total time taken : " + str(time.time() - start_time) + "s")
     print("##################\n")
-    gc.collect()
     time.sleep(5)
     drop_cache(msname)
     drop_cache(workdir)
@@ -402,10 +327,10 @@ def main():
             )
             if outputms is None or not os.path.exists(outputms):
                 print("Error in partitioning measurement set.")
-                msg = 0
+                msg = 1
             else:
                 print("Partitioned multi-MS is created at:", outputms)
-                msg = 1
+                msg = 0
         else:
             print("Please provide a valid measurement set.\n")
             msg = 1

@@ -6,7 +6,144 @@ try:
 except BaseException:
     pass
 
+def make_solar_DS(
+    msname,
+    workdir,
+    ds_file_name="",
+    extension="png",
+    target_scans=[],
+    scans=[],
+    merge_scan=False,
+    showgui=False,
+    cpu_frac=0.8,
+    mem_frac=0.8,
+):
+    """
+    Make solar dynamic spectrum and plots
 
+    Parameters
+    ----------
+    msname : str
+        Measurement set name'
+    workdir : str
+        Work directory
+    ds_file_name : str, optional
+        DS file name prefix
+    extension : str, optional
+        Image file extension
+    target_scans : list, optional
+        Target scans
+    scans : list, optional
+        Scan list
+    merge_scan : bool, optional
+        Merge scans in one plot or not
+    showgui : bool, optional
+        Show GUI
+    cpu_frac : float, optional
+        CPU fraction to use
+    mem_frac : float, optional
+        Memory fraction to use
+    """
+    warnings.filterwarnings("ignore", category=RuntimeWarning)
+    os.makedirs(f"{workdir}/dynamic_spectra", exist_ok=True)
+    print("##############################################")
+    print(f"Start making dynamic spectra for ms: {msname}")
+    print("##############################################")
+    if len(target_scans) > 0:
+        temp_target_scans = []
+        for s in target_scans:
+            temp_target_scans.append(int(s))
+        target_scans = temp_target_scans
+
+    ##################################
+    # Making and ploting
+    ##################################
+    if len(scans) == 0:
+        scans, cal_scans, f_scans, g_scans, p_scans = get_cal_target_scans(msname)
+    valid_scans = get_valid_scans(msname)
+    final_scans = []
+    scan_size_list = []
+    msmd = msmetadata()
+    mstool = casamstool()
+    for scan in scans:
+        if scan in valid_scans:
+            if len(target_scans) == 0 or (
+                len(target_scans) > 0 and int(scan) in target_scans
+            ):
+                final_scans.append(int(scan))
+                msmd.open(msname)
+                nchan = msmd.nchan(0)
+                nant = msmd.nantennas()
+                msmd.close()
+                mstool.open(msname)
+                mstool.select({"scan_number": int(scan)})
+                nrow = mstool.nrow(True)
+                mstool.close()
+                nbaselines = int(nant + (nant * (nant - 1) / 2))
+                scan_size = (5 * (nrow / nbaselines) * 16) / (1024**3)
+                scan_size_list.append(scan_size)
+    if len(final_scans) == 0:
+        print("No scans to make dynamic spectra.")
+        return
+    del scans
+    scans = sorted(final_scans)
+    print(f"Scans: {scans}")
+    msname = msname.rstrip("/")
+    if ds_file_name == "":
+        ds_file_name = os.path.basename(msname).split(".ms")[0] + "_DS"
+    hascor = check_datacolumn_valid(msname, datacolumn="CORRECTED_DATA")
+    if hascor:
+        datacolumn = "CORRECTED_DATA"
+    else:
+        datacolumn = "DATA"
+    mspath = os.path.dirname(msname)
+    mem_limit = max(scan_size_list)
+    dask_client, dask_cluster, n_jobs, n_threads, mem_limit = get_dask_client(
+        len(scans),
+        dask_dir=workdir,
+        cpu_frac=cpu_frac,
+        mem_frac=mem_frac,
+        min_mem_per_job=mem_limit / 0.6,
+    )
+    tasks = []
+    for scan in scans:
+        tasks.append(
+            delayed(make_ds_file_per_scan)(
+                msname,
+                f"{workdir}/dynamic_spectra/{ds_file_name}_scan_{scan}",
+                scan,
+                datacolumn,
+            )
+        )
+    compute(*tasks)
+    dask_client.close()
+    dask_cluster.close()
+    ds_files = [
+        f"{workdir}/dynamic_spectra/{ds_file_name}_scan_{scan}.npy" for scan in scans
+    ]
+    print(f"DS files: {ds_files}")
+    if not merge_scan:
+        plots = []
+        for dsfile in ds_files:
+            plot_file = make_ds_plot(
+                [dsfile],
+                plot_file=dsfile.replace(".npy", f".{extension}"),
+                showgui=showgui,
+            )
+            plots.append(plot_file)
+    else:
+        plot_file = make_ds_plot(
+            ds_files,
+            plot_file=f"{workdir}/dynamic_spectra/{ds_file_name}.{extension}",
+            showgui=showgui,
+        )
+    gc.collect()
+    goes_files = glob.glob(f"{workdir}/dynamic_spectra/sci*.nc")
+    for f in goes_files:
+        os.system(f"rm -rf {f}")
+    os.system(f"rm -rf {workdir}/dask-scratch-space {workdir}/tmp")
+    return
+    
 def make_ds(
     msname,
     workdir,
