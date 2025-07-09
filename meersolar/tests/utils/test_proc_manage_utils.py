@@ -1,7 +1,19 @@
 import pytest
+import resource
+import psutil
+import dask
+import numpy as np
+import warnings
+import gc
+import time
+import glob
+import os
+from casatasks import casalog
+from dask import delayed, compute, config
+from dask.distributed import Client, LocalCluster
+from datetime import datetime as dt, timedelta
 from unittest.mock import patch, MagicMock, mock_open, call
 from meersolar.utils.proc_manage_utils import *
-
 
 @patch("meersolar.utils.proc_manage_utils.psutil.pid_exists")
 @patch("meersolar.utils.proc_manage_utils.np.loadtxt")
@@ -16,8 +28,8 @@ def test_get_nprocess_meersolar(mock_get_cachedir, mock_loadtxt, mock_pid_exists
         "/mock/.meersolar/pids/pids_42.txt", unpack=True
     )
 
-
 def test_save_pid():
+    os.system("rm -rf /tmp/test_pid.txt")
     save_pid(10, "/tmp/test_pid.txt")
     assert os.path.exists("/tmp/test_pid.txt") == True
     a = np.loadtxt("/tmp/test_pid.txt", dtype="int")
@@ -132,49 +144,38 @@ def test_create_batch_script_nonhpc(
     mock_system.assert_any_call(f"chmod a+rwx {batch_path}")
     mock_system.assert_any_call(f"chmod a+rwx {cmd_batch_path}")
 
+def calc_sum(i):
+    time.sleep(5)
+    return np.nansum(i)
 
-@patch("meersolar.utils.proc_manage_utils.resource.setrlimit")
-@patch(
-    "meersolar.utils.proc_manage_utils.resource.getrlimit", return_value=(4096, 8192)
-)
-@patch("meersolar.utils.proc_manage_utils.psutil.swap_memory")
-@patch("meersolar.utils.proc_manage_utils.psutil.virtual_memory")
-@patch("meersolar.utils.proc_manage_utils.psutil.cpu_percent", return_value=10)
-@patch("meersolar.utils.proc_manage_utils.psutil.cpu_count", return_value=16)
-@patch("meersolar.utils.proc_manage_utils.os.makedirs")
-def test_get_dask_client(
-    mock_makedirs,
-    mock_cpu_count,
-    mock_cpu_percent,
-    mock_virtual_memory,
-    mock_swap_memory,
-    mock_getrlimit,
-    mock_setrlimit,
-):
-    mock_virtual_memory.return_value = MagicMock(
-        total=64 * 1024**3, available=60 * 1024**3
+def test_get_dask_client():
+    client, cluster, n, t, mem = get_dask_client(
+        n_jobs=10,
+        dask_dir="/tmp/test_dask",
+        only_cal=False,
     )
-    mock_swap_memory.return_value = MagicMock(total=8 * 1024**3)
-    client, cluster, n_workers, threads_per_worker, mem_per_worker = get_dask_client(
-        n_jobs=4,
-        dask_dir="/mock/tmp",
-        only_cal=True,
-        min_mem_per_job=4,
-    )
-    assert client is None
-    assert cluster is None
-    assert n_workers >= 1
-    assert threads_per_worker >= 1
-    assert mem_per_worker > 0
+    assert client is not None
+    assert n >= 1
+    expected_results=[np.nansum(i) for i in range(10)]
+    tasks=[delayed(calc_sum)(i) for i in range(10)]
+    results=compute(*tasks)
+    results=list(results)
+    client.close()
+    cluster.close()
+    assert results==expected_results
+    
 
+def dummy_task():
+    time.sleep(2)
+    return sum(range(1000000))
 
 def test_run_limited_memory_task():
-    def slow_function():
-        time.sleep(2)
-        return sum(range(1000000))
-
-    task = delayed(slow_function)()
+    task = delayed(dummy_task)()
     mem_gb = run_limited_memory_task(task, dask_dir="/tmp", timeout=5)
+    print(f"Memory used: {mem_gb} GB")
     assert mem_gb is not None
     assert isinstance(mem_gb, float)
     assert mem_gb > 0
+
+    
+    

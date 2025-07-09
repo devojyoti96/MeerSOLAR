@@ -1,4 +1,12 @@
 import pytest
+import psutil
+import numpy as np
+import traceback
+import glob
+import os
+from casatasks import casalog
+from datetime import datetime as dt, timezone
+from casatools import table
 from unittest.mock import patch, MagicMock, call
 from meersolar.utils.flagging import *
 
@@ -20,6 +28,13 @@ def test_do_flag_backup(dummy_msname):
 
 
 def test_get_unflagged_antennas(dummy_submsname):
+    tb=table()
+    tb.open(f"{dummy_submsname}/SUBMSS/test_subms.ms.0000.ms",nomodify=False)
+    flag=tb.getcol("FLAG")
+    flag*=False
+    tb.putcol("FLAG",flag)
+    tb.flush()
+    tb.close()
     antlist, fraclist = get_unflagged_antennas(
         f"{dummy_submsname}/SUBMSS/test_subms.ms.0000.ms"
     )

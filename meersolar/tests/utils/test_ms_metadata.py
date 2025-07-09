@@ -1,4 +1,10 @@
 import pytest
+import psutil
+import numpy as np
+import glob
+import os
+from casatasks import casalog
+from casatools import msmetadata, ms as casamstool, table
 from unittest.mock import patch
 from meersolar.utils.ms_metadata import *
 
@@ -108,6 +114,11 @@ def test_get_polcals(dummy_msname):
     assert fields == []
     assert scans == {}
 
+def test_get_observatory_name(dummy_msname):
+    assert get_observatory_name(dummy_msname)=="MEERKAT"
+
+def test_get_pol_names(dummy_msname):
+    assert get_pol_names(dummy_msname)==["XX","XY","YX","YY"]
 
 @patch("meersolar.utils.ms_metadata.np.load")
 def test_get_phasecals(mock_npload, dummy_msname, mock_npy_data):

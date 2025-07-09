@@ -1,4 +1,10 @@
 import pytest
+import psutil
+import numpy as np
+import glob
+import os
+from casatasks import casalog
+from casatools import msmetadata, ms as casamstool, table
 from unittest.mock import patch, MagicMock
 from meersolar.utils.casatasks import *
 
@@ -52,3 +58,33 @@ def test_split_noise_diode_scans(
     mock_table_instance.open.assert_called_once()
     mock_table_instance.getcol.assert_called_with("TIME")
     mock_timestamp.assert_called()
+    
+@patch("meersolar.utils.casatasks.psutil.Process")
+@patch("meersolar.utils.casatasks.os.path.exists", return_value=False)
+@patch("meersolar.utils.casatasks.os.system")
+@patch("meersolar.utils.casatasks.limit_threads")
+@patch("meersolar.utils.casatasks.suppress_casa_output")
+@patch("casatasks.mstransform")
+@patch("casatasks.initweights")
+@patch("casatasks.flagdata")
+def test_single_mstransform(
+    mock_flagdata,
+    mock_initweights,
+    mock_mstransform,
+    mock_suppress,
+    mock_limit_threads,
+    mock_system,
+    mock_exists,
+    mock_psutil_process,
+):
+    # Mock memory return for dry_run
+    mock_process = MagicMock()
+    mock_process.memory_info.return_value.rss = 3 * 1024**3  # 3 GB
+    mock_psutil_process.return_value = mock_process
+
+    # Run only dry_run path
+    mem = single_mstransform(msname="mock.ms", dry_run=True)
+
+    assert isinstance(mem, float)
+    assert mem == 3.0
+    

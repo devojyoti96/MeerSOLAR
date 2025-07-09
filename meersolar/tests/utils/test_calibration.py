@@ -1,4 +1,12 @@
 import pytest
+import psutil
+import numpy as np
+import traceback
+import warnings
+import glob
+import os
+from casatasks import casalog
+from casatools import msmetadata, ms as casamstool, table
 from meersolar.utils.calibration import *
 from unittest.mock import MagicMock, patch
 
@@ -52,12 +60,12 @@ def test_max_time_solar_smearing(dummy_msname):
 
 def test_delaycal(dummy_submsname):
     caltable = delaycal(
-        msname=f"{dummy_submsname}/SUBMSS/test_subms.ms.0000.ms",
-        caltable=f"{dummy_submsname}/SUBMSS/test_subms.ms.0000.kcal",
+        msname=f"{dummy_submsname}/SUBMSS/test_subms.ms.0001.ms",
+        caltable=f"{dummy_submsname}/SUBMSS/test_subms.ms.0001.kcal",
         refant="0",
     )
-    if os.path.exists(f"{dummy_submsname}/SUBMSS/test_subms.ms.0000.kcal"):
-        os.system(f"rm -rf {dummy_submsname}/SUBMSS/test_subms.ms.0000.kcal")
-        assert caltable == f"{dummy_submsname}/SUBMSS/test_subms.ms.0000.kcal"
+    if os.path.exists(f"{dummy_submsname}/SUBMSS/test_subms.ms.0001.kcal"):
+        os.system(f"rm -rf {dummy_submsname}/SUBMSS/test_subms.ms.0001.kcal")
+        assert caltable == f"{dummy_submsname}/SUBMSS/test_subms.ms.0001.kcal"
     else:
         assert caltable == None
