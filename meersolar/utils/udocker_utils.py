@@ -1,17 +1,33 @@
-from .all_depend import *
+import types
+import psutil
+import traceback
+import tempfile
+import time
+import glob
+import os
+from casatasks import casalog
 from .basic_utils import *
 
-datadir = get_datadir()
-udocker_dir = datadir + "/udocker"
-os.environ["UDOCKER_DIR"] = udocker_dir
-os.environ["UDOCKER_TARBALL"] = datadir + "/udocker-englib-1.2.11.tar.gz"
+try:
+    logfile = casalog.logfile()
+    os.system("rm -rf " + logfile)
+except BaseException:
+    pass
 
 ####################
 # uDOCKER related
 ####################
 
 
+def set_udocker_env():
+    datadir = get_datadir()
+    udocker_dir = datadir + "/udocker"
+    os.environ["UDOCKER_DIR"] = udocker_dir
+    os.environ["UDOCKER_TARBALL"] = datadir + "/udocker-englib-1.2.11.tar.gz"
+
+
 def init_udocker():
+    set_udocker_env()
     os.system("udocker install")
 
 
@@ -372,3 +388,14 @@ def run_chgcenter(
         traceback.print_exc()
         return 1
     return
+
+
+# Expose functions and classes
+__all__ = [
+    name
+    for name, obj in globals().items()
+    if (
+        (isinstance(obj, types.FunctionType) or isinstance(obj, type))
+        and obj.__module__ == __name__
+    )
+]

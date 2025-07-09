@@ -1,5 +1,17 @@
-from .all_depend import *
+import types
+import numpy as np
+import glob
+import os
+from casatasks import casalog
+from casatools import msmetadata, ms as casamstool, table
 from .basic_utils import *
+
+try:
+    logfile = casalog.logfile()
+    os.system("rm -rf " + logfile)
+except BaseException:
+    pass
+
 
 ##################################
 # Imaging related
@@ -352,3 +364,14 @@ def get_multiscale_bias(freq, bias_min=0.6, bias_max=0.9):
         return round(
             np.clip(bias_min + frac * (bias_max - bias_min), bias_min, bias_max), 3
         )
+
+
+# Expose functions and classes
+__all__ = [
+    name
+    for name, obj in globals().items()
+    if (
+        (isinstance(obj, types.FunctionType) or isinstance(obj, type))
+        and obj.__module__ == __name__
+    )
+]

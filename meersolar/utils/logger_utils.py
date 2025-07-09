@@ -1,6 +1,25 @@
-from .all_depend import *
+import types
+import secrets
+import string
+import logging
+import argparse
+import requests
+import time
+import glob
+import sys
+import os
+from casatasks import casalog
+from watchdog.events import FileSystemEventHandler
+from watchdog.observers import Observer
+from datetime import datetime as dt
 from .basic_utils import *
 from .proc_manage_utils import *
+
+try:
+    logfile = casalog.logfile()
+    os.system("rm -rf " + logfile)
+except BaseException:
+    pass
 
 
 ##################################
@@ -299,3 +318,14 @@ def init_logger(logname, logfile, jobname="", password=""):
             return
     else:
         return
+
+
+# Exposing only functions
+__all__ = [
+    name
+    for name, obj in globals().items()
+    if (
+        (isinstance(obj, types.FunctionType) or isinstance(obj, type))
+        and obj.__module__ == __name__
+    )
+]

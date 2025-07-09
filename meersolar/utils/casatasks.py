@@ -1,6 +1,19 @@
-from .all_depend import *
+import types
+import psutil
+import numpy as np
+import glob
+import os
+from casatasks import casalog
+from casatools import msmetadata, ms as casamstool, table
 from .basic_utils import *
 from .resource_utils import *
+
+try:
+    logfile = casalog.logfile()
+    os.system("rm -rf " + logfile)
+except BaseException:
+    pass
+
 
 #############################
 # General CASA tasks
@@ -226,3 +239,125 @@ def split_noise_diode_scans(
         os.system("mv " + odd_ms + " " + noise_on_ms)
         os.system("mv " + even_ms + " " + noise_off_ms)
     return noise_on_ms, noise_off_ms
+
+
+def single_mstransform(
+    msname="",
+    outputms="",
+    field="",
+    scan="",
+    width=1,
+    timebin="",
+    datacolumn="DATA",
+    spw="",
+    corr="",
+    timerange="",
+    numsubms="auto",
+    n_threads=-1,
+    dry_run=False,
+):
+    """
+    Perform mstransform of a single scan
+
+    Parameters
+    ----------
+    msname : str
+        Name of the measurement set
+    outputms : str
+        Output ms name
+    field : str, optional
+        Field name
+    scan : str, optional
+        Scans to split
+    width : int, optional
+        Number of channels to average
+    timebin : str, optional
+        Time to average
+    datacolumn : str, optional
+        Data column to split
+    spw : str, optional
+        Spectral window
+    corr : str, optional
+        Correlation to split
+    timerange : str, optional
+        Time range
+    numsubms : str, optional
+        Number of subms
+    n_threads : int, optional
+        Number of CPU threads
+
+    Returns
+    -------
+    str
+        Output measurement set name
+    """
+    limit_threads(n_threads=n_threads)
+    from casatasks import mstransform, initweights, flagdata
+
+    if dry_run:
+        process = psutil.Process(os.getpid())
+        mem = round(process.memory_info().rss / 1024**3, 2)  # in GB
+        return mem
+    if timebin == "" or timebin is None:
+        timeaverage = False
+    else:
+        timeaverage = True
+    if width > 1:
+        chanaverage = True
+    else:
+        chanaverage = False
+    outputms = outputms.rstrip("/")
+    if os.path.exists(outputms):
+        os.system("rm -rf " + outputms)
+    if os.path.exists(outputms + ".flagversions"):
+        os.system("rm -rf " + outputms + ".flagversions")
+    try:
+        if n_threads < 1:
+            n_threads = 2
+        else:
+            n_threads = min(n_threads, 2)
+        with suppress_casa_output():
+            mstransform(
+                vis=msname,
+                outputvis=outputms,
+                spw=spw,
+                timerange=timerange,
+                field=field,
+                scan=scan,
+                datacolumn=datacolumn,
+                createmms=True,
+                correlation=corr,
+                timeaverage=timeaverage,
+                timebin=timebin,
+                chanaverage=chanaverage,
+                chanbin=int(width),
+                nthreads=n_threads,
+                separationaxis="scan",
+                numsubms=numsubms,
+            )
+        with suppress_casa_output():
+            initweights(vis=outputvis, wtmode="ones", dowtsp=True)
+            flagdata(
+                vis=outputvis,
+                mode="clip",
+                clipzeros=True,
+                datacolumn="data",
+                flagbackup=False,
+            )
+        os.system(f"touch {outputms}/.splited")
+        return outputms
+    except Exception as e:
+        if os.path.exists(outputms):
+            os.system("rm -rf " + outputms)
+        return
+
+
+# Expose functions and classes
+__all__ = [
+    name
+    for name, obj in globals().items()
+    if (
+        (isinstance(obj, types.FunctionType) or isinstance(obj, type))
+        and obj.__module__ == __name__
+    )
+]

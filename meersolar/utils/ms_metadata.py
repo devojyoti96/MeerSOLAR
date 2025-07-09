@@ -1,6 +1,18 @@
-from .all_depend import *
+import types
+import psutil
+import numpy as np
+import glob
+import os
+from casatasks import casalog
+from casatools import msmetadata, ms as casamstool, table
 from .basic_utils import *
 from .resource_utils import *
+
+try:
+    logfile = casalog.logfile()
+    os.system("rm -rf " + logfile)
+except BaseException:
+    pass
 
 ##########################
 # Measurement set metadata
@@ -333,14 +345,18 @@ def get_band_name(msname):
     msmd = msmetadata()
     msmd.open(msname)
     meanfreq = msmd.meanfreq(0) / 10**6
+    observatory = msmd.observatorynames()[0].upper()
     msmd.close()
     msmd.done()
-    if meanfreq >= 544 and meanfreq <= 1088:
-        return "U"
-    elif meanfreq >= 856 and meanfreq <= 1712:
-        return "L"
+    if observatory == "MEERKAT":  # TODO: Make it common for MWA, LOFAR, uGMRT, SKA
+        if meanfreq >= 544 and meanfreq <= 1088:
+            return "U"
+        elif meanfreq >= 856 and meanfreq <= 1712:
+            return "L"
+        else:
+            return "S"
     else:
-        return "S"
+        return ""
 
 
 def get_bad_chans(msname):
@@ -362,27 +378,31 @@ def get_bad_chans(msname):
     chanfreqs = msmd.chanfreqs(0) / 10**6
     msmd.close()
     msmd.done()
-    bandname = get_band_name(msname)
-    if bandname == "U":
-        bad_freqs = [
-            (-1, 580),
-            (925, 960),
-            (1010, -1),
-        ]
-    elif bandname == "L":
-        bad_freqs = [
-            (-1, 879),
-            (925, 960),
-            (1166, 1186),
-            (1217, 1237),
-            (1242, 1249),
-            (1375, 1387),
-            (1526, 1626),
-            (1681, -1),
-        ]
+    observatory = get_observatory_name()
+    if observatory == "MEERKAT":
+        bandname = get_band_name(msname)
+        if bandname == "U":
+            bad_freqs = [
+                (-1, 580),
+                (925, 960),
+                (1010, -1),
+            ]
+        elif bandname == "L":
+            bad_freqs = [
+                (-1, 879),
+                (925, 960),
+                (1166, 1186),
+                (1217, 1237),
+                (1242, 1249),
+                (1375, 1387),
+                (1526, 1626),
+                (1681, -1),
+            ]
+        else:
+            print("MeerKAT data is not in UHF or L-band.")
+            bad_freqs = []
     else:
-        print("Data is not in UHF or L-band.")
-        bad_freqs = []
+        bad_freqs = []  # TODO: add for other observatories
     if min(chanfreqs) <= bad_freqs[0][1] and max(chanfreqs) >= bad_freqs[-1][0]:
         spw = "0:"
         count = 0
@@ -430,13 +450,17 @@ def get_good_chans(msname):
     meanfreq = msmd.meanfreq(0) / 10**6
     msmd.close()
     msmd.done()
-    bandname = get_band_name(msname)
-    if bandname == "U":
-        good_freqs = [(580, 620)]  # For UHF band
-    elif bandname == "L":
-        good_freqs = [(890, 920)]  # For L band
-    else:
-        good_freqs = []  # For S band #TODO: fill it
+    observatory = get_observatory_name()
+    if observatory == "MEERKAT":
+        bandname = get_band_name(msname)
+        if bandname == "U":
+            good_freqs = [(580, 620)]  # For UHF band
+        elif bandname == "L":
+            good_freqs = [(890, 920)]  # For L band
+        else:
+            good_freqs = []  # For S band #TODO: fill it
+    else:  # TODO: add for MWA and others
+        good_freqs = []
     if min(chanfreqs) <= good_freqs[0][1] and max(chanfreqs) >= good_freqs[-1][0]:
         spw = "0:"
         for freq_range in good_freqs:
@@ -665,14 +689,14 @@ def get_refant(msname="", n_threads=-1, dry_run=False):
     fluxcal_fields, fluxcal_scans = get_fluxcals(msname)
     msmd = msmetadata()
     msmd.open(msname)
-    nant = int(msmd.nantennas() / 2)
+    nant = msmd.nantennas()
     msmd.close()
     msmd.done()
     antamp = []
     antrms = []
-    if nant > 10:
-        nant = max(10, int(0.1 * nant))
-    for ant in range(nant):
+    elected_nant = min(10, int(0.1 * msmd.nantennas()))
+    selected_nant = min(selected_nant, nant)
+    for ant in range(selected_nant):
         ant = str(ant)
         t = visstat(
             vis=msname,
@@ -760,6 +784,70 @@ def get_submsname_scans(msname):
     return mslist, scans
 
 
+def get_observatory_name(msname):
+    """
+    Get observatory name
+
+    Parameters
+    ----------
+    msname : str
+        Measurement set
+
+    Returns
+    -------
+    str
+        Observatory name in all upper case
+    """
+    observatory = ""
+    try:
+        msmd = msmetadata()
+        msmd.open(msname)
+        observatory = msmd.observatorynames()[0].upper()
+        msmd.close()
+    except Exception:
+        pass
+    return observatory
+    
+def get_pol_names(msname,fullpol=True):
+    """
+    Get correlation names
+    
+    Parameters
+    ----------
+    msname : str
+        Measurement set
+    fullpol : bool, optional
+        Full polarization products or not
+        
+    Returns
+    -------
+    list
+        List of cross correlation product names
+    """
+    CASA_POL_PRODUCTS = {
+    1: "I",
+    2: "Q",
+    3: "U",
+    4: "V",
+    5: "RR",
+    6: "RL",
+    7: "LR",
+    8: "LL",
+    9: "XX",
+    10: "XY",
+    11: "YX",
+    12: "YY",
+    }
+    msmd=msmetadata()
+    msmd.open(msname)
+    pols=msmd.corrtypesforpol(0)
+    msmd.close()
+    pol_names=[]
+    for p in pols:
+        pol_names.append(CASA_POL_PRODUCTS[int(p)])
+    return pol_names
+
+
 def get_fluxcals(msname):
     """
     Get fluxcal field names and scans (all scans, valids and invalids
@@ -776,6 +864,7 @@ def get_fluxcals(msname):
     dict
         Fluxcal scans
     """
+    observatory = get_observatory_name()
     msmd = msmetadata()
     if os.path.exists(msname + "/SUBMSS"):
         mslist = glob.glob(msname + "/SUBMSS/*.ms")
@@ -787,7 +876,9 @@ def get_fluxcals(msname):
         msmd.open(msname)
         field_names = msmd.fieldnames()
         for field in field_names:
-            if field == "J1939-6342" or field == "J0408-6545":
+            if (observatory == "MEERKAT" and field in ["J1939-6342", "J0408-6545"]) or (
+                observatory == "UGMRT" and field in ["3C286", "3C138"]
+            ):  # TODO: for others
                 if field not in fluxcal_fields:
                     fluxcal_fields.append(field)
                 scans = msmd.scansforfield(field).tolist()
@@ -817,6 +908,7 @@ def get_polcals(msname):
     dict
         Polcal scans
     """
+    observatory = get_observatory_name()
     msmd = msmetadata()
     if os.path.exists(msname + "/SUBMSS"):
         mslist = glob.glob(msname + "/SUBMSS/*.ms")
@@ -828,12 +920,17 @@ def get_polcals(msname):
         msmd.open(msname)
         field_names = msmd.fieldnames()
         for field in field_names:
-            if field in ["3C286", "1328+307", "1331+305", "J1331+3030"] or field in [
-                "3C138",
-                "0518+165",
-                "0521+166",
-                "J0521+1638",
-            ]:
+            if (
+                observatory == "MEERKAT"
+                and field in ["3C286", "1328+307", "1331+305", "J1331+3030"]
+                or field
+                in [
+                    "3C138",
+                    "0518+165",
+                    "0521+166",
+                    "J0521+1638",
+                ]
+            ):  # TODO: for others
                 if field not in polcal_fields:
                     polcal_fields.append(field)
                 scans = msmd.scansforfield(field).tolist()
@@ -866,6 +963,7 @@ def get_phasecals(msname):
     dict
         Phasecal flux
     """
+    observatory = get_observatory_name()
     msmd = msmetadata()
     if os.path.exists(msname + "/SUBMSS"):
         mslist = glob.glob(msname + "/SUBMSS/*.ms")
@@ -879,26 +977,31 @@ def get_phasecals(msname):
         msmd.open(msname)
         field_names = msmd.fieldnames()
         bandname = get_band_name(msname)
-        if bandname == "U":
-            phasecals, phasecal_flux = np.load(
-                datadir + "/UHF_band_cal.npy", allow_pickle=True
-            ).tolist()
-        elif bandname == "L":
-            phasecals, phasecal_flux = np.load(
-                datadir + "/L_band_cal.npy", allow_pickle=True
-            ).tolist()
-        for field in field_names:
-            if field in phasecals and (field != "J1939-6342" and field != "J0408-6545"):
-                if field not in phasecal_fields:
-                    phasecal_fields.append(field)
-                scans = msmd.scansforfield(field).tolist()
-                if field in phasecal_scans:
-                    for scan in scans:
-                        phasecal_scans[field].append(scan)
-                else:
-                    phasecal_scans[field] = scans
-                flux = phasecal_flux[phasecals.index(field)]
-                phasecal_flux_list[field] = flux
+        if observatory == "MEERKAT":
+            if bandname == "U":
+                phasecals, phasecal_flux = np.load(
+                    datadir + "/UHF_band_cal.npy", allow_pickle=True
+                ).tolist()
+            elif bandname == "L":
+                phasecals, phasecal_flux = np.load(
+                    datadir + "/L_band_cal.npy", allow_pickle=True
+                ).tolist()
+            for field in field_names:
+                if field in phasecals and (
+                    field != "J1939-6342" and field != "J0408-6545"
+                ):
+                    if field not in phasecal_fields:
+                        phasecal_fields.append(field)
+                    scans = msmd.scansforfield(field).tolist()
+                    if field in phasecal_scans:
+                        for scan in scans:
+                            phasecal_scans[field].append(scan)
+                    else:
+                        phasecal_scans[field] = scans
+                    flux = phasecal_flux[phasecals.index(field)]
+                    phasecal_flux_list[field] = flux
+        else:  # TODO: add for others
+            break
     msmd.close()
     msmd.done()
     del msmd
@@ -1075,3 +1178,14 @@ def get_cal_target_scans(msname):
         if scan not in cal_scans:
             target_scans.append(scan)
     return target_scans, cal_scans, f_scans, g_scans, p_scans
+
+
+# Expose functions and classes
+__all__ = [
+    name
+    for name, obj in globals().items()
+    if (
+        (isinstance(obj, types.FunctionType) or isinstance(obj, type))
+        and obj.__module__ == __name__
+    )
+]

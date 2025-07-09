@@ -1,6 +1,19 @@
-from .all_depend import *
+import types
+import psutil
+import numpy as np
+import traceback
+import glob
+import os
+from casatasks import casalog
+from datetime import datetime as dt, timezone
 from .basic_utils import *
 from .resource_utils import *
+
+try:
+    logfile = casalog.logfile()
+    os.system("rm -rf " + logfile)
+except BaseException:
+    pass
 
 ###############################
 # Flagging related functions
@@ -217,3 +230,14 @@ def flag_outside_uvrange(vis, uvrange, n_threads=-1, flagbackup=True):
     except Exception as e:
         traceback.print_exc()
         return 1
+
+
+# Expose functions and classes
+__all__ = [
+    name
+    for name, obj in globals().items()
+    if (
+        (isinstance(obj, types.FunctionType) or isinstance(obj, type))
+        and obj.__module__ == __name__
+    )
+]

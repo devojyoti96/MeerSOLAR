@@ -37,11 +37,3 @@ import time
 import glob
 import sys
 import os
-
-warnings.simplefilter("ignore", category=FITSFixedWarning)
-
-try:
-    logfile = casalog.logfile()
-    os.system("rm -rf " + logfile)
-except BaseException:
-    pass

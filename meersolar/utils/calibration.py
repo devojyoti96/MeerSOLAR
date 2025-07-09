@@ -1,7 +1,21 @@
-from .all_depend import *
+import types
+import psutil
+import numpy as np
+import traceback
+import warnings
+import glob
+import os
+from casatasks import casalog
+from casatools import msmetadata, ms as casamstool, table
 from .basic_utils import *
 from .ms_metadata import *
 from .imaging import *
+
+try:
+    logfile = casalog.logfile()
+    os.system("rm -rf " + logfile)
+except BaseException:
+    pass
 
 #####################################
 # Calibration related
@@ -147,7 +161,7 @@ def calc_bw_smearing_freqwidth(msname, full_FoV=False, FWHM=True):
     tb = table()
     tb.open(f"{msname}/SPECTRAL_WINDOW")
     freq = float(tb.getcol("REF_FREQUENCY")[0]) / 10**6
-    freqres = float(tb.getcol("CHAN_WIDTH")[0]) / 10**6
+    freqres = float(tb.getcol("CHAN_WIDTH")[0][0]) / 10**6
     tb.close()
     delta_nu = np.sqrt((1 / R**2) - 1) * (psf / fov) * freq
     delta_nu = ceil_to_multiple(delta_nu, freqres)
@@ -295,3 +309,14 @@ def delaycal(msname="", caltable="", refant="", solint="inf", dry_run=False):
     except Exception as e:
         traceback.print_exc()
         return
+
+
+# Expose functions and classes
+__all__ = [
+    name
+    for name, obj in globals().items()
+    if (
+        (isinstance(obj, types.FunctionType) or isinstance(obj, type))
+        and obj.__module__ == __name__
+    )
+]
