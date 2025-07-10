@@ -1,129 +1,35 @@
-from meersolar.pipeline.basic_func import *
+import resource
+import logging
+import psutil
+import dask
+import numpy as np
+import argparse
+import traceback
+import copy
+import time
+import glob
+import sys
+import os
+from casatasks import casalog
+from casatools import msmetadata
+from dask import delayed, compute
+from meersolar.utils.basic_utils import get_datadir, timestamp_to_mjdsec
+from meersolar.utils.resource_utils import drop_cache
+from meersolar.utils.logger_utils import init_logger, clean_shutdown, SmartDefaultsHelpFormatter, create_logger
+from meersolar.utils.proc_manage_utils import run_limited_memory_task, get_dask_client, save_pid
+from meersolar.utils.ms_metadata import check_datacolumn_valid, get_band_name
+from meersolar.utils.imaging import calc_field_of_view, calc_cellsize, calc_sun_dia, calc_npix_in_psf, calc_multiscale_scales, get_multiscale_bias
+from meersolar.utils.image_utils import create_circular_mask, make_stokes_wsclean_imagecube, rename_image
+from meersolar.utils.udocker_utils import check_udocker_container, run_wsclean
+logging.getLogger("distributed").setLevel(logging.WARNING)
 
 try:
     logfile = casalog.logfile()
     os.system("rm -rf " + logfile)
 except BaseException:
     pass
-
-
-def rename_image(
-    imagename,
-    imagedir="",
-    pol="",
-    band="",
-    attcal="NOINFO",
-    cutout_rsun=2.5,
-    make_overlay=True,
-    make_plots=True,
-):
-    """
-    Rename and move image to image directory
-
-    Parameters
-    ----------
-    imagename : str
-        Image name
-    imagedir : str, optional
-        Image directory (default given image directory)
-    pol : str, optional
-        Stokes parameters
-    band : str, optional
-        Observing band
-    attcal : str, optional
-        Solar attenuation calibrated or not 
-    cutout_rsun : float, optional
-        Cutout in solar radii from center (default: 2.5 solar radii)
-    make_overlay : bool, optional
-        Make overlay on SUVI
-    make_plots : bool, optional
-        Make radio map plot in helioprojective coordinates
-
-    Returns
-    -------
-    str
-        New imagename with full path
-    """
-    imagename = imagename.rstrip("/")
-    imagename = cutout_image(
-        imagename, imagename, x_deg=(cutout_rsun * 2 * 16.0) / 60.0
-    )
-    header = fits.getheader(imagename)
-    time = header["DATE-OBS"]
-    astro_time = Time(time, scale="utc")
-    sun_jpl = Horizons(id="10", location="500", epochs=astro_time.jd)
-    eph = sun_jpl.ephemerides()
-    sun_coords = SkyCoord(
-        ra=eph["RA"][0] * u.deg, dec=eph["DEC"][0] * u.deg, frame="icrs"
-    )
-    maxval, minval, rms, total_val, mean_val, median_val, rms_dyn, minmax_dyn = (
-        calc_solar_image_stat(imagename, disc_size=18)
-    )
-    with fits.open(imagename, mode="update") as hdul:
-        hdr = hdul[0].header
-        hdr["AUTHOR"] = "DevojyotiKansabanik,DeepanPatra"
-        if band != "":
-            hdr["BAND"] = band
-        hdr["PIPELINE"] = "MeerSOLAR"
-        hdr["CRVAL1"] = sun_coords.ra.deg
-        hdr["CRVAL2"] = sun_coords.dec.deg
-        hdr["MAX"] = maxval
-        hdr["MIN"] = minval
-        hdr["RMS"] = rms
-        hdr["SUM"] = total_val
-        hdr["MEAN"] = mean_val
-        hdr["MEDIAN"] = median_val
-        hdr["RMSDYN"] = rms_dyn
-        hdr["MIMADYN"] = minmax_dyn
-        hdr["ATTCAL"]= str(attcal)
-    freq = round(header["CRVAL3"] / 10**6, 2)
-    t_str = "".join(time.split("T")[0].split("-")) + (
-        "".join(time.split("T")[-1].split(":"))
-    )
-    new_name = "time_" + t_str + "_freq_" + str(freq)
-    if pol != "":
-        new_name += "_pol_" + str(pol)
-    if "MFS" in imagename:
-        new_name += "_MFS"
-    new_name = new_name + ".fits"
-    if imagedir == "":
-        imagedir = os.path.dirname(os.path.abspath(imagename))
-    new_name = imagedir + "/" + new_name
-    os.system("mv " + imagename + " " + new_name)
-    hpcdir = f"{os.path.dirname(imagedir)}/images/hpcs"
-    os.makedirs(hpcdir, exist_ok=True)
-    save_in_hpc(new_name, outdir=hpcdir)
-    if make_plots:
-        try:
-            pngdir = f"{os.path.dirname(imagedir)}/images/pngs"
-            pdfdir = f"{os.path.dirname(imagedir)}/images/pdfs"
-            os.makedirs(pngdir, exist_ok=True)
-            os.makedirs(pdfdir, exist_ok=True)
-            outimages, cropped_map = plot_in_hpc(
-                new_name,
-                draw_limb=True,
-                extensions=["png", "pdf"],
-                outdirs=[pngdir, pdfdir],
-            )
-        except BaseException:
-            pass
-    if make_overlay:
-        try:
-            overlay_pngdir = f"{os.path.dirname(imagedir)}/overlays_pngs"
-            overlay_pdfdir = f"{os.path.dirname(imagedir)}/overlays_pdfs"
-            os.makedirs(overlay_pngdir, exist_ok=True)
-            os.makedirs(overlay_pdfdir, exist_ok=True)
-            outimages = make_meer_overlay(
-                new_name,
-                plot_file_prefix=os.path.basename(new_name).split(".fits")[0]
-                + "_suvi_meerkat_overlay",
-                extensions=["png", "pdf"],
-                outdirs=[overlay_pngdir, overlay_pdfdir],
-            )
-        except Exception as e:
-            traceback.print_exc()
-            pass
-    return new_name
+    
+datadir = get_datadir()
 
 
 def perform_imaging(
@@ -395,10 +301,15 @@ def perform_imaging(
                 ######################################
                 if use_multiscale:
                     num_pixel_in_psf = calc_npix_in_psf(weight, robust=robust)
+                    chan_number=int((start_chans[i] + end_chans[i]) / 2)
+                    freqMHz=freqs[chan_number]
+                    sun_dia=calc_sun_dia(freqMHz) # Sun diameter in arcmin
+                    sun_rad=sun_dia/2
                     multiscale_scales = calc_multiscale_scales(
                         msname,
                         num_pixel_in_psf,
-                        chan_number=int((start_chans[i] + end_chans[i]) / 2),
+                        chan_number=chan_number,
+                        max_scale=sun_rad,
                     )
                     temp_wsclean_args.append("-multiscale")
                     temp_wsclean_args.append("-multiscale-gain 0.1")
@@ -615,7 +526,7 @@ def run_all_imaging(
     savemodel=False,
     saveres=False,
     band="",
-    cutout_rsun=2.5,
+    cutout_rsun=-1, 
     make_overlay=True,
     make_plots=True,
     cpu_frac=0.8,
@@ -666,7 +577,7 @@ def run_all_imaging(
     band : str, optional
         Band name
     cutout_rsun : float, optional
-        Cutout image size from center in solar radii (default : 2.5 solar radii)
+        Cutout image size from center in solar radii (default : 2 times sun size)
     make_overlay : bool, optional
         Make SUVI MeerKAT overlay
     make_plots : bool, optional
@@ -819,7 +730,16 @@ def run_all_imaging(
             num_pixel_in_psf = calc_npix_in_psf(weight, robust=robust)
             cellsize = calc_cellsize(ms, num_pixel_in_psf)
             instrument_fov = calc_field_of_view(ms, FWHM=False)
-            fov = min(instrument_fov, 32 * 3 * 60)  # 3 solar radii
+            msmd=msmetadata()
+            msmd.open(ms)
+            freqMHz=msmd.meanfreq(0,unit="MHz")
+            msmd.close()
+            sun_size=calc_sun_dia(freqMHz)
+            fov = min(instrument_fov, 2*sun_size*60) # 2 times sun size at that frequency 
+            if cutout_rsun==-1:
+                cutout_rsun=2*round(sun_size/32,2) # Multiple of optical disk of the sun
+            elif fov<(2*(cutout_rsun*16)*60):
+                fov=(2*(cutout_rsun*16)*60)
             imsize = int(fov / cellsize)
             pow2 = np.ceil(np.log2(imsize)).astype("int")
             possible_sizes = []
@@ -1017,7 +937,7 @@ def main():
     adv_args.add_argument(
         "--cutout_rsun",
         type=float,
-        default=2.5,
+        default=-1,
         help="Cutout radius for images (solar radii)",
     )
     adv_args.add_argument(
@@ -1161,7 +1081,6 @@ def main():
         drop_cache(workdir)
         drop_cache(outdir)
         clean_shutdown(observer)
-
     return msg
 
 

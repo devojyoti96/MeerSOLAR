@@ -1,10 +1,31 @@
-from meersolar.pipeline.basic_func import *
+import logging
+import dask
+import numpy as np
+import argparse
+import traceback
+import warnings
+import time
+import glob
+import sys
+import os
+from casatasks import casalog
+from casatools import msmetadata, ms as casamstool
+from dask import delayed, compute
+from meersolar.utils.basic_utils import get_datadir
+from meersolar.utils.resource_utils import drop_cache
+from meersolar.utils.logger_utils import init_logger, clean_shutdown, SmartDefaultsHelpFormatter
+from meersolar.utils.proc_manage_utils import get_dask_client, save_pid
+from meersolar.utils.ms_metadata import check_datacolumn_valid, get_valid_scans, get_cal_target_scans
+from meersolar.utils.ploting_utils import make_ds_plot, make_ds_file_per_scan
+logging.getLogger("distributed").setLevel(logging.WARNING)
 
 try:
     logfile = casalog.logfile()
     os.system("rm -rf " + logfile)
 except BaseException:
     pass
+    
+datadir = get_datadir()
 
 def make_solar_DS(
     msname,
@@ -137,7 +158,6 @@ def make_solar_DS(
             plot_file=f"{workdir}/dynamic_spectra/{ds_file_name}.{extension}",
             showgui=showgui,
         )
-    gc.collect()
     goes_files = glob.glob(f"{workdir}/dynamic_spectra/sci*.nc")
     for f in goes_files:
         os.system(f"rm -rf {f}")

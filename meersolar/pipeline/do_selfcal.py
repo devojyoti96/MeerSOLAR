@@ -1,13 +1,35 @@
+import logging
 import resource
-from meersolar.utils.selfcal_utils import intensity_selfcal
+import psutil
+import dask
+import numpy as np
+import argparse
+import traceback
+import time
+import sys
+import os
+from casatasks import casalog
+from casatools import msmetadata, table
+from dask import delayed, compute
 from functools import partial
+from meersolar.utils.basic_utils import get_datadir, suppress_casa_output
+from meersolar.utils.resource_utils import drop_cache, limit_threads
+from meersolar.utils.logger_utils import init_logger, clean_shutdown, SmartDefaultsHelpFormatter, create_logger
+from meersolar.utils.proc_manage_utils import run_limited_memory_task, get_dask_client, save_pid
+from meersolar.utils.ms_metadata import check_datacolumn_valid
+from meersolar.utils.flagging import get_unflagged_antennas
+from meersolar.utils.imaging import calc_field_of_view, calc_cellsize, calc_sun_dia
+from meersolar.utils.udocker_utils import check_udocker_container
+from meersolar.utils.selfcal_utils import intensity_selfcal
+logging.getLogger("distributed").setLevel(logging.WARNING)
 
 try:
-    casalogfile = casalog.logfile()
-    os.system("rm -rf " + casalogfile)
+    logfile = casalog.logfile()
+    os.system("rm -rf " + logfile)
 except BaseException:
     pass
-
+    
+datadir = get_datadir()
 
 def do_selfcal(
     msname="",
@@ -90,7 +112,6 @@ def do_selfcal(
     """
     limit_threads(n_threads=ncpu)
     from casatasks import split, flagdata, initweights, flagmanager
-    from casatools import msmetadata
 
     if dry_run:
         process = psutil.Process(os.getpid())
@@ -152,6 +173,7 @@ def do_selfcal(
         msmd.open(msname)
         scan = int(msmd.scannumbers()[0])
         field = int(msmd.fieldsforscan(scan)[0])
+        freqMHz=msmd.meanfreq(0,unit="MHz")
         msmd.close()
         if hascor:
             logger.info(f"Spliting corrected data to ms : {selfcalms}")
@@ -196,7 +218,8 @@ def do_selfcal(
         logger.info(f"Estimating imaging Parameters ...")
         cellsize = calc_cellsize(msname, 3)
         instrument_fov = calc_field_of_view(msname, FWHM=False)
-        fov = min(instrument_fov, 32 * 2 * 60)  # 2 solar radii
+        sun_size=calc_sun_dia(freqMHz)
+        fov = min(instrument_fov, 2*sun_size*60) # 2 times sun size at that frequency  
         imsize = int(fov / cellsize)
         pow2 = np.ceil(np.log2(imsize)).astype("int")
         possible_sizes = []
@@ -208,10 +231,7 @@ def do_selfcal(
         imsize = max(1024, int(possible_sizes[0]))
         unflagged_antenna_names, flag_frac_list = get_unflagged_antennas(msname)
         refant = unflagged_antenna_names[0]
-        msmd = msmetadata()
-        msmd.open(msname)
-        msmd.close()
-
+       
         ############################################
         # Initiating selfcal Parameters
         ############################################
@@ -401,9 +421,9 @@ def do_selfcal(
                 return 0, gaintable
                 
             ##########################
-			# If DR suddenly decreased
-			##########################
-            if DR3<0.7*DR2 and do_ap==True and sigma_reduced_count>1:
+		    # If DR suddenly decreased
+		    ##########################
+            if DR3<0.7*DR2 and do_apcal==True and sigma_reduced_count>1:
                 logger.info(
                     f"Dynamic range dropped suddenly. Using last round caltable as final.\n"
                 )
@@ -684,8 +704,10 @@ def main():
 
     pid = os.getpid()
     save_pid(pid, datadir + f"/pids/pids_{args.jobid}.txt")
+    
+    mslist = str(args.mslist).split(",")
     if args.workdir == "" or os.path.exists(args.workdir) == False:
-        workdir = os.path.dirname(os.path.abspath(args.msname)) + "/workdir"
+        workdir = os.path.dirname(os.path.abspath(mslist[0])) + "/workdir"
     else:
         workdir = args.workdir
     os.makedirs(workdir, exist_ok=True)
@@ -723,7 +745,6 @@ def main():
                 "Container {container_name} is not initiated. First initiate container and then run."
             )
             return 1
-    mslist = str(args.mslist).split(",")
     try:
         if len(mslist) == 0:
             mainlogger.info("Please provide at-least one measurement set.")
