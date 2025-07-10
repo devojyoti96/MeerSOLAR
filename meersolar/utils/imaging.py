@@ -16,7 +16,23 @@ except BaseException:
 ##################################
 # Imaging related
 ##################################
+def calc_sun_dia(freqMHz):
+    """
+    Function to calculate the diameter of the Sun at a given frequency (White 2016)
 
+    Parameters
+    ----------
+    freq : float
+        Frequency in MHz
+        
+    Returns
+    -------
+    float
+        Diameter of the Sun in arcmin
+    """
+    freqGHz = freqMHz/10 ** 3  # Convert in GHz
+    dia = 32 + (2.2 * (freqGHz) ** (-0.6))
+    return round(dia,2)
 
 def calc_maxuv(msname, chan_number=-1):
     """
