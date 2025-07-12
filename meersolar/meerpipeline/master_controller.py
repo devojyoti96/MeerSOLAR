@@ -13,20 +13,39 @@ from casatasks import casalog
 from casatools import msmetadata
 from datetime import datetime as dt
 from multiprocessing import Process, Event
-from meersolar.utils.basic_utils import get_datadir
+from meersolar.utils.basic_utils import (
+    get_datadir,
+    get_cachedir,
+)
 from meersolar.utils.resource_utils import drop_cache
-
+from meersolar.utils.logger_utils import SmartDefaultsHelpFormatter, ping_logger, get_emails, generate_password, get_remote_logger_link
+from meersolar.utils.proc_manage_utils import save_pid, create_batch_script_nonhpc, create_batch_script_slurm, save_main_process_info, get_jobid
+from meersolar.utils.flagging import do_flag_backup
+from meersolar.utils.ms_metadata import (
+    get_fluxcals,
+    get_phasecals,
+    get_band_name,
+    get_cal_target_scans,
+    get_bad_chans,
+    check_datacolumn_valid,
+)
+from meersolar.utils.casatasks import reset_weights_and_flags
+from meersolar.utils.calibration import determine_noise_diode_cal_scan, calc_bw_smearing_freqwidth, calc_time_smearing_timewidth, max_time_solar_smearing
+from meersolar.meerpipeline.init_data import init_meersolar_data
 logging.getLogger("distributed").setLevel(logging.WARNING)
 
 try:
-    logfile = casalog.logfile()
-    os.system("rm -rf " + logfile)
+    casalogfile = casalog.logfile()
+    os.system("rm -rf " + casalogfile)
 except BaseException:
+    traceback.print_exc()
     pass
+
+datadir = get_datadir()
 
 
 def run_flag(
-    msname, workdir, flag_calibrators=True, jobid=0, cpu_frac=0.8, mem_frac=0.8
+    msname, workdir, flag_calibrators=True, jobid=0, cpu_frac=0.8, mem_frac=0.8, remote_log=False,
 ):
     """
     Run flagging jobs
@@ -45,6 +64,8 @@ def run_flag(
         CPU fraction to use
     mem_frac : float, optional
         Memory fraction to use
+    remote_log: bool, optional
+        Start remote logger
 
     Returns
     -------
@@ -61,7 +82,7 @@ def run_flag(
     if flag_calibrators:
         flagfield_type = "cal"
         flagging_cmd = (
-            f"run_flag {msname}"
+            f"run_meersolar_flag {msname}"
             + " --datacolumn DATA --use_tfcrop"
             + " --cpu_frac "
             + str(cpu_frac)
@@ -71,11 +92,13 @@ def run_flag(
             + str(workdir)
             + " --jobid "
             + str(jobid)
+            + " --start_remote_log "
+            + str(remote_log)
         )
     else:
         flagfield_type = "target"
         flagging_cmd = (
-            f"run_flag {msname}"
+            f"run_meersolar_flag {msname}"
             + " --datacolumn DATA --use_tfcrop --flagdimension freq"
             + " --cpu_frac "
             + str(cpu_frac)
@@ -85,6 +108,8 @@ def run_flag(
             + str(workdir)
             + " --jobid "
             + str(jobid)
+            + " --start_remote_log "
+            + str(remote_log)
         )
     flag_basename = (
         f"flagging_{flagfield_type}_" + os.path.basename(msname).split(".ms")[0]
@@ -111,7 +136,7 @@ def run_flag(
         return 1
 
 
-def run_import_model(msname, workdir, jobid=0, cpu_frac=0.8, mem_frac=0.8):
+def run_import_model(msname, workdir, jobid=0, cpu_frac=0.8, mem_frac=0.8, remote_log=False):
     """
     Importing calibrator models
 
@@ -125,6 +150,8 @@ def run_import_model(msname, workdir, jobid=0, cpu_frac=0.8, mem_frac=0.8):
         CPU fraction to use
     mem_frac : float, optional
         Memory fraction to use
+    remote_log: bool, optional
+        Start remote logger
 
     Returns
     -------
@@ -136,7 +163,7 @@ def run_import_model(msname, workdir, jobid=0, cpu_frac=0.8, mem_frac=0.8):
     print("###########################\n")
     msname = msname.rstrip("/")
     import_model_cmd = (
-        f"import_model {msname}"
+        f"run_meersolar_import_model {msname}"
         + " --workdir "
         + str(workdir)
         + " --cpu_frac "
@@ -145,6 +172,8 @@ def run_import_model(msname, workdir, jobid=0, cpu_frac=0.8, mem_frac=0.8):
         + str(mem_frac)
         + " --jobid "
         + str(jobid)
+        + " --start_remote_log "
+        + str(remote_log)
     )
     model_basename = "modeling_" + os.path.basename(msname).split(".ms")[0]
     logfile = workdir + "/logs/" + model_basename + ".log"
@@ -180,6 +209,7 @@ def run_basic_cal_jobs(
     cpu_frac=0.8,
     mem_frac=0.8,
     keep_backup=False,
+    remote_log=False,
 ):
     """
     Perform basic calibration
@@ -200,6 +230,8 @@ def run_basic_cal_jobs(
         Memory fraction to use
     keep_backup : bool, optional
         Keep backups
+    remote_log: bool, optional
+        Start remote logger
 
     Returns
     -------
@@ -212,7 +244,7 @@ def run_basic_cal_jobs(
     msname = msname.rstrip("/")
     cal_basename = "basic_cal"
     basic_cal_cmd = (
-        f"run_basic_cal {msname}"
+        f"run_meersolar_basic_cal {msname}"
         + " --workdir "
         + workdir
         + " --caldir "
@@ -223,6 +255,8 @@ def run_basic_cal_jobs(
         + str(mem_frac)
         + " --jobid "
         + str(jobid)
+        + " --start_remote_log "
+        + str(remote_log)
     )
     if perform_polcal:
         basic_cal_cmd += " --perform_polcal"
@@ -250,7 +284,7 @@ def run_basic_cal_jobs(
 
 
 def run_noise_diode_cal(
-    msname, workdir, caldir, keep_backup=False, jobid=0, cpu_frac=0.8, mem_frac=0.8
+    msname, workdir, caldir, keep_backup=False, jobid=0, cpu_frac=0.8, mem_frac=0.8, remote_log=False,
 ):
     """
     Perform noise diode based flux calibration
@@ -269,6 +303,8 @@ def run_noise_diode_cal(
         CPU fraction to use
     mem_frac : float, optional
         Memory fraction to use
+    remote_log: bool, optional
+        Start remote logger
 
     Returns
     -------
@@ -280,7 +316,7 @@ def run_noise_diode_cal(
         print("Performing noise diode based flux calibration .....")
         print("###########################\n")
         msname = msname.rstrip("/")
-        noisecal_basename = "noise_cal"
+        noisecal_basename = "run_meersolar_noise_cal"
         noise_cal_cmd = (
             f"run_fluxcal {msname}"
             + " --workdir "
@@ -293,6 +329,8 @@ def run_noise_diode_cal(
             + str(mem_frac)
             + " --jobid "
             + str(jobid)
+            + " --start_remote_log "
+            + str(remote_log)
         )
         logfile = workdir + "/logs/" + noisecal_basename + ".log"
         noise_cal_cmd += f" --logfile {logfile}"
@@ -321,7 +359,7 @@ def run_noise_diode_cal(
 
 
 def run_partion(
-    msname, workdir, split_fullpol=False, jobid=0, cpu_frac=0.8, mem_frac=0.8
+    msname, workdir, split_fullpol=False, jobid=0, cpu_frac=0.8, mem_frac=0.8, remote_log=False,
 ):
     """
     Perform basic calibration
@@ -338,6 +376,8 @@ def run_partion(
         CPU fraction to use
     mem_frac : float, optional
         Memory fraction to use
+    remote_log: bool, optional
+        Start remote logger
 
     Returns
     -------
@@ -377,7 +417,7 @@ def run_partion(
     cal_scans = copy.deepcopy(cal_scans_copy)
     cal_scans = ",".join([str(s) for s in cal_scans])
     calibrator_ms = workdir + "/calibrator.ms"
-    split_cmd = f"run_partition {msname} --outputms {calibrator_ms} --scans {cal_scans} --timebin {timebin} --width {width} --cpu_frac {cpu_frac} --mem_frac {mem_frac} --workdir {workdir} --jobid {jobid}"
+    split_cmd = f"run_meersolar_partition {msname} --outputms {calibrator_ms} --scans {cal_scans} --timebin {timebin} --width {width} --cpu_frac {cpu_frac} --mem_frac {mem_frac} --workdir {workdir} --jobid {jobid} --start_remote_log {remote_log}"
     if split_fullpol:
         split_cmd += " --split_fullpol"
     ####################################
@@ -427,6 +467,7 @@ def run_target_split_jobs(
     mem_frac=0.8,
     max_cpu_frac=0.8,
     max_mem_frac=0.8,
+    remote_log=False,
 ):
     """
     Split target scans
@@ -465,6 +506,8 @@ def run_target_split_jobs(
         CPU fraction to use
     mem_frac : float, optional
         Memory fraction to use
+    remote_log: bool, optional
+        Start remote logger
 
     Returns
     -------
@@ -478,7 +521,7 @@ def run_target_split_jobs(
         msname = msname.rstrip("/")
         split_basename = f"split_{prefix}"
         split_cmd = (
-            f"run_target_split {msname}"
+            f"run_meersolar_target_split {msname}"
             + " --workdir "
             + workdir
             + " --datacolumn "
@@ -507,6 +550,8 @@ def run_target_split_jobs(
             + str(time_interval)
             + " --jobid "
             + str(jobid)
+            + " --start_remote_log "
+            + str(remote_log)
         )
         if split_fullpol:
             split_cmd += " --split_fullpol"
@@ -539,6 +584,7 @@ def run_solar_siderealcor_jobs(
     mem_frac=0.8,
     max_cpu_frac=0.8,
     max_mem_frac=0.8,
+    remote_log=False,
 ):
     """
     Apply sidereal motion correction of the Sun
@@ -559,6 +605,8 @@ def run_solar_siderealcor_jobs(
         Maximum CPU fraction to use
     max_mem_frac : float, optional
         Maximum memory fraction to use
+    remote_log: bool, optional
+        Start remote logger
 
     Returns
     -------
@@ -572,7 +620,7 @@ def run_solar_siderealcor_jobs(
         mslist = ",".join(mslist)
         sidereal_basename = f"cor_sidereal_{prefix}"
         sidereal_cor_cmd = (
-            f"run_solar_siderealcor {mslist}"
+            f"run_meersolar_solar_siderealcor {mslist}"
             + " --workdir "
             + str(workdir)
             + " --cpu_frac "
@@ -585,6 +633,8 @@ def run_solar_siderealcor_jobs(
             + str(max_mem_frac)
             + " --jobid "
             + str(jobid)
+            + " --start_remote_log "
+            + str(remote_log)
         )
         os.makedirs(workdir + "/logs", exist_ok=True)
         logfile = workdir + "/logs/" + sidereal_basename + ".log"
@@ -619,6 +669,7 @@ def run_apply_pbcor(
     jobid=0,
     cpu_frac=0.8,
     mem_frac=0.8,
+    remote_log=False,
 ):
     """
     Apply primary beam corrections on all images
@@ -635,6 +686,8 @@ def run_apply_pbcor(
         CPU fraction to use
     mem_frac : float, optional
         Memory fraction to use
+    remote_log: bool, optional
+        Start remote logger
 
     Returns
     -------
@@ -647,7 +700,7 @@ def run_apply_pbcor(
         print("###########################\n")
         applypbcor_basename = "apply_pbcor"
         applypbcor_cmd = (
-            f"run_meerpbcor {imagedir}"
+            f"run_meersolar_meerpbcor {imagedir}"
             + " --workdir "
             + str(workdir)
             + " --cpu_frac "
@@ -656,6 +709,8 @@ def run_apply_pbcor(
             + str(mem_frac)
             + " --jobid "
             + str(jobid)
+            + " --start_remote_log "
+            + str(remote_log)
         )
         if not apply_parang:
             applypbcor_cmd += " --no_apply_parang"
@@ -697,6 +752,7 @@ def run_apply_basiccal_sol(
     jobid=0,
     cpu_frac=0.8,
     mem_frac=0.8,
+    remote_log=False,
 ):
     """
     Apply basic calibration solutions on splited target scans
@@ -719,6 +775,8 @@ def run_apply_basiccal_sol(
         Memory fraction to use
     overwrite_datacolumn : bool
         Overwrite data column or not
+    remote_log: bool, optional
+        Start remote logger
 
     Returns
     -------
@@ -732,7 +790,7 @@ def run_apply_basiccal_sol(
         applycal_basename = "apply_basiccal"
         mslist = ",".join(target_mslist)
         applycal_cmd = (
-            f"run_apply_basiccal {mslist}"
+            f"run_meersolar_apply_basiccal {mslist}"
             + " --workdir "
             + workdir
             + " --caldir "
@@ -745,6 +803,8 @@ def run_apply_basiccal_sol(
             + str(applymode)
             + " --jobid "
             + str(jobid)
+            + " --start_remote_log "
+            + str(remote_log)
         )
         if use_only_bandpass:
             applycal_cmd += " --use_only_bandpass"
@@ -785,6 +845,7 @@ def run_apply_selfcal_sol(
     jobid=0,
     cpu_frac=0.8,
     mem_frac=0.8,
+    remote_log=False,
 ):
     """
     Apply self-calibration solutions on splited target scans
@@ -807,6 +868,8 @@ def run_apply_selfcal_sol(
         Memory fraction to use
     overwrite_datacolumn : bool
         Overwrite data column or not
+    remote_log: bool, optional
+        Start remote logger
 
     Returns
     -------
@@ -820,7 +883,7 @@ def run_apply_selfcal_sol(
         applycal_basename = "apply_selfcal"
         mslist = ",".join(target_mslist)
         applycal_cmd = (
-            f"run_apply_selfcal {mslist}"
+            f"run_meersolar_apply_selfcal {mslist}"
             + " --workdir "
             + workdir
             + " --caldir "
@@ -833,6 +896,8 @@ def run_apply_selfcal_sol(
             + str(applymode)
             + " --jobid "
             + str(jobid)
+            + " --start_remote_log "
+            + str(remote_log)
         )
         if overwrite_datacolumn:
             applycal_cmd += " --overwrite_datacolumn"
@@ -885,6 +950,7 @@ def run_selfcal_jobs(
     jobid=0,
     cpu_frac=0.8,
     mem_frac=0.8,
+    remote_log=False,
 ):
     """
     Self-calibration on target scans
@@ -931,6 +997,8 @@ def run_selfcal_jobs(
         Solution apply mode
     solar_selfcal : bool, optional
         Whether is is solar selfcal or not
+    remote_log: bool, optional
+        Start remote logger
 
     Returns
     -------
@@ -944,7 +1012,7 @@ def run_selfcal_jobs(
         selfcal_basename = "selfcal_targets"
         mslist = ",".join(mslist)
         selfcal_cmd = (
-            f"run_selfcal {mslist}"
+            f"run_meersolar_selfcal {mslist}"
             + " --workdir "
             + workdir
             + " --caldir "
@@ -955,6 +1023,8 @@ def run_selfcal_jobs(
             + str(mem_frac)
             + " --jobid "
             + str(jobid)
+            + " --start_remote_log "
+            + str(remote_log)
         )
         if start_thresh > 0:
             selfcal_cmd += " --start_thresh " + str(start_thresh)
@@ -1033,6 +1103,7 @@ def run_imaging_jobs(
     jobid=0,
     cpu_frac=0.8,
     mem_frac=0.8,
+    remote_log=False,
 ):
     """
     Self-calibration on target scans
@@ -1081,6 +1152,8 @@ def run_imaging_jobs(
         Save model images or not
     saveres : bool, optional
         Save residual images or not
+    remote_log: bool, optional
+        Start remote logger
 
     Returns
     -------
@@ -1094,7 +1167,7 @@ def run_imaging_jobs(
         imaging_basename = "imaging_targets"
         mslist = ",".join(mslist)
         imaging_cmd = (
-            f"run_imaging {mslist}"
+            f"run_meersolar_imaging {mslist}"
             + " --workdir "
             + workdir
             + " --outdir "
@@ -1121,6 +1194,8 @@ def run_imaging_jobs(
             + str(cutout_rsun)
             + " --jobid "
             + str(jobid)
+            + " --start_remote_log "
+            + str(remote_log)
         )
         if not use_solar_mask:
             imaging_cmd += " --no_solar_mask"
@@ -1161,7 +1236,7 @@ def run_imaging_jobs(
 
 
 def run_ds_jobs(
-    msname, workdir, outdir, target_scans=[], jobid=0, cpu_frac=0.8, mem_frac=0.8
+    msname, workdir, outdir, target_scans=[], jobid=0, cpu_frac=0.8, mem_frac=0.8, remote_log=False,
 ):
     """
     Make dynamic spectra of the target scans
@@ -1180,6 +1255,8 @@ def run_ds_jobs(
         CPU fraction to use
     mem_frac : float, optional
         Memory fraction to use
+    remote_log: bool, optional
+        Start remote logger
 
     Returns
     -------
@@ -1192,7 +1269,7 @@ def run_ds_jobs(
         print("###########################\n")
         ds_basename = "ds_targets"
         target_scans = " ".join([str(s) for s in target_scans])
-        ds_cmd = f"run_makeds {msname} --workdir {workdir} --outdir {outdir} --cpu_frac {cpu_frac} --mem_frac {mem_frac} --jobid {jobid} --target_scans {target_scans}"
+        ds_cmd = f"run_meersolar_makeds {msname} --workdir {workdir} --outdir {outdir} --cpu_frac {cpu_frac} --mem_frac {mem_frac} --jobid {jobid} --target_scans {target_scans} --start_remote_log {remote_log}"
         os.makedirs(workdir + "/logs", exist_ok=True)
         logfile = workdir + "/logs/" + ds_basename + ".log"
         ds_cmd += f" --logfile {logfile}"
@@ -1609,7 +1686,7 @@ def master_control(
                 solar_selfcal = False
             full_FoV = True
 
-        ###################################################
+        ##################################################
         # Target spliting spectral and temporal chunks
         ##################################################
         if image_timeres > (2 * 3660):  # If more than 2 hours
@@ -1617,6 +1694,18 @@ def master_control(
                 f"Image time integration is more than 2 hours, which may cause smearing due to solar differential rotation."
             )
 
+        #####################################################################
+        # Checking if ms is full pol for polarization calibration and imaging
+        #####################################################################
+        if do_polcal:
+            msmd=msmetadata()
+            msmd.open(msname)
+            npol=msmd.ncorrforpol()[0]
+            msmd.close()
+            if npol<4:
+                print ("Measurement set is not full-polar. Do not performing polarization analysis.")
+                do_polcal=False
+         
         #################################################
         # Determining maximum allowed frequency averaging
         #################################################
@@ -1709,6 +1798,7 @@ def master_control(
                 target_scans=target_scans,
                 cpu_frac=round(cpu_frac, 2),
                 mem_frac=round(mem_frac, 2),
+                remote_log=remote_logger,
             )
             if msg != 0:
                 print("!!!! WARNING: Dynamic spectra could not be made. !!!!")
@@ -1725,6 +1815,7 @@ def master_control(
                 keep_backup=keep_backup,
                 cpu_frac=round(cpu_frac, 2),
                 mem_frac=round(mem_frac, 2),
+                remote_log=remote_logger,
             )  # Run noise diode based flux calibration
             if msg != 0:
                 print(
@@ -1757,6 +1848,7 @@ def master_control(
                 jobid=jobid,
                 cpu_frac=round(cpu_frac, 2),
                 mem_frac=round(mem_frac, 2),
+                remote_log=remote_logger,
             )
             if msg != 0:
                 print("!!!! WARNING: Error in partitioning calibrator fields. !!!!")
@@ -1799,6 +1891,7 @@ def master_control(
                 jobid=jobid,
                 cpu_frac=round(cpu_frac, 2),
                 mem_frac=round(mem_frac, 2),
+                remote_log=remote_logger,
             )
             if msg != 0:
                 print(
@@ -1835,6 +1928,7 @@ def master_control(
                 jobid=jobid,
                 cpu_frac=round(cpu_frac, 2),
                 mem_frac=round(mem_frac, 2),
+                remote_log=remote_logger,
             )  # Run model import
             if msg != 0:
                 print(
@@ -1881,6 +1975,7 @@ def master_control(
                 cpu_frac=round(cpu_frac, 2),
                 mem_frac=round(mem_frac, 2),
                 keep_backup=keep_backup,
+                remote_log=remote_logger,
             )  # Run basic calibration
             if msg != 0:
                 print(
@@ -1967,6 +2062,7 @@ def master_control(
                     mem_frac=round(mem_frac, 2),
                     max_cpu_frac=round(cpu_frac, 2),
                     max_mem_frac=round(mem_frac, 2),
+                    remote_log=remote_logger,
                 )
                 if msg != 0:
                     print(
@@ -2030,6 +2126,7 @@ def master_control(
                 jobid=jobid,
                 cpu_frac=round(cpu_frac, 2),
                 mem_frac=round(mem_frac, 2),
+                remote_log=remote_logger,
             )
             if msg != 0:
                 print(
@@ -2054,6 +2151,7 @@ def master_control(
                     mem_frac=round(mem_frac, 2),
                     max_cpu_frac=round(cpu_frac, 2),
                     max_mem_frac=round(mem_frac, 2),
+                    remote_log=remote_logger,
                 )
                 if msg != 0:
                     print("Sidereal correction is not successful.")
@@ -2071,6 +2169,7 @@ def master_control(
                 jobid=jobid,
                 cpu_frac=round(cpu_frac, 2),
                 mem_frac=round(mem_frac, 2),
+                remote_log=remote_logger,
             )
             if msg != 0:
                 print(
@@ -2111,6 +2210,7 @@ def master_control(
                 mem_frac=round(mem_frac, 2),
                 max_cpu_frac=round(cpu_frac, 2),
                 max_mem_frac=round(mem_frac, 2),
+                remote_log=remote_logger,
             )
             if msg != 0:
                 print("!!!! WARNING: Error in running spliting target scans. !!!!")
@@ -2210,6 +2310,7 @@ def master_control(
                     jobid=jobid,
                     cpu_frac=round(cpu_frac, 2),
                     mem_frac=round(mem_frac, 2),
+                    remote_log=remote_logger,
                 )
                 if msg != 0:
                     print(
@@ -2253,6 +2354,7 @@ def master_control(
                     mem_frac=round(mem_frac, 2),
                     max_cpu_frac=round(cpu_frac, 2),
                     max_mem_frac=round(mem_frac, 2),
+                    remote_log=remote_logger,
                 )
 
         ########################################
@@ -2269,6 +2371,7 @@ def master_control(
                 jobid=jobid,
                 cpu_frac=round(cpu_frac, 2),
                 mem_frac=round(mem_frac, 2),
+                remote_log=remote_logger,
             )
             if msg != 0:
                 print(
@@ -2307,6 +2410,7 @@ def master_control(
                 jobid=jobid,
                 cpu_frac=round(cpu_frac, 2),
                 mem_frac=round(mem_frac, 2),
+                remote_log=remote_logger,
             )
             if msg != 0:
                 print(
@@ -2362,6 +2466,7 @@ def master_control(
                     jobid=jobid,
                     cpu_frac=round(cpu_frac, 2),
                     mem_frac=round(mem_frac, 2),
+                    remote_log=remote_logger,
                 )
                 if msg != 0:
                     print(
@@ -2404,7 +2509,7 @@ def master_control(
         drop_cache(outdir)
 
 
-def main():
+def cli():
     parser = argparse.ArgumentParser(
         description="Run MeerSOLAR for calibration and imaging of solar observations.",
         formatter_class=SmartDefaultsHelpFormatter,
@@ -2781,4 +2886,4 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    cli()

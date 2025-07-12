@@ -9,6 +9,9 @@ import logging
 import time
 import glob
 import os
+import subprocess
+import sys
+from pathlib import Path
 from casatasks import casalog
 from dask import delayed, compute, config
 from dask.distributed import Client, LocalCluster
@@ -200,10 +203,10 @@ def create_batch_script_nonhpc(cmd, workdir, basename, write_logfile=True):
     if write_logfile:
         if os.path.isdir(workdir + "/logs") == False:
             os.makedirs(workdir + "/logs")
-        outputfile = workdir + "/logs/" + basename + ".log"
+        logfile = workdir + "/logs/" + basename + ".log"
     else:
-        outputfile = "/dev/null"
-    batch_file_content = f"""export PYTHONUNBUFFERED=1\nnohup sh {cmd_batch}> {outputfile} 2>&1 &\nsleep 2\n rm -rf {batch_file}\n rm -rf {cmd_batch}"""
+        logfile = "/dev/null"
+    batch_file_content = f"""export PYTHONUNBUFFERED=1\nnohup sh {cmd_batch}> {logfile} 2>&1 &\nsleep 2\n rm -rf {batch_file}\n rm -rf {cmd_batch}"""
     if os.path.exists(cmd_batch):
         os.system("rm -rf " + cmd_batch)
     if os.path.exists(batch_file):
@@ -215,7 +218,194 @@ def create_batch_script_nonhpc(cmd, workdir, basename, write_logfile=True):
     os.system("chmod a+rwx " + batch_file)
     os.system("chmod a+rwx " + cmd_batch)
     del cmd
-    return workdir + "/" + basename + ".batch"
+    return workdir + "/" + basename + ".batch", logfile
+
+
+def create_batch_script_slurm(
+    cmd,
+    workdir,
+    basename,
+    partition="general",
+    nodes=1,
+    cpus_per_task=1,
+    ntasks_per_node=1,
+    mem="4G",
+    time="01:00:00",
+    account=None,
+    dependency=None,
+    write_logfile=True,
+):
+    """
+    Create a Slurm-compatible batch script.
+
+    Parameters
+    ----------
+    cmd : str
+        Command to run.
+    workdir : str
+        Work directory.
+    basename : str
+        Base name of batch script files. This will be Slurm job name as well (shown in `squeue`, `sacct`, etc.).
+    partition : str, optional
+        Name of the Slurm partition (queue) to submit to (e.g., "compute", "general").
+    nodes : int, optional
+        Number of physical nodes to request.
+    cpus_per_task : int, optional
+        Number of CPUs to allocate for each task (for multi-threaded tasks).
+    ntasks_per_node : int, optional
+        Number of tasks per node.
+    mem : str, optional
+        Total memory per node (e.g., "16G", "64000M").
+    time : str, optional
+        Maximum wall-clock time for the job in HH:MM:SS format.
+    account : str, optional
+        Slurm account to charge for the job (if required).
+    dependency : str, optional
+        Slurm job dependency (e.g., "afterok:12345") to delay job until others complete.
+    write_logfile : bool, optional
+        If True, write job output and error to {workdir}/logs/{basename}.log.
+        If False, redirects output to /dev/null.
+
+    Returns
+    -------
+    str
+        Batch script filename.
+    str
+        Log file path (or /dev/null).
+    """
+    datadir = get_datadir()
+    env_file = os.path.join(datadir, "activate_meersolar_env.sh")
+    # Generate the env file if it doesn't exist
+    if not os.path.exists(env_file):
+        generate_activate_env(outfile=env_file)
+    os.makedirs(workdir, exist_ok=True)
+    batch_file = os.path.join(workdir, f"{basename}.sbatch")
+    cmd_batch = os.path.join(workdir, f"{basename}_cmd.batch")
+    finished_touch_base = os.path.join(workdir, f".Finished_{basename}")
+    finished_touch_error = finished_touch_base + "_1"
+    finished_touch_success = finished_touch_base + "_0"
+    # Remove old status files
+    os.system(f"rm -rf {finished_touch_base}*")
+    # === Command script content with environment activation ===
+    cmd_file_content = "\n".join([
+        f"#!/bin/bash",
+        f"source {env_file}",
+        f"{cmd}",
+        "exit_code=$?",
+        f"if [ $exit_code -ne 0 ]; then touch {finished_touch_error};",
+        f"else touch {finished_touch_success}; fi"
+    ])
+    # Write log output
+    if write_logfile:
+        log_dir = os.path.join(workdir, "logs")
+        os.makedirs(log_dir, exist_ok=True)
+        outputfile = os.path.join(log_dir, f"{basename}.log")
+    else:
+        outputfile = "/dev/null"
+    # === SBATCH directives ===
+    sbatch_lines = [
+        "#!/bin/bash",
+        f"#SBATCH --job-name={basename}",
+        f"#SBATCH --partition={partition}",
+        f"#SBATCH --nodes={nodes}",
+        f"#SBATCH --ntasks-per-node={ntasks_per_node}",
+        f"#SBATCH --cpus-per-task={cpus_per_task}",
+        f"#SBATCH --mem={mem}",
+        f"#SBATCH --time={time}",
+    ]
+    if account:
+        sbatch_lines.append(f"#SBATCH --account={account}")
+    if dependency:
+        sbatch_lines.append(f"#SBATCH --dependency={dependency}")
+    if write_logfile:
+        sbatch_lines.append(f"#SBATCH --output={outputfile}")
+        sbatch_lines.append(f"#SBATCH --error={outputfile}")
+    # === Batch script content ===
+    batch_script_content = "\n".join([
+        *sbatch_lines,
+        "",
+        f"bash {cmd_batch}",
+        f"rm -rf {batch_file}",
+        f"rm -rf {cmd_batch}"
+    ])
+    # Write files
+    for f in [cmd_batch, batch_file]:
+        if os.path.exists(f):
+            os.remove(f)
+    with open(cmd_batch, "w") as f:
+        f.write(cmd_file_content)
+    with open(batch_file, "w") as f:
+        f.write(batch_script_content)
+    os.chmod(cmd_batch, 0o777)
+    os.chmod(batch_file, 0o777)
+    return batch_file, outputfile
+
+
+def generate_activate_env(outfile="activate_meersolar_env.sh"):
+    """
+    Generate a shell script that activates the current Python environment.
+
+    This works for both Conda and virtualenv environments and is safe for use in
+    non-interactive shells (e.g., Slurm batch jobs) by explicitly sourcing `conda.sh`.
+
+    If conda is not found in $PATH, it will try loading either `anaconda` or `anaconda3` module.
+
+    Parameters
+    ----------
+    outfile : str
+        Path to the shell script to write (default: ./activate_env.sh).
+        
+    Returns
+    -------
+    str
+        Output file name
+    """
+    outfile = Path(outfile).expanduser().resolve()
+    putfile = os.path.abspath(outfile)
+    lines = ["#!/bin/bash", ""]
+    def module_exists(name):
+        """Check if a module exists using 'module avail'."""
+        try:
+            subprocess.run(
+                ["module", "avail", name],
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+                check=False
+            )
+            return True
+        except Exception:
+            return False
+    # Conda-based environment
+    if "CONDA_DEFAULT_ENV" in os.environ:
+        conda_env = os.environ["CONDA_DEFAULT_ENV"]
+        lines.append("# === Activate Conda Environment Safely ===")
+        lines.append("if ! command -v conda >/dev/null 2>&1; then")
+        if module_exists("anaconda"):
+            lines.append("    module load anaconda")
+        elif module_exists("anaconda3"):
+            lines.append("    module load anaconda3")
+        else:
+            lines.append("    echo 'No Conda module found (anaconda or anaconda3)'")
+            lines.append("    exit 1")
+        lines.append("fi")
+        lines.append("source $(conda info --base)/etc/profile.d/conda.sh")
+        lines.append(f"conda activate {conda_env}")
+    # Virtualenv-based environment
+    elif "VIRTUAL_ENV" in os.environ:
+        venv_path = os.environ["VIRTUAL_ENV"]
+        lines.append("# === Activate Virtualenv ===")
+        lines.append(f"source {venv_path}/bin/activate")
+    else:
+        python_path = sys.executable
+        lines.append("# === No Conda/Virtualenv Detected — Using current Python directly ===")
+        lines.append(f"echo 'No Conda or virtualenv detected; using: {python_path}'")
+        lines.append(f"export PATH={os.path.dirname(python_path)}:$PATH")
+    # Write file
+    with open(outfile, "w") as f:
+        f.write("\n".join(lines) + "\n")
+    os.chmod(outfile, 0o755)
+    print(f"Created activation script at: {outfile}")
+    return outfile
 
 
 def get_dask_client(

@@ -8,6 +8,7 @@ from casatasks import casalog
 from datetime import datetime as dt
 from parfive import Downloader
 from meersolar.utils.basic_utils import get_datadir, get_cachedir, create_datadir
+from meersolar.utils.proc_manage_utils import generate_activate_env
 from meersolar.utils.udocker_utils import init_udocker
 from meersolar.utils.logger_utils import SmartDefaultsHelpFormatter
 
@@ -108,6 +109,22 @@ def main(
     link=None,
     emails=None,
 ):  
+    """
+    Initiate MeerSOLAR setup
+    
+    Parameters
+    ----------
+    init : bool, optional
+        Initiate setup
+    datadir : str, optional
+        User provided custom data directory
+    update : bool, optional
+        Update existing data (if corrupted by somehow)
+    link : str
+        Remote link
+    emails : str
+        E-mails for notifications
+    """
     if init:
         create_datadir(datadir=datadir)
         datadir = get_datadir()
@@ -118,6 +135,11 @@ def main(
         print(f"MeerSOLAR data are initiated.")
         init_udocker()
         print("uDOCKER inititalized")
+        env_file=f"{datadir}/activate_meersolar_env.sh"
+        env_file=generate_activate_env(outfile=env_file)
+        return 0
+    else:
+        return 1
 
 
 def cli():
@@ -145,14 +167,16 @@ def cli():
         sys.exit(1)
     args = parser.parse_args()
     
-    main(
+    msg = main(
         init=args.init,
         datadir=args.datadir,
         update=args.update,
         link=args.link,
         emails=args.emails,
     )
+    return msg
         
     
 if __name__ == "__main__":
-    cli()
+    msg = cli()
+    os._exit(msg)
