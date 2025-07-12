@@ -1,16 +1,10 @@
 import pytest
-import psutil
 import numpy as np
-import traceback
-import copy
-import glob
 import os
-from casatasks import casalog
-from casatools import msmetadata, table
 from unittest.mock import patch, MagicMock
 from meersolar.utils.selfcal_utils import *
 
-
+    
 @patch("meersolar.utils.selfcal_utils.traceback.print_exc")
 @patch("meersolar.utils.selfcal_utils.os.system")
 @patch("meersolar.utils.selfcal_utils.os.path.exists", return_value=True)

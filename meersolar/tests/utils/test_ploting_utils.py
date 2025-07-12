@@ -1,27 +1,9 @@
 import pytest
 import sunpy
-import astropy.units as u
-import logging
-import numpy as np
-import warnings
-import glob
 import os
-import matplotlib
-import matplotlib.pyplot as plt
-from sunpy.net import Fido, attrs as a
-from sunpy.map import Map
-from sunpy.timeseries import TimeSeries
-from astropy.visualization import ImageNormalize, PowerStretch, LogStretch
 from astropy.io import fits
-from astropy.time import Time
-from astropy.coordinates import EarthLocation, SkyCoord
-from astropy.wcs import FITSFixedWarning
-from casatasks import casalog
-from casatools import msmetadata, ms as casamstool
-from datetime import datetime as dt, timedelta
 from unittest.mock import patch, MagicMock
 from meersolar.utils.ploting_utils import *
-
 
 def test_get_meermap(dummy_image):
     result = get_meermap(dummy_image)

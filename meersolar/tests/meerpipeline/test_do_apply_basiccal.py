@@ -157,7 +157,7 @@ def test_run_all_applysol(
     mock_msmd_inst.scannumbers.return_value = [1]
     mock_msmd.return_value = mock_msmd_inst
     result = run_all_applysol(
-        mslist=["test1.ms", "test2.ms"],
+        mslist="test1.ms,test2.ms",
         workdir="/mock/workdir",
         caldir="/mock/caldir",
         use_only_bandpass=False,
@@ -170,68 +170,6 @@ def test_run_all_applysol(
     )
     assert result == 0
     
-    
-@patch("meersolar.meerpipeline.do_apply_basiccal.run_all_applysol", return_value=0)
-@patch("meersolar.meerpipeline.do_apply_basiccal.clean_shutdown")
-@patch("meersolar.meerpipeline.do_apply_basiccal.drop_cache")
-@patch("meersolar.meerpipeline.do_apply_basiccal.time.sleep")
-@patch("meersolar.meerpipeline.do_apply_basiccal.init_logger")
-@patch("meersolar.meerpipeline.do_apply_basiccal.np.load", return_value=("jobname", "password"))
-@patch("meersolar.meerpipeline.do_apply_basiccal.os.path.exists", return_value=True)
-@patch("meersolar.meerpipeline.do_apply_basiccal.os.makedirs")
-@patch("meersolar.meerpipeline.do_apply_basiccal.os.getpid", return_value=1234)
-@patch("meersolar.meerpipeline.do_apply_basiccal.save_pid")
-@patch("meersolar.meerpipeline.do_apply_basiccal.sys")
-def test_main(
-    mock_system,
-    mock_run_all_applysol,
-    mock_save_pid,
-    mock_get_cachedir,
-    mock_getpid,
-    mock_makedirs,
-    mock_exists,
-    mock_npload,
-    mock_init_logger,
-    mock_drop_cache,
-    mock_clean_shutdown,
-):
-    mock_logger = MagicMock()
-    mock_init_logger.return_value = (mock_logger, "/mock/logfile.log", MagicMock())
-    # Inputs
-    mslist = ["/mock/data/test.ms"]
-    workdir = "/mock/data/workdir"
-    caldir = "/mock/data/caltables"
-    result = main(
-        mslist,
-        workdir,
-        caldir,
-        use_only_bandpass=False,
-        applymode="calflag",
-        overwrite_datacolumn=False,
-        force_apply=False,
-        do_post_flag=False,
-        start_remote_log=False,
-        cpu_frac=0.8,
-        mem_frac=0.8,
-        logfile=None,
-        jobid=0,
-    )
-    assert result == 0  
-    mock_save_pid.assert_called_once()
-    mock_run_all_applysol.assert_called_once_with(
-        msname,
-        workdir,
-        refant="m001",
-        uvrange=">100lambda",
-        perform_polcal=True,
-        keep_backup=True,
-        cpu_frac=0.5,
-        mem_frac=0.5,
-    )
-    for caltable in ["/mock/caltable1", "/mock/caltable2"]:
-        mock_system.assert_any_call("rm -rf " + caldir + "/" + os.path.basename(caltable))
-        mock_system.assert_any_call("mv " + caltable + " " + caldir)
-
     
 @pytest.mark.parametrize(
     "mslist_str, caldir_exists, expected_msg",

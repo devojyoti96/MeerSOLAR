@@ -2,10 +2,7 @@ import pytest
 import psutil
 import traceback
 import tempfile
-import time
-import glob
 import os
-from casatasks import casalog
 from unittest.mock import patch, MagicMock
 from meersolar.utils.udocker_utils import *
 

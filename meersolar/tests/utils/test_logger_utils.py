@@ -1,22 +1,14 @@
 import pytest
-import secrets
 import string
 import tempfile
 import logging
 import argparse
 import requests
-import time
-import glob
-import sys
 import os
-from casatasks import casalog
-from watchdog.events import FileSystemEventHandler
 from watchdog.observers import Observer
-from datetime import datetime as dt
 from meersolar.utils.logger_utils import *
 from unittest.mock import MagicMock, mock_open, patch
 from watchdog.events import FileModifiedEvent
-
 
 def test_smart_defaults_help_formatter_suppresses_bool_defaults():
     parser = argparse.ArgumentParser(formatter_class=SmartDefaultsHelpFormatter)

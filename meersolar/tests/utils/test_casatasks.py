@@ -1,14 +1,21 @@
 import pytest
 import psutil
 import numpy as np
-import glob
 import os
+import traceback
 from casatasks import casalog
-from casatools import msmetadata, ms as casamstool, table
+from casatools import ms as casamstool, table
 from unittest.mock import patch, MagicMock
 from meersolar.utils.casatasks import *
 
-
+try:
+    casalogfile = casalog.logfile()
+    os.system("rm -rf " + casalogfile)
+except BaseException:
+    traceback.print_exc()
+    pass
+    
+    
 def test_check_scan_in_caltable(dummy_caltables):
     assert check_scan_in_caltable(dummy_caltables[0], 1) == False
     assert check_scan_in_caltable(dummy_caltables[0], 3) == True

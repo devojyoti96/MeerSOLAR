@@ -64,7 +64,7 @@ def test_show_listobs(
 @patch("meersolar.meerpipeline.show_msdetails.show_listobs")
 @patch("meersolar.meerpipeline.show_msdetails.argparse.ArgumentParser.print_help")
 @patch("meersolar.meerpipeline.show_msdetails.sys.exit")
-def test_main(
+def test_cli(
     mock_exit,
     mock_print_help,
     mock_show_listobs,
@@ -77,7 +77,7 @@ def test_main(
 
     with patch.object(sys, "argv", argv_args):
         try:
-            main()
+            cli()
         except SystemExit:
             pass
 

@@ -1,15 +1,17 @@
 import pytest
-import psutil
-import numpy as np
 import traceback
-import warnings
-import glob
 import os
 from casatasks import casalog
-from casatools import msmetadata, ms as casamstool, table
+from casatools import table
 from meersolar.utils.calibration import *
 from unittest.mock import MagicMock, patch
 
+try:
+    casalogfile = casalog.logfile()
+    os.system("rm -rf " + casalogfile)
+except BaseException:
+    traceback.print_exc()
+    pass
 
 def test_merge_caltables_from_fixture(dummy_caltables, tmp_path):
     merged = tmp_path / "merged.K"

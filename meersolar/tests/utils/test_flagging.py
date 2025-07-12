@@ -1,15 +1,17 @@
 import pytest
-import psutil
-import numpy as np
 import traceback
-import glob
 import os
 from casatasks import casalog
-from datetime import datetime as dt, timezone
 from casatools import table
 from unittest.mock import patch, MagicMock, call
 from meersolar.utils.flagging import *
 
+try:
+    casalogfile = casalog.logfile()
+    os.system("rm -rf " + casalogfile)
+except BaseException:
+    traceback.print_exc()
+    pass
 
 def test_do_flag_backup(dummy_msname):
     from casatasks import flagmanager

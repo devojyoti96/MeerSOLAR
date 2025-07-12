@@ -1,9 +1,6 @@
 import pytest
-import numpy as np
-import glob
 import os
-from casatasks import casalog
-from casatools import msmetadata, ms as casamstool, table
+import traceback
 from meersolar.utils.imaging import *
 
 def test_calc_sun_dia():

@@ -1,15 +1,8 @@
 import pytest
-import astropy.units as u
 import glob
 import os
-from astroquery.jplhorizons import Horizons
-from astropy.time import Time
-from astropy.coordinates import EarthLocation, SkyCoord, AltAz
-from casatasks import casalog
-from casatools import msmetadata
 from unittest.mock import patch, MagicMock
 from meersolar.utils.sunpos_utils import *
-
 
 def test_get_solar_elevation_MeerKAT():
     result = get_solar_elevation_MeerKAT()

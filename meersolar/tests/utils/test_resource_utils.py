@@ -1,12 +1,7 @@
 import pytest
 import shutil
-import traceback
-import platform
-import ctypes
 import tempfile
 import os
-from casatasks import casalog
-from contextlib import contextmanager
 from unittest.mock import patch, MagicMock
 from meersolar.utils.resource_utils import *
 

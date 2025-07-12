@@ -1,12 +1,5 @@
 import pytest
-import julian
-import resource
-import numpy as np
 import os
-from astropy.time import Time
-from casatasks import casalog
-from datetime import datetime as dt
-from contextlib import contextmanager
 from unittest.mock import patch, MagicMock, mock_open, call
 from meersolar.utils.basic_utils import *
 

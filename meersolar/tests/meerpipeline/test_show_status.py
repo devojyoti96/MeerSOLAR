@@ -49,7 +49,7 @@ def test_show_job_status(
 @patch("meersolar.meerpipeline.show_status.show_job_status")
 @patch("meersolar.meerpipeline.show_status.sys.exit")
 @patch("meersolar.meerpipeline.show_status.sys.argv", new_callable=list)
-def test_main_show_job_status(
+def test_cli_show_job_status(
     mock_argv,
     mock_exit,
     mock_show_status,
@@ -60,7 +60,7 @@ def test_main_show_job_status(
     # Patch argv directly
     sys.argv[:] = argv_args
 
-    main()
+    cli()
 
     if expect_show_called:
         mock_show_status.assert_called_once()

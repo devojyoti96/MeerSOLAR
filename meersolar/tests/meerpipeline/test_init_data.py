@@ -1,6 +1,6 @@
 import pytest
 import builtins
-from unittest.mock import patch, MagicMock, mock_open
+from unittest.mock import patch, MagicMock, mock_open, Mock
 from meersolar.meerpipeline.init_data import *
 from requests.exceptions import HTTPError
 
@@ -178,44 +178,114 @@ def test_init_meersolar_data(
     
   
 @pytest.mark.parametrize(
-    "argv, expect_exit, expect_create, expect_init",
+    "init_flag, expected_calls",
     [
-        (["script.py"], True, False, False),  # No args → should exit
-        (["script.py", "--init"], True, True, True),  # Default init
-        (["script.py", "--init", "--datadir", "/custom/data"], True, True, True),  # Custom datadir
-        (["script.py", "--init", "--update"], True, True, True),  # Update flag
-        (["script.py", "--init", "--remotelink", "http://remote", "--emails", "a@b.com"], True, True, True),
+        # Case 1: init=True, all functions should be called
+        (
+            True,
+            {
+                "create_datadir": 1,
+                "get_datadir": 1,
+                "init_meersolar_data": 1,
+                "init_udocker": 1,
+                "generate_activate_env": 1,
+            },
+        ),
+        # Case 2: init=False, nothing should be called
+        (
+            False,
+            {
+                "create_datadir": 0,
+                "get_datadir": 0,
+                "init_meersolar_data": 0,
+                "init_udocker": 0,
+                "generate_activate_env": 0,
+            },
+        ),
     ],
 )
-@patch("meersolar.meerpipeline.init_data.init_meersolar_data")
-@patch("meersolar.meerpipeline.init_data.create_datadir")
+def test_main(init_flag, expected_calls, monkeypatch):
+    from meersolar.meerpipeline import init_data
+    # Create mock functions
+    mocks = {
+        name: Mock(name=f"mock_{name}")
+        for name in expected_calls
+    }
+
+    # Setup return values for the ones that return something
+    mocks["get_datadir"].return_value = "/mockdir"
+    mocks["generate_activate_env"].return_value = "/mockdir/activate_meersolar_env.sh"
+
+    # Patch all into the module
+    for name, mock_func in mocks.items():
+        monkeypatch.setattr(init_data, name, mock_func)
+
+    # Call main
+    init_data.main(
+        init=init_flag,
+        datadir="/mockdir",
+        update=True,
+        link="http://remote.url",
+        emails="test@example.com",
+    )
+
+    # Assert calls based on expectation
+    mocks["create_datadir"].assert_called_once() if expected_calls["create_datadir"] else mocks["create_datadir"].assert_not_called()
+    mocks["get_datadir"].assert_called_once() if expected_calls["get_datadir"] else mocks["get_datadir"].assert_not_called()
+    mocks["init_meersolar_data"].assert_called_once_with(
+        update=True, remote_link="http://remote.url", emails="test@example.com"
+    ) if expected_calls["init_meersolar_data"] else mocks["init_meersolar_data"].assert_not_called()
+    mocks["init_udocker"].assert_called_once() if expected_calls["init_udocker"] else mocks["init_udocker"].assert_not_called()
+    mocks["generate_activate_env"].assert_called_once_with(
+        outfile="/mockdir/activate_meersolar_env.sh"
+    ) if expected_calls["generate_activate_env"] else mocks["generate_activate_env"].assert_not_called()
+    
+    
+@pytest.mark.parametrize(
+    "argv_args, expect_main_called, expect_exit_called, expected_args",
+    [
+        # Case 0: no arguments → help and exit
+        (["prog"], False, True, None),
+
+        # Case 1: minimal valid call
+        (
+            ["prog", "--init", "--datadir", "/mockdir", "--update", "--remotelink", "http://example.com", "--emails", "a@b.com"],
+            True,
+            False,
+            {
+                "init": True,
+                "datadir": "/mockdir",
+                "update": True,
+                "link": "http://example.com",
+                "emails": "a@b.com",
+            },
+        ),
+    ],
+)
+@patch("meersolar.meerpipeline.init_data.main", return_value=0)
 @patch("meersolar.meerpipeline.init_data.sys.exit")
-@patch("builtins.print")
-def test_main(
-    mock_print,
+@patch("meersolar.meerpipeline.init_data.argparse.ArgumentParser.print_help")
+def test_cli(
+    mock_print_help,
     mock_exit,
-    mock_create_datadir,
-    mock_init_meersolar_data,
-    argv,
-    expect_exit,
-    expect_create,
-    expect_init,
+    mock_main,
+    argv_args,
+    expect_main_called,
+    expect_exit_called,
+    expected_args,
 ):
-    # Patch sys.argv
-    with patch.object(sys, "argv", argv):
+    with patch("sys.argv", argv_args):
         from meersolar.meerpipeline import init_data
-        try:
-            init_data.main()
-        except SystemExit:
-            pass
-
-    # Check if sys.exit was called only for empty CLI
-    if len(argv) == 1:
-        mock_exit.assert_called_once_with(1)
-    else:
-        mock_exit.assert_not_called()
-
-    if expect_create:
-        mock_create_datadir.assert_called_once()
-    if expect_init:
-        mock_init_meersolar_data.assert_called_once()
+        if expect_exit_called:
+            mock_exit.side_effect = SystemExit
+            with pytest.raises(SystemExit):
+                result = init_data.cli()
+            mock_exit.assert_called_once_with(1)
+            mock_print_help.assert_called_once()
+            mock_main.assert_not_called()
+        else:
+            result = init_data.cli()
+            assert result == 0
+            mock_main.assert_called_once_with(**expected_args)
+            mock_exit.assert_not_called()
+            mock_print_help.assert_not_called()

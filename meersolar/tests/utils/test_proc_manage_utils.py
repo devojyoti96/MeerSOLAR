@@ -1,20 +1,17 @@
 import pytest
-import resource
-import psutil
-import dask
-import numpy as np
-import warnings
-import gc
-import time
-import glob
 import os
-from casatasks import casalog
-from dask import delayed, compute, config
+import sys
+import tempfile
+import numpy as np
+import time
+from pathlib import Path
+from dask import delayed, compute
 from dask.distributed import Client, LocalCluster
-from datetime import datetime as dt, timedelta
+from datetime import datetime as dt
 from unittest.mock import patch, MagicMock, mock_open, call
 from meersolar.utils.proc_manage_utils import *
 
+    
 @patch("meersolar.utils.proc_manage_utils.psutil.pid_exists")
 @patch("meersolar.utils.proc_manage_utils.np.loadtxt")
 @patch("meersolar.utils.proc_manage_utils.get_cachedir")
@@ -120,8 +117,9 @@ def test_create_batch_script_nonhpc(
     cmd_batch_path = f"{workdir}/{basename}_cmd.batch"
     finished_prefix = f"{workdir}/.Finished_{basename}"
     outputfile = f"{workdir}/logs/{basename}.log"
-    returned_batch_file = create_batch_script_nonhpc(cmd, workdir, basename)
+    returned_batch_file, returned_log_file = create_batch_script_nonhpc(cmd, workdir, basename)
     assert returned_batch_file == batch_path
+    assert returned_log_file==outputfile
     mock_isdir.assert_called_once_with(f"{workdir}/logs")
     mock_makedirs.assert_called_once_with(f"{workdir}/logs")
     handle = mock_openfile()
@@ -176,6 +174,113 @@ def test_run_limited_memory_task():
     assert mem_gb is not None
     assert isinstance(mem_gb, float)
     assert mem_gb > 0
+
+
+@pytest.mark.parametrize(
+    "env_type, mock_env, expected_line",
+    [
+        (
+            "conda",
+            {"CONDA_DEFAULT_ENV": "myenv"},
+            "conda activate myenv",
+        ),
+        (
+            "virtualenv",
+            {"VIRTUAL_ENV": "/fake/venv"},
+            "source /fake/venv/bin/activate",
+        ),
+        (
+            "plain",
+            {},
+            f"export PATH=/usr/bin:$PATH",
+        ),
+    ],
+)
+def test_generate_activate_env(env_type, mock_env, expected_line):
+    with tempfile.TemporaryDirectory() as tmpdir:
+        outfile = os.path.join(tmpdir, "test_env.sh")
+
+        # Patch environment variables
+        with patch.dict(os.environ, mock_env, clear=True), \
+             patch("sys.executable", new=sys.executable if env_type != "plain" else "/usr/bin/python3"), \
+             patch("subprocess.run") as mock_run:
+
+            # For conda case, simulate successful `module avail`
+            mock_run.return_value = MagicMock(returncode=0)
+
+            result = generate_activate_env(outfile)
+            content = Path(result).read_text()
+            
+            assert expected_line in content
+            assert os.access(result, os.X_OK)
+
+
+@patch("meersolar.utils.proc_manage_utils.get_datadir", return_value="/mock/datadir")
+@patch("meersolar.utils.proc_manage_utils.generate_activate_env")
+@patch("meersolar.utils.proc_manage_utils.os.makedirs")
+@patch("meersolar.utils.proc_manage_utils.os.path.exists", side_effect=lambda path: False)
+@patch("meersolar.utils.proc_manage_utils.os.system")
+@patch("meersolar.utils.proc_manage_utils.os.remove")
+@patch("meersolar.utils.proc_manage_utils.os.chmod")
+@patch("meersolar.utils.proc_manage_utils.open", new_callable=mock_open)
+def test_create_batch_script_slurm(
+    mock_open_func,
+    mock_chmod,
+    mock_remove,
+    mock_system,
+    mock_exists,
+    mock_makedirs,
+    mock_generate_env,
+    mock_get_datadir,
+):
+    # Inputs
+    cmd = "python script.py"
+    workdir = "/mock/work"
+    basename = "testjob"
+    partition = "debug"
+
+    # Expected paths
+    batch_file_expected = f"{workdir}/{basename}.sbatch"
+    log_file_expected = f"{workdir}/logs/{basename}.log"
+
+    # Call function
+    batch_file, log_file = create_batch_script_slurm(
+        cmd=cmd,
+        workdir=workdir,
+        basename=basename,
+        partition=partition,
+        nodes=1,
+        cpus_per_task=2,
+        mem="8G",
+        time="00:30:00",
+        account="astro",
+        dependency="afterok:12345",
+        write_logfile=True,
+    )
+
+    # Output path checks
+    assert batch_file == batch_file_expected
+    assert log_file == log_file_expected
+
+    # Check file write calls
+    written_files = [call_args[0][0] for call_args in mock_open_func.call_args_list]
+    assert f"{workdir}/{basename}_cmd.batch" in written_files
+    assert f"{workdir}/{basename}.sbatch" in written_files
+
+    # Directory creation
+    mock_makedirs.assert_any_call(workdir, exist_ok=True)
+    mock_makedirs.assert_any_call(f"{workdir}/logs", exist_ok=True)
+
+    # Status cleanup
+    mock_system.assert_called_with(f"rm -rf {workdir}/.Finished_{basename}*")
+
+    # Env script
+    mock_generate_env.assert_called_once_with(outfile="/mock/datadir/activate_meersolar_env.sh")
+
+    # chmod
+    mock_chmod.assert_any_call(f"{workdir}/{basename}_cmd.batch", 0o777)
+    mock_chmod.assert_any_call(f"{workdir}/{basename}.sbatch", 0o777)
+
 
     
     
