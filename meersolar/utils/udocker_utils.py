@@ -22,6 +22,7 @@ except BaseException:
 def set_udocker_env():
     datadir = get_datadir()
     udocker_dir = datadir + "/udocker"
+    os.makedirs(udocker_dir,exist_ok=True)
     os.environ["UDOCKER_DIR"] = udocker_dir
     os.environ["UDOCKER_TARBALL"] = datadir + "/udocker-englib-1.2.11.tar.gz"
 
@@ -45,6 +46,7 @@ def check_udocker_container(name):
     bool
         Whether present or not
     """
+    set_udocker_env()
     pid = os.getpid()
     timestamp = int(time.time() * 1000)
     tmp1 = f"tmp1_{pid}_{timestamp}.txt"
@@ -73,6 +75,7 @@ def initialize_wsclean_container(name="meerwsclean"):
     bool
         Whether initialized successfully or not
     """
+    set_udocker_env()
     image_name = "devojyoti96/wsclean-solar:latest"
     check_cmd = f"udocker images | grep -q '{image_name}'"
     image_exists = os.system(check_cmd) == 0
@@ -116,6 +119,7 @@ def run_wsclean(
     int
         Success message
     """
+    set_udocker_env()
     pid = os.getpid()
     timestamp = int(time.time() * 1000)
     tmp1 = f"tmp1_{pid}_{timestamp}.txt"
@@ -133,7 +137,7 @@ def run_wsclean(
             container_name = initialize_wsclean_container(name=container_name)
             if container_name is None:
                 print(
-                    "Container {container_name} is not initiated. First initiate container and then run."
+                    f"Container {container_name} is not initiated. First initiate container and then run."
                 )
                 return 1
 
@@ -210,6 +214,7 @@ def run_solar_sidereal_cor(
     msname="",
     only_uvw=False,
     container_name="meerwsclean",
+    check_container=False,
     verbose=False,
     dry_run=False,
 ):
@@ -224,6 +229,8 @@ def run_solar_sidereal_cor(
         Update only UVW values
         Note: This is required when visibilities are properly phase rotated in correlator to track the Sun,
         but while creating the MS, UVW values are estimated using the first phasecenter of the Sun.
+    check_container : bool, optional
+        Check container
     container_name : str, optional
         Container name
     verbose : bool, optional
@@ -234,19 +241,21 @@ def run_solar_sidereal_cor(
     int
         Success message
     """
+    set_udocker_env()
     pid = os.getpid()
     timestamp = int(time.time() * 1000)
     tmp1 = f"tmp1_{pid}_{timestamp}.txt"
     tmp2 = f"tmp2_{pid}_{timestamp}.txt"
-    container_present = check_udocker_container(container_name)
-    if not container_present:
-        container_name = initialize_wsclean_container(name=container_name)
-        if container_name is None:
-            print(
-                "Container {container_name} is not initiated. First initiate container and then run."
-            )
-            return 1
-
+    if check_container:
+        container_present = check_udocker_container(container_name)
+        if not container_present:
+            container_name = initialize_wsclean_container(name=container_name)
+            if container_name is None:
+                print(
+                    f"Container {container_name} is not initiated. First initiate container and then run."
+                )
+                return 1
+            
     if dry_run:
         cmd = f"chgcentre >> {tmp1} >> {tmp2}"
         cwd = os.getcwd()
@@ -326,6 +335,7 @@ def run_chgcenter(
     int
         Success message
     """
+    set_udocker_env()
     pid = os.getpid()
     timestamp = int(time.time() * 1000)
     tmp1 = f"tmp1_{pid}_{timestamp}.txt"
@@ -335,7 +345,7 @@ def run_chgcenter(
         container_name = initialize_wsclean_container(name=container_name)
         if container_name is None:
             print(
-                "Container {container_name} is not initiated. First initiate container and then run."
+                f"Container {container_name} is not initiated. First initiate container and then run."
             )
             return 1
     if dry_run:

@@ -227,54 +227,84 @@ def max_time_solar_smearing(msname):
     t_max = 0.5 * (psf / omega_sun)  # seconds
     return t_max
 
-
-def delaycal(msname="", caltable="", refant="", solint="inf", dry_run=False):
+def delaycal(vis="", caltable="", field="", scan="", uvrange="", refant="", refantmode="flex", solint="inf", combine="scan", gaintable=[], gainfield=[], interp=[], dry_run=False):
     """
     General delay calibration using CASA, not assuming any point source
 
     Parameters
     ----------
-    msname : str, optional
+    vis : str
         Measurement set
-    caltable : str, optional
+    caltable : str
         Caltable name
+    field : str, optional
+        Field name
+    scan : str, optional
+        Scan number
+    uvrange : str, optional
+        UV-range
     refant : str, optional
-        Reference antenna
+        Reference antenna (require one reference antenna, can not keep black)
+    refantmode : str, optional
+        Refant mode
     solint : str, optional
         Solution interval
+    combine : str, optional
+        Combine data 
+    gaintable : list, optional
+        Previous gaintables
+    gainfield : list, optional
+        Gain fields
+    interp : list, optional
+        Interpolation solutions
 
     Returns
     -------
     str
         Caltable name
     """
-    from casatasks import bandpass, gaincal
+    from casatasks import bandpass, gaincal, rerefant
 
     if dry_run:
         process = psutil.Process(os.getpid())
         mem = round(process.memory_info().rss / 1024**3, 2)  # in GB
         return mem
     try:
+        if refant=="":
+            print ("Provide a reference antenna.")
+            return 
         warnings.filterwarnings("ignore")
-        msname = msname.rstrip("/")
-        mspath = os.path.dirname(os.path.abspath(msname))
-        os.chdir(mspath)
+        vis = vis.rstrip("/")
         os.system("rm -rf " + caltable + "*")
         gaincal(
-            vis=msname,
+            vis=vis,
             caltable=caltable,
+            field=str(field),
+            scan=str(scan),
+            uvrange="",
             refant=refant,
-            gaintype="K",
             solint=solint,
-            minsnr=1,
+            combine=combine,
+            gaintype="K",
+            gaintable=gaintable,
+            gainfield=gainfield,
+            interp=interp,
         )
         bandpass(
-            vis=msname,
+            vis=vis,
             caltable=caltable + ".tempbcal",
+            field=str(field),
+            scan=str(scan),
+            uvrange=uvrange,
             refant=refant,
             solint=solint,
-            minsnr=1,
+            combine=combine,
+            solnorm=True,
+            gaintable=gaintable,
+            gainfield=gainfield,
+            interp=interp,
         )
+        rerefant(vis=vis,tablein=caltable + ".tempbcal",refant=refant,refantmode=refantmode)
         tb = table()
         tb.open(caltable + ".tempbcal/SPECTRAL_WINDOW")
         freq = tb.getcol("CHAN_FREQ").flatten()
@@ -287,18 +317,21 @@ def delaycal(msname="", caltable="", refant="", solint="inf", dry_run=False):
         tb.open(caltable, nomodify=False)
         delay_gain = tb.getcol("FPARAM") * 0.0
         delay_flag = tb.getcol("FLAG")
-        gain = np.nanmean(gain, axis=0)
         phase = np.angle(gain)
         for i in range(delay_gain.shape[0]):
             for j in range(delay_gain.shape[2]):
                 try:
-                    delay = np.polyfit(2 * np.pi * freq, phase[:, j], deg=1)[0] / (
-                        10**-9
-                    )  # Delay in nanosecond
-                    if np.isnan(delay):
-                        delay = 0.0
+                    pos=np.where(np.isnan(phase[i,:,j])==False)[0]
+                    if len(pos)>0:
+                        popt,pcov = np.polyfit(2 * np.pi * freq[pos], phase[i, :, j][pos], deg=1)
+                        if np.isnan(popt):
+                            delay = 0.0
+                        else:
+                            delay=popt/10**-9 # Delay in nanosecond
+                    else:
+                        delay=0.0
                     delay_gain[i, :, j] = delay
-                except BaseException:
+                except Exception:
                     delay_gain[i, :, j] = 0.0
         tb.putcol("FPARAM", delay_gain)
         tb.putcol("FLAG", delay_flag)

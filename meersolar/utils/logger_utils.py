@@ -50,9 +50,9 @@ def generate_password(length=6):
 
 
 def get_remote_logger_link():
-    meersolar_cachedir = get_meersolar_cachedir()
+    cachedir = get_cachedir()
     username = os.getlogin()
-    link_file = os.path.join(meersolar_cachedir, f"remotelink_{username}.txt")
+    link_file = os.path.join(cachedir, f"remotelink_{username}.txt")
     for _ in range(5):
         try:
             if os.path.isfile(link_file):
@@ -74,9 +74,9 @@ def get_remote_logger_link():
 
 
 def get_emails():
-    meersolar_cachedir = get_meersolar_cachedir()
+    cachedir = get_cachedir()
     username = os.getlogin()
-    email_file = os.path.join(meersolar_cachedir, f"emails_{username}.txt")
+    email_file = os.path.join(cachedir, f"emails_{username}.txt")
     try:
         with open(email_file, "r") as f:
             lines = [line.strip() for line in f if line.strip()]
@@ -147,8 +147,8 @@ class LogTailHandler(FileSystemEventHandler):
 def ping_logger(jobid, remote_jobid, stop_event, remote_link=""):
     """Ping a job-specific keep-alive endpoint periodically until stop_event is set."""
     pid = os.getpid()
-    meersolar_cachedir = get_meersolar_cachedir()
-    save_pid(pid, f"{meersolar_cachedir}pids/pids_{jobid}.txt")
+    cachedir = get_cachedir()
+    save_pid(pid, f"{cachedir}/pids/pids_{jobid}.txt")
     interval = 10  # 10 min interval
     if remote_link != "":
         url = f"{remote_link}/api/ping/{remote_jobid}"

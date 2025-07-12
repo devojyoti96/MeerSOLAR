@@ -378,7 +378,7 @@ def get_bad_chans(msname):
     chanfreqs = msmd.chanfreqs(0) / 10**6
     msmd.close()
     msmd.done()
-    observatory = get_observatory_name()
+    observatory = get_observatory_name(msname)
     if observatory == "MEERKAT":
         bandname = get_band_name(msname)
         if bandname == "U":
@@ -450,7 +450,7 @@ def get_good_chans(msname):
     meanfreq = msmd.meanfreq(0) / 10**6
     msmd.close()
     msmd.done()
-    observatory = get_observatory_name()
+    observatory = get_observatory_name(msname)
     if observatory == "MEERKAT":
         bandname = get_band_name(msname)
         if bandname == "U":
@@ -694,7 +694,7 @@ def get_refant(msname="", n_threads=-1, dry_run=False):
     msmd.done()
     antamp = []
     antrms = []
-    elected_nant = min(10, int(0.1 * msmd.nantennas()))
+    selected_nant = min(10, int(0.1 * nant))
     selected_nant = min(selected_nant, nant)
     for ant in range(selected_nant):
         ant = str(ant)
@@ -864,7 +864,7 @@ def get_fluxcals(msname):
     dict
         Fluxcal scans
     """
-    observatory = get_observatory_name()
+    observatory = get_observatory_name(msname)
     msmd = msmetadata()
     if os.path.exists(msname + "/SUBMSS"):
         mslist = glob.glob(msname + "/SUBMSS/*.ms")
@@ -908,7 +908,7 @@ def get_polcals(msname):
     dict
         Polcal scans
     """
-    observatory = get_observatory_name()
+    observatory = get_observatory_name(msname)
     msmd = msmetadata()
     if os.path.exists(msname + "/SUBMSS"):
         mslist = glob.glob(msname + "/SUBMSS/*.ms")
@@ -963,7 +963,7 @@ def get_phasecals(msname):
     dict
         Phasecal flux
     """
-    observatory = get_observatory_name()
+    observatory = get_observatory_name(msname)
     msmd = msmetadata()
     if os.path.exists(msname + "/SUBMSS"):
         mslist = glob.glob(msname + "/SUBMSS/*.ms")

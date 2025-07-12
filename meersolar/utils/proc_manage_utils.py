@@ -43,8 +43,8 @@ def get_nprocess_meersolar(jobid):
     int
         Number of running processes
     """
-    meersolar_cachedir = get_meersolar_cachedir()
-    pid_file = f"{meersolar_cachedir}/pids/pids_{jobid}.txt"
+    cachedir = get_cachedir()
+    pid_file = f"{cachedir}/pids/pids_{jobid}.txt"
     pids = np.loadtxt(pid_file, unpack=True)
     n_process = 0
     for pid in pids:
@@ -81,8 +81,8 @@ def get_jobid():
     int
         Job ID in the format YYYYMMDDHHMMSSmmm (milliseconds)
     """
-    meersolar_cachedir = get_meersolar_cachedir()
-    jobid_file = os.path.join(meersolar_cachedir, "jobids.txt")
+    cachedir = get_cachedir()
+    jobid_file = os.path.join(cachedir, "jobids.txt")
     if os.path.exists(jobid_file):
         prev_jobids = np.loadtxt(jobid_file, unpack=True, dtype="int64")
         if prev_jobids.size == 0:
@@ -142,8 +142,8 @@ def save_main_process_info(pid, jobid, msname, workdir, outdir, cpu_frac, mem_fr
     str
         Job info file name
     """
-    meersolar_cachedir = get_meersolar_cachedir()
-    prev_main_pids = glob.glob(f"{meersolar_cachedir}/main_pids_*.txt")
+    cachedir = get_cachedir()
+    prev_main_pids = glob.glob(f"{cachedir}/main_pids_*.txt")
     prev_jobids = [
         str(os.path.basename(i).rstrip(".txt").split("main_pids_")[-1])
         for i in prev_main_pids
@@ -159,9 +159,9 @@ def save_main_process_info(pid, jobid, msname, workdir, outdir, cpu_frac, mem_fr
                 filtered_prev_jobids.append(job_id)
             else:
                 os.system(f"rm -rf {prev_main_pids[i]}")
-                if os.path.exists(f"{meersolar_cachedir}/pids/pids_{job_id}.txt"):
-                    os.system(f"rm -rf {meersolar_cachedir}/pids/pids_{job_id}.txt")
-    main_job_file = f"{meersolar_cachedir}/main_pids_{jobid}.txt"
+                if os.path.exists(f"{cachedir}/pids/pids_{job_id}.txt"):
+                    os.system(f"rm -rf {cachedir}/pids/pids_{job_id}.txt")
+    main_job_file = f"{cachedir}/main_pids_{jobid}.txt"
     main_str = f"{jobid} {pid} {msname} {workdir} {outdir} {cpu_frac} {mem_frac}"
     with open(main_job_file, "w") as f:
         f.write(main_str)

@@ -34,19 +34,7 @@ def suppress_casa_output():
             os.dup2(old_stdout, 1)
             os.dup2(old_stderr, 2)
 
-
-def get_datadir():
-    """
-    Get package data directory
-    """
-    from importlib.resources import files
-
-    datadir_path = str(files("meersolar").joinpath("data"))
-    os.makedirs(datadir_path, exist_ok=True)
-    return datadir_path
-
-
-def get_meersolar_cachedir():
+def get_cachedir():
     """
     Get MeerSOLAR cache directory
     """
@@ -54,10 +42,46 @@ def get_meersolar_cachedir():
     if homedir is None:
         homedir = os.path.expanduser("~")
     username = os.getlogin()
-    meersolar_cachedir = f"{homedir}/.meersolar"
-    os.makedirs(meersolar_cachedir, exist_ok=True)
-    os.makedirs(f"{meersolar_cachedir}/pids", exist_ok=True)
-    return meersolar_cachedir
+    cachedir = f"{homedir}/.meersolar"
+    os.makedirs(cachedir, exist_ok=True)
+    os.makedirs(f"{cachedir}/pids", exist_ok=True)
+    return cachedir
+
+
+def create_datadir(datadir=""):
+    """
+    Create data directory
+    
+    Parameters
+    ----------
+    datadir : str, optional
+        User provided custom data directory
+    """
+    cachedir=get_cachedir()
+    if datadir=="":
+        datadir=f"{cachedir}/meerdata"
+    os.makedirs(datadir,exist_ok=True)
+    with open(f"{cachedir}/meerdata_dir.txt", "w") as f:
+        f.write(str(datadir) + "\n")
+    return 
+    
+    
+def get_datadir():
+    """
+    Get package data directory
+    
+    Returns
+    -------
+    str
+        Data directory
+    """
+    cachedir=get_cachedir()
+    if os.path.exists(f"{cachedir}/meerdata_dir.txt")==False:
+        return None
+    with open(f"{cachedir}/meerdata_dir.txt", "r") as f:
+        datadir = f.read().strip()
+    os.makedirs(datadir, exist_ok=True)
+    return datadir
 
 
 def split_into_chunks(lst, target_chunk_size):
