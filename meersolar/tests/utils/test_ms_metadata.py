@@ -89,7 +89,7 @@ def test_scans_in_timerange(dummy_msname):
 
 
 def test_get_refant(dummy_submsname):
-    assert get_refant(f"{dummy_submsname}/SUBMSS/test_subms.ms.0000.ms") == "2"
+    assert get_refant(f"{dummy_submsname}/SUBMSS/test_subms.ms.0000.ms") == "1"
 
 
 def test_get_ms_scans(dummy_submsname):

@@ -60,8 +60,16 @@ def test_max_time_solar_smearing(dummy_msname):
 
 def test_delaycal(dummy_submsname):
     caltable = delaycal(
-        msname=f"{dummy_submsname}/SUBMSS/test_subms.ms.0001.ms",
+        vis=f"{dummy_submsname}/SUBMSS/test_subms.ms.0001.ms",
         caltable=f"{dummy_submsname}/SUBMSS/test_subms.ms.0001.kcal",
+        uvrange=">200lambda",
+        refant="",
+    )
+    assert caltable == None
+    caltable = delaycal(
+        vis=f"{dummy_submsname}/SUBMSS/test_subms.ms.0001.ms",
+        caltable=f"{dummy_submsname}/SUBMSS/test_subms.ms.0001.kcal",
+        uvrange=">200lambda",
         refant="0",
     )
     if os.path.exists(f"{dummy_submsname}/SUBMSS/test_subms.ms.0001.kcal"):
@@ -69,3 +77,7 @@ def test_delaycal(dummy_submsname):
         assert caltable == f"{dummy_submsname}/SUBMSS/test_subms.ms.0001.kcal"
     else:
         assert caltable == None
+    
+        
+        
+        

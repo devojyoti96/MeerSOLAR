@@ -7,6 +7,7 @@ from astropy.time import Time
 from casatasks import casalog
 from datetime import datetime as dt
 from contextlib import contextmanager
+from unittest.mock import patch, MagicMock, mock_open, call
 from meersolar.utils.basic_utils import *
 
 
@@ -16,29 +17,79 @@ def test_suppress_casa_output_fd():
         os.write(2, b"This error should not appear\n")
 
 
-def test_get_datadir(mocker):
-    dummy_path = "/fake/datadir"
+@pytest.mark.parametrize(
+    "input_datadir, cachedir, expected_datadir",
+    [
+        ("", "/mock/cache", "/mock/cache/meerdata"),              # default
+        ("/custom/data", "/mock/cache", "/custom/data"),          # user-provided
+    ],
+)
+@patch("meersolar.utils.basic_utils.open", new_callable=mock_open)
+@patch("meersolar.utils.basic_utils.os.makedirs")
+@patch("meersolar.utils.basic_utils.get_cachedir")
+def test_create_datadir(
+    mock_get_cachedir,
+    mock_makedirs,
+    mock_open_file,
+    input_datadir,
+    cachedir,
+    expected_datadir,
+):
+    mock_get_cachedir.return_value = cachedir
+    create_datadir(datadir=input_datadir)
+    # Check directory creation
+    mock_makedirs.assert_called_once_with(expected_datadir, exist_ok=True)
+    # Check file write
+    mock_open_file.assert_called_once_with(f"{cachedir}/meerdata_dir.txt", "w")
+    mock_open_file().write.assert_called_once_with(expected_datadir + "\n")
 
-    class DummyFiles:
-        def joinpath(self, sub):
-            assert sub == "data"
-            return dummy_path
 
-    mocker.patch("importlib.resources.files", return_value=DummyFiles())
-    makedirs_mock = mocker.patch("os.makedirs")
-    result = get_datadir()
-    assert result == dummy_path
-    makedirs_mock.assert_called_once_with(dummy_path, exist_ok=True)
+@pytest.mark.parametrize(
+    "file_exists, file_contents, expected_result",
+    [
+        (True, "/custom/data\n", "/custom/data"),
+        (False, "", None),
+    ],
+)
+@patch("meersolar.utils.basic_utils.get_cachedir", return_value="/mock/cache")
+@patch("meersolar.utils.basic_utils.os.makedirs")
+@patch("meersolar.utils.basic_utils.os.path.exists")
+def test_get_datadir(
+    mock_exists,
+    mock_makedirs,
+    mock_get_cachedir,
+    file_exists,
+    file_contents,
+    expected_result,
+):
+    open_path = "meersolar.utils.basic_utils.open"
+    with patch(open_path, mock_open(read_data=file_contents)) as mock_open_func:
+        mock_exists.return_value = file_exists
 
+        result = get_datadir()
 
-def test_get_meersolar_cachedir(mocker):
+        mock_get_cachedir.assert_called_once()
+        mock_exists.assert_called_once_with("/mock/cache/meerdata_dir.txt")
+
+        if file_exists:
+            mock_open_func.assert_called_once_with("/mock/cache/meerdata_dir.txt", "r")
+            mock_open_func().read.assert_called_once()
+            mock_makedirs.assert_called_once_with(expected_result, exist_ok=True)
+            assert result == expected_result
+        else:
+            mock_open_func.assert_not_called()
+            mock_makedirs.assert_not_called()
+            assert result is None
+        
+        
+def test_get_cachedir(mocker):
     dummy_home = "/dummy/home"
     dummy_user = "dummyuser"
     expected_cachedir = f"{dummy_home}/.meersolar"
     mocker.patch.dict("os.environ", {"HOME": dummy_home})
     mocker.patch("os.getlogin", return_value=dummy_user)
     makedirs_mock = mocker.patch("os.makedirs")
-    cachedir = get_meersolar_cachedir()
+    cachedir = get_cachedir()
     assert cachedir == expected_cachedir
     makedirs_mock.assert_any_call(expected_cachedir, exist_ok=True)
     makedirs_mock.assert_any_call(f"{expected_cachedir}/pids", exist_ok=True)

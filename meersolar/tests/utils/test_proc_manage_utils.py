@@ -17,7 +17,7 @@ from meersolar.utils.proc_manage_utils import *
 
 @patch("meersolar.utils.proc_manage_utils.psutil.pid_exists")
 @patch("meersolar.utils.proc_manage_utils.np.loadtxt")
-@patch("meersolar.utils.proc_manage_utils.get_meersolar_cachedir")
+@patch("meersolar.utils.proc_manage_utils.get_cachedir")
 def test_get_nprocess_meersolar(mock_get_cachedir, mock_loadtxt, mock_pid_exists):
     mock_get_cachedir.return_value = "/mock/.meersolar"
     mock_loadtxt.return_value = [101, 102, 103]
@@ -40,7 +40,7 @@ def test_save_pid():
 @patch("meersolar.utils.proc_manage_utils.np.savetxt")
 @patch("meersolar.utils.proc_manage_utils.np.loadtxt")
 @patch("meersolar.utils.proc_manage_utils.os.path.exists")
-@patch("meersolar.utils.proc_manage_utils.get_meersolar_cachedir")
+@patch("meersolar.utils.proc_manage_utils.get_cachedir")
 @patch("meersolar.utils.proc_manage_utils.dt")
 def test_get_jobid(mock_dt, mock_getdir, mock_exists, mock_loadtxt, mock_savetxt):
     fake_time = dt(2025, 7, 1, 15, 30, 45, 123456)
@@ -60,7 +60,7 @@ def test_get_jobid(mock_dt, mock_getdir, mock_exists, mock_loadtxt, mock_savetxt
 @patch("meersolar.utils.proc_manage_utils.os.path.exists")
 @patch("meersolar.utils.proc_manage_utils.glob.glob")
 @patch(
-    "meersolar.utils.proc_manage_utils.get_meersolar_cachedir",
+    "meersolar.utils.proc_manage_utils.get_cachedir",
     return_value="/mock/.meersolar",
 )
 def test_save_main_process_info(

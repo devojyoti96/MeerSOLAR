@@ -61,8 +61,8 @@ def test_generate_password_properties(length):
 @patch("meersolar.utils.logger_utils.os.path.isfile", return_value=True)
 @patch("meersolar.utils.logger_utils.os.getlogin", return_value="testuser")
 @patch(
-    "meersolar.utils.logger_utils.get_meersolar_cachedir",
-    return_value="/mock/.meersolar/",
+    "meersolar.utils.logger_utils.get_cachedir",
+    return_value="/mock/.meersolar",
 )
 def test_get_remote_logger_link_success(
     mock_cachedir,
@@ -93,8 +93,8 @@ def test_get_remote_logger_link_success(
 )
 @patch("meersolar.utils.logger_utils.os.getlogin", return_value="testuser")
 @patch(
-    "meersolar.utils.logger_utils.get_meersolar_cachedir",
-    return_value="/mock/.meersolar/",
+    "meersolar.utils.logger_utils.get_cachedir",
+    return_value="/mock/.meersolar",
 )
 def test_get_emails_all_cases(
     mock_cachedir, mock_getlogin, file_content, file_exists, expected_result
@@ -191,11 +191,11 @@ def test_log_tail_handler_reads_new_lines():
 @patch("meersolar.utils.logger_utils.requests.post")
 @patch("meersolar.utils.logger_utils.save_pid")
 @patch(
-    "meersolar.utils.logger_utils.get_meersolar_cachedir",
-    return_value="/mock/.meersolar/",
+    "meersolar.utils.logger_utils.get_cachedir",
+    return_value="/mock/.meersolar",
 )
 @patch("meersolar.utils.logger_utils.os.getpid", return_value=12345)
-def test_ping_logger_single_iteration(
+def test_ping_logger(
     mock_getpid, mock_cachedir, mock_save_pid, mock_post
 ):
     stop_event = MagicMock()
@@ -284,3 +284,4 @@ def test_init_logger_remote_success(
     mock_observer.return_value.schedule.assert_called()
     mock_observer.return_value.start.assert_called()
     os.remove(logfile)
+
