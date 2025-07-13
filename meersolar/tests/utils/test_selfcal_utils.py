@@ -4,7 +4,7 @@ import os
 from unittest.mock import patch, MagicMock
 from meersolar.utils.selfcal_utils import *
 
-    
+
 @patch("meersolar.utils.selfcal_utils.traceback.print_exc")
 @patch("meersolar.utils.selfcal_utils.os.system")
 @patch("meersolar.utils.selfcal_utils.os.path.exists", return_value=True)
@@ -58,13 +58,13 @@ def test_intensity_selfcal(
     mock_traceback,
 ):
     # Mock memory
-    mock_virtual_memory.return_value.available = 4 * 1024 ** 3  # 4 GB
+    mock_virtual_memory.return_value.available = 4 * 1024**3  # 4 GB
 
     # Mock msmetadata
     mock_msmd = MagicMock()
     mock_msmd.open.return_value = None
     mock_msmd.timesforspws.return_value = [0, 1, 2, 10]
-    mock_msmd.chanfreqs.return_value = np.linspace(100.,200.0,10)
+    mock_msmd.chanfreqs.return_value = np.linspace(100.0, 200.0, 10)
     mock_msmd.meanfreq.return_value = 150.0
     mock_msmetadata.return_value = mock_msmd
 
@@ -93,4 +93,3 @@ def test_intensity_selfcal(
     assert image.endswith(".fits")
     assert model.endswith(".fits")
     assert residual.endswith(".fits")
-

@@ -3,8 +3,10 @@ import os
 import traceback
 from meersolar.utils.imaging import *
 
+
 def test_calc_sun_dia():
-    assert calc_sun_dia(1000.0)==34.2
+    assert calc_sun_dia(1000.0) == 34.2
+
 
 def test_calc_maxuv(dummy_submsname):
     maxuv, maxuv_l = calc_maxuv(f"{dummy_submsname}/SUBMSS/test_subms.ms.0000.ms")

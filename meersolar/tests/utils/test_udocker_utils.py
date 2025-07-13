@@ -6,6 +6,7 @@ import os
 from unittest.mock import patch, MagicMock
 from meersolar.utils.udocker_utils import *
 
+
 @patch("meersolar.utils.udocker_utils.os.makedirs")
 @patch("meersolar.utils.udocker_utils.get_datadir", return_value="/mock/data")
 def test_set_udocker_env(mock_get_datadir, mock_makedirs):
@@ -16,12 +17,14 @@ def test_set_udocker_env(mock_get_datadir, mock_makedirs):
         mock_get_datadir.assert_called_once()
         mock_makedirs.assert_called_once_with("/mock/data/udocker", exist_ok=True)
         assert os.environ["UDOCKER_DIR"] == "/mock/data/udocker"
-        assert os.environ["UDOCKER_TARBALL"] == "/mock/data/udocker-englib-1.2.11.tar.gz"
+        assert (
+            os.environ["UDOCKER_TARBALL"] == "/mock/data/udocker-englib-1.2.11.tar.gz"
+        )
     finally:
         # Restore original environment
         os.environ.clear()
         os.environ.update(original_env)
-        
+
 
 @patch("meersolar.utils.udocker_utils.set_udocker_env")
 def test_init_udocker(mock_env):
@@ -37,7 +40,7 @@ def test_init_udocker(mock_env):
 )
 @patch("meersolar.utils.udocker_utils.os.system")
 @patch("meersolar.utils.udocker_utils.set_udocker_env")
-def test_check_udocker_container(mock_env,system_mock, system_return, expected):
+def test_check_udocker_container(mock_env, system_mock, system_return, expected):
     # First call: udocker inspect, Second call: cleanup
     system_mock.side_effect = [system_return, None]
     result = check_udocker_container("test_container")

@@ -10,6 +10,7 @@ from meersolar.utils.logger_utils import *
 from unittest.mock import MagicMock, mock_open, patch
 from watchdog.events import FileModifiedEvent
 
+
 def test_smart_defaults_help_formatter_suppresses_bool_defaults():
     parser = argparse.ArgumentParser(formatter_class=SmartDefaultsHelpFormatter)
     parser.add_argument("--flag", action="store_true", help="Enable feature")
@@ -187,9 +188,7 @@ def test_log_tail_handler_reads_new_lines():
     return_value="/mock/.meersolar",
 )
 @patch("meersolar.utils.logger_utils.os.getpid", return_value=12345)
-def test_ping_logger(
-    mock_getpid, mock_cachedir, mock_save_pid, mock_post
-):
+def test_ping_logger(mock_getpid, mock_cachedir, mock_save_pid, mock_post):
     stop_event = MagicMock()
     stop_event.is_set.side_effect = [False, True]
     stop_event.wait.return_value = None
@@ -276,4 +275,3 @@ def test_init_logger_remote_success(
     mock_observer.return_value.schedule.assert_called()
     mock_observer.return_value.start.assert_called()
     os.remove(logfile)
-

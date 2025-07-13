@@ -13,6 +13,7 @@ except BaseException:
     traceback.print_exc()
     pass
 
+
 def test_do_flag_backup(dummy_msname):
     from casatasks import flagmanager
 
@@ -30,11 +31,11 @@ def test_do_flag_backup(dummy_msname):
 
 
 def test_get_unflagged_antennas(dummy_submsname):
-    tb=table()
-    tb.open(f"{dummy_submsname}/SUBMSS/test_subms.ms.0000.ms",nomodify=False)
-    flag=tb.getcol("FLAG")
-    flag*=False
-    tb.putcol("FLAG",flag)
+    tb = table()
+    tb.open(f"{dummy_submsname}/SUBMSS/test_subms.ms.0000.ms", nomodify=False)
+    flag = tb.getcol("FLAG")
+    flag *= False
+    tb.putcol("FLAG", flag)
     tb.flush()
     tb.close()
     antlist, fraclist = get_unflagged_antennas(

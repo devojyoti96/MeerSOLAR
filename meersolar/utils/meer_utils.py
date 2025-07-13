@@ -31,10 +31,11 @@ try:
 except BaseException:
     pass
 
-    
+
 #######################
 # MS metadata related
 #######################
+
 
 def get_fluxcals(msname):
     """
@@ -76,8 +77,8 @@ def get_fluxcals(msname):
     msmd.done()
     del msmd
     for field in fluxcal_scans:
-        scans=np.unique(fluxcal_scans[field]).tolist()
-        fluxcal_scans[field]=scans
+        scans = np.unique(fluxcal_scans[field]).tolist()
+        fluxcal_scans[field] = scans
     return fluxcal_fields, fluxcal_scans
 
 
@@ -109,11 +110,11 @@ def get_polcals(msname):
         field_names = msmd.fieldnames()
         for field in field_names:
             if field in ["3C286", "1328+307", "1331+305", "J1331+3030"] or field in [
-                    "3C138",
-                    "0518+165",
-                    "0521+166",
-                    "J0521+1638",
-                ]:
+                "3C138",
+                "0518+165",
+                "0521+166",
+                "J0521+1638",
+            ]:
                 if field not in polcal_fields:
                     polcal_fields.append(field)
                 scans = msmd.scansforfield(field).tolist()
@@ -126,8 +127,8 @@ def get_polcals(msname):
     msmd.done()
     del msmd
     for field in polcal_scans:
-        scans=np.unique(polcal_scans[field]).tolist()
-        polcal_scans[field]=scans
+        scans = np.unique(polcal_scans[field]).tolist()
+        polcal_scans[field] = scans
     return polcal_fields, polcal_scans
 
 
@@ -171,9 +172,7 @@ def get_phasecals(msname):
                 datadir + "/L_band_cal.npy", allow_pickle=True
             ).tolist()
         for field in field_names:
-            if field in phasecals and (
-                field != "J1939-6342" and field != "J0408-6545"
-            ):
+            if field in phasecals and (field != "J1939-6342" and field != "J0408-6545"):
                 if field not in phasecal_fields:
                     phasecal_fields.append(field)
                 scans = msmd.scansforfield(field).tolist()
@@ -188,11 +187,11 @@ def get_phasecals(msname):
     msmd.done()
     del msmd
     for field in phasecal_scans:
-        scans=np.unique(phasecal_scans[field]).tolist()
-        phasecal_scans[field]=scans
+        scans = np.unique(phasecal_scans[field]).tolist()
+        phasecal_scans[field] = scans
     for field in phasecal_flux_list:
-        scans=np.unique(phasecal_flux_list[field]).tolist()
-        phasecal_flux_list[field]=scans
+        scans = np.unique(phasecal_flux_list[field]).tolist()
+        phasecal_flux_list[field] = scans
     return phasecal_fields, phasecal_scans, phasecal_flux_list
 
 
@@ -366,8 +365,8 @@ def get_cal_target_scans(msname):
         if scan not in cal_scans:
             target_scans.append(scan)
     return target_scans, cal_scans, f_scans, g_scans, p_scans
-    
-    
+
+
 def get_band_name(msname):
     """
     Get band name
@@ -393,8 +392,8 @@ def get_band_name(msname):
         return "L"
     else:
         return "S"
-   
-   
+
+
 def get_bad_chans(msname):
     """
     Get bad channels to flag
@@ -501,11 +500,12 @@ def get_good_chans(msname):
     else:
         spw = f"0:0~{len(chanfreqs)-1}"
     return spw
-    
+
 
 ###########################
 # Spliting noise diode
 ###########################
+
 
 def split_noise_diode_scans(
     msname="",
@@ -654,4 +654,3 @@ def determine_noise_diode_cal_scan(msname, scan):
     good_spw = get_good_chans(msname)
     chan = int(good_spw.split(";")[0].split(":")[-1].split("~")[0])
     return is_noisescan(msname, chan, scan)
-  

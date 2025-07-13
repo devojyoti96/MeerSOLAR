@@ -744,6 +744,7 @@ def make_meer_overlay(
         plt.close(fig)
     return plot_file_list
 
+
 ##############################
 # Extract dynamic spectrum
 ##############################
@@ -980,6 +981,7 @@ def make_ds_plot(dsfiles, plot_file=None, showgui=False):
         plt.close(fig)
     return plot_file
 
+
 def plot_goes_full_timeseries(
     msname, workdir, plot_file_prefix=None, extension="png", showgui=False
 ):
@@ -1052,6 +1054,7 @@ def plot_goes_full_timeseries(
     else:
         plt.close(fig)
     return plot_file
+
 
 def rename_meersolar_image(
     imagename,
@@ -1170,7 +1173,8 @@ def rename_meersolar_image(
             traceback.print_exc()
             pass
     return new_name
-    
+
+
 # Expose functions and classes
 __all__ = [
     name

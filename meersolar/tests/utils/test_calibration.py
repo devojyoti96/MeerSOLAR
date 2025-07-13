@@ -13,6 +13,7 @@ except BaseException:
     traceback.print_exc()
     pass
 
+
 def test_merge_caltables_from_fixture(dummy_caltables, tmp_path):
     merged = tmp_path / "merged.K"
     result = merge_caltables(
@@ -44,9 +45,7 @@ def test_calc_time_smearing_timewidth(dummy_msname):
     assert (
         calc_time_smearing_timewidth(dummy_msname, full_FoV=False, FWHM=False) == 5.99
     )
-    assert (
-        calc_time_smearing_timewidth(dummy_msname, full_FoV=False, FWHM=True) == 5.99
-    )
+    assert calc_time_smearing_timewidth(dummy_msname, full_FoV=False, FWHM=True) == 5.99
     assert calc_time_smearing_timewidth(dummy_msname, full_FoV=True, FWHM=True) == 3.99
     assert calc_time_smearing_timewidth(dummy_msname, full_FoV=True, FWHM=False) == 2.0
 
@@ -74,7 +73,3 @@ def test_delaycal(dummy_submsname):
         assert caltable == f"{dummy_submsname}/SUBMSS/test_subms.ms.0001.kcal"
     else:
         assert caltable == None
-    
-        
-        
-        

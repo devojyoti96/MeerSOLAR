@@ -49,7 +49,8 @@ def get_cachedir():
     os.makedirs(cachedir, exist_ok=True)
     os.makedirs(f"{cachedir}/pids", exist_ok=True)
     return cachedir
-    
+
+
 def create_datadir(datadir=""):
     """
     Create data directory
@@ -84,8 +85,8 @@ def get_datadir():
         datadir = f.read().strip()
     os.makedirs(datadir, exist_ok=True)
     return datadir
-    
-    
+
+
 def split_into_chunks(lst, target_chunk_size):
     """
     Split a list into equal number of elements

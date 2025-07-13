@@ -9,6 +9,7 @@ def test_suppress_casa_output_fd():
         os.write(1, b"This should not appear\n")
         os.write(2, b"This error should not appear\n")
 
+
 def test_get_cachedir(mocker):
     dummy_home = "/dummy/home"
     dummy_user = "dummyuser"
@@ -20,12 +21,13 @@ def test_get_cachedir(mocker):
     assert cachedir == expected_cachedir
     makedirs_mock.assert_any_call(expected_cachedir, exist_ok=True)
     makedirs_mock.assert_any_call(f"{expected_cachedir}/pids", exist_ok=True)
-    
+
+
 @pytest.mark.parametrize(
     "input_datadir, cachedir, expected_datadir",
     [
-        ("", "/mock/cache", "/mock/cache/solarpipe_data"),              # default
-        ("/custom/data", "/mock/cache", "/custom/data"),          # user-provided
+        ("", "/mock/cache", "/mock/cache/solarpipe_data"),  # default
+        ("/custom/data", "/mock/cache", "/custom/data"),  # user-provided
     ],
 )
 @patch("meersolar.utils.basic_utils.open", new_callable=mock_open)
@@ -76,7 +78,9 @@ def test_get_datadir(
         mock_exists.assert_called_once_with("/mock/cache/solarpipe_data_dir.txt")
 
         if file_exists:
-            mock_open_func.assert_called_once_with("/mock/cache/solarpipe_data_dir.txt", "r")
+            mock_open_func.assert_called_once_with(
+                "/mock/cache/solarpipe_data_dir.txt", "r"
+            )
             mock_open_func().read.assert_called_once()
             mock_makedirs.assert_called_once_with(expected_result, exist_ok=True)
             assert result == expected_result
@@ -84,30 +88,32 @@ def test_get_datadir(
             mock_open_func.assert_not_called()
             mock_makedirs.assert_not_called()
             assert result is None
-            
-                
+
+
 def test_ra_dec_to_deg():
-    radeg,decdeg=ra_dec_to_deg("00h00m00s", "00d00m00s")
-    assert radeg==0
-    assert decdeg==0
-    radeg,decdeg=ra_dec_to_deg("01h30m03s", "+12d02m30s")
-    assert radeg==22.5125
-    assert decdeg==12.0417
-    radeg,decdeg=ra_dec_to_deg("01h30m03s", "-12d02m30s")
-    assert radeg==22.5125
-    assert decdeg==-12.0417
-    
+    radeg, decdeg = ra_dec_to_deg("00h00m00s", "00d00m00s")
+    assert radeg == 0
+    assert decdeg == 0
+    radeg, decdeg = ra_dec_to_deg("01h30m03s", "+12d02m30s")
+    assert radeg == 22.5125
+    assert decdeg == 12.0417
+    radeg, decdeg = ra_dec_to_deg("01h30m03s", "-12d02m30s")
+    assert radeg == 22.5125
+    assert decdeg == -12.0417
+
+
 def test_ra_dec_to_hms_dms():
-    ra,dec=ra_dec_to_hms_dms(0.0,0.0)
-    assert ra=="0h00m00s"
-    assert dec=="0d00m00s"
-    ra,dec=ra_dec_to_hms_dms(22.5125,-12.0417)
-    assert ra=="1h30m03s"
-    assert dec=="-12d02m30.12s"
-    a,dec=ra_dec_to_hms_dms(22.5125,12.0417)
-    assert ra=="1h30m03s"
-    assert dec=="12d02m30.12s"
-    
+    ra, dec = ra_dec_to_hms_dms(0.0, 0.0)
+    assert ra == "0h00m00s"
+    assert dec == "0d00m00s"
+    ra, dec = ra_dec_to_hms_dms(22.5125, -12.0417)
+    assert ra == "1h30m03s"
+    assert dec == "-12d02m30.12s"
+    a, dec = ra_dec_to_hms_dms(22.5125, 12.0417)
+    assert ra == "1h30m03s"
+    assert dec == "12d02m30.12s"
+
+
 @pytest.mark.parametrize(
     "lst,target_chunk_size,result",
     [

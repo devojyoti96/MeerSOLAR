@@ -4,6 +4,7 @@ import os
 from unittest.mock import patch, MagicMock
 from meersolar.utils.sunpos_utils import *
 
+
 def test_get_solar_elevation_MeerKAT():
     result = get_solar_elevation_MeerKAT()
     assert isinstance(result, float)

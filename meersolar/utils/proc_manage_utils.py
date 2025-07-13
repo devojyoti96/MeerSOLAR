@@ -141,7 +141,7 @@ def save_main_process_info(pid, jobid, msname, workdir, outdir, cpu_frac, mem_fr
     with open(main_job_file, "w") as f:
         f.write(main_str)
     return main_job_file
-    
+
 
 def save_pid(pid, pid_file):
     """
@@ -160,6 +160,7 @@ def save_pid(pid, pid_file):
     else:
         pids = np.array([int(pid)])
     np.savetxt(pid_file, pids, fmt="%d")
+
 
 def create_batch_script_nonhpc(cmd, workdir, basename, write_logfile=True):
     """
@@ -356,6 +357,7 @@ def generate_activate_env(outfile="activate_env.sh"):
     outfile = Path(outfile).expanduser().resolve()
     putfile = os.path.abspath(outfile)
     lines = ["#!/bin/bash", ""]
+
     def module_exists(name):
         """Check if a module exists using 'module avail'."""
         try:
@@ -368,6 +370,7 @@ def generate_activate_env(outfile="activate_env.sh"):
             return True
         except Exception:
             return False
+
     # Conda-based environment
     if "CONDA_DEFAULT_ENV" in os.environ:
         conda_env = os.environ["CONDA_DEFAULT_ENV"]

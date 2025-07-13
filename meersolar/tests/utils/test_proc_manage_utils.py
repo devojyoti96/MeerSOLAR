@@ -19,7 +19,8 @@ def test_save_pid():
     a = np.loadtxt("/tmp/test_pid.txt", dtype="int")
     assert a == 10
     os.system(f"rm -rf /tmp/test_pid.txt")
-    
+
+
 @patch("meersolar.utils.proc_manage_utils.psutil.pid_exists")
 @patch("meersolar.utils.proc_manage_utils.np.loadtxt")
 @patch("meersolar.utils.proc_manage_utils.get_cachedir")
@@ -32,6 +33,7 @@ def get_nprocess_solarpipe(mock_get_cachedir, mock_loadtxt, mock_pid_exists):
     mock_loadtxt.assert_called_once_with(
         "/mock/.meersolar/pids/pids_42.txt", unpack=True
     )
+
 
 @patch("meersolar.utils.proc_manage_utils.np.savetxt")
 @patch("meersolar.utils.proc_manage_utils.np.loadtxt")
@@ -93,7 +95,8 @@ def test_save_main_process_info(
     mock_system.assert_any_call(
         "rm -rf /mock/.meersolar/pids/pids_20250625000000000000.txt"
     )
-    
+
+
 @patch("meersolar.utils.proc_manage_utils.os.system")
 @patch("meersolar.utils.proc_manage_utils.os.path.exists")
 @patch("meersolar.utils.proc_manage_utils.os.makedirs")
@@ -115,9 +118,11 @@ def test_create_batch_script_nonhpc(
     cmd_batch_path = f"{workdir}/{basename}_cmd.batch"
     finished_prefix = f"{workdir}/.Finished_{basename}"
     outputfile = f"{workdir}/logs/{basename}.log"
-    returned_batch_file, returned_log_file = create_batch_script_nonhpc(cmd, workdir, basename)
+    returned_batch_file, returned_log_file = create_batch_script_nonhpc(
+        cmd, workdir, basename
+    )
     assert returned_batch_file == batch_path
-    assert returned_log_file==outputfile
+    assert returned_log_file == outputfile
     mock_isdir.assert_called_once_with(f"{workdir}/logs")
     mock_makedirs.assert_called_once_with(f"{workdir}/logs")
     handle = mock_openfile()
@@ -140,9 +145,11 @@ def test_create_batch_script_nonhpc(
     mock_system.assert_any_call(f"chmod a+rwx {batch_path}")
     mock_system.assert_any_call(f"chmod a+rwx {cmd_batch_path}")
 
+
 def calc_sum(i):
     time.sleep(5)
     return np.nansum(i)
+
 
 def test_get_dask_client():
     client, cluster, n, t, mem = get_dask_client(
@@ -152,18 +159,19 @@ def test_get_dask_client():
     )
     assert client is not None
     assert n >= 1
-    expected_results=[np.nansum(i) for i in range(10)]
-    tasks=[delayed(calc_sum)(i) for i in range(10)]
-    results=compute(*tasks)
-    results=list(results)
+    expected_results = [np.nansum(i) for i in range(10)]
+    tasks = [delayed(calc_sum)(i) for i in range(10)]
+    results = compute(*tasks)
+    results = list(results)
     client.close()
     cluster.close()
-    assert results==expected_results
-    
+    assert results == expected_results
+
 
 def dummy_task():
     time.sleep(2)
     return sum(range(1000000))
+
 
 def test_run_limited_memory_task():
     task = delayed(dummy_task)()
@@ -199,23 +207,30 @@ def test_generate_activate_env(env_type, mock_env, expected_line):
         outfile = os.path.join(tmpdir, "test_env.sh")
 
         # Patch environment variables
-        with patch.dict(os.environ, mock_env, clear=True), \
-             patch("sys.executable", new=sys.executable if env_type != "plain" else "/usr/bin/python3"), \
-             patch("subprocess.run") as mock_run:
+        with (
+            patch.dict(os.environ, mock_env, clear=True),
+            patch(
+                "sys.executable",
+                new=sys.executable if env_type != "plain" else "/usr/bin/python3",
+            ),
+            patch("subprocess.run") as mock_run,
+        ):
 
             # For conda case, simulate successful `module avail`
             mock_run.return_value = MagicMock(returncode=0)
 
             result = generate_activate_env(outfile)
             content = Path(result).read_text()
-            
+
             assert expected_line in content
             assert os.access(result, os.X_OK)
 
 
 @patch("meersolar.utils.proc_manage_utils.generate_activate_env")
 @patch("meersolar.utils.proc_manage_utils.os.makedirs")
-@patch("meersolar.utils.proc_manage_utils.os.path.exists", side_effect=lambda path: False)
+@patch(
+    "meersolar.utils.proc_manage_utils.os.path.exists", side_effect=lambda path: False
+)
 @patch("meersolar.utils.proc_manage_utils.os.system")
 @patch("meersolar.utils.proc_manage_utils.os.remove")
 @patch("meersolar.utils.proc_manage_utils.os.chmod")
@@ -276,7 +291,3 @@ def test_create_batch_script_slurm(
     # chmod
     mock_chmod.assert_any_call(f"{workdir}/{basename}_cmd.batch", 0o777)
     mock_chmod.assert_any_call(f"{workdir}/{basename}.sbatch", 0o777)
-
-
-    
-    

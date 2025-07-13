@@ -14,8 +14,8 @@ try:
 except BaseException:
     traceback.print_exc()
     pass
-    
-            
+
+
 def test_get_band_name(dummy_msname):
     assert get_band_name(dummy_msname) == "U"
 
@@ -26,7 +26,8 @@ def test_get_bad_chans(dummy_msname):
 
 def test_get_good_chans(dummy_msname):
     assert get_good_chans(dummy_msname) == "0:0~10"
-    
+
+
 def test_get_fluxcals(dummy_msname):
     fields, scans = get_fluxcals(dummy_msname)
     assert fields == ["J0408-6545"]
@@ -38,8 +39,10 @@ def test_get_polcals(dummy_msname):
     assert fields == []
     assert scans == {}
 
+
 def test_get_pol_names(dummy_msname):
-    assert get_pol_names(dummy_msname)==["XX","XY","YX","YY"]
+    assert get_pol_names(dummy_msname) == ["XX", "XY", "YX", "YY"]
+
 
 @patch("meersolar.utils.meer_utils.get_datadir", return_value="/mock/datadir")
 @patch("meersolar.utils.meer_utils.get_band_name", return_value="L")
@@ -108,6 +111,7 @@ def test_get_cal_target_scans(mock_npload, dummy_msname, mock_npy_data):
     assert phasecals == [4, 5, 6, 11, 12, 13, 18, 19, 20, 25, 26]
     assert polcals == []
 
+
 @patch("meersolar.utils.meer_utils.os.system")
 @patch("meersolar.utils.meer_utils.os.path.exists", return_value=False)
 @patch("casatasks.split")
@@ -141,9 +145,8 @@ def test_split_noise_diode_scans(
     mock_table_instance.open.assert_called_once()
     mock_table_instance.getcol.assert_called_with("TIME")
     mock_timestamp.assert_called()
-    
+
+
 def test_determine_noise_diode_cal_scan(dummy_msname):
     assert determine_noise_diode_cal_scan(dummy_msname, 1) == True
     assert determine_noise_diode_cal_scan(dummy_msname, 5) == False
-
-

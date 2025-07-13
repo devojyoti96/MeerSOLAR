@@ -5,6 +5,7 @@ from astropy.io import fits
 from unittest.mock import patch, MagicMock
 from meersolar.utils.meer_ploting_utils import *
 
+
 def test_get_meermap(dummy_image):
     result = get_meermap(dummy_image)
     assert isinstance(result, sunpy.map.GenericMap)
@@ -86,7 +87,8 @@ def test_make_ds_plot(dummy_submsname):
     assert os.path.exists(result) == True
     os.system(f"rm -rf {result}")
     assert os.path.exists(result) == False
-    
+
+
 @patch("meersolar.utils.meer_ploting_utils.get_valid_scans", return_value=[3])
 @patch(
     "meersolar.utils.meer_ploting_utils.get_cal_target_scans",
@@ -113,13 +115,14 @@ def test_plot_goes_full_timeseries(
     assert result[-4:] == ".png"
     os.system(f"rm -rf {result}")
     assert os.path.exists(result) == False
-    
+
+
 @pytest.mark.parametrize(
     "imagename, expected_suffix",
     [
         ("mock_MFS_image.fits", "_MFS.fits"),  # Should include _MFS
-        ("mock_image.fits", ".fits"),          # No _MFS
-    ]
+        ("mock_image.fits", ".fits"),  # No _MFS
+    ],
 )
 @patch("meersolar.utils.meer_ploting_utils.make_meer_overlay")
 @patch("meersolar.utils.meer_ploting_utils.plot_in_hpc")
@@ -177,4 +180,3 @@ def test_rename_meersolar_image(
 
     # Check suffix
     assert result.endswith(expected_suffix)
-

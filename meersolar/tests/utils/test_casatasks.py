@@ -14,8 +14,8 @@ try:
 except BaseException:
     traceback.print_exc()
     pass
-    
-    
+
+
 def test_check_scan_in_caltable(dummy_caltables):
     assert check_scan_in_caltable(dummy_caltables[0], 1) == False
     assert check_scan_in_caltable(dummy_caltables[0], 3) == True
@@ -31,7 +31,7 @@ def test_reset_weights_and_flags(dummy_msname):
 def test_correct_missing_col_subms(dummy_submsname):
     correct_missing_col_subms(dummy_submsname)
 
-    
+
 @patch("meersolar.utils.casatasks.psutil.Process")
 @patch("meersolar.utils.casatasks.os.path.exists", return_value=False)
 @patch("meersolar.utils.casatasks.os.system")
@@ -60,4 +60,3 @@ def test_single_mstransform(
 
     assert isinstance(mem, float)
     assert mem == 3.0
-    

@@ -5,6 +5,7 @@ from astropy.io import fits
 from unittest.mock import patch, MagicMock
 from meersolar.utils.image_utils import *
 
+
 @patch("meersolar.utils.image_utils.fits.writeto")
 @patch("meersolar.utils.image_utils.fits.getheader")
 @patch("meersolar.utils.image_utils.fits.getdata")

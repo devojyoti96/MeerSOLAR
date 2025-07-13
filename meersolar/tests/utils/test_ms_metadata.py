@@ -3,14 +3,17 @@ import os
 from unittest.mock import patch
 from meersolar.utils.ms_metadata import *
 
+
 def test_get_phasecenter(dummy_msname):
     ra, dec = get_phasecenter(dummy_msname, "0")
     assert ra == 62.08492
     assert dec == 294.24747
 
+
 def test_get_observatory_name(dummy_msname):
-    assert get_observatory_name(dummy_msname)=="MEERKAT"
-    
+    assert get_observatory_name(dummy_msname) == "MEERKAT"
+
+
 def test_get_timeranges_for_scan(dummy_msname):
     t = get_timeranges_for_scan(dummy_msname, 1, 5, 60)
     assert t == ["2024/06/10/09:58:29.20"]
@@ -85,4 +88,3 @@ def test_get_submsname_scans(dummy_submsname):
     mslist, scanlist = get_submsname_scans(dummy_submsname)
     assert len(mslist) == len(scanlist)
     assert scanlist == [3, 5, 12, 19, 26]
-
