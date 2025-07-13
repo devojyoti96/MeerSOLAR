@@ -2,7 +2,7 @@
   <img src="https://raw.githubusercontent.com/devojyoti96/MeerSOLAR/refs/heads/master/dark_logo.png" alt="MeerSOLAR Logo" width="200"/>
 </p>
 <p align="center">
-  <h1>MeerSOLAR</h1> An automated calibration and imaging pipeline designed for solar radio observations using <strong>MeerKAT</strong> radio telescope. It performs end-to-end calibration, flagging, and imaging with a focus on dynamic solar data, supporting both spectral and temporal flexibility in imaging products.
+  <h1>MeerSOLAR</h1> An automated calibration and imaging pipeline designed for solar radio observations using <strong>MeerKAT</strong> radio telescope. It performs end-to-end calibration, flagging, and imaging with a focus on dynamic solar data, supporting both spectral and temporal flexibility in imaging products. This is a stand-alone package from the unified package, <strong>PRABHA:</strong> **P**ipeline for **R**adio **A**rrays **B**asic and self-calibration for **H**igh dynamic range **A**nalysis.
 </p>
 
 ## Background
