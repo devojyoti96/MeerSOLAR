@@ -1,152 +1,21 @@
 import types
-import astropy.units as u
 import numpy as np
 import traceback
 import warnings
 import copy
 import glob
 import os
-from astroquery.jplhorizons import Horizons
 from astropy.io import fits
-from astropy.time import Time
-from astropy.coordinates import SkyCoord
+from astropy.wcs import WCS
 from astropy.wcs import FITSFixedWarning
-from casatasks import casalog
 from .basic_utils import *
 from .udocker_utils import *
-from .ploting_utils import save_in_hpc, plot_in_hpc, make_meer_overlay
 
 warnings.simplefilter("ignore", category=FITSFixedWarning)
-
-try:
-    logfile = casalog.logfile()
-    os.system("rm -rf " + logfile)
-except BaseException:
-    pass
 
 ##########################
 # Image analysis related
 ##########################
-
-def rename_image(
-    imagename,
-    imagedir="",
-    pol="",
-    band="",
-    attcal="NOINFO",
-    cutout_rsun=2.5,
-    make_overlay=True,
-    make_plots=True,
-):
-    """
-    Rename and move image to image directory
-
-    Parameters
-    ----------
-    imagename : str
-        Image name
-    imagedir : str, optional
-        Image directory (default given image directory)
-    pol : str, optional
-        Stokes parameters
-    band : str, optional
-        Observing band
-    attcal : str, optional
-        Solar attenuation calibrated or not 
-    cutout_rsun : float, optional
-        Cutout in solar radii from center (default: 2.5 solar radii)
-    make_overlay : bool, optional
-        Make overlay on SUVI
-    make_plots : bool, optional
-        Make radio map plot in helioprojective coordinates
-
-    Returns
-    -------
-    str
-        New imagename with full path
-    """
-    imagename = imagename.rstrip("/")
-    imagename = cutout_image(
-        imagename, imagename, x_deg=(cutout_rsun * 2 * 16.0) / 60.0
-    )
-    header = fits.getheader(imagename)
-    time = header["DATE-OBS"]
-    astro_time = Time(time, scale="utc")
-    sun_jpl = Horizons(id="10", location="500", epochs=astro_time.jd)
-    eph = sun_jpl.ephemerides()
-    sun_coords = SkyCoord(
-        ra=eph["RA"][0] * u.deg, dec=eph["DEC"][0] * u.deg, frame="icrs"
-    )
-    maxval, minval, rms, total_val, mean_val, median_val, rms_dyn, minmax_dyn = (
-        calc_solar_image_stat(imagename, disc_size=18)
-    )
-    with fits.open(imagename, mode="update") as hdul:
-        hdr = hdul[0].header
-        hdr["AUTHOR"] = "DevojyotiKansabanik,DeepanPatra"
-        if band != "":
-            hdr["BAND"] = band
-        hdr["PIPELINE"] = "MeerSOLAR"
-        hdr["CRVAL1"] = sun_coords.ra.deg
-        hdr["CRVAL2"] = sun_coords.dec.deg
-        hdr["MAX"] = maxval
-        hdr["MIN"] = minval
-        hdr["RMS"] = rms
-        hdr["SUM"] = total_val
-        hdr["MEAN"] = mean_val
-        hdr["MEDIAN"] = median_val
-        hdr["RMSDYN"] = rms_dyn
-        hdr["MIMADYN"] = minmax_dyn
-        hdr["ATTCAL"]= str(attcal)
-    freq = round(header["CRVAL3"] / 10**6, 2)
-    t_str = "".join(time.split("T")[0].split("-")) + (
-        "".join(time.split("T")[-1].split(":"))
-    )
-    new_name = "time_" + t_str + "_freq_" + str(freq)
-    if pol != "":
-        new_name += "_pol_" + str(pol)
-    if "MFS" in imagename:
-        new_name += "_MFS"
-    new_name = new_name + ".fits"
-    if imagedir == "":
-        imagedir = os.path.dirname(os.path.abspath(imagename))
-    new_name = imagedir + "/" + new_name
-    os.system("mv " + imagename + " " + new_name)
-    hpcdir = f"{os.path.dirname(imagedir)}/images/hpcs"
-    os.makedirs(hpcdir, exist_ok=True)
-    save_in_hpc(new_name, outdir=hpcdir)
-    if make_plots:
-        try:
-            pngdir = f"{os.path.dirname(imagedir)}/images/pngs"
-            pdfdir = f"{os.path.dirname(imagedir)}/images/pdfs"
-            os.makedirs(pngdir, exist_ok=True)
-            os.makedirs(pdfdir, exist_ok=True)
-            outimages, cropped_map = plot_in_hpc(
-                new_name,
-                draw_limb=True,
-                extensions=["png", "pdf"],
-                outdirs=[pngdir, pdfdir],
-            )
-        except BaseException:
-            pass
-    if make_overlay:
-        try:
-            overlay_pngdir = f"{os.path.dirname(imagedir)}/overlays_pngs"
-            overlay_pdfdir = f"{os.path.dirname(imagedir)}/overlays_pdfs"
-            os.makedirs(overlay_pngdir, exist_ok=True)
-            os.makedirs(overlay_pdfdir, exist_ok=True)
-            outimages = make_meer_overlay(
-                new_name,
-                plot_file_prefix=os.path.basename(new_name).split(".fits")[0]
-                + "_suvi_meerkat_overlay",
-                extensions=["png", "pdf"],
-                outdirs=[overlay_pngdir, overlay_pdfdir],
-            )
-        except Exception as e:
-            traceback.print_exc()
-            pass
-    return new_name
-
-
 def create_circular_mask(msname, cellsize, imsize, mask_radius=20):
     """
     Create fits solar mask
@@ -420,9 +289,6 @@ def cutout_image(fits_file, output_file, x_deg=2):
     str
         Output image name
     """
-    from astropy.wcs import WCS
-
-    warnings.filterwarnings("ignore", category=FITSFixedWarning)
     hdu = fits.open(fits_file)[0]
     data = hdu.data  # shape: (nfreq, nstokes, ny, nx)
     header = hdu.header

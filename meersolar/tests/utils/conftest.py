@@ -1,5 +1,7 @@
 import pytest
-from meersolar.utils.all_depend import *
+import shutil
+import numpy as np
+import os
 
 
 @pytest.fixture

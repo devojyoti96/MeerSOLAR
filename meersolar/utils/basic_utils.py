@@ -3,10 +3,12 @@ import julian
 import resource
 import numpy as np
 import os
+import astropy.units as u
 from astropy.time import Time
-from casatasks import casalog
+from astropy.coordinates import Angle
 from datetime import datetime as dt
 from contextlib import contextmanager
+from casatasks import casalog
 
 try:
     logfile = casalog.logfile()
@@ -34,6 +36,7 @@ def suppress_casa_output():
             os.dup2(old_stdout, 1)
             os.dup2(old_stderr, 2)
 
+
 def get_cachedir():
     """
     Get MeerSOLAR cache directory
@@ -42,48 +45,47 @@ def get_cachedir():
     if homedir is None:
         homedir = os.path.expanduser("~")
     username = os.getlogin()
-    cachedir = f"{homedir}/.meersolar"
+    cachedir = f"{homedir}/.solarpipe"
     os.makedirs(cachedir, exist_ok=True)
     os.makedirs(f"{cachedir}/pids", exist_ok=True)
     return cachedir
-
-
+    
 def create_datadir(datadir=""):
     """
     Create data directory
-    
+
     Parameters
     ----------
     datadir : str, optional
         User provided custom data directory
     """
-    cachedir=get_cachedir()
-    if datadir=="":
-        datadir=f"{cachedir}/meerdata"
-    os.makedirs(datadir,exist_ok=True)
-    with open(f"{cachedir}/meerdata_dir.txt", "w") as f:
+    cachedir = get_cachedir()
+    if datadir == "":
+        datadir = f"{cachedir}/solarpipe_data"
+    os.makedirs(datadir, exist_ok=True)
+    with open(f"{cachedir}/solarpipe_data_dir.txt", "w") as f:
         f.write(str(datadir) + "\n")
-    return 
-    
-    
+    return
+
+
 def get_datadir():
     """
     Get package data directory
-    
+
     Returns
     -------
     str
         Data directory
     """
-    cachedir=get_cachedir()
-    if os.path.exists(f"{cachedir}/meerdata_dir.txt")==False:
+    cachedir = get_cachedir()
+    if os.path.exists(f"{cachedir}/solarpipe_data_dir.txt") == False:
         return None
-    with open(f"{cachedir}/meerdata_dir.txt", "r") as f:
+    with open(f"{cachedir}/solarpipe_data_dir.txt", "r") as f:
         datadir = f.read().strip()
     os.makedirs(datadir, exist_ok=True)
     return datadir
-
-
+    
+    
 def split_into_chunks(lst, target_chunk_size):
     """
     Split a list into equal number of elements
@@ -189,6 +191,56 @@ def angular_separation_equatorial(ra1, dec1, ra2, dec2):
     # Convert the angular separation from radians to degrees
     theta_deg = np.degrees(theta_rad)
     return round(theta_deg, 2)
+
+
+def ra_dec_to_deg(ra_hms, dec_dms):
+    """
+    Convert RA and Dec from hms and dms format to degrees
+
+    Parameters
+    ----------
+    ra_hms: str
+        Right Ascension in 'hms' format
+    dec_dms : str
+        Declination in 'dms' format
+
+    Returns
+    -------
+    tuple
+        RA and Dec in degrees
+    """
+    ra = Angle(ra_hms, unit=u.hourangle)
+    dec = Angle(dec_dms, unit=u.deg)
+    return round(ra.deg, 4), round(dec.deg, 4)
+
+
+def ra_dec_to_hms_dms(ra_deg, dec_deg):
+    """
+    Convert RA and Dec in degrees to hms and dms format
+
+    Parameters
+    ----------
+    ra_deg : float
+        Right Ascension in degrees.
+    dec_deg : float
+        Declination in degrees.
+
+    Returns
+    -------
+    tuple
+        RA in h:m:s format, Dec in d:m:s format (e.g., '1h5m0s', '1d5m0s').
+    """
+    # Convert RA to h:m:s
+    if ra_deg < 0:
+        ra_deg += 360
+    ra = Angle(ra_deg, unit=u.deg)
+    ra_hms = ra.to_string(unit=u.hourangle, sep=":").split(":")
+    ra_hms = ra_hms[0] + "h" + ra_hms[1] + "m" + ra_hms[2] + "s"
+    # Convert Dec to d:m:s
+    dec = Angle(dec_deg, unit=u.deg)
+    dec_dms = dec.to_string(unit=u.deg, sep=":").split(":")
+    dec_dms = dec_dms[0] + "d" + dec_dms[1] + "m" + dec_dms[2] + "s"
+    return ra_hms, dec_dms
 
 
 def timestamp_to_mjdsec(timestamp, date_format=0):

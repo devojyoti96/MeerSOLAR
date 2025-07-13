@@ -8,18 +8,11 @@ import time
 import glob
 import sys
 import os
-from casatasks import casalog
 from watchdog.events import FileSystemEventHandler
 from watchdog.observers import Observer
 from datetime import datetime as dt
 from .basic_utils import *
 from .proc_manage_utils import *
-
-try:
-    logfile = casalog.logfile()
-    os.system("rm -rf " + logfile)
-except BaseException:
-    pass
 
 
 ##################################

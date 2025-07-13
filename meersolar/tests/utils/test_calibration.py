@@ -29,28 +29,23 @@ def test_merge_caltables_from_fixture(dummy_caltables, tmp_path):
     assert merged_rows == 2 * single_rows
 
 
-def test_determine_noise_diode_cal_scan(dummy_msname):
-    assert determine_noise_diode_cal_scan(dummy_msname, 1) == True
-    assert determine_noise_diode_cal_scan(dummy_msname, 5) == False
-
-
 def test_get_psf_size(dummy_msname):
     assert get_psf_size(dummy_msname) == 12.68
 
 
 def test_calc_bw_smearing_freqwidth(dummy_msname):
-    assert calc_bw_smearing_freqwidth(dummy_msname, full_FoV=False, FWHM=False) == 2.66
-    assert calc_bw_smearing_freqwidth(dummy_msname, full_FoV=False, FWHM=True) == 2.66
+    assert calc_bw_smearing_freqwidth(dummy_msname, full_FoV=False, FWHM=False) == 1.59
+    assert calc_bw_smearing_freqwidth(dummy_msname, full_FoV=False, FWHM=True) == 1.59
     assert calc_bw_smearing_freqwidth(dummy_msname, full_FoV=True, FWHM=True) == 1.06
     assert calc_bw_smearing_freqwidth(dummy_msname, full_FoV=True, FWHM=False) == 0.53
 
 
 def test_calc_time_smearing_timewidth(dummy_msname):
     assert (
-        calc_time_smearing_timewidth(dummy_msname, full_FoV=False, FWHM=False) == 11.98
+        calc_time_smearing_timewidth(dummy_msname, full_FoV=False, FWHM=False) == 5.99
     )
     assert (
-        calc_time_smearing_timewidth(dummy_msname, full_FoV=False, FWHM=True) == 11.98
+        calc_time_smearing_timewidth(dummy_msname, full_FoV=False, FWHM=True) == 5.99
     )
     assert calc_time_smearing_timewidth(dummy_msname, full_FoV=True, FWHM=True) == 3.99
     assert calc_time_smearing_timewidth(dummy_msname, full_FoV=True, FWHM=False) == 2.0

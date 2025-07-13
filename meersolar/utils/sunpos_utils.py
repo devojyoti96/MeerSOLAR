@@ -17,7 +17,6 @@ try:
 except BaseException:
     pass
 
-set_udocker_env()
 
 #####################################
 # Sun position related

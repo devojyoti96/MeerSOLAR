@@ -11,19 +11,6 @@ from datetime import datetime as dt
 from unittest.mock import patch, MagicMock, mock_open, call
 from meersolar.utils.proc_manage_utils import *
 
-    
-@patch("meersolar.utils.proc_manage_utils.psutil.pid_exists")
-@patch("meersolar.utils.proc_manage_utils.np.loadtxt")
-@patch("meersolar.utils.proc_manage_utils.get_cachedir")
-def test_get_nprocess_meersolar(mock_get_cachedir, mock_loadtxt, mock_pid_exists):
-    mock_get_cachedir.return_value = "/mock/.meersolar"
-    mock_loadtxt.return_value = [101, 102, 103]
-    mock_pid_exists.side_effect = lambda pid: pid in [102, 103]
-    result = get_nprocess_meersolar(jobid=42)
-    assert result == 2
-    mock_loadtxt.assert_called_once_with(
-        "/mock/.meersolar/pids/pids_42.txt", unpack=True
-    )
 
 def test_save_pid():
     os.system("rm -rf /tmp/test_pid.txt")
@@ -32,7 +19,19 @@ def test_save_pid():
     a = np.loadtxt("/tmp/test_pid.txt", dtype="int")
     assert a == 10
     os.system(f"rm -rf /tmp/test_pid.txt")
-
+    
+@patch("meersolar.utils.proc_manage_utils.psutil.pid_exists")
+@patch("meersolar.utils.proc_manage_utils.np.loadtxt")
+@patch("meersolar.utils.proc_manage_utils.get_cachedir")
+def get_nprocess_solarpipe(mock_get_cachedir, mock_loadtxt, mock_pid_exists):
+    mock_get_cachedir.return_value = "/mock/.meersolar"
+    mock_loadtxt.return_value = [101, 102, 103]
+    mock_pid_exists.side_effect = lambda pid: pid in [102, 103]
+    result = get_nprocess_solarpipe(jobid=42)
+    assert result == 2
+    mock_loadtxt.assert_called_once_with(
+        "/mock/.meersolar/pids/pids_42.txt", unpack=True
+    )
 
 @patch("meersolar.utils.proc_manage_utils.np.savetxt")
 @patch("meersolar.utils.proc_manage_utils.np.loadtxt")
@@ -94,8 +93,7 @@ def test_save_main_process_info(
     mock_system.assert_any_call(
         "rm -rf /mock/.meersolar/pids/pids_20250625000000000000.txt"
     )
-
-
+    
 @patch("meersolar.utils.proc_manage_utils.os.system")
 @patch("meersolar.utils.proc_manage_utils.os.path.exists")
 @patch("meersolar.utils.proc_manage_utils.os.makedirs")
@@ -215,7 +213,6 @@ def test_generate_activate_env(env_type, mock_env, expected_line):
             assert os.access(result, os.X_OK)
 
 
-@patch("meersolar.utils.proc_manage_utils.get_datadir", return_value="/mock/datadir")
 @patch("meersolar.utils.proc_manage_utils.generate_activate_env")
 @patch("meersolar.utils.proc_manage_utils.os.makedirs")
 @patch("meersolar.utils.proc_manage_utils.os.path.exists", side_effect=lambda path: False)
@@ -231,7 +228,6 @@ def test_create_batch_script_slurm(
     mock_exists,
     mock_makedirs,
     mock_generate_env,
-    mock_get_datadir,
 ):
     # Inputs
     cmd = "python script.py"
@@ -275,7 +271,7 @@ def test_create_batch_script_slurm(
     mock_system.assert_called_with(f"rm -rf {workdir}/.Finished_{basename}*")
 
     # Env script
-    mock_generate_env.assert_called_once_with(outfile="/mock/datadir/activate_meersolar_env.sh")
+    mock_generate_env.assert_called_once_with(outfile=f"{workdir}/activate_env.sh")
 
     # chmod
     mock_chmod.assert_any_call(f"{workdir}/{basename}_cmd.batch", 0o777)

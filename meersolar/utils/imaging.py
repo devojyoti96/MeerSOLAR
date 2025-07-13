@@ -24,15 +24,16 @@ def calc_sun_dia(freqMHz):
     ----------
     freq : float
         Frequency in MHz
-        
+
     Returns
     -------
     float
         Diameter of the Sun in arcmin
     """
-    freqGHz = freqMHz/10 ** 3  # Convert in GHz
+    freqGHz = freqMHz / 10**3  # Convert in GHz
     dia = 32 + (2.2 * (freqGHz) ** (-0.6))
-    return round(dia,2)
+    return round(dia, 2)
+
 
 def calc_maxuv(msname, chan_number=-1):
     """
@@ -348,7 +349,7 @@ def calc_multiscale_scales(msname, num_pixel_in_psf, chan_number=-1, max_scale=1
     return multiscale_scales
 
 
-def get_multiscale_bias(freq, bias_min=0.6, bias_max=0.9):
+def get_multiscale_bias(freq, bias_min=0.6, bias_max=0.9, minfreq=1015, maxfreq=1670):
     """
     Get frequency dependent multiscale bias
 
@@ -360,15 +361,19 @@ def get_multiscale_bias(freq, bias_min=0.6, bias_max=0.9):
         Minimum bias at minimum L-band frequency
     bias_max : float, optional
         Maximum bias at maximum L-band frequency
+    minfreq : float, optional
+        Minimum frequency range in MHz
+    maxfreq : float, optional
+        Maximum frequency range in MHz
 
     Returns
     -------
     float
         Multiscale bias patrameter
     """
-    if freq <= 1015:
+    if freq <= minfreq:
         return bias_min
-    elif freq >= 1670:
+    elif freq >= maxfreq:
         return bias_max
     else:
         freq_min = 1015

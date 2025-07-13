@@ -67,52 +67,6 @@ def merge_caltables(caltables, merged_caltable, append=False, keepcopy=False):
     return merged_caltable
 
 
-def determine_noise_diode_cal_scan(msname, scan):
-    """
-    Determine whether a calibrator scan is a noise-diode cal scan or not
-
-    Parameters
-    ----------
-    msname : str
-        Name of the measurement set
-    scan : int
-        Scan number
-
-    Returns
-    -------
-    bool
-        Whether it is noise-diode cal scan or not
-    """
-
-    def is_noisescan(msname, chan, scan):
-        mstool = casamstool()
-        mstool.open(msname)
-        mstool.select({"antenna1": 1, "antenna2": 1, "scan_number": scan})
-        mstool.selectchannel(nchan=1, width=1, start=chan)
-        data = mstool.getdata("DATA", ifraxis=True)["data"][:, 0, 0, :]
-        mstool.close()
-        xx = np.abs(data[0, ...])
-        yy = np.abs(data[-1, ...])
-        even_xx = xx[1::2]
-        odd_xx = xx[::2]
-        minlen = min(len(even_xx), len(odd_xx))
-        d_xx = even_xx[:minlen] - odd_xx[:minlen]
-        even_yy = yy[1::2]
-        odd_yy = yy[::2]
-        d_yy = even_yy[:minlen] - odd_yy[:minlen]
-        mean_d_xx = np.abs(np.nanmedian(d_xx))
-        mean_d_yy = np.abs(np.nanmedian(d_yy))
-        if mean_d_xx > 10 and mean_d_yy > 10:
-            return True
-        else:
-            return False
-
-    print(f"Check noise-diode cal for scan : {scan}")
-    good_spw = get_good_chans(msname)
-    chan = int(good_spw.split(";")[0].split(":")[-1].split("~")[0])
-    return is_noisescan(msname, chan, scan)
-
-
 def get_psf_size(msname, chan_number=-1):
     """
     Function to calculate PSF size in arcsec
@@ -152,17 +106,17 @@ def calc_bw_smearing_freqwidth(msname, full_FoV=False, FWHM=True):
     float
         Spectral width in MHz
     """
-    R = 0.9
-    if full_FoV:
-        fov = calc_field_of_view(msname, FWHM=FWHM)  # In arcsec
-    else:
-        fov = 35 * 60  # Size of the Sun, slightly larger is taken for U-band
-    psf = get_psf_size(msname)
     tb = table()
     tb.open(f"{msname}/SPECTRAL_WINDOW")
     freq = float(tb.getcol("REF_FREQUENCY")[0]) / 10**6
     freqres = float(tb.getcol("CHAN_WIDTH")[0][0]) / 10**6
     tb.close()
+    R = 0.9
+    if full_FoV:
+        fov = calc_field_of_view(msname, FWHM=FWHM)  # In arcsec
+    else:
+        fov = 2 * calc_sun_dia(np.nanmean(freq)) * 60  # 2 times sun size
+    psf = get_psf_size(msname)
     delta_nu = np.sqrt((1 / R**2) - 1) * (psf / fov) * freq
     delta_nu = ceil_to_multiple(delta_nu, freqres)
     return round(delta_nu, 2)
@@ -195,10 +149,11 @@ def calc_time_smearing_timewidth(msname, full_FoV=False, FWHM=True):
     c = 299792458.0  # speed of light in m/s
     omega_E = 7.2921159e-5  # Earth rotation rate in rad/s
     lam = c / freq_Hz  # wavelength in meters
+    freq = freq_Hz / 10**6
     if full_FoV:
         fov = calc_field_of_view(msname, FWHM=FWHM)  # In arcsec
     else:
-        fov = 35 * 60  # Size of the Sun, slightly larger is taken for U-band
+        fov = 2 * calc_sun_dia(np.nanmean(freq)) * 60  # 2 times sun size
     fov_deg = fov / 3600.0
     fov_rad = np.deg2rad(fov_deg)
     uv, uvlambda = calc_maxuv(msname)
@@ -227,7 +182,22 @@ def max_time_solar_smearing(msname):
     t_max = 0.5 * (psf / omega_sun)  # seconds
     return t_max
 
-def delaycal(vis="", caltable="", field="", scan="", uvrange="", refant="", refantmode="flex", solint="inf", combine="scan", gaintable=[], gainfield=[], interp=[], dry_run=False):
+
+def delaycal(
+    vis="",
+    caltable="",
+    field="",
+    scan="",
+    uvrange="",
+    refant="",
+    refantmode="flex",
+    solint="inf",
+    combine="scan",
+    gaintable=[],
+    gainfield=[],
+    interp=[],
+    dry_run=False,
+):
     """
     General delay calibration using CASA, not assuming any point source
 
@@ -250,7 +220,7 @@ def delaycal(vis="", caltable="", field="", scan="", uvrange="", refant="", refa
     solint : str, optional
         Solution interval
     combine : str, optional
-        Combine data 
+        Combine data
     gaintable : list, optional
         Previous gaintables
     gainfield : list, optional
@@ -270,9 +240,9 @@ def delaycal(vis="", caltable="", field="", scan="", uvrange="", refant="", refa
         mem = round(process.memory_info().rss / 1024**3, 2)  # in GB
         return mem
     try:
-        if refant=="":
-            print ("Provide a reference antenna.")
-            return 
+        if refant == "":
+            print("Provide a reference antenna.")
+            return
         warnings.filterwarnings("ignore")
         vis = vis.rstrip("/")
         os.system("rm -rf " + caltable + "*")
@@ -304,7 +274,12 @@ def delaycal(vis="", caltable="", field="", scan="", uvrange="", refant="", refa
             gainfield=gainfield,
             interp=interp,
         )
-        rerefant(vis=vis,tablein=caltable + ".tempbcal",refant=refant,refantmode=refantmode)
+        rerefant(
+            vis=vis,
+            tablein=caltable + ".tempbcal",
+            refant=refant,
+            refantmode=refantmode,
+        )
         tb = table()
         tb.open(caltable + ".tempbcal/SPECTRAL_WINDOW")
         freq = tb.getcol("CHAN_FREQ").flatten()
@@ -321,15 +296,17 @@ def delaycal(vis="", caltable="", field="", scan="", uvrange="", refant="", refa
         for i in range(delay_gain.shape[0]):
             for j in range(delay_gain.shape[2]):
                 try:
-                    pos=np.where(np.isnan(phase[i,:,j])==False)[0]
-                    if len(pos)>0:
-                        popt,pcov = np.polyfit(2 * np.pi * freq[pos], phase[i, :, j][pos], deg=1)
+                    pos = np.where(np.isnan(phase[i, :, j]) == False)[0]
+                    if len(pos) > 0:
+                        popt, pcov = np.polyfit(
+                            2 * np.pi * freq[pos], phase[i, :, j][pos], deg=1
+                        )
                         if np.isnan(popt):
                             delay = 0.0
                         else:
-                            delay=popt/10**-9 # Delay in nanosecond
+                            delay = popt / 10**-9  # Delay in nanosecond
                     else:
-                        delay=0.0
+                        delay = 0.0
                     delay_gain[i, :, j] = delay
                 except Exception:
                     delay_gain[i, :, j] = 0.0

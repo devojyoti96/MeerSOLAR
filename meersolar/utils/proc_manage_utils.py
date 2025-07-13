@@ -12,34 +12,25 @@ import os
 import subprocess
 import sys
 from pathlib import Path
-from casatasks import casalog
 from dask import delayed, compute, config
 from dask.distributed import Client, LocalCluster
 from datetime import datetime as dt, timedelta
 from .basic_utils import *
 
-try:
-    logfile = casalog.logfile()
-    os.system("rm -rf " + logfile)
-except BaseException:
-    pass
-
 
 #################################
-# MeerSOLAR process management
+# Process management
 #################################
-
-
-def get_nprocess_meersolar(jobid):
+def get_nprocess_solarpipe(jobid):
     """
-    Get numbers of MeerSOLAR processes currently running
+    Get numbers of processes currently running
 
     Parameters
     ----------
     workdir : str
         Work directory name
     jobid : int
-        MeerSOLAR Job ID
+        Job ID
 
     Returns
     -------
@@ -56,28 +47,9 @@ def get_nprocess_meersolar(jobid):
     return n_process
 
 
-def save_pid(pid, pid_file):
-    """
-    Save PID
-
-    Parameters
-    ----------
-    pid : int
-        Process ID
-    pid_file : str
-        File to save
-    """
-    if os.path.exists(pid_file):
-        pids = np.loadtxt(pid_file, unpack=True, dtype="int")
-        pids = np.append(pids, pid)
-    else:
-        pids = np.array([int(pid)])
-    np.savetxt(pid_file, pids, fmt="%d")
-
-
 def get_jobid():
     """
-    Get MeerSOLAR Job ID with millisecond-level uniqueness.
+    Get Job ID with millisecond-level uniqueness.
 
     Returns
     -------
@@ -121,14 +93,14 @@ def get_jobid():
 
 def save_main_process_info(pid, jobid, msname, workdir, outdir, cpu_frac, mem_frac):
     """
-    Save MeerSOLAR main processes info
+    Save main processes info
 
     Parameters
     ----------
     pid : int
         Main job process id
     jobid : int
-        MeerSOLAR Job ID
+        Job ID
     msname : str
         Main measurement set
     workdir : str
@@ -138,7 +110,7 @@ def save_main_process_info(pid, jobid, msname, workdir, outdir, cpu_frac, mem_fr
     cpu_frac : float
         CPU fraction of the job
     mem_frac : float
-        Mempry fraction of the job
+        Memory fraction of the job
 
     Returns
     -------
@@ -169,7 +141,25 @@ def save_main_process_info(pid, jobid, msname, workdir, outdir, cpu_frac, mem_fr
     with open(main_job_file, "w") as f:
         f.write(main_str)
     return main_job_file
+    
 
+def save_pid(pid, pid_file):
+    """
+    Save PID
+
+    Parameters
+    ----------
+    pid : int
+        Process ID
+    pid_file : str
+        File to save
+    """
+    if os.path.exists(pid_file):
+        pids = np.loadtxt(pid_file, unpack=True, dtype="int")
+        pids = np.append(pids, pid)
+    else:
+        pids = np.array([int(pid)])
+    np.savetxt(pid_file, pids, fmt="%d")
 
 def create_batch_script_nonhpc(cmd, workdir, basename, write_logfile=True):
     """
@@ -273,8 +263,7 @@ def create_batch_script_slurm(
     str
         Log file path (or /dev/null).
     """
-    datadir = get_datadir()
-    env_file = os.path.join(datadir, "activate_meersolar_env.sh")
+    env_file = os.path.join(workdir, "activate_env.sh")
     # Generate the env file if it doesn't exist
     if not os.path.exists(env_file):
         generate_activate_env(outfile=env_file)
@@ -287,14 +276,16 @@ def create_batch_script_slurm(
     # Remove old status files
     os.system(f"rm -rf {finished_touch_base}*")
     # === Command script content with environment activation ===
-    cmd_file_content = "\n".join([
-        f"#!/bin/bash",
-        f"source {env_file}",
-        f"{cmd}",
-        "exit_code=$?",
-        f"if [ $exit_code -ne 0 ]; then touch {finished_touch_error};",
-        f"else touch {finished_touch_success}; fi"
-    ])
+    cmd_file_content = "\n".join(
+        [
+            f"#!/bin/bash",
+            f"source {env_file}",
+            f"{cmd}",
+            "exit_code=$?",
+            f"if [ $exit_code -ne 0 ]; then touch {finished_touch_error};",
+            f"else touch {finished_touch_success}; fi",
+        ]
+    )
     # Write log output
     if write_logfile:
         log_dir = os.path.join(workdir, "logs")
@@ -321,13 +312,15 @@ def create_batch_script_slurm(
         sbatch_lines.append(f"#SBATCH --output={outputfile}")
         sbatch_lines.append(f"#SBATCH --error={outputfile}")
     # === Batch script content ===
-    batch_script_content = "\n".join([
-        *sbatch_lines,
-        "",
-        f"bash {cmd_batch}",
-        f"rm -rf {batch_file}",
-        f"rm -rf {cmd_batch}"
-    ])
+    batch_script_content = "\n".join(
+        [
+            *sbatch_lines,
+            "",
+            f"bash {cmd_batch}",
+            f"rm -rf {batch_file}",
+            f"rm -rf {cmd_batch}",
+        ]
+    )
     # Write files
     for f in [cmd_batch, batch_file]:
         if os.path.exists(f):
@@ -341,7 +334,7 @@ def create_batch_script_slurm(
     return batch_file, outputfile
 
 
-def generate_activate_env(outfile="activate_meersolar_env.sh"):
+def generate_activate_env(outfile="activate_env.sh"):
     """
     Generate a shell script that activates the current Python environment.
 
@@ -354,7 +347,7 @@ def generate_activate_env(outfile="activate_meersolar_env.sh"):
     ----------
     outfile : str
         Path to the shell script to write (default: ./activate_env.sh).
-        
+
     Returns
     -------
     str
@@ -370,7 +363,7 @@ def generate_activate_env(outfile="activate_meersolar_env.sh"):
                 ["module", "avail", name],
                 stdout=subprocess.DEVNULL,
                 stderr=subprocess.DEVNULL,
-                check=False
+                check=False,
             )
             return True
         except Exception:
@@ -397,7 +390,9 @@ def generate_activate_env(outfile="activate_meersolar_env.sh"):
         lines.append(f"source {venv_path}/bin/activate")
     else:
         python_path = sys.executable
-        lines.append("# === No Conda/Virtualenv Detected — Using current Python directly ===")
+        lines.append(
+            "# === No Conda/Virtualenv Detected — Using current Python directly ==="
+        )
         lines.append(f"echo 'No Conda or virtualenv detected; using: {python_path}'")
         lines.append(f"export PATH={os.path.dirname(python_path)}:$PATH")
     # Write file
@@ -421,7 +416,6 @@ def get_dask_client(
     """
     Create a Dask client optimized for one-task-per-worker execution,
     where each worker is a separate process that can use multiple threads internally.
-
 
     Parameters
     ----------

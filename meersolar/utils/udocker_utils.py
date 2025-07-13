@@ -5,14 +5,7 @@ import tempfile
 import time
 import glob
 import os
-from casatasks import casalog
 from .basic_utils import *
-
-try:
-    logfile = casalog.logfile()
-    os.system("rm -rf " + logfile)
-except BaseException:
-    pass
 
 ####################
 # uDOCKER related
@@ -22,7 +15,7 @@ except BaseException:
 def set_udocker_env():
     datadir = get_datadir()
     udocker_dir = datadir + "/udocker"
-    os.makedirs(udocker_dir,exist_ok=True)
+    os.makedirs(udocker_dir, exist_ok=True)
     os.environ["UDOCKER_DIR"] = udocker_dir
     os.environ["UDOCKER_TARBALL"] = datadir + "/udocker-englib-1.2.11.tar.gz"
 
@@ -61,7 +54,7 @@ def check_udocker_container(name):
         return True
 
 
-def initialize_wsclean_container(name="meerwsclean"):
+def initialize_wsclean_container(name="solarwsclean"):
     """
     Initialize WSClean container
 
@@ -95,7 +88,7 @@ def initialize_wsclean_container(name="meerwsclean"):
 
 def run_wsclean(
     wsclean_cmd,
-    container_name="meerwsclean",
+    container_name="solarwsclean",
     check_container=False,
     verbose=False,
     dry_run=False,
@@ -145,7 +138,7 @@ def run_wsclean(
         cmd = f"chgenter >> {tmp1} >> {tmp2}"
         cwd = os.getcwd()
         full_command = (
-            f"udocker --quiet run --nobanner --volume={cwd}:{cwd} meerwsclean {cmd}"
+            f"udocker --quiet run --nobanner --volume={cwd}:{cwd} solarwsclean {cmd}"
         )
         os.system(full_command)
         process = psutil.Process(os.getpid())
@@ -191,7 +184,7 @@ def run_wsclean(
         + os.path.basename(msname)
     )
     try:
-        full_command = f"udocker run --nobanner --volume={mspath}:{temp_docker_path} --workdir {temp_docker_path} meerwsclean {wsclean_cmd}"
+        full_command = f"udocker run --nobanner --volume={mspath}:{temp_docker_path} --workdir {temp_docker_path} solarwsclean {wsclean_cmd}"
         if not verbose:
             full_command += f" >> {mspath}/{tmp1} "
         else:
@@ -213,7 +206,7 @@ def run_wsclean(
 def run_solar_sidereal_cor(
     msname="",
     only_uvw=False,
-    container_name="meerwsclean",
+    container_name="solarwsclean",
     check_container=False,
     verbose=False,
     dry_run=False,
@@ -255,12 +248,12 @@ def run_solar_sidereal_cor(
                     f"Container {container_name} is not initiated. First initiate container and then run."
                 )
                 return 1
-            
+
     if dry_run:
         cmd = f"chgcentre >> {tmp1} >> {tmp2}"
         cwd = os.getcwd()
         full_command = (
-            f"udocker --quiet run --nobanner --volume={cwd}:{cwd} meerwsclean {cmd}"
+            f"udocker --quiet run --nobanner --volume={cwd}:{cwd} solarwsclean {cmd}"
         )
         os.system(full_command)
         process = psutil.Process(os.getpid())
@@ -286,7 +279,7 @@ def run_solar_sidereal_cor(
             + os.path.basename(msname)
         )
     try:
-        full_command = f"udocker --quiet run --nobanner --volume={mspath}:{temp_docker_path} --workdir {temp_docker_path} meerwsclean {cmd}"
+        full_command = f"udocker --quiet run --nobanner --volume={mspath}:{temp_docker_path} --workdir {temp_docker_path} solarwsclean {cmd}"
         if not verbose:
             full_command += f" >> {tmp1} >> {tmp2}"
         else:
@@ -306,7 +299,7 @@ def run_chgcenter(
     ra,
     dec,
     only_uvw=False,
-    container_name="meerwsclean",
+    container_name="solarwsclean",
     verbose=False,
     dry_run=False,
 ):
@@ -352,7 +345,7 @@ def run_chgcenter(
         cmd = f"chgenter >> {tmp1} >> {tmp2}"
         cwd = os.getcwd()
         full_command = (
-            f"udocker --quiet run --nobanner --volume={cwd}:{cwd} meerwsclean {cmd}"
+            f"udocker --quiet run --nobanner --volume={cwd}:{cwd} solarwsclean {cmd}"
         )
         os.system(full_command)
         process = psutil.Process(os.getpid())
@@ -385,7 +378,7 @@ def run_chgcenter(
             + dec
         )
     try:
-        full_command = f"udocker --quiet run --nobanner --volume={mspath}:{temp_docker_path} --workdir {temp_docker_path} meerwsclean {cmd}"
+        full_command = f"udocker --quiet run --nobanner --volume={mspath}:{temp_docker_path} --workdir {temp_docker_path} solarwsclean {cmd}"
         if not verbose:
             full_command += f" >> {tmp1} >> {tmp2}"
         else:

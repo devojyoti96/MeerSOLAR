@@ -5,14 +5,7 @@ import platform
 import ctypes
 import tempfile
 import os
-from casatasks import casalog
 from contextlib import contextmanager
-
-try:
-    logfile = casalog.logfile()
-    os.system("rm -rf " + logfile)
-except BaseException:
-    pass
 
 
 POSIX_FADV_DONTNEED = 4

@@ -114,6 +114,7 @@ def intensity_selfcal(
     """
     limit_threads(n_threads=ncpu)
     from casatasks import gaincal, bandpass, applycal, flagdata, delmod, flagmanager
+
     try:
         ##################################
         # Setup wsclean params
@@ -141,7 +142,7 @@ def intensity_selfcal(
         pos = np.where(timeres > 3 * np.nanmedian(timeres))[0]
         max_intervals = min(1, len(pos))
         freqs = msmd.chanfreqs(0, unit="MHz")
-        freqMHz=np.nanmean(freqs)
+        freqMHz = np.nanmean(freqs)
         freqres = freqs[1] - freqs[0]
         freq_width = calc_bw_smearing_freqwidth(msname)
         nchan = int(freq_width / freqres)
@@ -293,11 +294,11 @@ def intensity_selfcal(
             start_chan = int(chanrange.split(" ")[0])
             end_chan = int(chanrange.split(" ")[-1])
             chan_number = int((start_chan + end_chan) / 2)
-            sun_dia=calc_sun_dia(freqMHz) # Sun diameter in arcmin
-            sun_rad=sun_dia/2
+            sun_dia = calc_sun_dia(freqMHz)  # Sun diameter in arcmin
+            sun_rad = sun_dia / 2
             multiscale_scales = calc_multiscale_scales(
-                msname, 3, chan_number=chan_number, max_scale = sun_rad
-            ) 
+                msname, 3, chan_number=chan_number, max_scale=sun_rad
+            )
             per_chanrange_wsclean_args.append("-multiscale")
             per_chanrange_wsclean_args.append("-multiscale-gain 0.1")
             per_chanrange_wsclean_args.append(
@@ -356,7 +357,7 @@ def intensity_selfcal(
                 "wsclean " + " ".join(per_chanrange_wsclean_args) + " " + msname
             )
             logger.info(f"WSClean command: {wsclean_cmd}\n")
-            msg = run_wsclean(wsclean_cmd, "meerwsclean", verbose=False)
+            msg = run_wsclean(wsclean_cmd, "solarwsclean", verbose=False)
             if msg != 0:
                 logger.info(f"Imaging is not successful.\n")
             else:
@@ -552,8 +553,6 @@ def intensity_selfcal(
             final_residual,
         )
     except Exception as e:
-        print (e)
+        print(e)
         traceback.print_exc()
         return 3, "", 0, 0, "", "", ""
-        
-
