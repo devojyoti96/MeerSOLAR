@@ -2,14 +2,15 @@ import pytest
 from unittest.mock import patch, MagicMock
 from meersolar.meerpipeline.master_controller import *
 
+
 @pytest.mark.parametrize(
     "flag_calibrators, success_index, expected_return",
     [
-        (True, 0, 0),   # Calibrator flagging, successful
-        (True, 1, 1),   # Calibrator flagging, failed
+        (True, 0, 0),  # Calibrator flagging, successful
+        (True, 1, 1),  # Calibrator flagging, failed
         (False, 0, 0),  # Target flagging, successful
         (False, 1, 1),  # Target flagging, failed
-    ]
+    ],
 )
 @patch("meersolar.meerpipeline.master_controller.glob.glob")
 @patch("meersolar.meerpipeline.master_controller.time.sleep")
@@ -27,8 +28,10 @@ def test_run_flag(
     expected_return,
 ):
     # Setup mock return values
-    mock_create_batch_script.return_value = "/mock/script.sh"
-    mock_glob.return_value = [f"/mock/workdir/.Finished_flagging_cal_test_{success_index}"]
+    mock_create_batch_script.return_value = ("/mock/script.sh", "/mock/script.log")
+    mock_glob.return_value = [
+        f"/mock/workdir/.Finished_flagging_cal_test_{success_index}"
+    ]
     result = run_flag(
         msname="test.ms",
         workdir="/mock/workdir",
@@ -62,7 +65,7 @@ def test_run_import_model(
     expected_return,
 ):
     # Mocked return values
-    mock_create_batch_script.return_value = "/mock/script.sh"
+    mock_create_batch_script.return_value = ("/mock/script.sh", "/mock/script.log")
     mock_glob.return_value = [f"/mock/workdir/.Finished_modeling_test_{success_index}"]
     result = run_import_model(
         msname="test.ms",
@@ -78,8 +81,8 @@ def test_run_import_model(
     mock_system.assert_called_once_with("bash /mock/script.sh")
     mock_makedirs.assert_called_once_with("/mock/workdir/logs", exist_ok=True)
     mock_glob.assert_called()
-    
-    
+
+
 @pytest.mark.parametrize(
     "success_index, perform_polcal, keep_backup, expected_return",
     [
@@ -88,7 +91,7 @@ def test_run_import_model(
         (0, True, False, 0),
         (0, False, True, 0),
         (1, True, True, 1),
-    ]
+    ],
 )
 @patch("meersolar.meerpipeline.master_controller.glob.glob")
 @patch("meersolar.meerpipeline.master_controller.time.sleep")
@@ -107,7 +110,7 @@ def test_run_basic_cal_jobs(
     expected_return,
 ):
     # Setup
-    mock_create_batch_script.return_value = "/mock/script.sh"
+    mock_create_batch_script.return_value = ("/mock/script.sh", "/mock/script.log")
     mock_glob.return_value = [f"/mock/workdir/.Finished_basic_cal_{success_index}"]
     result = run_basic_cal_jobs(
         msname="test.ms",
@@ -126,15 +129,15 @@ def test_run_basic_cal_jobs(
     mock_system.assert_called_once_with("bash /mock/script.sh")
     mock_makedirs.assert_called_once_with("/mock/workdir/logs", exist_ok=True)
     mock_glob.assert_called()
-    
-    
+
+
 @pytest.mark.parametrize(
     "success_index, should_raise, expected_return",
     [
         (0, False, 0),  # Success case
         (1, False, 1),  # Failure case
-        (None, True, 1)  # Exception handling
-    ]
+        (None, True, 1),  # Exception handling
+    ],
 )
 @patch("meersolar.meerpipeline.master_controller.glob.glob")
 @patch("meersolar.meerpipeline.master_controller.time.sleep")
@@ -153,7 +156,7 @@ def test_run_noise_diode_cal(
     should_raise,
     expected_return,
 ):
-    mock_create_batch_script.return_value = "/mock/script.sh"
+    mock_create_batch_script.return_value = ("/mock/script.sh", "/mock/script.log")
 
     if should_raise:
         mock_glob.side_effect = Exception("Test exception")
@@ -178,15 +181,16 @@ def test_run_noise_diode_cal(
     mock_makedirs.assert_called_once_with("/mock/workdir/logs", exist_ok=True)
     if should_raise:
         mock_print_exc.assert_called_once()
-        
+
+
 @pytest.mark.parametrize(
-"split_fullpol, ms_exists, expected_return",
-[
-    (False, True, 0),
-    (False, False, 1),
-    (True, True, 0),
-    (True, False, 1),
-]
+    "split_fullpol, ms_exists, expected_return",
+    [
+        (False, True, 0),
+        (False, False, 1),
+        (True, True, 0),
+        (True, False, 1),
+    ],
 )
 @patch("meersolar.meerpipeline.master_controller.glob.glob")
 @patch("meersolar.meerpipeline.master_controller.time.sleep")
@@ -197,7 +201,7 @@ def test_run_noise_diode_cal(
 @patch("meersolar.meerpipeline.master_controller.determine_noise_diode_cal_scan")
 @patch("meersolar.meerpipeline.master_controller.get_cal_target_scans")
 @patch("meersolar.meerpipeline.master_controller.msmetadata")
-def test_run_partion(
+def test_run_partition(
     mock_msmetadata,
     mock_get_scans,
     mock_determine_noise,
@@ -220,11 +224,11 @@ def test_run_partion(
 
     mock_get_scans.return_value = ([10], [20, 21], [], [], [])
     mock_determine_noise.return_value = False
-    mock_create_script.return_value = "/mock/script.sh"
+    mock_create_script.return_value = ("/mock/script.sh", "/mock/script.log")
     mock_exists.return_value = ms_exists
     mock_glob.return_value = ["/mock/.Finished_partition_cal_0"]
 
-    result = run_partion(
+    result = run_partition(
         msname="test.ms",
         workdir="/mock/workdir",
         split_fullpol=split_fullpol,
@@ -241,8 +245,8 @@ def test_run_partion(
     mock_msmd.open.assert_called_once_with("test.ms")
     mock_msmd.close.assert_called_once()
     mock_get_scans.assert_called_once()
-    
-    
+
+
 @pytest.mark.parametrize(
     "split_fullpol, merge_spws, spw, target_scans, should_raise, expected_return",
     [
@@ -252,7 +256,7 @@ def test_run_partion(
         (False, False, "0:10~20", [], False, 0),
         (False, False, "", [5, 6], False, 0),
         (False, False, "", [], True, 1),
-    ]
+    ],
 )
 @patch("meersolar.meerpipeline.master_controller.traceback.print_exc")
 @patch("meersolar.meerpipeline.master_controller.create_batch_script_nonhpc")
@@ -270,7 +274,7 @@ def test_run_target_split_jobs(
     should_raise,
     expected_return,
 ):
-    mock_create_batch_script.return_value = "/mock/script.sh"
+    mock_create_batch_script.return_value = ("/mock/script.sh", "/mock/script.log")
     if should_raise:
         mock_os = mock_system.side_effect = Exception("Test error")
 
@@ -304,15 +308,15 @@ def test_run_target_split_jobs(
         mock_makedirs.assert_called_once_with("/mock/workdir/logs", exist_ok=True)
     else:
         mock_print_exc.assert_called_once()
-        
-        
+
+
 @pytest.mark.parametrize(
     "success_index, raise_exception, expected_return",
     [
         (0, False, 0),  # Success
         (1, False, 1),  # Failure
         (None, True, 1),  # Exception
-    ]
+    ],
 )
 @patch("meersolar.meerpipeline.master_controller.traceback.print_exc")
 @patch("meersolar.meerpipeline.master_controller.create_batch_script_nonhpc")
@@ -331,11 +335,13 @@ def test_run_solar_siderealcor_jobs(
     raise_exception,
     expected_return,
 ):
-    mock_create_script.return_value = "/mock/script.sh"
+    mock_create_script.return_value = ("/mock/script.sh", "/mock/script.log")
     if raise_exception:
         mock_glob.side_effect = Exception("mocked error")
     else:
-        mock_glob.return_value = [f"/mock/.Finished_cor_sidereal_targets_{success_index}"]
+        mock_glob.return_value = [
+            f"/mock/.Finished_cor_sidereal_targets_{success_index}"
+        ]
 
     result = run_solar_siderealcor_jobs(
         mslist=["ms1.ms", "ms2.ms"],
@@ -358,17 +364,17 @@ def test_run_solar_siderealcor_jobs(
         mock_makedirs.assert_called_once_with("/mock/workdir/logs", exist_ok=True)
         mock_system.assert_called_once_with("bash /mock/script.sh")
         mock_glob.assert_called()
-        
-        
+
+
 @pytest.mark.parametrize(
     "apply_parang, success_index, raise_exception, expected_return",
     [
-        (True, 0, False, 0),   # success, with parang
-        (True, 1, False, 1),   # failure, with parang
+        (True, 0, False, 0),  # success, with parang
+        (True, 1, False, 1),  # failure, with parang
         (False, 0, False, 0),  # success, no parang
         (False, 1, False, 1),  # failure, no parang
-        (True, None, True, 1), # exception raised
-    ]
+        (True, None, True, 1),  # exception raised
+    ],
 )
 @patch("meersolar.meerpipeline.master_controller.traceback.print_exc")
 @patch("meersolar.meerpipeline.master_controller.create_batch_script_nonhpc")
@@ -388,11 +394,13 @@ def test_run_apply_pbcor(
     raise_exception,
     expected_return,
 ):
-    mock_create_batch_script.return_value = "/mock/script.sh"
+    mock_create_batch_script.return_value = ("/mock/script.sh", "/mock/script.log")
     if raise_exception:
         mock_glob.side_effect = Exception("Simulated failure")
     else:
-        mock_glob.return_value = [f"/mock/workdir/.Finished_apply_pbcor_{success_index}"]
+        mock_glob.return_value = [
+            f"/mock/workdir/.Finished_apply_pbcor_{success_index}"
+        ]
 
     result = run_apply_pbcor(
         imagedir="/mock/images",
@@ -412,9 +420,9 @@ def test_run_apply_pbcor(
         mock_create_batch_script.assert_called_once()
         mock_makedirs.assert_called_once_with("/mock/workdir/logs", exist_ok=True)
         mock_system.assert_called_once_with("bash /mock/script.sh")
-        mock_glob.assert_called_once()    
-    
-    
+        mock_glob.assert_called_once()
+
+
 @pytest.mark.parametrize(
     "use_only_bandpass, overwrite_datacolumn, success_index, raise_exc, expected_return",
     [
@@ -423,7 +431,7 @@ def test_run_apply_pbcor(
         (True, True, 0, False, 0),
         (False, False, 1, False, 1),
         (True, True, None, True, 1),
-    ]
+    ],
 )
 @patch("meersolar.meerpipeline.master_controller.traceback.print_exc")
 @patch("meersolar.meerpipeline.master_controller.create_batch_script_nonhpc")
@@ -444,11 +452,13 @@ def test_run_apply_basiccal_sol(
     raise_exc,
     expected_return,
 ):
-    mock_create_script.return_value = "/mock/script.sh"
+    mock_create_script.return_value = ("/mock/script.sh", "/mock/script.log")
     if raise_exc:
         mock_glob.side_effect = Exception("simulated failure")
     else:
-        mock_glob.return_value = [f"/mock/workdir/.Finished_apply_basiccal_{success_index}"]
+        mock_glob.return_value = [
+            f"/mock/workdir/.Finished_apply_basiccal_{success_index}"
+        ]
 
     result = run_apply_basiccal_sol(
         target_mslist=["target1.ms", "target2.ms"],
@@ -477,17 +487,17 @@ def test_run_apply_basiccal_sol(
         cmd = mock_create_script.call_args[0][0]
         assert ("--use_only_bandpass" in cmd) == use_only_bandpass
         assert ("--overwrite_datacolumn" in cmd) == overwrite_datacolumn
-        
-        
+
+
 @pytest.mark.parametrize(
     "overwrite_datacolumn, success_index, raise_exc, expected_return",
     [
-        (True, 0, False, 0),   # success with overwrite
+        (True, 0, False, 0),  # success with overwrite
         (False, 1, False, 1),  # fail without overwrite
-        (True, 1, False, 1),   # fail with overwrite
+        (True, 1, False, 1),  # fail with overwrite
         (False, 0, False, 0),  # success without overwrite
-        (True, None, True, 1), # exception raised
-    ]
+        (True, None, True, 1),  # exception raised
+    ],
 )
 @patch("meersolar.meerpipeline.master_controller.traceback.print_exc")
 @patch("meersolar.meerpipeline.master_controller.create_batch_script_nonhpc")
@@ -507,11 +517,13 @@ def test_run_apply_selfcal_sol(
     raise_exc,
     expected_return,
 ):
-    mock_create_script.return_value = "/mock/script.sh"
+    mock_create_script.return_value = ("/mock/script.sh", "/mock/script.log")
     if raise_exc:
         mock_glob.side_effect = Exception("simulated failure")
     else:
-        mock_glob.return_value = [f"/mock/workdir/.Finished_apply_selfcal_{success_index}"]
+        mock_glob.return_value = [
+            f"/mock/workdir/.Finished_apply_selfcal_{success_index}"
+        ]
 
     result = run_apply_selfcal_sol(
         target_mslist=["targetA.ms", "targetB.ms"],
@@ -538,7 +550,7 @@ def test_run_apply_selfcal_sol(
         # Optional: Validate presence/absence of flag in command
         cmd = mock_create_script.call_args[0][0]
         assert ("--overwrite_datacolumn" in cmd) == overwrite_datacolumn
-        
+
 
 @pytest.mark.parametrize(
     "do_apcal, solar_selfcal, keep_backup, success_index, raise_exc, expected_return",
@@ -548,7 +560,7 @@ def test_run_apply_selfcal_sol(
         (True, False, True, 0, False, 0),
         (False, False, False, 1, False, 1),
         (True, True, True, None, True, 1),
-    ]
+    ],
 )
 @patch("meersolar.meerpipeline.master_controller.traceback.print_exc")
 @patch("meersolar.meerpipeline.master_controller.create_batch_script_nonhpc")
@@ -570,11 +582,13 @@ def test_run_selfcal_jobs(
     raise_exc,
     expected_return,
 ):
-    mock_create_script.return_value = "/mock/script.sh"
+    mock_create_script.return_value = ("/mock/script.sh", "/mock/script")
     if raise_exc:
         mock_glob.side_effect = Exception("simulated failure")
     else:
-        mock_glob.return_value = [f"/mock/workdir/.Finished_selfcal_targets_{success_index}"]
+        mock_glob.return_value = [
+            f"/mock/workdir/.Finished_selfcal_targets_{success_index}"
+        ]
 
     result = run_selfcal_jobs(
         mslist=["target1.ms", "target2.ms"],
@@ -616,16 +630,16 @@ def test_run_selfcal_jobs(
         assert ("--no_apcal" in cmd) == (not do_apcal)
         assert ("--no_solar_selfcal" in cmd) == (not solar_selfcal)
         assert ("--keep_backup" in cmd) == keep_backup
-        
-        
+
+
 @pytest.mark.parametrize(
     "use_multiscale, use_solar_mask, make_overlay, savemodel, saveres, success_index, raise_exc, expected_return",
     [
-        (True, True, True, True, True, 0, False, 0),   # All True, success
+        (True, True, True, True, True, 0, False, 0),  # All True, success
         (False, False, False, False, False, 1, False, 1),  # All False, failure
         (True, False, True, False, True, 0, False, 0),  # Mixed, success
         (True, True, True, True, True, None, True, 1),  # Exception
-    ]
+    ],
 )
 @patch("meersolar.meerpipeline.master_controller.traceback.print_exc")
 @patch("meersolar.meerpipeline.master_controller.create_batch_script_nonhpc")
@@ -649,11 +663,13 @@ def test_run_imaging_jobs(
     raise_exc,
     expected_return,
 ):
-    mock_create_script.return_value = "/mock/script.sh"
+    mock_create_script.return_value = ("/mock/script.sh", "/mock/script")
     if raise_exc:
         mock_glob.side_effect = Exception("simulated failure")
     else:
-        mock_glob.return_value = [f"/mock/workdir/.Finished_imaging_targets_{success_index}"]
+        mock_glob.return_value = [
+            f"/mock/workdir/.Finished_imaging_targets_{success_index}"
+        ]
 
     result = run_imaging_jobs(
         mslist=["t1.ms", "t2.ms"],
@@ -700,16 +716,16 @@ def test_run_imaging_jobs(
         assert "--freqrange 1100~1200" in cmd
         assert "--timerange 2025/01/01/00:00:00~2025/01/01/01:00:00" in cmd
         assert "--band L" in cmd
-        
-        
+
+
 @pytest.mark.parametrize(
     "target_scans, success_index, raise_exc, expected_return",
     [
-        ([1, 2, 3], 0, False, 0),   # Success
-        ([5, 6], 1, False, 1),      # Failure
-        ([], 0, False, 0),         # Empty scan list, success
-        ([7], None, True, 1),      # Exception
-    ]
+        ([1, 2, 3], 0, False, 0),  # Success
+        ([5, 6], 1, False, 1),  # Failure
+        ([], 0, False, 0),  # Empty scan list, success
+        ([7], None, True, 1),  # Exception
+    ],
 )
 @patch("meersolar.meerpipeline.master_controller.traceback.print_exc")
 @patch("meersolar.meerpipeline.master_controller.create_batch_script_nonhpc")
@@ -729,7 +745,7 @@ def test_run_ds_jobs(
     raise_exc,
     expected_return,
 ):
-    mock_create_script.return_value = "/mock/script.sh"
+    mock_create_script.return_value = ("/mock/script.sh", "/mock/script")
     if raise_exc:
         mock_glob.side_effect = Exception("simulated error")
     else:
@@ -765,10 +781,10 @@ def test_run_ds_jobs(
 @pytest.mark.parametrize(
     "mock_glob_result, expected_return",
     [
-        (["/mock/workdir/.Finished_test_0"], True),   # Success
+        (["/mock/workdir/.Finished_test_0"], True),  # Success
         (["/mock/workdir/.Finished_test_1"], False),  # Failure
-        ([], False),                                  # Not finished
-    ]
+        ([], False),  # Not finished
+    ],
 )
 @patch("meersolar.meerpipeline.master_controller.glob.glob")
 def test_check_status(mock_glob, mock_glob_result, expected_return):
@@ -777,15 +793,15 @@ def test_check_status(mock_glob, mock_glob_result, expected_return):
     result = check_status("/mock/workdir", "test")
     assert result == expected_return
     mock_glob.assert_called_once_with("/mock/workdir/.Finished_test*")
-    
-    
+
+
 @pytest.mark.parametrize(
     "remote_link, waittime, should_spawn, expected_pid_type",
     [
-        ("http://remote", 0.5, True, int),     # valid → returns PID
-        ("", 0.5, False, type(None)),          # empty remote_link
+        ("http://remote", 0.5, True, int),  # valid → returns PID
+        ("", 0.5, False, type(None)),  # empty remote_link
         ("http://remote", 0.0, False, type(None)),  # zero waittime
-    ]
+    ],
 )
 @patch("meersolar.meerpipeline.master_controller.Process")
 @patch("threading.Thread")
@@ -808,7 +824,9 @@ def test_start_ping_logger(
     mock_proc.pid = 12345
     mock_Process.return_value = mock_proc
 
-    pid = start_ping_logger(jobid=111, remote_jobid="abc123", waittime=waittime, remote_link=remote_link)
+    pid = start_ping_logger(
+        jobid=111, remote_jobid="abc123", waittime=waittime, remote_link=remote_link
+    )
 
     if should_spawn:
         mock_Process.assert_called_once()
@@ -818,8 +836,8 @@ def test_start_ping_logger(
     else:
         mock_Process.assert_not_called()
         assert pid is None
-    
-    
+
+
 @patch("meersolar.meerpipeline.master_controller.time.sleep")
 @patch("meersolar.meerpipeline.master_controller.os.system")
 @patch("meersolar.meerpipeline.master_controller.os.path.exists")
@@ -830,6 +848,7 @@ def test_exit_job(mock_exists, mock_system, mock_sleep, capsys):
     # Simulate existing scratch directories
     def exists_side_effect(path):
         return "dask-scratch-space" in path
+
     mock_exists.side_effect = exists_side_effect
 
     exit_job(start_time, mspath="/mock/ms", workdir="/mock/work")
@@ -845,8 +864,8 @@ def test_exit_job(mock_exists, mock_system, mock_sleep, capsys):
     captured = capsys.readouterr()
     assert "Total time taken:" in captured.out
     assert "s." in captured.out
-    
-    
+
+
 @pytest.mark.parametrize(
     "kwargs, expected_return",
     [
@@ -873,11 +892,16 @@ def test_exit_job(mock_exists, mock_system, mock_sleep, capsys):
 @patch("meersolar.meerpipeline.master_controller.run_import_model", return_value=0)
 @patch("meersolar.meerpipeline.master_controller.run_basic_cal_jobs", return_value=0)
 @patch("meersolar.meerpipeline.master_controller.run_noise_diode_cal", return_value=0)
-@patch("meersolar.meerpipeline.master_controller.run_partion", return_value=0)
+@patch("meersolar.meerpipeline.master_controller.run_partition", return_value=0)
 @patch("meersolar.meerpipeline.master_controller.run_target_split_jobs", return_value=0)
-@patch("meersolar.meerpipeline.master_controller.run_solar_siderealcor_jobs", return_value=0)
+@patch(
+    "meersolar.meerpipeline.master_controller.run_solar_siderealcor_jobs",
+    return_value=0,
+)
 @patch("meersolar.meerpipeline.master_controller.run_apply_pbcor", return_value=0)
-@patch("meersolar.meerpipeline.master_controller.run_apply_basiccal_sol", return_value=0)
+@patch(
+    "meersolar.meerpipeline.master_controller.run_apply_basiccal_sol", return_value=0
+)
 @patch("meersolar.meerpipeline.master_controller.run_apply_selfcal_sol", return_value=0)
 @patch("meersolar.meerpipeline.master_controller.run_selfcal_jobs", return_value=0)
 @patch("meersolar.meerpipeline.master_controller.run_imaging_jobs", return_value=0)
@@ -890,21 +914,39 @@ def test_exit_job(mock_exists, mock_system, mock_sleep, capsys):
 @patch("meersolar.meerpipeline.master_controller.psutil.cpu_count", return_value=4)
 @patch("meersolar.meerpipeline.master_controller.init_meersolar_data")
 @patch("meersolar.meerpipeline.master_controller.msmetadata")
-@patch("meersolar.meerpipeline.master_controller.calc_bw_smearing_freqwidth", return_value=1.0)
-@patch("meersolar.meerpipeline.master_controller.calc_time_smearing_timewidth", return_value=10.0)
-@patch("meersolar.meerpipeline.master_controller.max_time_solar_smearing", return_value=5.0)
+@patch(
+    "meersolar.meerpipeline.master_controller.calc_bw_smearing_freqwidth",
+    return_value=1.0,
+)
+@patch(
+    "meersolar.meerpipeline.master_controller.calc_time_smearing_timewidth",
+    return_value=10.0,
+)
+@patch(
+    "meersolar.meerpipeline.master_controller.max_time_solar_smearing", return_value=5.0
+)
 @patch("meersolar.meerpipeline.master_controller.get_bad_chans", return_value="")
 @patch("meersolar.meerpipeline.master_controller.reset_weights_and_flags")
 @patch("meersolar.meerpipeline.master_controller.get_jobid", return_value=1234)
-@patch("meersolar.meerpipeline.master_controller.save_main_process_info", return_value="/mock/job/file")
+@patch(
+    "meersolar.meerpipeline.master_controller.save_main_process_info",
+    return_value="/mock/job/file",
+)
 @patch("meersolar.meerpipeline.master_controller.get_emails", return_value="")
-@patch("meersolar.meerpipeline.master_controller.generate_password", return_value="mock_password")
-@patch("meersolar.meerpipeline.master_controller.get_remote_logger_link", return_value="")
+@patch(
+    "meersolar.meerpipeline.master_controller.generate_password",
+    return_value="mock_password",
+)
+@patch(
+    "meersolar.meerpipeline.master_controller.get_remote_logger_link", return_value=""
+)
 @patch("meersolar.meerpipeline.master_controller.drop_cache")
 @patch("meersolar.meerpipeline.master_controller.os.system")
 @patch("meersolar.meerpipeline.master_controller.time.sleep")
 @patch("meersolar.meerpipeline.master_controller.os.getpid", return_value=1111)
-@patch("meersolar.meerpipeline.master_controller.check_datacolumn_valid",return_value=True)
+@patch(
+    "meersolar.meerpipeline.master_controller.check_datacolumn_valid", return_value=True
+)
 def test_master_control(
     mock_valid_datacolumn,
     mock_getpid,
@@ -937,7 +979,7 @@ def test_master_control(
     mock_run_apply_pbcor,
     mock_run_siderealcor,
     mock_run_target_split,
-    mock_run_partion,
+    mock_run_partition,
     mock_run_noise_cal,
     mock_run_basic_cal,
     mock_run_import_model,
@@ -974,14 +1016,21 @@ def test_master_control(
     with patch("os.path.abspath", side_effect=lambda x: x.rstrip("/")):
         ret = master_control(**kwargs)
     assert ret == expected_return
-    
-    
+
+
 @pytest.mark.parametrize(
     "argv_args, expect_main_called",
     [
         (["run_master_controller"], False),  # No args → help + exit(1)
         (
-            ["run_master_controller", "test.ms", "--workdir", "/mock/work", "--outdir", "/mock/out"],
+            [
+                "run_master_controller",
+                "test.ms",
+                "--workdir",
+                "/mock/work",
+                "--outdir",
+                "/mock/out",
+            ],
             True,
         ),  # Valid minimal
     ],
@@ -999,6 +1048,7 @@ def test_cli(
     with patch("sys.argv", argv_args):
         if expect_main_called:
             from meersolar.meerpipeline import master_controller
+
             result = master_controller.cli()
             mock_master_control.assert_called_once()
             mock_print_help.assert_not_called()
@@ -1007,11 +1057,14 @@ def test_cli(
             mock_drop_cache.assert_any_call("/mock/out")
             assert result is None
         else:
-            with patch("meersolar.meerpipeline.master_controller.sys.exit", side_effect=SystemExit(1)) as mock_exit:
+            with patch(
+                "meersolar.meerpipeline.master_controller.sys.exit",
+                side_effect=SystemExit(1),
+            ) as mock_exit:
                 with pytest.raises(SystemExit) as excinfo:
                     from meersolar.meerpipeline import master_controller
+
                     master_controller.cli()
                 assert excinfo.value.code == 1
                 mock_print_help.assert_called_once()
                 mock_master_control.assert_not_called()
-

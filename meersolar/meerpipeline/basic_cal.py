@@ -32,20 +32,23 @@ from meersolar.utils.flagging import do_flag_backup
 from meersolar.utils.ms_metadata import (
     get_ms_size,
     get_ms_scan_size,
-    get_fluxcals,
-    get_phasecals,
-    get_polcals,
-    get_cal_target_scans,
-    get_bad_chans,
     get_bad_ants,
-    get_valid_scans,
     check_datacolumn_valid,
     get_chunk_size,
     get_submsname_scans,
     get_refant,
 )
+from meersolar.utils.meer_utils import (
+    get_fluxcals,
+    get_phasecals,
+    get_polcals,
+    get_cal_target_scans,
+    get_bad_chans,
+    get_valid_scans,
+    determine_noise_diode_cal_scan,
+)
 from meersolar.utils.casatasks import correct_missing_col_subms
-from meersolar.utils.calibration import determine_noise_diode_cal_scan, merge_caltables
+from meersolar.utils.calibration import merge_caltables
 from meersolar.meerpipeline.flagging import single_ms_flag
 from meersolar.meerpipeline.import_model import import_fluxcal_models
 
@@ -59,6 +62,7 @@ except BaseException:
     pass
 
 datadir = get_datadir()
+
 
 def run_delaycal(
     msname="",
@@ -81,6 +85,7 @@ def run_delaycal(
     limit_threads(n_threads=n_threads)
     from meersolar.utils.calibration import delaycal
     from casatasks import gaincal
+
     if dry_run:
         process = psutil.Process(os.getpid())
         mem = round(process.memory_info().rss / 1024**3, 2)  # in GB
@@ -142,6 +147,7 @@ def run_bandpass(
     """
     limit_threads(n_threads=n_threads)
     from casatasks import bandpass, flagdata
+
     if dry_run:
         process = psutil.Process(os.getpid())
         mem = round(process.memory_info().rss / 1024**3, 2)  # in GB
@@ -198,6 +204,7 @@ def run_gaincal(
     """
     limit_threads(n_threads=n_threads)
     from casatasks import gaincal, flagdata
+
     if dry_run:
         process = psutil.Process(os.getpid())
         mem = round(process.memory_info().rss / 1024**3, 2)  # in GB
@@ -246,6 +253,7 @@ def run_leakagecal(
     """
     limit_threads(n_threads=n_threads)
     from casatasks import polcal, flagdata
+
     if dry_run:
         process = psutil.Process(os.getpid())
         mem = round(process.memory_info().rss / 1024**3, 2)  # in GB
@@ -294,6 +302,7 @@ def run_polcal(
     """
     limit_threads(n_threads=n_threads)
     from casatasks import gaincal, polcal
+
     if dry_run:
         process = psutil.Process(os.getpid())
         mem = round(process.memory_info().rss / 1024**3, 2)  # in GB
@@ -381,6 +390,7 @@ def run_applycal(
     """
     limit_threads(n_threads=n_threads)
     from casatasks import applycal
+
     if dry_run:
         process = psutil.Process(os.getpid())
         mem = round(process.memory_info().rss / 1024**3, 2)  # in GB
@@ -416,6 +426,7 @@ def run_postcal_flag(
     """
     limit_threads(n_threads=n_threads)
     from casatasks import flagdata
+
     if dry_run:
         process = psutil.Process(os.getpid())
         mem = round(process.memory_info().rss / 1024**3, 2)  # in GB
@@ -866,7 +877,9 @@ def single_round_cal_and_flag(
         ##############################
         if do_leakagecal:
             if npol != 4:
-                print("Measurement set is not full-polar. Not performing leakage calibration.")
+                print(
+                    "Measurement set is not full-polar. Not performing leakage calibration."
+                )
             elif len(fluxcal_mslist) > 0:
                 task = delayed(run_leakagecal)(dry_run=True)
                 mem_limit = run_limited_memory_task(task, dask_dir=workdir)
@@ -1035,7 +1048,7 @@ def single_round_cal_and_flag(
                 )
                 for sub_msname in all_mslist
             ]
-            results = compute(*tasks)
+            results = list(compute(*tasks))
             dask_client.close()
             dask_cluster.close()
 
@@ -1073,7 +1086,7 @@ def single_round_cal_and_flag(
                             memory_limit=mem_limit,
                         )
                     )
-            results = compute(*tasks)
+            results = list(compute(*tasks))
             dask_client.close()
             dask_cluster.close()
 
@@ -1352,12 +1365,16 @@ def main(
     if caldir == "" or not os.path.exists(caldir):
         caldir = f"{workdir}/caltables"
     os.makedirs(caldir, exist_ok=True)
-    
+
     ############
     # Logger
     ############
     observer = None
-    if start_remote_log and os.path.exists(f"{workdir}/jobname_password.npy") and logfile is not None:
+    if (
+        start_remote_log
+        and os.path.exists(f"{workdir}/jobname_password.npy")
+        and logfile is not None
+    ):
         time.sleep(5)
         jobname, password = np.load(
             f"{workdir}/jobname_password.npy", allow_pickle=True
@@ -1366,9 +1383,9 @@ def main(
             observer = init_logger(
                 "basic_cal", logfile, jobname=jobname, password=password
             )
-    if observer==None:
+    if observer == None:
         print("Remote link or jobname is blank. Not transmiting to remote logger.")
-            
+
     try:
         if msname != "" and os.path.exists(msname):
             print("\n###################################")

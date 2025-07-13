@@ -18,20 +18,38 @@ from meersolar.utils.basic_utils import (
     get_cachedir,
 )
 from meersolar.utils.resource_utils import drop_cache
-from meersolar.utils.logger_utils import SmartDefaultsHelpFormatter, ping_logger, get_emails, generate_password, get_remote_logger_link
-from meersolar.utils.proc_manage_utils import save_pid, create_batch_script_nonhpc, create_batch_script_slurm, save_main_process_info, get_jobid
+from meersolar.utils.logger_utils import (
+    SmartDefaultsHelpFormatter,
+    ping_logger,
+    get_emails,
+    generate_password,
+    get_remote_logger_link,
+)
+from meersolar.utils.proc_manage_utils import (
+    save_pid,
+    create_batch_script_nonhpc,
+    create_batch_script_slurm,
+    save_main_process_info,
+    get_jobid,
+)
 from meersolar.utils.flagging import do_flag_backup
-from meersolar.utils.ms_metadata import (
+from meersolar.utils.ms_metadata import check_datacolumn_valid
+from meersolar.utils.meer_utils import (
     get_fluxcals,
     get_phasecals,
     get_band_name,
     get_cal_target_scans,
     get_bad_chans,
-    check_datacolumn_valid,
+    determine_noise_diode_cal_scan,
 )
 from meersolar.utils.casatasks import reset_weights_and_flags
-from meersolar.utils.calibration import determine_noise_diode_cal_scan, calc_bw_smearing_freqwidth, calc_time_smearing_timewidth, max_time_solar_smearing
+from meersolar.utils.calibration import (
+    calc_bw_smearing_freqwidth,
+    calc_time_smearing_timewidth,
+    max_time_solar_smearing,
+)
 from meersolar.meerpipeline.init_data import init_meersolar_data
+
 logging.getLogger("distributed").setLevel(logging.WARNING)
 
 try:
@@ -45,7 +63,13 @@ datadir = get_datadir()
 
 
 def run_flag(
-    msname, workdir, flag_calibrators=True, jobid=0, cpu_frac=0.8, mem_frac=0.8, remote_log=False,
+    msname,
+    workdir,
+    flag_calibrators=True,
+    jobid=0,
+    cpu_frac=0.8,
+    mem_frac=0.8,
+    remote_log=False,
 ):
     """
     Run flagging jobs
@@ -92,8 +116,6 @@ def run_flag(
             + str(workdir)
             + " --jobid "
             + str(jobid)
-            + " --start_remote_log "
-            + str(remote_log)
         )
     else:
         flagfield_type = "target"
@@ -108,16 +130,18 @@ def run_flag(
             + str(workdir)
             + " --jobid "
             + str(jobid)
-            + " --start_remote_log "
-            + str(remote_log)
         )
+    if remote_log:
+        flagging_cmd += " --start_remote_log"
     flag_basename = (
         f"flagging_{flagfield_type}_" + os.path.basename(msname).split(".ms")[0]
     )
     logfile = workdir + "/logs/" + flag_basename + ".log"
     flagging_cmd += f" --logfile {logfile}"
     os.makedirs(workdir + "/logs", exist_ok=True)
-    batch_file = create_batch_script_nonhpc(flagging_cmd, workdir, flag_basename)
+    batch_file, logfile = create_batch_script_nonhpc(
+        flagging_cmd, workdir, flag_basename
+    )
     print(flagging_cmd + "\n")
     os.system("bash " + batch_file)
     print("Waiting to finish flagging...\n")
@@ -136,7 +160,9 @@ def run_flag(
         return 1
 
 
-def run_import_model(msname, workdir, jobid=0, cpu_frac=0.8, mem_frac=0.8, remote_log=False):
+def run_import_model(
+    msname, workdir, jobid=0, cpu_frac=0.8, mem_frac=0.8, remote_log=False
+):
     """
     Importing calibrator models
 
@@ -172,14 +198,16 @@ def run_import_model(msname, workdir, jobid=0, cpu_frac=0.8, mem_frac=0.8, remot
         + str(mem_frac)
         + " --jobid "
         + str(jobid)
-        + " --start_remote_log "
-        + str(remote_log)
     )
+    if remote_log:
+        import_model_cmd += " --start_remote_log"
     model_basename = "modeling_" + os.path.basename(msname).split(".ms")[0]
     logfile = workdir + "/logs/" + model_basename + ".log"
     import_model_cmd += f" --logfile {logfile}"
     os.makedirs(workdir + "/logs", exist_ok=True)
-    batch_file = create_batch_script_nonhpc(import_model_cmd, workdir, model_basename)
+    batch_file, logfile = create_batch_script_nonhpc(
+        import_model_cmd, workdir, model_basename
+    )
     print(import_model_cmd + "\n")
     os.system("bash " + batch_file)
     print("Waiting to finish visibility simulation for calibrators...\n")
@@ -255,9 +283,9 @@ def run_basic_cal_jobs(
         + str(mem_frac)
         + " --jobid "
         + str(jobid)
-        + " --start_remote_log "
-        + str(remote_log)
     )
+    if remote_log:
+        basic_cal_cmd += " --start_remote_log"
     if perform_polcal:
         basic_cal_cmd += " --perform_polcal"
     if keep_backup:
@@ -265,7 +293,9 @@ def run_basic_cal_jobs(
     logfile = workdir + "/logs/" + cal_basename + ".log"
     basic_cal_cmd += f" --logfile {logfile}"
     os.makedirs(workdir + "/logs", exist_ok=True)
-    batch_file = create_batch_script_nonhpc(basic_cal_cmd, workdir, cal_basename)
+    batch_file, logfile = create_batch_script_nonhpc(
+        basic_cal_cmd, workdir, cal_basename
+    )
     print(basic_cal_cmd + "\n")
     os.system("bash " + batch_file)
     print("Waiting to finish calibration...\n")
@@ -284,7 +314,14 @@ def run_basic_cal_jobs(
 
 
 def run_noise_diode_cal(
-    msname, workdir, caldir, keep_backup=False, jobid=0, cpu_frac=0.8, mem_frac=0.8, remote_log=False,
+    msname,
+    workdir,
+    caldir,
+    keep_backup=False,
+    jobid=0,
+    cpu_frac=0.8,
+    mem_frac=0.8,
+    remote_log=False,
 ):
     """
     Perform noise diode based flux calibration
@@ -316,9 +353,9 @@ def run_noise_diode_cal(
         print("Performing noise diode based flux calibration .....")
         print("###########################\n")
         msname = msname.rstrip("/")
-        noisecal_basename = "run_meersolar_noise_cal"
+        noisecal_basename = "noise_cal"
         noise_cal_cmd = (
-            f"run_fluxcal {msname}"
+            f"run_meersolar_fluxcal {msname}"
             + " --workdir "
             + workdir
             + " --caldir "
@@ -329,13 +366,13 @@ def run_noise_diode_cal(
             + str(mem_frac)
             + " --jobid "
             + str(jobid)
-            + " --start_remote_log "
-            + str(remote_log)
         )
+        if remote_log:
+            noise_cal_cmd += " --start_remote_log"
         logfile = workdir + "/logs/" + noisecal_basename + ".log"
         noise_cal_cmd += f" --logfile {logfile}"
         os.makedirs(workdir + "/logs", exist_ok=True)
-        batch_file = create_batch_script_nonhpc(
+        batch_file, logfile = create_batch_script_nonhpc(
             noise_cal_cmd, workdir, noisecal_basename
         )
         print(noise_cal_cmd + "\n")
@@ -358,8 +395,14 @@ def run_noise_diode_cal(
         return 1
 
 
-def run_partion(
-    msname, workdir, split_fullpol=False, jobid=0, cpu_frac=0.8, mem_frac=0.8, remote_log=False,
+def run_partition(
+    msname,
+    workdir,
+    split_fullpol=False,
+    jobid=0,
+    cpu_frac=0.8,
+    mem_frac=0.8,
+    remote_log=False,
 ):
     """
     Perform basic calibration
@@ -417,7 +460,9 @@ def run_partion(
     cal_scans = copy.deepcopy(cal_scans_copy)
     cal_scans = ",".join([str(s) for s in cal_scans])
     calibrator_ms = workdir + "/calibrator.ms"
-    split_cmd = f"run_meersolar_partition {msname} --outputms {calibrator_ms} --scans {cal_scans} --timebin {timebin} --width {width} --cpu_frac {cpu_frac} --mem_frac {mem_frac} --workdir {workdir} --jobid {jobid} --start_remote_log {remote_log}"
+    split_cmd = f"run_meersolar_partition {msname} --outputms {calibrator_ms} --scans {cal_scans} --timebin {timebin} --width {width} --cpu_frac {cpu_frac} --mem_frac {mem_frac} --workdir {workdir} --jobid {jobid}"
+    if remote_log:
+        split_cmd += " --start_remote_log"
     if split_fullpol:
         split_cmd += " --split_fullpol"
     ####################################
@@ -428,7 +473,9 @@ def run_partion(
     logfile = workdir + "/logs/" + partition_basename + ".log"
     split_cmd += f" --logfile {logfile}"
     os.makedirs(workdir + "/logs", exist_ok=True)
-    batch_file = create_batch_script_nonhpc(split_cmd, workdir, partition_basename)
+    batch_file, logfile = create_batch_script_nonhpc(
+        split_cmd, workdir, partition_basename
+    )
     print(split_cmd + "\n")
     os.system("bash " + batch_file)
     print("Waiting to finish partitioning...\n")
@@ -550,9 +597,9 @@ def run_target_split_jobs(
             + str(time_interval)
             + " --jobid "
             + str(jobid)
-            + " --start_remote_log "
-            + str(remote_log)
         )
+        if remote_log:
+            split_cmd += " --start_remote_log"
         if split_fullpol:
             split_cmd += " --split_fullpol"
         if merge_spws:
@@ -566,7 +613,9 @@ def run_target_split_jobs(
         logfile = workdir + "/logs/" + split_basename + ".log"
         split_cmd += f" --logfile {logfile}"
         os.makedirs(workdir + "/logs", exist_ok=True)
-        batch_file = create_batch_script_nonhpc(split_cmd, workdir, split_basename)
+        batch_file, logfile = create_batch_script_nonhpc(
+            split_cmd, workdir, split_basename
+        )
         print(split_cmd + "\n")
         os.system("bash " + batch_file)
         return 0
@@ -633,13 +682,13 @@ def run_solar_siderealcor_jobs(
             + str(max_mem_frac)
             + " --jobid "
             + str(jobid)
-            + " --start_remote_log "
-            + str(remote_log)
         )
+        if remote_log:
+            sidereal_cor_cmd += " --start_remote_log"
         os.makedirs(workdir + "/logs", exist_ok=True)
         logfile = workdir + "/logs/" + sidereal_basename + ".log"
         sidereal_cor_cmd += f" --logfile {logfile}"
-        batch_file = create_batch_script_nonhpc(
+        batch_file, logfile = create_batch_script_nonhpc(
             sidereal_cor_cmd, workdir, sidereal_basename
         )
         print(sidereal_cor_cmd + "\n")
@@ -709,15 +758,15 @@ def run_apply_pbcor(
             + str(mem_frac)
             + " --jobid "
             + str(jobid)
-            + " --start_remote_log "
-            + str(remote_log)
         )
+        if remote_log:
+            applypbcor_cmd += " --start_remote_log"
         if not apply_parang:
             applypbcor_cmd += " --no_apply_parang"
         os.makedirs(workdir + "/logs", exist_ok=True)
         logfile = workdir + "/logs/" + applypbcor_basename + ".log"
         applypbcor_cmd += f" --logfile {logfile}"
-        batch_file = create_batch_script_nonhpc(
+        batch_file, logfile = create_batch_script_nonhpc(
             applypbcor_cmd, workdir, applypbcor_basename
         )
         print(applypbcor_cmd + "\n")
@@ -803,9 +852,9 @@ def run_apply_basiccal_sol(
             + str(applymode)
             + " --jobid "
             + str(jobid)
-            + " --start_remote_log "
-            + str(remote_log)
         )
+        if remote_log:
+            applycal_cmd += " --start_remote_log"
         if use_only_bandpass:
             applycal_cmd += " --use_only_bandpass"
         if overwrite_datacolumn:
@@ -813,7 +862,7 @@ def run_apply_basiccal_sol(
         os.makedirs(workdir + "/logs", exist_ok=True)
         logfile = workdir + "/logs/" + applycal_basename + ".log"
         applycal_cmd += f" --logfile {logfile}"
-        batch_file = create_batch_script_nonhpc(
+        batch_file, logfile = create_batch_script_nonhpc(
             applycal_cmd, workdir, applycal_basename
         )
         print(applycal_cmd + "\n")
@@ -896,15 +945,15 @@ def run_apply_selfcal_sol(
             + str(applymode)
             + " --jobid "
             + str(jobid)
-            + " --start_remote_log "
-            + str(remote_log)
         )
+        if remote_log:
+            applycal_cmd += " --start_remote_log"
         if overwrite_datacolumn:
             applycal_cmd += " --overwrite_datacolumn"
         os.makedirs(workdir + "/logs", exist_ok=True)
         logfile = workdir + "/logs/" + applycal_basename + ".log"
         applycal_cmd += f" --logfile {logfile}"
-        batch_file = create_batch_script_nonhpc(
+        batch_file, logfile = create_batch_script_nonhpc(
             applycal_cmd, workdir, applycal_basename
         )
         print(applycal_cmd + "\n")
@@ -1023,9 +1072,9 @@ def run_selfcal_jobs(
             + str(mem_frac)
             + " --jobid "
             + str(jobid)
-            + " --start_remote_log "
-            + str(remote_log)
         )
+        if remote_log:
+            selfcal_cmd += " --start_remote_log"
         if start_thresh > 0:
             selfcal_cmd += " --start_thresh " + str(start_thresh)
             if stop_thresh > 0 and stop_thresh < start_thresh:
@@ -1059,7 +1108,9 @@ def run_selfcal_jobs(
         if keep_backup:
             selfcal_cmd += " --keep_backup"
         os.makedirs(workdir + "/logs", exist_ok=True)
-        batch_file = create_batch_script_nonhpc(selfcal_cmd, workdir, selfcal_basename)
+        batch_file, logfile = create_batch_script_nonhpc(
+            selfcal_cmd, workdir, selfcal_basename
+        )
         print(selfcal_cmd + "\n")
         os.system("bash " + batch_file)
         print("Waiting to finish self-calibration...\n")
@@ -1194,9 +1245,9 @@ def run_imaging_jobs(
             + str(cutout_rsun)
             + " --jobid "
             + str(jobid)
-            + " --start_remote_log "
-            + str(remote_log)
         )
+        if remote_log:
+            imaging_cmd += " --start_remote_log"
         if not use_solar_mask:
             imaging_cmd += " --no_solar_mask"
         if not savemodel:
@@ -1214,7 +1265,9 @@ def run_imaging_jobs(
         if band != "":
             imaging_cmd += " --band " + str(band)
         os.makedirs(workdir + "/logs", exist_ok=True)
-        batch_file = create_batch_script_nonhpc(imaging_cmd, workdir, imaging_basename)
+        batch_file, logfile = create_batch_script_nonhpc(
+            imaging_cmd, workdir, imaging_basename
+        )
         print(imaging_cmd + "\n")
         os.system("bash " + batch_file)
         print("Waiting to finish imaging...\n")
@@ -1236,7 +1289,14 @@ def run_imaging_jobs(
 
 
 def run_ds_jobs(
-    msname, workdir, outdir, target_scans=[], jobid=0, cpu_frac=0.8, mem_frac=0.8, remote_log=False,
+    msname,
+    workdir,
+    outdir,
+    target_scans=[],
+    jobid=0,
+    cpu_frac=0.8,
+    mem_frac=0.8,
+    remote_log=False,
 ):
     """
     Make dynamic spectra of the target scans
@@ -1269,11 +1329,13 @@ def run_ds_jobs(
         print("###########################\n")
         ds_basename = "ds_targets"
         target_scans = " ".join([str(s) for s in target_scans])
-        ds_cmd = f"run_meersolar_makeds {msname} --workdir {workdir} --outdir {outdir} --cpu_frac {cpu_frac} --mem_frac {mem_frac} --jobid {jobid} --target_scans {target_scans} --start_remote_log {remote_log}"
+        ds_cmd = f"run_meersolar_makeds {msname} --workdir {workdir} --outdir {outdir} --cpu_frac {cpu_frac} --mem_frac {mem_frac} --jobid {jobid} --target_scans {target_scans}"
+        if remote_log:
+            ds_cmd += " --start_remote_log"
         os.makedirs(workdir + "/logs", exist_ok=True)
         logfile = workdir + "/logs/" + ds_basename + ".log"
         ds_cmd += f" --logfile {logfile}"
-        batch_file = create_batch_script_nonhpc(ds_cmd, workdir, ds_basename)
+        batch_file, logfile = create_batch_script_nonhpc(ds_cmd, workdir, ds_basename)
         print(ds_cmd + "\n")
         os.system("bash " + batch_file)
         print("Waiting to finish making of dynamic spectra...\n")
@@ -1551,6 +1613,7 @@ def master_control(
     ###################################
     # Preparing working directories
     ###################################
+    print("Preparing working directories....")
     if workdir == "":
         workdir = os.path.dirname(os.path.abspath(msname)) + "/workdir"
     workdir = workdir.rstrip("/")
@@ -1599,6 +1662,7 @@ def master_control(
                 print("Please provide a valid remote link.")
                 remote_logger = False
 
+        print("Starting logger....")
         if not remote_logger:
             emails = get_emails()
             timestamp = dt.utcnow().strftime("%Y-%m-%dT%H:%M:%S")
@@ -1698,17 +1762,23 @@ def master_control(
         # Checking if ms is full pol for polarization calibration and imaging
         #####################################################################
         if do_polcal:
-            msmd=msmetadata()
+            print(
+                "Checking measurement set suitability for polarization calibration...."
+            )
+            msmd = msmetadata()
             msmd.open(msname)
-            npol=msmd.ncorrforpol()[0]
+            npol = msmd.ncorrforpol()[0]
             msmd.close()
-            if npol<4:
-                print ("Measurement set is not full-polar. Do not performing polarization analysis.")
-                do_polcal=False
-         
+            if npol < 4:
+                print(
+                    "Measurement set is not full-polar. Do not performing polarization analysis."
+                )
+                do_polcal = False
+
         #################################################
         # Determining maximum allowed frequency averaging
         #################################################
+        print("Estimating optimal frequency averaging....")
         max_freqres = calc_bw_smearing_freqwidth(msname, full_FoV=full_FoV)
         if image_freqres > 0:
             freqavg = round(min(image_freqres, max_freqres), 1)
@@ -1718,6 +1788,7 @@ def master_control(
         ################################################
         # Determining maximum allowed temporal averaging
         ################################################
+        print("Estimating optimal temporal averaging....")
         if solar_data:  # For solar data, it is assumed Sun is tracked.
             max_timeres = calc_time_smearing_timewidth(msname)
         else:
@@ -1732,6 +1803,7 @@ def master_control(
         #########################################
         # Target ms frequency chunk based on band
         #########################################
+        print("Determing bad spectral channels....")
         bad_spws = get_bad_chans(msname)
         if bad_spws != "":
             bad_spws = bad_spws.split("0:")[-1].split(";")
@@ -1756,6 +1828,7 @@ def master_control(
         #############################################################
         # Determining numbers of spectral chunks for parallel imaging
         #############################################################
+        print("Determining spectral chunks for parallel imaging....")
         if image_freqres < 0:
             target_freq_chunk = -1
             nchunk = 1
@@ -1778,6 +1851,7 @@ def master_control(
         #############################
         # Reset any previous weights
         ############################
+        print("Resetting previous flags and weights....")
         cpu_usage = psutil.cpu_percent(interval=1)  # Average over 1 second
         total_cpus = psutil.cpu_count(logical=True)
         available_cpus = int(total_cpus * (1 - cpu_usage / 100.0))
@@ -1841,7 +1915,7 @@ def master_control(
         if do_basic_cal and (
             do_cal_partition or os.path.exists(calibrator_msname) == False
         ):
-            msg = run_partion(
+            msg = run_partition(
                 msname,
                 workdir,
                 split_fullpol=do_polcal,
@@ -2095,6 +2169,7 @@ def master_control(
         # Filtering any corrupted ms
         #####################################
         if do_selfcal:
+            print("Checking measurement sets before spawning self-calibrations....")
             selfcal_target_mslist = glob.glob(workdir + "/selfcals_scan*.ms")
             filtered_mslist = []  # Filtering in case any ms is corrupted
             for ms in selfcal_target_mslist:
@@ -2266,6 +2341,9 @@ def master_control(
         ####################################
         # Filtering any corrupted ms
         #####################################
+        print(
+            "Checking final valid measurement sets before applying solutions and spawning imaging...."
+        )
         filtered_mslist = []  # Filtering in case any ms is corrupted
         for ms in target_mslist:
             checkcol = check_datacolumn_valid(ms)

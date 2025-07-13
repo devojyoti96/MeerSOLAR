@@ -2,22 +2,42 @@ import pytest
 from unittest.mock import patch, MagicMock
 from meersolar.meerpipeline.do_target_split import *
 
+
 def test_chanlist_to_str():
-    result=chanlist_to_str([0,1,2,10,45])
-    assert result=="0~2;10;45"
-        
+    result = chanlist_to_str([0, 1, 2, 10, 45])
+    assert result == "0~2;10;45"
+
+
 @patch("meersolar.meerpipeline.do_target_split.get_dask_client")
 @patch("meersolar.meerpipeline.do_target_split.compute", return_value=["mock.ms"])
-@patch("meersolar.meerpipeline.do_target_split.run_limited_memory_task", return_value=1.0)
-@patch("meersolar.meerpipeline.do_target_split.get_cal_target_scans", return_value=([1, 2], [], [], [], []))
+@patch(
+    "meersolar.meerpipeline.do_target_split.run_limited_memory_task", return_value=1.0
+)
+@patch(
+    "meersolar.meerpipeline.do_target_split.get_cal_target_scans",
+    return_value=([1, 2], [], [], [], []),
+)
 @patch("meersolar.meerpipeline.do_target_split.get_valid_scans", return_value=[1, 2])
-@patch("meersolar.meerpipeline.do_target_split.get_bad_chans", return_value="0:0~100;200~300")
+@patch(
+    "meersolar.meerpipeline.do_target_split.get_bad_chans",
+    return_value="0:0~100;200~300",
+)
 @patch("meersolar.meerpipeline.do_target_split.get_pol_names", return_value="XX,YY")
-@patch("meersolar.meerpipeline.do_target_split.get_common_spw", return_value="0:0~100;200~300")
-@patch("meersolar.meerpipeline.do_target_split.get_timeranges_for_scan", return_value=["10s", "20s"])
-@patch("meersolar.meerpipeline.do_target_split.split_into_chunks", return_value=[[0, 1, 2]])
+@patch(
+    "meersolar.meerpipeline.do_target_split.get_common_spw",
+    return_value="0:0~100;200~300",
+)
+@patch(
+    "meersolar.meerpipeline.do_target_split.get_timeranges_for_scan",
+    return_value=["10s", "20s"],
+)
+@patch(
+    "meersolar.meerpipeline.do_target_split.split_into_chunks", return_value=[[0, 1, 2]]
+)
 @patch("meersolar.meerpipeline.do_target_split.chanlist_to_str", return_value="0~2")
-@patch("meersolar.meerpipeline.do_target_split.single_mstransform", return_value="mock.ms")
+@patch(
+    "meersolar.meerpipeline.do_target_split.single_mstransform", return_value="mock.ms"
+)
 @patch("meersolar.meerpipeline.do_target_split.drop_cache")
 @patch("meersolar.meerpipeline.do_target_split.msmetadata")
 @patch("meersolar.meerpipeline.do_target_split.os.chdir")
@@ -57,19 +77,21 @@ def test_split_target_scans(
     )
     assert msg == 0
     assert result == ["mock.ms"]
-    
-    
+
+
 @pytest.mark.parametrize(
     "ms_exists, split_success, expected_msg",
     [
-        (True, True, 0),    # Successful run
-        (True, False, 1),   # Split fails internally but returns handled result
+        (True, True, 0),  # Successful run
+        (True, False, 1),  # Split fails internally but returns handled result
         (False, False, 1),  # Invalid MS path
     ],
 )
 @patch("meersolar.meerpipeline.do_target_split.split_target_scans")
 @patch("meersolar.meerpipeline.do_target_split.save_pid")
-@patch("meersolar.meerpipeline.do_target_split.get_cachedir", return_value="/mock/cache")
+@patch(
+    "meersolar.meerpipeline.do_target_split.get_cachedir", return_value="/mock/cache"
+)
 @patch("os.makedirs")
 @patch("os.path.exists")
 @patch("os.getpid", return_value=1234)
@@ -101,7 +123,10 @@ def test_main_split_target_scans(
         return path == msname if ms_exists else False
 
     mock_exists.side_effect = exists_side_effect
-    mock_split_target_scans.return_value = (0 if split_success else 1, ["out1.ms", "out2.ms"])
+    mock_split_target_scans.return_value = (
+        0 if split_success else 1,
+        ["out1.ms", "out2.ms"],
+    )
 
     msg = main(
         msname=msname,
@@ -135,14 +160,28 @@ def test_main_split_target_scans(
     [
         (["prog.py"], True),  # Missing args
         (
-            ["prog.py", "mock.ms", "--workdir", "/mock/work", "--scans", "1,2", "--prefix", "targets"],
+            [
+                "prog.py",
+                "mock.ms",
+                "--workdir",
+                "/mock/work",
+                "--scans",
+                "1,2",
+                "--prefix",
+                "targets",
+            ],
             False,
         ),  # Normal CLI call
     ],
 )
-@patch("meersolar.meerpipeline.do_target_split.split_target_scans", return_value=(0, ["out1.ms"]))
+@patch(
+    "meersolar.meerpipeline.do_target_split.split_target_scans",
+    return_value=(0, ["out1.ms"]),
+)
 @patch("meersolar.meerpipeline.do_target_split.save_pid")
-@patch("meersolar.meerpipeline.do_target_split.get_cachedir", return_value="/mock/cache")
+@patch(
+    "meersolar.meerpipeline.do_target_split.get_cachedir", return_value="/mock/cache"
+)
 @patch("os.makedirs")
 @patch("os.path.exists", return_value=True)
 @patch("os.getpid", return_value=1234)
@@ -169,14 +208,10 @@ def test_cli_split_target_scans(
     with patch.object(sys, "argv", argv):
         if should_exit:
             import pytest
+
             with pytest.raises(SystemExit) as e:
                 cli()
             assert e.value.code == 1
         else:
             result = cli()
             assert result == 0
-
-    
-
-
-

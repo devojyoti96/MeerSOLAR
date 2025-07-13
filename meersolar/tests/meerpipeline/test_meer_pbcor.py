@@ -2,33 +2,39 @@ import pytest
 from unittest.mock import patch, MagicMock
 from meersolar.meerpipeline.meer_pbcor import *
 
+
 @pytest.mark.parametrize(
     "header_dict, expected_output, expect_warning",
     [
         ({"CTYPE3": "FREQ", "CRVAL3": 1.4e9}, 1.4e9, False),
         ({"CTYPE4": "FREQ", "CRVAL4": 1.5e9}, 1.5e9, False),
         ({"CTYPE3": "STOKES"}, None, True),
-    ]
+    ],
 )
 @patch("meersolar.utils.image_utils.fits.getheader")
-def test_get_fits_freq(mock_getheader, header_dict, expected_output, expect_warning, capsys):
+def test_get_fits_freq(
+    mock_getheader, header_dict, expected_output, expect_warning, capsys
+):
     mock_hdr = MagicMock()
     mock_hdr.keys.return_value = header_dict.keys()
     mock_hdr.__getitem__.side_effect = header_dict.__getitem__
     mock_getheader.return_value = mock_hdr
     result = get_fits_freq("mock.fits")
-    
+
     assert result == expected_output
 
     if expect_warning:
         captured = capsys.readouterr()
         assert "No frequency axis" in captured.out
-        
 
-@pytest.mark.parametrize("apply_parang, expected_append", [
-    (True, ""),                      # Do not append --no_apply_parang
-    (False, " --no_apply_parang"),   # Append --no_apply_parang
-])
+
+@pytest.mark.parametrize(
+    "apply_parang, expected_append",
+    [
+        (True, ""),  # Do not append --no_apply_parang
+        (False, " --no_apply_parang"),  # Append --no_apply_parang
+    ],
+)
 @patch("meersolar.meerpipeline.meer_pbcor.os.system")
 def test_run_pbcor(mock_system, apply_parang, expected_append):
     mock_system.return_value = 0  # Simulate successful command execution
@@ -45,16 +51,18 @@ def test_run_pbcor(mock_system, apply_parang, expected_append):
     mock_system.assert_any_call(expected_call_1)
     mock_system.assert_any_call(expected_call_2)
     assert result == 0
-    
+
 
 @pytest.mark.parametrize(
     "make_TB, make_plots, apply_parang",
-    [(True, True, True), (False, True, True), (True, False, False)]
+    [(True, True, True), (False, True, True), (True, False, False)],
 )
 @patch("meersolar.meerpipeline.meer_pbcor.drop_cache")
 @patch("meersolar.meerpipeline.meer_pbcor.os.system")
 @patch("meersolar.meerpipeline.meer_pbcor.generate_tb_map")
-@patch("meersolar.meerpipeline.meer_pbcor.plot_in_hpc", return_value=["out.png", "out.pdf"])
+@patch(
+    "meersolar.meerpipeline.meer_pbcor.plot_in_hpc", return_value=["out.png", "out.pdf"]
+)
 @patch("meersolar.meerpipeline.meer_pbcor.save_in_hpc")
 @patch("meersolar.meerpipeline.meer_pbcor.get_dask_client")
 @patch("meersolar.meerpipeline.meer_pbcor.compute")
@@ -83,7 +91,9 @@ def test_pbcor_all_images(
     # Create fake FITS image paths
     images = [f"/mock/imagedir/image_{i}.fits" for i in range(4)]
     # Group into 2 freq bins (simulate both first_set and remaining_set)
-    mock_glob.side_effect = lambda path: images if "pbcor" not in path and "tb_images" not in path else images
+    mock_glob.side_effect = lambda path: (
+        images if "pbcor" not in path and "tb_images" not in path else images
+    )
     mock_get_fits_freq.side_effect = [100, 200, 100, 200]
     mock_getsize.return_value = 1024**3  # 1GB each
     mock_compute.return_value = [0, 0]  # simulate successful pbcor
@@ -108,14 +118,14 @@ def test_pbcor_all_images(
         assert mock_generate_tb.called
     if make_plots:
         assert mock_plot_in_hpc.called
-    
-    
+
+
 @pytest.mark.parametrize(
     "imagedir_exists, pbcor_success, expect_logger, expected_return",
     [
-        (True, True, False, 0),   # Normal run without logger
+        (True, True, False, 0),  # Normal run without logger
         (True, False, False, 1),  # pbcor_all_images fails
-        (False, False, False, 1), # imagedir does not exist
+        (False, False, False, 1),  # imagedir does not exist
     ],
 )
 @patch("meersolar.meerpipeline.meer_pbcor.pbcor_all_images")
@@ -209,5 +219,3 @@ def test_cli_function(
         else:
             result = cli()
             assert result == 0
-    
-    

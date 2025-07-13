@@ -147,7 +147,7 @@ def run_all_applysol(
                     soltype="selfcal",
                 )
             )
-        results = compute(*tasks)
+        results = list(compute(*tasks))
         dask_client.close()
         dask_cluster.close()
         if np.nansum(results) == 0:
@@ -238,12 +238,16 @@ def main(
     if workdir == "":
         workdir = os.path.dirname(os.path.abspath(mslist[0])) + "/workdir"
     os.makedirs(workdir, exist_ok=True)
-    
+
     ############
     # Logger
     ############
     observer = None
-    if start_remote_log and os.path.exists(f"{workdir}/jobname_password.npy") and logfile is not None:
+    if (
+        start_remote_log
+        and os.path.exists(f"{workdir}/jobname_password.npy")
+        and logfile is not None
+    ):
         time.sleep(5)
         jobname, password = np.load(
             f"{workdir}/jobname_password.npy", allow_pickle=True
@@ -252,7 +256,7 @@ def main(
             observer = init_logger(
                 "apply_selfcal", logfile, jobname=jobname, password=password
             )
-    if observer==None:
+    if observer == None:
         print("Remote link or jobname is blank. Not transmiting to remote logger.")
     ###########
     try:

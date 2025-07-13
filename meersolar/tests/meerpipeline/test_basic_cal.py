@@ -2,10 +2,11 @@ import pytest
 from unittest.mock import patch, MagicMock
 from meersolar.meerpipeline.basic_cal import *
 
+
 @pytest.mark.parametrize(
     "uvrange, expected_uvrange",
     [
-        ("", ""),                # No uvrange
+        ("", ""),  # No uvrange
         (">200lambda", ">200lambda"),  # With uvrange
     ],
 )
@@ -74,8 +75,8 @@ def test_run_delaycal(
         )
 
     assert result == expected_caltable
-    
-    
+
+
 @patch("meersolar.meerpipeline.basic_cal.limit_threads")
 @patch("meersolar.meerpipeline.basic_cal.suppress_casa_output")
 @patch("casatasks.flagdata")
@@ -128,8 +129,8 @@ def test_run_bandpass(
         flagbackup=False,
     )
     assert result == expected_caltable
-    
- 
+
+
 @patch("meersolar.meerpipeline.basic_cal.limit_threads")
 @patch("meersolar.meerpipeline.basic_cal.suppress_casa_output")
 @patch("casatasks.gaincal")
@@ -181,8 +182,8 @@ def test_run_gaincal(mock_gaincal, mock_suppress_output, mock_limit_threads):
         interp=["linear"],
     )
 
-    assert result == expected_caltable    
-    
+    assert result == expected_caltable
+
 
 @patch("meersolar.meerpipeline.basic_cal.limit_threads")
 @patch("meersolar.meerpipeline.basic_cal.suppress_casa_output")
@@ -273,8 +274,8 @@ def test_run_polcal(
     mock_gaincal.assert_called()
     mock_polcal.assert_called()
     assert mock_polcal.call_count == 2
-    
-    
+
+
 @patch("casatasks.applycal")
 @patch("meersolar.meerpipeline.basic_cal.suppress_casa_output")
 @patch("meersolar.meerpipeline.basic_cal.limit_threads")
@@ -306,8 +307,8 @@ def test_run_applycal(
     )
     assert result is None
     mock_applycal.assert_called_once()
-    
-    
+
+
 @patch("meersolar.meerpipeline.basic_cal.traceback")
 @patch("meersolar.meerpipeline.basic_cal.suppress_casa_output")
 @patch("meersolar.meerpipeline.basic_cal.msmetadata")
@@ -350,7 +351,7 @@ def test_run_postcal_flag(
     mock_suppress_output.assert_called_once()
     mock_msmetadata.assert_called_once()
     mock_get_chunk_size.assert_called_once_with(msname, memory_limit=4)
-    
+
 
 @patch("meersolar.meerpipeline.basic_cal.drop_cache")
 @patch("meersolar.meerpipeline.basic_cal.time.sleep")
@@ -358,22 +359,36 @@ def test_run_postcal_flag(
 @patch("meersolar.meerpipeline.basic_cal.msmetadata")
 @patch("meersolar.meerpipeline.basic_cal.get_dask_client")
 @patch("meersolar.meerpipeline.basic_cal.run_limited_memory_task")
-@patch("meersolar.meerpipeline.basic_cal.compute", side_effect=lambda *args: [[f"{i}.cal" for i in range(len(args))]])
+@patch(
+    "meersolar.meerpipeline.basic_cal.compute",
+    side_effect=lambda *args: [[f"{i}.cal" for i in range(len(args))]],
+)
 @patch("meersolar.meerpipeline.basic_cal.delayed", side_effect=lambda f: f)
-@patch("meersolar.meerpipeline.basic_cal.merge_caltables", side_effect=lambda x, y, **kwargs: y)
+@patch(
+    "meersolar.meerpipeline.basic_cal.merge_caltables",
+    side_effect=lambda x, y, **kwargs: y,
+)
 @patch("meersolar.meerpipeline.basic_cal.get_ms_size", return_value=1.0)
 @patch("meersolar.meerpipeline.basic_cal.do_flag_backup")
 @patch("meersolar.meerpipeline.basic_cal.run_applycal", return_value=None)
 @patch("meersolar.meerpipeline.basic_cal.run_postcal_flag", return_value=None)
-@patch("meersolar.meerpipeline.basic_cal.run_delaycal", return_value="test_caltable.kcal")
+@patch(
+    "meersolar.meerpipeline.basic_cal.run_delaycal", return_value="test_caltable.kcal"
+)
 @patch("meersolar.meerpipeline.basic_cal.run_bandpass", return_value="bandpass.cal")
 @patch("meersolar.meerpipeline.basic_cal.run_gaincal", return_value="gain.cal")
 @patch("meersolar.meerpipeline.basic_cal.run_leakagecal", return_value="leakage.cal")
-@patch("meersolar.meerpipeline.basic_cal.run_polcal", return_value=("kcross.cal", "crossphase.cal", "pangle.cal"))
+@patch(
+    "meersolar.meerpipeline.basic_cal.run_polcal",
+    return_value=("kcross.cal", "crossphase.cal", "pangle.cal"),
+)
 @patch("meersolar.meerpipeline.basic_cal.suppress_casa_output")
-@patch("casatasks.fluxscale", return_value={
-    "0": {"fieldName": "field2", "0": {"fluxd": [1.0], "fluxdErr": [0.1]}},
-})
+@patch(
+    "casatasks.fluxscale",
+    return_value={
+        "0": {"fieldName": "field2", "0": {"fluxd": [1.0], "fluxdErr": [0.1]}},
+    },
+)
 @patch("meersolar.meerpipeline.basic_cal.os.path.exists", return_value=True)
 @patch("meersolar.meerpipeline.basic_cal.os.system")
 @patch("meersolar.meerpipeline.basic_cal.os.makedirs")
@@ -402,7 +417,7 @@ def test_single_round_cal_and_flag(
     mock_msmd,
     mock_getscans,
     mock_sleep,
-    mock_drop
+    mock_drop,
 ):
     # Setup mocks
     mock_dask.return_value = (MagicMock(), MagicMock(), 1, 1, 1.0)
@@ -446,8 +461,8 @@ def test_single_round_cal_and_flag(
     assert len(caltables) == 7
     for cal in caltables:
         assert cal is not None and cal.endswith("cal")
-        
-        
+
+
 @patch("meersolar.meerpipeline.basic_cal.drop_cache")
 @patch("meersolar.meerpipeline.basic_cal.time.sleep")
 @patch("meersolar.meerpipeline.basic_cal.time.time", side_effect=lambda: 0)
@@ -456,9 +471,18 @@ def test_single_round_cal_and_flag(
 @patch("meersolar.meerpipeline.basic_cal.os.makedirs")
 @patch("meersolar.meerpipeline.basic_cal.os.system")
 @patch("meersolar.meerpipeline.basic_cal.msmetadata")
-@patch("meersolar.meerpipeline.basic_cal.get_fluxcals", return_value=(["field1"], {"field1": [1]}))
-@patch("meersolar.meerpipeline.basic_cal.get_polcals", return_value=(["field3"], {"field3": [3]}))
-@patch("meersolar.meerpipeline.basic_cal.get_phasecals", return_value=(["field2"], {"field2": [2]}, {"field2": 1.0}))
+@patch(
+    "meersolar.meerpipeline.basic_cal.get_fluxcals",
+    return_value=(["field1"], {"field1": [1]}),
+)
+@patch(
+    "meersolar.meerpipeline.basic_cal.get_polcals",
+    return_value=(["field3"], {"field3": [3]}),
+)
+@patch(
+    "meersolar.meerpipeline.basic_cal.get_phasecals",
+    return_value=(["field2"], {"field2": [2]}, {"field2": 1.0}),
+)
 @patch("meersolar.meerpipeline.basic_cal.correct_missing_col_subms")
 @patch("meersolar.meerpipeline.basic_cal.get_refant", return_value="ant1")
 @patch("meersolar.meerpipeline.basic_cal.single_round_cal_and_flag")
@@ -476,12 +500,15 @@ def test_run_basic_cal_rounds(
     mock_chdir,
     mock_time,
     mock_sleep,
-    mock_drop
+    mock_drop,
 ):
     mock_msmd_instance = MagicMock()
     mock_msmd_instance.ncorrforpol.return_value = [4]
     mock_msmd.return_value = mock_msmd_instance
-    mock_single_round.return_value = (0, ["a.cal", "b.cal", "c.cal", "d.cal", "e.cal", "f.cal", "g.cal"])
+    mock_single_round.return_value = (
+        0,
+        ["a.cal", "b.cal", "c.cal", "d.cal", "e.cal", "f.cal", "g.cal"],
+    )
     status, caltables = run_basic_cal_rounds(
         msname="test.ms",
         workdir="/tmp",
@@ -493,7 +520,7 @@ def test_run_basic_cal_rounds(
     mock_single_round.side_effect = [
         (0, ["a.cal", "b.cal", "c.cal", "d.cal", "e.cal", "f.cal", "g.cal"]),
         (0, ["a.cal", "b.cal", "c.cal", "d.cal", "e.cal", "f.cal", "g.cal"]),
-        (1, [])
+        (1, []),
     ]
     status_fail, caltables_fail = run_basic_cal_rounds(
         msname="test.ms",
@@ -503,8 +530,8 @@ def test_run_basic_cal_rounds(
     )
     assert status_fail == 1
     assert caltables_fail == []
-    
-    
+
+
 @patch("meersolar.meerpipeline.basic_cal.clean_shutdown")
 @patch("meersolar.meerpipeline.basic_cal.drop_cache")
 @patch("meersolar.meerpipeline.basic_cal.init_logger")
@@ -514,7 +541,10 @@ def test_run_basic_cal_rounds(
 @patch("meersolar.meerpipeline.basic_cal.os.getpid", return_value=12345)
 @patch("meersolar.meerpipeline.basic_cal.get_cachedir", return_value="/mock/cache")
 @patch("meersolar.meerpipeline.basic_cal.save_pid")
-@patch("meersolar.meerpipeline.basic_cal.run_basic_cal_rounds", return_value=(0, ["/mock/caltable1", "/mock/caltable2"]))
+@patch(
+    "meersolar.meerpipeline.basic_cal.run_basic_cal_rounds",
+    return_value=(0, ["/mock/caltable1", "/mock/caltable2"]),
+)
 @patch("meersolar.meerpipeline.basic_cal.os.system")
 def test_main(
     mock_system,
@@ -550,7 +580,7 @@ def test_main(
         jobid="123",
         start_remote_log=True,
     )
-    assert result == 0  
+    assert result == 0
     mock_save_pid.assert_called_once()
     mock_run_basic_cal_rounds.assert_called_once_with(
         msname,
@@ -563,30 +593,47 @@ def test_main(
         mem_frac=0.5,
     )
     for caltable in ["/mock/caltable1", "/mock/caltable2"]:
-        mock_system.assert_any_call("rm -rf " + caldir + "/" + os.path.basename(caltable))
+        mock_system.assert_any_call(
+            "rm -rf " + caldir + "/" + os.path.basename(caltable)
+        )
         mock_system.assert_any_call("mv " + caltable + " " + caldir)
-    
+
+
 @pytest.mark.parametrize(
     "argv_args, expect_main_called, expected_exit",
     [
         (["run_basic_cal"], False, 0),  # No arguments → print help and exit(1)
         (
-            ["run_basic_cal", "test.ms", "--workdir", "/mock/work", "--caldir", "/mock/cal"],
+            [
+                "run_basic_cal",
+                "test.ms",
+                "--workdir",
+                "/mock/work",
+                "--caldir",
+                "/mock/cal",
+            ],
             True,
             0,
         ),  # Minimal valid case
         (
             [
-                "run_basic_cal", "test.ms",
-                "--workdir", "/mock/work",
-                "--caldir", "/mock/cal",
+                "run_basic_cal",
+                "test.ms",
+                "--workdir",
+                "/mock/work",
+                "--caldir",
+                "/mock/cal",
                 "--perform_polcal",
                 "--keep_backup",
-                "--cpu_frac", "0.5",
-                "--mem_frac", "0.6",
-                "--jobid", "123",
+                "--cpu_frac",
+                "0.5",
+                "--mem_frac",
+                "0.6",
+                "--jobid",
+                "123",
                 "--start_remote_log",
-                "--logfile", "log.txt",
+                "--logfile",
+                "log.txt",
             ],
             True,
             0,
@@ -606,6 +653,6 @@ def test_cli(
 ):
     with patch("sys.argv", argv_args):
         from meersolar.meerpipeline import basic_cal
+
         result = basic_cal.cli()
         assert result == expected_exit
-    

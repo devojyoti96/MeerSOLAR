@@ -26,7 +26,8 @@ from meersolar.utils.proc_manage_utils import (
     get_dask_client,
     save_pid,
 )
-from meersolar.utils.ms_metadata import check_datacolumn_valid, get_band_name
+from meersolar.utils.ms_metadata import check_datacolumn_valid
+from meersolar.utils.meer_utils import get_band_name
 from meersolar.utils.imaging import (
     calc_field_of_view,
     calc_cellsize,
@@ -38,8 +39,8 @@ from meersolar.utils.imaging import (
 from meersolar.utils.image_utils import (
     create_circular_mask,
     make_stokes_wsclean_imagecube,
-    rename_image,
 )
+from meersolar.utils.meer_ploting_utils import rename_meersolar_image
 from meersolar.utils.udocker_utils import (
     check_udocker_container,
     run_wsclean,
@@ -451,7 +452,7 @@ def perform_imaging(
                         os.makedirs(imagedir + "/images", exist_ok=True)
                         final_image_list = []
                         for imagename in imagelist:
-                            renamed_image = rename_image(
+                            renamed_image = rename_meersolar_image(
                                 imagename,
                                 imagedir=imagedir + "/images",
                                 pol=pol,
@@ -467,7 +468,7 @@ def perform_imaging(
                             final_model_list = []
                             os.makedirs(imagedir + "/models", exist_ok=True)
                             for modelname in modellist:
-                                renamed_model = rename_image(
+                                renamed_model = rename_meersolar_image(
                                     modelname,
                                     imagedir=imagedir + "/models",
                                     pol=pol,
@@ -483,7 +484,7 @@ def perform_imaging(
                             final_res_list = []
                             os.makedirs(imagedir + "/residuals", exist_ok=True)
                             for resname in reslist:
-                                renamed_res = rename_image(
+                                renamed_res = rename_meersolar_image(
                                     resname,
                                     imagedir=imagedir + "/residuals",
                                     pol=pol,
@@ -731,8 +732,8 @@ def run_all_imaging(
                 npol * (nchan + 1) * ntime * 4 * 2
             )  # 4 types of images, 2 is fudge factor
             total_fd += per_job_fd
-        if total_fd<=0:
-            total_fd=1
+        if total_fd <= 0:
+            total_fd = 1
         n_jobs = max(1, int(new_soft_limit / total_fd))
         n_jobs = min(len(mslist), n_jobs)
 
@@ -821,7 +822,7 @@ def run_all_imaging(
                 )
             )
 
-        results = compute(*tasks)
+        results = list(compute(*tasks))
         dask_client.close()
         dask_cluster.close()
         all_image_list = []
@@ -956,7 +957,7 @@ def main(
     cachedir = get_cachedir()
     save_pid(pid, f"{cachedir}/pids/pids_{jobid}.txt")
     mslist = mslist.split(",")
-        
+
     if workdir == "":
         first_ms = mslist[0]
         workdir = os.path.dirname(os.path.abspath(first_ms)) + "/workdir"
@@ -972,12 +973,16 @@ def main(
     mainlogger, mainlog_file = create_logger(
         os.path.basename(mainlog_file).split(".mainlog")[0], mainlog_file, verbose=False
     )
-    
+
     ############
     # Logger
     ############
     observer = None
-    if start_remote_log and os.path.exists(f"{workdir}/jobname_password.npy") and logfile is not None:
+    if (
+        start_remote_log
+        and os.path.exists(f"{workdir}/jobname_password.npy")
+        and logfile is not None
+    ):
         time.sleep(5)
         jobname, password = np.load(
             f"{workdir}/jobname_password.npy", allow_pickle=True
@@ -986,10 +991,10 @@ def main(
             observer = init_logger(
                 "all_imaging", logfile, jobname=jobname, password=password
             )
-    if observer==None:
+    if observer == None:
         print("Remote link or jobname is blank. Not transmiting to remote logger.")
     ##########
-   
+
     try:
         if len(mslist) == 0:
             mainlogger.info("Please provide a valid measurement set list.")
@@ -1032,6 +1037,7 @@ def main(
         drop_cache(outdir)
         clean_shutdown(observer)
     return msg
+
 
 def cli():
     parser = argparse.ArgumentParser(
@@ -1208,8 +1214,8 @@ def cli():
         sys.exit(1)
 
     args = parser.parse_args()
-    
-    msg=main(
+
+    msg = main(
         mslist=args.mslist,
         workdir=args.workdir,
         outdir=args.outdir,
@@ -1237,6 +1243,7 @@ def cli():
         jobid=args.jobid,
     )
     return msg
+
 
 if __name__ == "__main__":
     result = main()

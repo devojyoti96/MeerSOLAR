@@ -4,13 +4,14 @@ from meersolar.meerpipeline.do_fluxcal import *
 
 
 def test_split_casatask(dummy_msname):
-    outputvis=os.getcwd()+"/scan1.ms"
-    result=split_casatask(msname=dummy_msname, outputvis=outputvis, scan="1")
-    assert result==outputvis
+    outputvis = os.getcwd() + "/scan1.ms"
+    result = split_casatask(msname=dummy_msname, outputvis=outputvis, scan="1")
+    assert result == outputvis
     assert os.path.exists(result)
     os.system(f"rm -rf {result}")
-    assert os.path.exists(result)==False
-    
+    assert os.path.exists(result) == False
+
+
 @patch("meersolar.meerpipeline.do_fluxcal.split_casatask")
 @patch("meersolar.meerpipeline.do_fluxcal.run_limited_memory_task", return_value=0.5)
 @patch("meersolar.meerpipeline.do_fluxcal.get_dask_client")
@@ -27,9 +28,7 @@ def test_split_autocorr(
     mock_compute.return_value = ["autocorr_scan_1.ms", "autocorr_scan_2.ms"]
     dummy_client = MagicMock()
     dummy_cluster = MagicMock()
-    mock_get_dask_client.return_value = (
-        dummy_client, dummy_cluster, 2, 1, 0.5
-    )
+    mock_get_dask_client.return_value = (dummy_client, dummy_cluster, 2, 1, 0.5)
     result = split_autocorr(
         msname="mock.ms",
         workdir="/mock/workdir",
@@ -43,8 +42,8 @@ def test_split_autocorr(
     assert mock_compute.called
     assert dummy_client.close.called
     assert dummy_cluster.close.called
-    
-    
+
+
 @patch("meersolar.meerpipeline.do_fluxcal.casamstool")
 def test_get_on_off_power(mock_casamstool):
     mock_ms = MagicMock()
@@ -56,7 +55,9 @@ def test_get_on_off_power(mock_casamstool):
     msname = "dummy.ms"
     ant_list = [0, 1, 2, 3]
     scale_factor = np.ones((1, 2))
-    result = get_on_off_power(msname=msname, scale_factor=scale_factor, ant_list=ant_list, dry_run=False)
+    result = get_on_off_power(
+        msname=msname, scale_factor=scale_factor, ant_list=ant_list, dry_run=False
+    )
     assert isinstance(result, np.ndarray)
     assert result.shape == (1, 2, 4)  # averaged over time
     np.testing.assert_allclose(result, 1.0, rtol=0.1)
@@ -65,7 +66,8 @@ def test_get_on_off_power(mock_casamstool):
     mock_ms.selectpolarization.assert_called_with(["XX", "YY"])
     mock_ms.getdata.assert_called_once()
     mock_ms.close.assert_called_once()
-    
+
+
 @patch("meersolar.meerpipeline.do_fluxcal.msmetadata")
 @patch("meersolar.meerpipeline.do_fluxcal.get_on_off_power")
 def test_get_att_per_ant(mock_get_on_off_power, mock_msmetadata):
@@ -95,7 +97,7 @@ def test_get_att_per_ant(mock_get_on_off_power, mock_msmetadata):
     assert call2_args[0] == source_ms
     assert np.allclose(call2_args[1], np.ones_like(scale_factor))
     assert call2_kwargs["ant_list"] == [0, 1, 2, 3]
-    
+
 
 @patch("meersolar.meerpipeline.do_fluxcal.psutil.Process")
 @patch("meersolar.meerpipeline.do_fluxcal.get_att_per_ant")
@@ -147,7 +149,8 @@ def test_get_power_diff(
     assert mock_get_att_per_ant.called
     mock_msmd_instance.open.assert_called_once()
     mock_table_instance.getcol.assert_any_call("CPARAM")
-    
+
+
 @patch("meersolar.meerpipeline.do_fluxcal.get_fluxcals")
 @patch("meersolar.meerpipeline.do_fluxcal.get_bad_chans")
 @patch("meersolar.meerpipeline.do_fluxcal.get_bad_ants")
@@ -197,17 +200,23 @@ def test_estimate_att(
     mock_single_ms_flag.return_value = 0
 
     # mock compute result for get_power_diff
-    att_array=np.array([[0.5, 0.6, 0.7], [0.52, 0.62, 0.72]])
-    att_ant_array=np.array([  # att_ant_array: (2, 3, 4)
-                [[0.48, 0.51, 0.49, 0.52], [0.59, 0.61, 0.6, 0.58], [0.7, 0.69, 0.71, 0.72]],
-                [[0.5, 0.53, 0.51, 0.54], [0.6, 0.63, 0.6, 0.64], [0.7, 0.73, 0.7, 0.74]],
-            ])
-    mock_compute.side_effect = lambda *args, **kwargs: [[att_array,att_ant_array]]
+    att_array = np.array([[0.5, 0.6, 0.7], [0.52, 0.62, 0.72]])
+    att_ant_array = np.array(
+        [  # att_ant_array: (2, 3, 4)
+            [
+                [0.48, 0.51, 0.49, 0.52],
+                [0.59, 0.61, 0.6, 0.58],
+                [0.7, 0.69, 0.71, 0.72],
+            ],
+            [[0.5, 0.53, 0.51, 0.54], [0.6, 0.63, 0.6, 0.64], [0.7, 0.73, 0.7, 0.74]],
+        ]
+    )
+    mock_compute.side_effect = lambda *args, **kwargs: [[att_array, att_ant_array]]
 
     mock_msmd = MagicMock()
     mock_msmd.chanfreqs.return_value = np.array([100e6, 110e6, 120e6])
     mock_msmetadata.return_value = mock_msmd
-    mock_ms_size.return_value=0.01
+    mock_ms_size.return_value = 0.01
 
     status, att_level, att_files = estimate_att(
         msname,
@@ -228,7 +237,8 @@ def test_estimate_att(
     assert att_level[target_scans[0]].shape == (2, 3)
     assert att_files[0].endswith(".npy")
     mock_save.assert_called()
-    
+
+
 @patch("meersolar.meerpipeline.do_fluxcal.drop_cache")
 @patch("meersolar.meerpipeline.do_fluxcal.os.system")
 @patch("meersolar.meerpipeline.do_fluxcal.os.makedirs")
@@ -238,9 +248,17 @@ def test_estimate_att(
 @patch("meersolar.meerpipeline.do_fluxcal.single_ms_flag")
 @patch("meersolar.meerpipeline.do_fluxcal.get_bad_ants", return_value=([0, 1], "0,1"))
 @patch("meersolar.meerpipeline.do_fluxcal.get_bad_chans", return_value=[1, 2])
-@patch("meersolar.meerpipeline.do_fluxcal.get_fluxcals", return_value=(["J0408-6545"], {"1": [1]}))
-@patch("meersolar.meerpipeline.do_fluxcal.determine_noise_diode_cal_scan", return_value="1")
-@patch("meersolar.meerpipeline.do_fluxcal.get_cal_target_scans", return_value=(["2"], ["1"], ["1"], [], []))
+@patch(
+    "meersolar.meerpipeline.do_fluxcal.get_fluxcals",
+    return_value=(["J0408-6545"], {"1": [1]}),
+)
+@patch(
+    "meersolar.meerpipeline.do_fluxcal.determine_noise_diode_cal_scan", return_value="1"
+)
+@patch(
+    "meersolar.meerpipeline.do_fluxcal.get_cal_target_scans",
+    return_value=(["2"], ["1"], ["1"], [], []),
+)
 @patch("meersolar.meerpipeline.do_fluxcal.get_valid_scans", return_value=["1", "2"])
 @patch("meersolar.meerpipeline.do_fluxcal.msmetadata")
 @patch("meersolar.meerpipeline.do_fluxcal.casamstool")
@@ -272,7 +290,11 @@ def test_run_noise_cal(
     mock_msmd = MagicMock()
     mock_msmd.timesforscan.return_value = [1.0, 2.0, 3.0]
     mock_msmetadata.return_value = mock_msmd
-    mock_estimate_att.return_value = (0, {"2": np.array([0.5, 0.6, 0.7])}, ["attfile.npy"])
+    mock_estimate_att.return_value = (
+        0,
+        {"2": np.array([0.5, 0.6, 0.7])},
+        ["attfile.npy"],
+    )
     msname = "test.ms"
     workdir = "/mock/workdir"
     status, att_level, att_files = run_noise_cal(msname, workdir)
@@ -284,7 +306,7 @@ def test_run_noise_cal(
     mock_split.assert_called_once()
     mock_bandpass.assert_called()
     mock_estimate_att.assert_called_once()
-    
+
 
 @pytest.mark.parametrize(
     "argv, should_exit",
@@ -294,12 +316,17 @@ def test_run_noise_cal(
             [
                 "prog.py",
                 "ms1.ms",
-                "--workdir", "/mock/work",
-                "--caldir", "/mock/caldir",
-                "--cpu_frac", "0.6",
-                "--mem_frac", "0.7",
+                "--workdir",
+                "/mock/work",
+                "--caldir",
+                "/mock/caldir",
+                "--cpu_frac",
+                "0.6",
+                "--mem_frac",
+                "0.7",
                 "--keep_backup",
-                "--jobid", "123",
+                "--jobid",
+                "123",
             ],
             False,
         ),
@@ -310,6 +337,7 @@ def test_cli_fluxcal(mock_main, argv, should_exit):
     with patch.object(sys, "argv", argv):
         if should_exit:
             import pytest
+
             with pytest.raises(SystemExit) as e:
                 cli()
             assert e.value.code == 1
@@ -317,7 +345,3 @@ def test_cli_fluxcal(mock_main, argv, should_exit):
             result = cli()
             assert result == 0
             assert mock_main.called
-
-        
-        
-        

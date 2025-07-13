@@ -5,7 +5,7 @@ from meersolar.meerpipeline.flagging import *
 
 
 def test_single_ms_flag(dummy_submsname):
-    result=single_ms_flag(
+    result = single_ms_flag(
         msname=f"{dummy_submsname}/SUBMSS/test_subms.ms.0000.ms",
         badspw="0:0;1",
         bad_ants_str="1,2",
@@ -18,42 +18,47 @@ def test_single_ms_flag(dummy_submsname):
         memory_limit=-1,
         dry_run=False,
     )
-    assert result==0
-    tb=table()
-    tb.open(f"{dummy_submsname}/SUBMSS/test_subms.ms.0000.ms",nomodify=False)
-    flag=tb.getcol("FLAG")
-    flag*=False
-    tb.putcol("FLAG",flag)
+    assert result == 0
+    tb = table()
+    tb.open(f"{dummy_submsname}/SUBMSS/test_subms.ms.0000.ms", nomodify=False)
+    flag = tb.getcol("FLAG")
+    flag *= False
+    tb.putcol("FLAG", flag)
     tb.flush()
     tb.close()
     os.system(f"rm -rf {dummy_submsname}/SUBMSS/test_subms.ms.0000.ms.flagversions")
-    assert os.path.exists(f"{dummy_submsname}/SUBMSS/test_subms.ms.0000.ms.flagversions")==False
-    
+    assert (
+        os.path.exists(f"{dummy_submsname}/SUBMSS/test_subms.ms.0000.ms.flagversions")
+        == False
+    )
+
+
 def test_do_flagging(dummy_submsname):
     result = do_flagging(
-    dummy_submsname,
-    datacolumn="data",
-    flag_bad_ants=True,
-    flag_bad_spw=True,
-    use_tfcrop=True,
-    use_rflag=True,
-    flagdimension="freqtime",
-    flag_autocorr=True,
-    flag_backup=True,
-    cpu_frac=0.8,
-    mem_frac=0.8,
+        dummy_submsname,
+        datacolumn="data",
+        flag_bad_ants=True,
+        flag_bad_spw=True,
+        use_tfcrop=True,
+        use_rflag=True,
+        flagdimension="freqtime",
+        flag_autocorr=True,
+        flag_backup=True,
+        cpu_frac=0.8,
+        mem_frac=0.8,
     )
-    assert result==0
-    tb=table()
-    tb.open(dummy_submsname,nomodify=False)
-    flag=tb.getcol("FLAG")
-    flag*=False
-    tb.putcol("FLAG",flag)
+    assert result == 0
+    tb = table()
+    tb.open(dummy_submsname, nomodify=False)
+    flag = tb.getcol("FLAG")
+    flag *= False
+    tb.putcol("FLAG", flag)
     tb.flush()
     tb.close()
     os.system(f"rm -rf {dummy_submsname}.flagversions")
-    assert os.path.exists(f"{dummy_submsname}.flagversions")==False
-    
+    assert os.path.exists(f"{dummy_submsname}.flagversions") == False
+
+
 @pytest.mark.parametrize(
     "ms_exists, flag_result, expected_msg",
     [
@@ -120,17 +125,23 @@ def test_main_flagging(
     "argv, should_exit",
     [
         (["prog.py"], True),  # No args → help and exit
-        ([
-            "prog.py", "mock.ms",
-            "--workdir", "/mock/work",
-            "--no_flag_bad_ants",
-            "--no_flag_bad_spw",
-            "--use_tfcrop",
-            "--use_rflag",
-            "--no_flag_autocorr",
-            "--no_flagbackup",
-            "--flagdimension", "time",
-        ], False),  # Valid call
+        (
+            [
+                "prog.py",
+                "mock.ms",
+                "--workdir",
+                "/mock/work",
+                "--no_flag_bad_ants",
+                "--no_flag_bad_spw",
+                "--use_tfcrop",
+                "--use_rflag",
+                "--no_flag_autocorr",
+                "--no_flagbackup",
+                "--flagdimension",
+                "time",
+            ],
+            False,
+        ),  # Valid call
     ],
 )
 @patch("meersolar.meerpipeline.flagging.do_flagging", return_value=0)
@@ -163,6 +174,3 @@ def test_cli_flagging(
         else:
             result = cli()
             assert result == 0
-        
-    
-    

@@ -2,16 +2,24 @@ import pytest
 from unittest.mock import patch, MagicMock, mock_open
 from meersolar.meerpipeline.show_status import *
 
-@pytest.mark.parametrize("pid_alive, clean_old_jobs, expect_rm", [
-    (True, False, False),
-    (False, False, False),
-    (False, True, True),
-])
+
+@pytest.mark.parametrize(
+    "pid_alive, clean_old_jobs, expect_rm",
+    [
+        (True, False, False),
+        (False, False, False),
+        (False, True, True),
+    ],
+)
 @patch("meersolar.meerpipeline.show_status.drop_cache")
 @patch("meersolar.meerpipeline.show_status.os.path.exists", return_value=True)
 @patch("meersolar.meerpipeline.show_status.os.system")
 @patch("meersolar.meerpipeline.show_status.psutil.pid_exists")
-@patch("meersolar.meerpipeline.show_status.open", new_callable=mock_open, read_data="1234 5678 dummy workdir outdir")
+@patch(
+    "meersolar.meerpipeline.show_status.open",
+    new_callable=mock_open,
+    read_data="1234 5678 dummy workdir outdir",
+)
 @patch("meersolar.meerpipeline.show_status.glob.glob")
 @patch("meersolar.meerpipeline.show_status.get_cachedir", return_value="/mock/cache")
 def test_show_job_status(
@@ -37,13 +45,18 @@ def test_show_job_status(
         mock_system.assert_any_call("rm -rf /mock/cache/pids/pids_1234.txt")
     else:
         mock_system.assert_not_called()
-        
+
+
 @pytest.mark.parametrize(
     "argv_args, expect_show_called, expect_exit_called",
     [
-        (["show_meersolar_status"], False, True),                             # No args, should exit
-        (["show_meersolar_status", "--show"], True, False),                   # Show only
-        (["show_meersolar_status", "--show", "--clean_old_jobs"], True, False),  # Show + clean
+        (["show_meersolar_status"], False, True),  # No args, should exit
+        (["show_meersolar_status", "--show"], True, False),  # Show only
+        (
+            ["show_meersolar_status", "--show", "--clean_old_jobs"],
+            True,
+            False,
+        ),  # Show + clean
     ],
 )
 @patch("meersolar.meerpipeline.show_status.show_job_status")
@@ -71,4 +84,3 @@ def test_cli_show_job_status(
         mock_exit.assert_called_once_with(1)
     else:
         mock_exit.assert_not_called()
-        

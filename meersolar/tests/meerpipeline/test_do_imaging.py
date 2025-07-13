@@ -4,22 +4,42 @@ from itertools import cycle
 from meersolar.meerpipeline.do_imaging import *
 
 
-@pytest.mark.parametrize("msname, expected_status", [
-    ("mock.ms", 0),
-])
-@patch("meersolar.meerpipeline.do_imaging.rename_image", side_effect=lambda *args, **kwargs: f"/mock/renamed/{os.path.basename(args[0])}")
-@patch("meersolar.meerpipeline.do_imaging.make_stokes_wsclean_imagecube", side_effect=lambda images, output, **kwargs: output)
-@patch("meersolar.meerpipeline.do_imaging.glob.glob", side_effect=lambda pattern: [pattern.replace("*", "I")])
+@pytest.mark.parametrize(
+    "msname, expected_status",
+    [
+        ("mock.ms", 0),
+    ],
+)
+@patch(
+    "meersolar.meerpipeline.do_imaging.rename_meersolar_image",
+    side_effect=lambda *args, **kwargs: f"/mock/renamed/{os.path.basename(args[0])}",
+)
+@patch(
+    "meersolar.meerpipeline.do_imaging.make_stokes_wsclean_imagecube",
+    side_effect=lambda images, output, **kwargs: output,
+)
+@patch(
+    "meersolar.meerpipeline.do_imaging.glob.glob",
+    side_effect=lambda pattern: [pattern.replace("*", "I")],
+)
 @patch("meersolar.meerpipeline.do_imaging.run_wsclean", return_value=0)
 @patch("meersolar.meerpipeline.do_imaging.get_multiscale_bias", return_value=0.7)
-@patch("meersolar.meerpipeline.do_imaging.calc_multiscale_scales", return_value=[0, 4, 16])
+@patch(
+    "meersolar.meerpipeline.do_imaging.calc_multiscale_scales", return_value=[0, 4, 16]
+)
 @patch("meersolar.meerpipeline.do_imaging.calc_sun_dia", return_value=30)
 @patch("meersolar.meerpipeline.do_imaging.calc_npix_in_psf", return_value=3)
-@patch("meersolar.meerpipeline.do_imaging.create_circular_mask", return_value="solar_mask.fits")
+@patch(
+    "meersolar.meerpipeline.do_imaging.create_circular_mask",
+    return_value="solar_mask.fits",
+)
 @patch("meersolar.meerpipeline.do_imaging.psutil.virtual_memory")
 @patch("meersolar.meerpipeline.do_imaging.psutil.cpu_count", return_value=4)
 @patch("meersolar.meerpipeline.do_imaging.init_logger")
-@patch("meersolar.meerpipeline.do_imaging.create_logger", return_value=(MagicMock(), "mock.log"))
+@patch(
+    "meersolar.meerpipeline.do_imaging.create_logger",
+    return_value=(MagicMock(), "mock.log"),
+)
 @patch("meersolar.meerpipeline.do_imaging.timestamp_to_mjdsec", side_effect=lambda t: 0)
 @patch("meersolar.meerpipeline.do_imaging.get_band_name", return_value="L")
 @patch("meersolar.meerpipeline.do_imaging.msmetadata")
@@ -47,11 +67,11 @@ def test_perform_imaging(
     mock_stokes_cube,
     mock_rename,
     msname,
-    expected_status
+    expected_status,
 ):
     # Setup mocks
     mem_mock = MagicMock()
-    mem_mock.total = 16 * 1024 ** 3  # 16 GB
+    mem_mock.total = 16 * 1024**3  # 16 GB
     mock_virt_mem.return_value = mem_mock
 
     msmd_inst = MagicMock()
@@ -71,18 +91,21 @@ def test_perform_imaging(
         nchan=1,
         ntime=1,
         pol="I",
-        dry_run=False
+        dry_run=False,
     )
 
     assert code == expected_status
     assert isinstance(output, list)
     assert all(isinstance(sublist, list) for sublist in output)
-    
-    
-@pytest.mark.parametrize("container_exists, corrupted_ms, freqres, timeres, expected", [
-    (False, False, 1.0, 2.0, 0),  # Normal case
-    (True,  True,  -1, -1, 1),    # Corrupted MS should return failure
-])
+
+
+@pytest.mark.parametrize(
+    "container_exists, corrupted_ms, freqres, timeres, expected",
+    [
+        (False, False, 1.0, 2.0, 0),  # Normal case
+        (True, True, -1, -1, 1),  # Corrupted MS should return failure
+    ],
+)
 @patch("meersolar.meerpipeline.do_imaging.drop_cache")
 @patch("meersolar.meerpipeline.do_imaging.os.system")
 @patch("meersolar.meerpipeline.do_imaging.os.makedirs")
@@ -91,8 +114,13 @@ def test_perform_imaging(
 @patch("meersolar.meerpipeline.do_imaging.calc_cellsize", return_value=5.0)
 @patch("meersolar.meerpipeline.do_imaging.calc_npix_in_psf", return_value=3)
 @patch("meersolar.meerpipeline.do_imaging.resource.setrlimit")
-@patch("meersolar.meerpipeline.do_imaging.resource.getrlimit", return_value=(1024, 4096))
-@patch("meersolar.meerpipeline.do_imaging.initialize_wsclean_container", return_value="meerwsclean")
+@patch(
+    "meersolar.meerpipeline.do_imaging.resource.getrlimit", return_value=(1024, 4096)
+)
+@patch(
+    "meersolar.meerpipeline.do_imaging.initialize_wsclean_container",
+    return_value="meerwsclean",
+)
 @patch("meersolar.meerpipeline.do_imaging.check_udocker_container")
 @patch("meersolar.meerpipeline.do_imaging.check_datacolumn_valid")
 @patch("meersolar.meerpipeline.do_imaging.init_logger")
@@ -165,7 +193,7 @@ def test_run_all_imaging(
         outdir=outdir,
         freqres=freqres,
         timeres=timeres,
-        pol="IQUV"
+        pol="IQUV",
     )
 
     assert result == expected
@@ -178,9 +206,11 @@ def test_run_all_imaging(
     if corrupted_ms:
         logger.warning.assert_any_call("Issue in : mock.ms")
     else:
-        logger.info.assert_any_call("Imaging successfully done for: 1 measurement sets.")
-        
-    
+        logger.info.assert_any_call(
+            "Imaging successfully done for: 1 measurement sets."
+        )
+
+
 @pytest.mark.parametrize(
     "mslist_str, workdir_exists, container_ok, compute_success, expected_msg",
     [
@@ -253,7 +283,7 @@ def test_main_do_imaging(
     )
 
     assert msg == expected_msg
-   
+
 
 @pytest.mark.parametrize(
     "argv, should_exit",
@@ -263,10 +293,14 @@ def test_main_do_imaging(
             [
                 "prog.py",
                 "ms1.ms,ms2.ms",
-                "--workdir", "/mock/work",
-                "--outdir", "/mock/output",
-                "--cpu_frac", "0.5",
-                "--mem_frac", "0.6",
+                "--workdir",
+                "/mock/work",
+                "--outdir",
+                "/mock/output",
+                "--cpu_frac",
+                "0.5",
+                "--mem_frac",
+                "0.6",
                 "--no_multiscale",
                 "--no_solar_mask",
                 "--no_make_overlay",
@@ -290,6 +324,3 @@ def test_cli_do_imaging(mock_main, argv, should_exit):
             result = cli()
             assert result == 0
             mock_main.assert_called_once()
-        
-    
-    

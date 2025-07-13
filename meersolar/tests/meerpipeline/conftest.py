@@ -1,5 +1,7 @@
 import pytest
-from meersolar.utils.all_depend import *
+import shutil
+import numpy as np
+import os
 
 
 @pytest.fixture
@@ -31,6 +33,7 @@ def dummy_caltable(tmp_path):
         pytest.skip("Caltable is not found")
     return ref_caltable
 
+
 @pytest.fixture
 def dummy_bpass(tmp_path):
     ref_caltable = (
@@ -40,12 +43,14 @@ def dummy_bpass(tmp_path):
         pytest.skip("Caltable is not found")
     return ref_caltable
 
+
 @pytest.fixture
 def dummy_att_table(tmp_path):
-    ref_atttable="/media/devojyoti/Data1/meersolar/meersolar/tests/data/test_att.npy"
+    ref_atttable = "/media/devojyoti/Data1/meersolar/meersolar/tests/data/test_att.npy"
     if not os.path.exists(ref_atttable):
         pytest.skip("Reference attenuation table is not found.")
     return ref_atttable
+
 
 @pytest.fixture
 def dummy_msname(tmp_path):
@@ -81,6 +86,3 @@ def mock_npy_data():
     phasecals = ["J0431+2037"]
     fluxes = [3.412]
     return np.array([phasecals, fluxes])
-    
-
-    

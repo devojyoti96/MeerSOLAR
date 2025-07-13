@@ -670,7 +670,11 @@ def main(
     # Logger
     ############
     observer = None
-    if start_remote_log and os.path.exists(f"{workdir}/jobname_password.npy") and logfile is not None:
+    if (
+        start_remote_log
+        and os.path.exists(f"{workdir}/jobname_password.npy")
+        and logfile is not None
+    ):
         time.sleep(5)
         jobname, password = np.load(
             f"{workdir}/jobname_password.npy", allow_pickle=True
@@ -679,10 +683,10 @@ def main(
             observer = init_logger(
                 "all_selfcal", logfile, jobname=jobname, password=password
             )
-    if observer==None:
+    if observer == None:
         print("Remote link or jobname is blank. Not transmiting to remote logger.")
     ###########
-    
+
     ###########################
     # WSClean container
     ###########################
@@ -760,9 +764,9 @@ def main(
                 resource.setrlimit(resource.RLIMIT_NOFILE, (new_soft_limit, hard_limit))
 
             num_fd_list = []
-            if len(mslist)==0:
+            if len(mslist) == 0:
                 mainlogger.error("No filtered ms to continue.")
-                return 1    
+                return 1
             else:
                 for ms in mslist:
                     msmd = msmetadata()
@@ -779,19 +783,21 @@ def main(
                     per_job_fd = (
                         (max_nchan + 1) * max_intervals * 4 * 2
                     )  # 4 types of images, 2 is fudge factor
-                    if per_job_fd==0:
-                        per_job_fd=1
+                    if per_job_fd == 0:
+                        per_job_fd = 1
                     num_fd_list.append(per_job_fd)
                 total_fd = max(num_fd_list) * len(mslist)
                 n_jobs = max(1, int(new_soft_limit / total_fd))
                 n_jobs = min(len(mslist), n_jobs)
-                dask_client, dask_cluster, n_jobs, n_threads, mem_limit = get_dask_client(
-                    n_jobs,
-                    dask_dir=workdir,
-                    cpu_frac=float(cpu_frac),
-                    mem_frac=float(mem_frac),
-                    min_cpu_per_job=3,
-                    min_mem_per_job=min_mem_per_job,
+                dask_client, dask_cluster, n_jobs, n_threads, mem_limit = (
+                    get_dask_client(
+                        n_jobs,
+                        dask_dir=workdir,
+                        cpu_frac=float(cpu_frac),
+                        mem_frac=float(mem_frac),
+                        min_cpu_per_job=3,
+                        min_mem_per_job=min_mem_per_job,
+                    )
                 )
                 tasks = []
                 for ms in mslist:
@@ -815,7 +821,7 @@ def main(
                             logfile=logfile,
                         )
                     )
-                results = compute(*tasks)
+                results = list(compute(*tasks))
                 dask_client.close()
                 dask_cluster.close()
                 gcal_list = []
@@ -1019,8 +1025,8 @@ def cli():
         sys.exit(1)
 
     args = parser.parse_args()
-    
-    msg=main(
+
+    msg = main(
         mslist=args.mslist,
         workdir=args.workdir,
         caldir=args.caldir,
@@ -1046,6 +1052,7 @@ def cli():
         start_remote_log=args.start_remote_log,
     )
     return msg
+
 
 if __name__ == "__main__":
     result = cli()

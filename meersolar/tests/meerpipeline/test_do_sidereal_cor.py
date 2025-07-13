@@ -2,6 +2,7 @@ import pytest
 from unittest.mock import patch, MagicMock
 from meersolar.meerpipeline.do_sidereal_cor import *
 
+
 @pytest.mark.parametrize(
     "container_present, compute_result, sidereal_exists, expected_code, expected_mslist",
     [
@@ -36,8 +37,13 @@ from meersolar.meerpipeline.do_sidereal_cor import *
 @patch("meersolar.meerpipeline.do_sidereal_cor.compute")
 @patch("meersolar.meerpipeline.do_sidereal_cor.delayed")
 @patch("meersolar.meerpipeline.do_sidereal_cor.get_dask_client")
-@patch("meersolar.meerpipeline.do_sidereal_cor.run_limited_memory_task", return_value=4.0)
-@patch("meersolar.meerpipeline.do_sidereal_cor.initialize_wsclean_container", return_value=None)
+@patch(
+    "meersolar.meerpipeline.do_sidereal_cor.run_limited_memory_task", return_value=4.0
+)
+@patch(
+    "meersolar.meerpipeline.do_sidereal_cor.initialize_wsclean_container",
+    return_value=None,
+)
 @patch("meersolar.meerpipeline.do_sidereal_cor.check_udocker_container")
 @patch("meersolar.meerpipeline.do_sidereal_cor.os.path.exists")
 def test_cor_sidereal_motion(
@@ -90,19 +96,21 @@ def test_cor_sidereal_motion(
 
     assert code == expected_code
     assert corrected == expected_mslist
-    
+
 
 @pytest.mark.parametrize(
     "mslist_str, ms_exists, cor_success, expected_msg",
     [
-        ("ms1.ms,ms2.ms", True, True, 0),   # Success
+        ("ms1.ms,ms2.ms", True, True, 0),  # Success
         ("ms1.ms,ms2.ms", True, False, 1),  # cor_sidereal_motion fails, but handled
-        ("", False, False, 1),              # No MS provided
+        ("", False, False, 1),  # No MS provided
     ],
 )
 @patch("meersolar.meerpipeline.do_sidereal_cor.cor_sidereal_motion")
 @patch("meersolar.meerpipeline.do_sidereal_cor.save_pid")
-@patch("meersolar.meerpipeline.do_sidereal_cor.get_cachedir", return_value="/mock/cache")
+@patch(
+    "meersolar.meerpipeline.do_sidereal_cor.get_cachedir", return_value="/mock/cache"
+)
 @patch("os.makedirs")
 @patch("os.path.exists")
 @patch("os.getpid", return_value=9876)
@@ -160,9 +168,14 @@ def test_main_sidereal(
         ),  # Normal
     ],
 )
-@patch("meersolar.meerpipeline.do_sidereal_cor.cor_sidereal_motion", return_value=(0, ["ms1.ms"]))
+@patch(
+    "meersolar.meerpipeline.do_sidereal_cor.cor_sidereal_motion",
+    return_value=(0, ["ms1.ms"]),
+)
 @patch("meersolar.meerpipeline.do_sidereal_cor.save_pid")
-@patch("meersolar.meerpipeline.do_sidereal_cor.get_cachedir", return_value="/mock/cache")
+@patch(
+    "meersolar.meerpipeline.do_sidereal_cor.get_cachedir", return_value="/mock/cache"
+)
 @patch("os.makedirs")
 @patch("os.path.exists", return_value=True)
 @patch("os.getpid", return_value=6789)
@@ -189,10 +202,10 @@ def test_cli_sidereal(
     with patch.object(sys, "argv", argv):
         if should_exit:
             import pytest
+
             with pytest.raises(SystemExit) as e:
                 cli()
             assert e.value.code == 1
         else:
             result = cli()
             assert result == 0
-

@@ -3,6 +3,7 @@ from unittest.mock import patch, MagicMock
 from itertools import cycle
 from meersolar.meerpipeline.do_selfcal import *
 
+
 @patch("meersolar.meerpipeline.do_selfcal.drop_cache")
 @patch("meersolar.meerpipeline.do_selfcal.clean_shutdown")
 @patch("meersolar.meerpipeline.do_selfcal.time.sleep", return_value=None)
@@ -10,9 +11,15 @@ from meersolar.meerpipeline.do_selfcal import *
 @patch("meersolar.meerpipeline.do_selfcal.os.makedirs")
 @patch("meersolar.meerpipeline.do_selfcal.os.path.exists", return_value=False)
 @patch("meersolar.meerpipeline.do_selfcal.os.system")
-@patch("meersolar.meerpipeline.do_selfcal.create_logger", return_value=(MagicMock(), "log.log"))
+@patch(
+    "meersolar.meerpipeline.do_selfcal.create_logger",
+    return_value=(MagicMock(), "log.log"),
+)
 @patch("meersolar.meerpipeline.do_selfcal.init_logger")
-@patch("meersolar.meerpipeline.do_selfcal.get_unflagged_antennas", return_value=(["ant1", "ant2"], [0.1, 0.1]))
+@patch(
+    "meersolar.meerpipeline.do_selfcal.get_unflagged_antennas",
+    return_value=(["ant1", "ant2"], [0.1, 0.1]),
+)
 @patch("meersolar.meerpipeline.do_selfcal.calc_cellsize", return_value=5.0)
 @patch("meersolar.meerpipeline.do_selfcal.calc_field_of_view", return_value=1200)
 @patch("meersolar.meerpipeline.do_selfcal.check_datacolumn_valid", return_value=True)
@@ -45,32 +52,38 @@ def test_do_selfcal(
     mock_shutdown,
     mock_drop_cache,
 ):
-    
+
     mock_msmd = MagicMock()
     mock_msmd.open.return_value = None
     mock_msmd.close.return_value = None
     mock_msmd.scannumbers.return_value = [0]
     mock_msmd.fieldsforscan.return_value = [0]
-    mock_msmd.meanfreq.return_value=100.0
-    mock_msmd.timesforspws.return_value=["100","200"]
-    mock_msmd.chanfreqs.return_value=[100.0,100.1,100.2]
+    mock_msmd.meanfreq.return_value = 100.0
+    mock_msmd.timesforspws.return_value = ["100", "200"]
+    mock_msmd.chanfreqs.return_value = [100.0, 100.1, 100.2]
     mock_msmetadata.return_value = mock_msmd
 
-    mock_intensity_selfcal.side_effect = cycle([
-        (0, "g0.cal", 100.0, 0.01, "img1.fits", "mod1.fits", "res1.fits"),
-        (0, "g1.cal", 110.0, 0.009, "img2.fits", "mod2.fits", "res2.fits"),
-        (0, "g2.cal", 111.0, 0.008, "img3.fits", "mod3.fits", "res3.fits"),
-    ])
-    status, caltable = do_selfcal(msname="mock.ms", workdir="/tmp", selfcaldir="/tmp", dry_run=False)
+    mock_intensity_selfcal.side_effect = cycle(
+        [
+            (0, "g0.cal", 100.0, 0.01, "img1.fits", "mod1.fits", "res1.fits"),
+            (0, "g1.cal", 110.0, 0.009, "img2.fits", "mod2.fits", "res2.fits"),
+            (0, "g2.cal", 111.0, 0.008, "img3.fits", "mod3.fits", "res3.fits"),
+        ]
+    )
+    status, caltable = do_selfcal(
+        msname="mock.ms", workdir="/tmp", selfcaldir="/tmp", dry_run=False
+    )
     assert status == 0
-    assert caltable in ["g0.cal","g1.cal","g2.cal"]
+    assert caltable in ["g0.cal", "g1.cal", "g2.cal"]
 
     # --- Case 2: No model flux even at lowest threshold
     mock_intensity_selfcal.side_effect = [
         (1, "", 0, 0, "", "", ""),
         (1, "", 0, 0, "", "", ""),
     ]
-    status, caltable = do_selfcal(msname="mock.ms", workdir="/tmp", selfcaldir="/tmp", dry_run=False)
+    status, caltable = do_selfcal(
+        msname="mock.ms", workdir="/tmp", selfcaldir="/tmp", dry_run=False
+    )
     assert status == 1
     assert caltable == []
 
@@ -78,41 +91,63 @@ def test_do_selfcal(
     mock_intensity_selfcal.side_effect = [
         (2, "", 0, 0, "", "", ""),
     ]
-    status, caltable = do_selfcal(msname="mock.ms", workdir="/tmp", selfcaldir="/tmp", dry_run=False)
+    status, caltable = do_selfcal(
+        msname="mock.ms", workdir="/tmp", selfcaldir="/tmp", dry_run=False
+    )
     assert status == 2 or status == 1
     assert caltable == []
 
     # --- Case 4: dry run
     import psutil, os
+
     expected_mem = round(psutil.Process(os.getpid()).memory_info().rss / 1024**3, 2)
     mem = do_selfcal(msname="mock.ms", workdir="/tmp", selfcaldir="/tmp", dry_run=True)
     assert isinstance(mem, float)
     assert abs(mem - expected_mem) < 1.0  # within 1 GB
 
     # --- Case 5: Dynamic range drop triggers fallback to previous gaintable
-    mock_intensity_selfcal.side_effect = cycle([
-        (0, "g0.cal", 100.0, 0.01, "img1.fits", "mod1.fits", "res1.fits"),
-        (0, "g1.cal", 150.0, 0.009, "img2.fits", "mod2.fits", "res2.fits"),
-        (0, "g2.cal", 80.0, 0.009, "img3.fits", "mod3.fits", "res3.fits"),
-    ])
-    status, caltable = do_selfcal(msname="mock.ms", workdir="/tmp", selfcaldir="/tmp", dry_run=False)
+    mock_intensity_selfcal.side_effect = cycle(
+        [
+            (0, "g0.cal", 100.0, 0.01, "img1.fits", "mod1.fits", "res1.fits"),
+            (0, "g1.cal", 150.0, 0.009, "img2.fits", "mod2.fits", "res2.fits"),
+            (0, "g2.cal", 80.0, 0.009, "img3.fits", "mod3.fits", "res3.fits"),
+        ]
+    )
+    status, caltable = do_selfcal(
+        msname="mock.ms", workdir="/tmp", selfcaldir="/tmp", dry_run=False
+    )
     assert status == 0
     assert caltable in ["g1.cal", "g2.cal"]  # depends on exact logic
 
     # --- Case 6: Maximum iteration exit (simulate steady DR)
-    mock_intensity_selfcal.side_effect = cycle([
-        (0, f"g{i}.cal", 100.0, 0.01, f"img{i}.fits", f"mod{i}.fits", f"res{i}.fits") for i in range(20)
-    ])
-    status, caltable = do_selfcal(msname="mock.ms", workdir="/tmp", selfcaldir="/tmp", max_iter=5, dry_run=False)
+    mock_intensity_selfcal.side_effect = cycle(
+        [
+            (
+                0,
+                f"g{i}.cal",
+                100.0,
+                0.01,
+                f"img{i}.fits",
+                f"mod{i}.fits",
+                f"res{i}.fits",
+            )
+            for i in range(20)
+        ]
+    )
+    status, caltable = do_selfcal(
+        msname="mock.ms", workdir="/tmp", selfcaldir="/tmp", max_iter=5, dry_run=False
+    )
     assert status == 0
     assert caltable.startswith("g")
 
     # --- Case 7: Exception path
     mock_intensity_selfcal.side_effect = Exception("simulated failure")
-    status, caltable = do_selfcal(msname="mock.ms", workdir="/tmp", selfcaldir="/tmp", dry_run=False)
+    status, caltable = do_selfcal(
+        msname="mock.ms", workdir="/tmp", selfcaldir="/tmp", dry_run=False
+    )
     assert status == 1
     assert caltable == []
-    
+
 
 @pytest.mark.parametrize(
     "mslist_str, caldir_exists, container_ok, valid_cols, expected_msg",
@@ -211,7 +246,7 @@ def test_main_selfcal(
         mock_init_container.return_value = "meerwsclean"
     else:
         mock_init_container.return_value = None
-    
+
     msg = main(
         mslist=mslist_str,
         workdir=workdir,
@@ -253,10 +288,14 @@ def test_main_selfcal(
             [
                 "prog.py",
                 "ms1.ms,ms2.ms",
-                "--workdir", "/mock/work",
-                "--caldir", "/mock/caltables",
-                "--start_thresh", "5",
-                "--stop_thresh", "3",
+                "--workdir",
+                "/mock/work",
+                "--caldir",
+                "/mock/caltables",
+                "--start_thresh",
+                "5",
+                "--stop_thresh",
+                "3",
                 "--no_apcal",
                 "--keep_backup",
             ],
@@ -269,6 +308,7 @@ def test_cli_selfcal(mock_main, argv, should_exit):
     with patch.object(sys, "argv", argv):
         if should_exit:
             import pytest
+
             with pytest.raises(SystemExit) as e:
                 cli()
             assert e.value.code == 1
@@ -276,5 +316,3 @@ def test_cli_selfcal(mock_main, argv, should_exit):
             result = cli()
             assert result == 0
             assert mock_main.called
-
-

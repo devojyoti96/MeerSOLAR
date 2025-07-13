@@ -2,6 +2,7 @@ import pytest
 from unittest.mock import patch, MagicMock
 from meersolar.meerpipeline.single_image_meerpbcor import *
 
+
 @pytest.fixture
 def fake_stokes_cube():
     """Returns a fake 4D numpy array with 4 Stokes components"""
@@ -12,16 +13,24 @@ def fake_stokes_cube():
     data[3, 0] = 0.3  # V
     return data
 
+
 @pytest.mark.parametrize(
     "ctype_key, stokesaxis, expected_index",
     [
         ("CTYPE3", 3, [0, 1, 2, 3]),  # STOKES along axis 3
         ("CTYPE4", 4, [0, 1, 2, 3]),  # STOKES along axis 4
-    ]
+    ],
 )
 @patch("meersolar.meerpipeline.single_image_meerpbcor.fits.getheader")
 @patch("meersolar.meerpipeline.single_image_meerpbcor.fits.getdata")
-def test_get_IQUV(mock_getdata, mock_getheader, fake_stokes_cube, ctype_key, stokesaxis, expected_index):
+def test_get_IQUV(
+    mock_getdata,
+    mock_getheader,
+    fake_stokes_cube,
+    ctype_key,
+    stokesaxis,
+    expected_index,
+):
     # Setup mock FITS header
     header = {ctype_key: "STOKES"}
     mock_getheader.return_value = header
@@ -41,18 +50,26 @@ def test_get_IQUV(mock_getdata, mock_getheader, fake_stokes_cube, ctype_key, sto
     result = get_IQUV("fake_stokes.fits")
 
     assert set(result.keys()) == {"I", "Q", "U", "V"}
-    np.testing.assert_array_equal(result["I"], fake_data[0, 0] if stokesaxis == 3 else fake_data[0, 0])
-    np.testing.assert_array_equal(result["Q"], fake_data[0, 1] if stokesaxis == 3 else fake_data[1, 0])
-    np.testing.assert_array_equal(result["U"], fake_data[0, 2] if stokesaxis == 3 else fake_data[2, 0])
-    np.testing.assert_array_equal(result["V"], fake_data[0, 3] if stokesaxis == 3 else fake_data[3, 0])
-        
-        
+    np.testing.assert_array_equal(
+        result["I"], fake_data[0, 0] if stokesaxis == 3 else fake_data[0, 0]
+    )
+    np.testing.assert_array_equal(
+        result["Q"], fake_data[0, 1] if stokesaxis == 3 else fake_data[1, 0]
+    )
+    np.testing.assert_array_equal(
+        result["U"], fake_data[0, 2] if stokesaxis == 3 else fake_data[2, 0]
+    )
+    np.testing.assert_array_equal(
+        result["V"], fake_data[0, 3] if stokesaxis == 3 else fake_data[3, 0]
+    )
+
+
 @pytest.mark.parametrize(
     "ctype_key, stokesaxis, shape, expected_slices",
     [
         ("CTYPE3", 3, (1, 4, 128, 128), [(0, 0), (0, 1), (0, 2), (0, 3)]),
         ("CTYPE4", 4, (4, 1, 128, 128), [(0, 0), (1, 0), (2, 0), (3, 0)]),
-        ("",    1, (1, 1, 128, 128),    [(0, 0)]),
+        ("", 1, (1, 1, 128, 128), [(0, 0)]),
     ],
 )
 @patch("meersolar.meerpipeline.single_image_meerpbcor.fits.writeto")
@@ -60,7 +77,7 @@ def test_put_IQUV(mock_writeto, ctype_key, stokesaxis, shape, expected_slices):
     # Create a mock header
     header = {
         "NAXIS": len(shape),
-        **{f"NAXIS{i+1}": s for i, s in enumerate(reversed(shape))}
+        **{f"NAXIS{i+1}": s for i, s in enumerate(reversed(shape))},
     }
     if ctype_key:
         header[ctype_key] = "STOKES"
@@ -99,7 +116,7 @@ def test_put_IQUV(mock_writeto, ctype_key, stokesaxis, shape, expected_slices):
         np.testing.assert_array_equal(data[0, 0], stokes["I"])
 
     assert result == filename
-      
+
 
 def test_get_brightness():
     # Create mock stokes maps (2x2 image)
@@ -122,7 +139,8 @@ def test_get_brightness():
 
     # Check dtype
     assert B.dtype == np.complex64
-    
+
+
 def test_make_stokes():
     # Create 2x2 Stokes images
     I = np.array([[10.0, 20.0], [30.0, 40.0]], dtype=np.float32)
@@ -147,11 +165,15 @@ def test_make_stokes():
     assert np.allclose(stokes_out["Q"], Q)
     assert np.allclose(stokes_out["U"], U)
     assert np.allclose(stokes_out["V"], V)
-    
-@pytest.mark.parametrize("ctype_key, crval, cdelt, expected_band, beam_file", [
-    ("CTYPE3", 1.4e9, 1e6, "L", "MeerKAT_antavg_Lband.npz"),
-    ("CTYPE4", 7e8, 1e6, "U", "MeerKAT_antavg_Uband.npz"),
-])
+
+
+@pytest.mark.parametrize(
+    "ctype_key, crval, cdelt, expected_band, beam_file",
+    [
+        ("CTYPE3", 1.4e9, 1e6, "L", "MeerKAT_antavg_Lband.npz"),
+        ("CTYPE4", 7e8, 1e6, "U", "MeerKAT_antavg_Uband.npz"),
+    ],
+)
 @patch("meersolar.meerpipeline.single_image_meerpbcor.datadir", "/mockdata")
 @patch("meersolar.meerpipeline.single_image_meerpbcor.fits.getheader")
 @patch("meersolar.meerpipeline.single_image_meerpbcor.np.load")
@@ -188,8 +210,8 @@ def test_load_beam(
     assert beam.shape[0] == 2
     assert beam.dtype == np.complex64
     mock_np_load.assert_called_once_with(f"/mockdata/{beam_file}", mmap_mode="r")
-        
-        
+
+
 @patch("meersolar.meerpipeline.single_image_meerpbcor.fits.getheader")
 @patch("meersolar.meerpipeline.single_image_meerpbcor.WCS")
 def test_get_radec_grid(mock_wcs, mock_getheader):
@@ -212,8 +234,8 @@ def test_get_radec_grid(mock_wcs, mock_getheader):
     mock_getheader.assert_called_once_with("fake.fits")
     mock_wcs.assert_called_once_with(mock_hdr)
     mock_celestial.pixel_to_world.assert_called()
-    
-    
+
+
 @patch("meersolar.meerpipeline.single_image_meerpbcor.fits.getheader")
 def test_get_pointingcenter_radec(mock_getheader):
     # Mock header values
@@ -230,8 +252,8 @@ def test_get_pointingcenter_radec(mock_getheader):
     assert ra == 123.456
     assert dec == -45.678
     mock_getheader.assert_called_once_with("mock_image.fits")
-    
-    
+
+
 @pytest.mark.parametrize(
     "ra_deg, dec_deg, ra0_deg, dec0_deg, expected_l, expected_m",
     [
@@ -247,8 +269,8 @@ def test_radec_to_lm(ra_deg, dec_deg, ra0_deg, dec0_deg, expected_l, expected_m)
     l, m = radec_to_lm(ra_deg, dec_deg, ra0_deg, dec0_deg)
     assert np.allclose(l, expected_l, atol=1e-8)
     assert np.allclose(m, expected_m, atol=1e-8)
-    
-    
+
+
 @pytest.mark.parametrize(
     "obs_time, ra_deg, dec_deg, expected_deg",
     [
@@ -264,8 +286,9 @@ def test_get_parallactic_angle(obs_time, ra_deg, dec_deg, expected_deg):
     angle = get_parallactic_angle(obs_time, ra_deg, dec_deg)
     assert np.isfinite(angle)
     if expected_deg is not None:
-        assert angle==expected_deg
-        
+        assert angle == expected_deg
+
+
 @patch("meersolar.meerpipeline.single_image_meerpbcor.RectBivariateSpline")
 def test_get_beam_interpolator(mock_spline):
     # Setup dummy Jones matrix with 4 components (2x2), shape: (4, 64, 64)
@@ -281,11 +304,16 @@ def test_get_beam_interpolator(mock_spline):
     # Ensure RectBivariateSpline was called 8 times
     assert mock_spline.call_count == 8
     # Optional: check the arguments for the first call
-    x, y, z = mock_spline.call_args_list[0][1]["x"], mock_spline.call_args_list[0][1]["y"], mock_spline.call_args_list[0][1]["z"]
+    x, y, z = (
+        mock_spline.call_args_list[0][1]["x"],
+        mock_spline.call_args_list[0][1]["y"],
+        mock_spline.call_args_list[0][1]["z"],
+    )
     assert np.allclose(x, coords)
     assert np.allclose(y, coords)
     assert z.shape == (64, 64)
-    
+
+
 def test_apply_parallactic_rotation():
     # Input Jones matrix: shape (4, H, W), here (4, 2, 2) for simplicity
     j00 = np.ones((2, 2), dtype="complex64")
@@ -298,12 +326,24 @@ def test_apply_parallactic_rotation():
     assert np.allclose(rotated[1], -1)
     assert np.allclose(rotated[2], 1)
     assert np.allclose(rotated[3], 0)
-    
-    
-@patch("meersolar.meerpipeline.single_image_meerpbcor.get_parallactic_angle", return_value=30.0)
-@patch("meersolar.meerpipeline.single_image_meerpbcor.get_pointingcenter_radec", return_value=(100.0, 30.0))
-@patch("meersolar.meerpipeline.single_image_meerpbcor.get_radec_grid", return_value=(np.zeros((2,2)), np.zeros((2,2))))
-@patch("meersolar.meerpipeline.single_image_meerpbcor.radec_to_lm", return_value=(np.zeros((2,2)), np.zeros((2,2))))
+
+
+@patch(
+    "meersolar.meerpipeline.single_image_meerpbcor.get_parallactic_angle",
+    return_value=30.0,
+)
+@patch(
+    "meersolar.meerpipeline.single_image_meerpbcor.get_pointingcenter_radec",
+    return_value=(100.0, 30.0),
+)
+@patch(
+    "meersolar.meerpipeline.single_image_meerpbcor.get_radec_grid",
+    return_value=(np.zeros((2, 2)), np.zeros((2, 2))),
+)
+@patch(
+    "meersolar.meerpipeline.single_image_meerpbcor.radec_to_lm",
+    return_value=(np.zeros((2, 2)), np.zeros((2, 2))),
+)
 @patch("meersolar.meerpipeline.single_image_meerpbcor.load_beam")
 @patch("meersolar.meerpipeline.single_image_meerpbcor.get_beam_interpolator")
 @patch("meersolar.meerpipeline.single_image_meerpbcor.Parallel")
@@ -324,7 +364,7 @@ def test_get_image_beam(
         "CRVAL3": 1420000000.0,
         "DATE-OBS": "2021-01-01T00:00:00",
         "NAXIS1": 2,
-        "NAXIS2": 2
+        "NAXIS2": 2,
     }
 
     # Mock beam
@@ -352,15 +392,25 @@ def test_get_image_beam(
 
     assert beam.shape == (2, 2, 2, 2)
     assert beam.dtype == np.complex64
-    
+
+
 @pytest.mark.parametrize("apply_parang", [True, False])
-@patch("meersolar.meerpipeline.single_image_meerpbcor.fits.getheader", return_value={"CTYPE3": "FREQ", "CRVAL3": 1.4e9, "DATE-OBS": "2021-01-01T12:00:00"})
-@patch("meersolar.meerpipeline.single_image_meerpbcor.put_IQUV", return_value="/mock/path/mock_image_pbcor.fits")
+@patch(
+    "meersolar.meerpipeline.single_image_meerpbcor.fits.getheader",
+    return_value={"CTYPE3": "FREQ", "CRVAL3": 1.4e9, "DATE-OBS": "2021-01-01T12:00:00"},
+)
+@patch(
+    "meersolar.meerpipeline.single_image_meerpbcor.put_IQUV",
+    return_value="/mock/path/mock_image_pbcor.fits",
+)
 @patch("meersolar.meerpipeline.single_image_meerpbcor.make_stokes")
 @patch("meersolar.meerpipeline.single_image_meerpbcor.get_brightness")
 @patch("meersolar.meerpipeline.single_image_meerpbcor.get_IQUV")
 @patch("meersolar.meerpipeline.single_image_meerpbcor.get_image_beam")
-@patch("meersolar.meerpipeline.single_image_meerpbcor.os.path.basename", return_value="mock_image.fits")
+@patch(
+    "meersolar.meerpipeline.single_image_meerpbcor.os.path.basename",
+    return_value="mock_image.fits",
+)
 def test_get_pbcor_image(
     mock_basename,
     mock_get_image_beam,
@@ -378,8 +428,8 @@ def test_get_pbcor_image(
             mock_beam[i, j] = np.array([[1 + 1j, 2], [3, 4 + 1j]], dtype=np.complex64)
     mock_get_image_beam.return_value = mock_beam
     mock_I = np.ones((2, 2), dtype=np.float32)
-    mock_I[0,0]=2.0
-    mock_I[0,1]=3.0
+    mock_I[0, 0] = 2.0
+    mock_I[0, 1] = 3.0
     stokes_dict = {"I": mock_I, "Q": mock_I, "U": mock_I, "V": mock_I}
     mock_get_IQUV.return_value = stokes_dict
     B_mock = np.ones((2, 2, 2, 2), dtype=np.complex64)
@@ -403,20 +453,23 @@ def test_get_pbcor_image(
     mock_get_brightness.assert_called_once()
     mock_make_stokes.assert_called_once()
     mock_put_IQUV.assert_called_once()
-    
-    
+
+
 @pytest.mark.parametrize(
     "imagename_exists, pbdir_given, pbcor_success, expected_msg",
     [
-        (True, True, True, 0),   # Success case
+        (True, True, True, 0),  # Success case
         (True, True, False, 1),  # get_pbcor_image returns None
-        (True, False, False, 1), # pbdir not provided
-        (False, True, False, 1), # imagename doesn't exist
+        (True, False, False, 1),  # pbdir not provided
+        (False, True, False, 1),  # imagename doesn't exist
     ],
 )
 @patch("meersolar.meerpipeline.single_image_meerpbcor.get_pbcor_image")
 @patch("meersolar.meerpipeline.single_image_meerpbcor.save_pid")
-@patch("meersolar.meerpipeline.single_image_meerpbcor.get_cachedir", return_value="/mock/cache")
+@patch(
+    "meersolar.meerpipeline.single_image_meerpbcor.get_cachedir",
+    return_value="/mock/cache",
+)
 @patch("os.makedirs")
 @patch("os.path.exists")
 @patch("os.getpid", return_value=1234)
@@ -435,7 +488,7 @@ def test_main_function(
     imagename = "mock_image.fits"
     pbdir = "pbdir" if pbdir_given else ""
     pbcor_dir = "pbcor"
-    
+
     def exists_side_effect(path):
         if path == imagename:
             return imagename_exists
@@ -444,7 +497,9 @@ def test_main_function(
         return False
 
     mock_exists.side_effect = exists_side_effect
-    mock_get_pbcor_image.return_value = "mock_image.pbcor.fits" if pbcor_success else None
+    mock_get_pbcor_image.return_value = (
+        "mock_image.pbcor.fits" if pbcor_success else None
+    )
 
     msg = main(
         imagename=imagename,
@@ -465,12 +520,21 @@ def test_main_function(
     "argv, expected_exit_code",
     [
         (["prog.py"], 1),  # No arguments, should print help and exit
-        (["prog.py", "mock_image.fits", "--pbdir", "pb", "--pbcor_dir", "pc"], 0),  # Success case
+        (
+            ["prog.py", "mock_image.fits", "--pbdir", "pb", "--pbcor_dir", "pc"],
+            0,
+        ),  # Success case
     ],
 )
-@patch("meersolar.meerpipeline.single_image_meerpbcor.get_pbcor_image", return_value="mock_image.pbcor.fits")
+@patch(
+    "meersolar.meerpipeline.single_image_meerpbcor.get_pbcor_image",
+    return_value="mock_image.pbcor.fits",
+)
 @patch("meersolar.meerpipeline.single_image_meerpbcor.save_pid")
-@patch("meersolar.meerpipeline.single_image_meerpbcor.get_cachedir", return_value="/mock/cache")
+@patch(
+    "meersolar.meerpipeline.single_image_meerpbcor.get_cachedir",
+    return_value="/mock/cache",
+)
 @patch("os.makedirs")
 @patch("os.path.exists", return_value=True)
 @patch("os.getpid", return_value=5678)
@@ -495,4 +559,3 @@ def test_cli_function(
         else:
             result = cli()
             assert result == expected_exit_code
-  

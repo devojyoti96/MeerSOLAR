@@ -16,7 +16,7 @@ from meersolar.utils.basic_utils import (
     split_into_chunks,
     get_cachedir,
 )
-from meersolar.utils.resource_utils import drop_cache, limit_threads, tmp_with_cache_rel
+from meersolar.utils.resource_utils import drop_cache, limit_threads
 from meersolar.utils.logger_utils import (
     init_logger,
     clean_shutdown,
@@ -26,16 +26,17 @@ from meersolar.utils.proc_manage_utils import (
     run_limited_memory_task,
     get_dask_client,
     save_pid,
-    get_nprocess_meersolar,
 )
 from meersolar.utils.ms_metadata import (
     get_pol_names,
-    get_cal_target_scans,
-    get_valid_scans,
     get_timeranges_for_scan,
-    get_bad_chans,
     get_common_spw,
     get_ms_scan_size,
+)
+from meersolar.utils.meer_utils import (
+    get_cal_target_scans,
+    get_valid_scans,
+    get_bad_chans,
 )
 from meersolar.utils.casatasks import single_mstransform
 
@@ -157,56 +158,52 @@ def partion_ms(
     total_required_size = round(2 * np.nansum(scan_sizes), 2)
     task = delayed(single_mstransform)(dry_run=True)
     mem_limit = run_limited_memory_task(task, dask_dir=workdir)
-    os.environ["TMPDIR"] = workdir
-    with tmp_with_cache_rel(
-        total_required_size, workdir, prefix="tmp_meersolar_partition_"
-    ) as temp_workdir:
-        dask_client, dask_cluster, n_jobs, n_threads, mem_limit = get_dask_client(
-            len(scan_list),
-            dask_dir=temp_workdir,
-            cpu_frac=cpu_frac,
-            mem_frac=mem_frac,
-            min_mem_per_job=mem_limit / 0.6,
+    dask_client, dask_cluster, n_jobs, n_threads, mem_limit = get_dask_client(
+        len(scan_list),
+        dask_dir=workdir,
+        cpu_frac=cpu_frac,
+        mem_frac=mem_frac,
+        min_mem_per_job=mem_limit / 0.6,
+    )
+    tasks = []
+    for i in range(len(scan_list)):
+        scan = scan_list[i]
+        outputvis = f"{workdir}/scan_{scan}.ms"
+        task = delayed(single_mstransform)(
+            msname=msname,
+            outputms=outputvis,
+            scan=str(scan),
+            field="",
+            corr=corr,
+            width=width,
+            timebin=timebin,
+            n_threads=n_threads,
+            numsubms=1,
         )
-        tasks = []
-        for i in range(len(scan_list)):
-            scan = scan_list[i]
-            outputvis = os.path.join(temp_workdir, f"scan_{scan}.ms")
-            task = delayed(single_mstransform)(
-                msname=msname,
-                outputms=outputvis,
-                scan=str(scan),
-                field="",
-                corr=corr,
-                width=width,
-                timebin=timebin,
-                n_threads=n_threads,
-                numsubms=1,
-            )
-            tasks.append(task)
-        splited_ms_list = compute(*tasks)
-        dask_client.close()
-        dask_cluster.close()
-        splited_ms_list_copy = copy.deepcopy(splited_ms_list)
-        for ms in splited_ms_list:
-            if ms is None:
-                splited_ms_list_copy.remove(ms)
-        splited_ms_list = copy.deepcopy(splited_ms_list_copy)
-        outputms = outputms.rstrip("/")
-        if os.path.exists(outputms):
-            os.system("rm -rf " + outputms)
-        if os.path.exists(outputms + ".flagversions"):
-            os.system("rm -rf " + outputms + ".flagversions")
-        if len(splited_ms_list) == 0:
-            print("No splited ms to concat.")
-        elif len(splited_ms_list) == 1:
-            os.system(f"mv {splited_ms_list[0]} {outputms}")
-        else:
-            print("Making multi-MS ....")
-            from casatasks import virtualconcat
+        tasks.append(task)
+    splited_ms_list = list(compute(*tasks))
+    dask_client.close()
+    dask_cluster.close()
+    splited_ms_list_copy = copy.deepcopy(splited_ms_list)
+    for ms in splited_ms_list:
+        if ms is None:
+            splited_ms_list_copy.remove(ms)
+    splited_ms_list = copy.deepcopy(splited_ms_list_copy)
+    outputms = outputms.rstrip("/")
+    if os.path.exists(outputms):
+        os.system("rm -rf " + outputms)
+    if os.path.exists(outputms + ".flagversions"):
+        os.system("rm -rf " + outputms + ".flagversions")
+    if len(splited_ms_list) == 0:
+        print("No splited ms to concat.")
+    elif len(splited_ms_list) == 1:
+        os.system(f"mv {splited_ms_list[0]} {outputms}")
+    else:
+        print("Making multi-MS ....")
+        from casatasks import virtualconcat
 
-            with suppress_casa_output():
-                virtualconcat(vis=splited_ms_list, concatvis=outputms)
+        with suppress_casa_output():
+            virtualconcat(vis=splited_ms_list, concatvis=outputms)
     print("##################")
     print("Total time taken : " + str(time.time() - start_time) + "s")
     print("##################\n")
@@ -283,7 +280,11 @@ def main(
     # Logger
     ############
     observer = None
-    if start_remote_log and os.path.exists(f"{workdir}/jobname_password.npy") and logfile is not None:
+    if (
+        start_remote_log
+        and os.path.exists(f"{workdir}/jobname_password.npy")
+        and logfile is not None
+    ):
         time.sleep(5)
         jobname, password = np.load(
             f"{workdir}/jobname_password.npy", allow_pickle=True
@@ -292,7 +293,7 @@ def main(
             observer = init_logger(
                 "partition_cal", logfile, jobname=jobname, password=password
             )
-    if observer==None:
+    if observer == None:
         print("Remote link or jobname is blank. Not transmiting to remote logger.")
     ###########
 
@@ -329,6 +330,7 @@ def main(
         drop_cache(workdir)
         clean_shutdown(observer)
     return msg
+
 
 def cli():
     parser = argparse.ArgumentParser(
@@ -428,8 +430,8 @@ def cli():
         sys.exit(1)
 
     args = parser.parse_args()
-    
-    msg=main(
+
+    msg = main(
         msname=args.msname,
         outputms=args.outputms,
         workdir=args.workdir,
@@ -446,6 +448,7 @@ def cli():
         start_remote_log=args.start_remote_log,
     )
     return msg
+
 
 if __name__ == "__main__":
     result = cli()

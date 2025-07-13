@@ -665,7 +665,7 @@ def main(
 ):
     """
     Single image primary beam correction for MeerKAT
-    
+
     Parameters
     ----------
     imagename : str
@@ -685,13 +685,13 @@ def main(
     ncpu : int, optional
         Number of CPUs to use
     jobid : str, optional
-        Job ID 
-    
+        Job ID
+
     Returns
     -------
     int
         Success message
-    """    
+    """
     pid = os.getpid()
     cachedir = get_cachedir()
     save_pid(pid, f"{cachedir}/pids/pids_{jobid}.txt")
@@ -703,8 +703,8 @@ def main(
                 msg = 1
             else:
                 os.makedirs(pbdir, exist_ok=True)
-                if pbcor_dir=="":
-                    pbcor_dir=pbdir
+                if pbcor_dir == "":
+                    pbcor_dir = pbdir
                 os.makedirs(pbcor_dir, exist_ok=True)
                 pbcor_image = get_pbcor_image(
                     imagename,
@@ -729,6 +729,7 @@ def main(
         traceback.print_exc()
         msg = 1
     return msg
+
 
 def cli():
     parser = argparse.ArgumentParser(
@@ -793,8 +794,8 @@ def cli():
         sys.exit(1)
 
     args = parser.parse_args()
-    
-    msg =  main(
+
+    msg = main(
         imagename=args.imagename,
         pbdir=args.pbdir,
         pbcor_dir=args.pbcor_dir,
@@ -806,7 +807,8 @@ def cli():
         jobid=args.jobid,
     )
     return msg
-    
+
+
 if __name__ == "__main__":
     result = cli()
     os._exit(result)

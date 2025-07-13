@@ -26,15 +26,17 @@ from meersolar.utils.proc_manage_utils import (
     run_limited_memory_task,
     get_dask_client,
     save_pid,
-    get_nprocess_meersolar,
+    get_nprocess_solarpipe,
 )
 from meersolar.utils.ms_metadata import (
     get_pol_names,
+    get_timeranges_for_scan,
+    get_common_spw,
+)
+from meersolar.utils.meer_utils import (
     get_cal_target_scans,
     get_valid_scans,
-    get_timeranges_for_scan,
     get_bad_chans,
-    get_common_spw,
 )
 from meersolar.utils.casatasks import single_mstransform
 
@@ -303,7 +305,7 @@ def split_target_scans(
                         min_mem_per_job=mem_limit / 0.6,
                     )
                 )
-                results = compute(*tasks)
+                results = list(compute(*tasks))
                 dask_client.close()
                 dask_cluster.close()
                 for r in results:
@@ -326,13 +328,13 @@ def split_target_scans(
                     chunk_tasks = tasks[0 : min(n_jobs, max_n_jobs)]
                     for ctask in chunk_tasks:
                         tasks.remove(ctask)
-                    results = compute(*chunk_tasks)
+                    results = list(compute(*chunk_tasks))
                     dask_client.close()
                     dask_cluster.close()
                     for r in results:
                         splited_ms_list.append(r)
                     n_current_process = (
-                        get_nprocess_meersolar(workdir) - 1
+                        get_nprocess_solarpipe(workdir) - 1
                     )  # One is subtracted for the current process
                     if len(tasks) == 0:
                         break
@@ -451,7 +453,7 @@ def main(
     cachedir = get_cachedir()
     save_pid(pid, f"{cachedir}/pids/pids_{jobid}.txt")
 
-    if workdir=="":
+    if workdir == "":
         workdir = os.path.dirname(os.path.abspath(msname)) + "/workdir"
     os.makedirs(workdir, exist_ok=True)
 
@@ -459,7 +461,11 @@ def main(
     # Logger
     ############
     observer = None
-    if start_remote_log and os.path.exists(f"{workdir}/jobname_password.npy") and logfile is not None:
+    if (
+        start_remote_log
+        and os.path.exists(f"{workdir}/jobname_password.npy")
+        and logfile is not None
+    ):
         time.sleep(5)
         jobname, password = np.load(
             f"{workdir}/jobname_password.npy", allow_pickle=True
@@ -468,10 +474,10 @@ def main(
             observer = init_logger(
                 "do_target_split", logfile, jobname=jobname, password=password
             )
-    if observer==None:
+    if observer == None:
         print("Remote link or jobname is blank. Not transmiting to remote logger.")
     ###########
-    
+
     try:
         if msname and os.path.exists(msname):
             print("\n###################################")
@@ -511,6 +517,7 @@ def main(
         drop_cache(workdir)
         clean_shutdown(observer)
     return msg
+
 
 def cli():
     parser = argparse.ArgumentParser(
@@ -658,8 +665,8 @@ def cli():
         sys.exit(1)
 
     args = parser.parse_args()
-    
-    msg=main(
+
+    msg = main(
         msname=args.msname,
         workdir=args.workdir,
         datacolumn=args.datacolumn,
@@ -684,8 +691,8 @@ def cli():
         start_remote_log=args.start_remote_log,
     )
     return msg
-    
-    
+
+
 if __name__ == "__main__":
     result = cli()
     print(

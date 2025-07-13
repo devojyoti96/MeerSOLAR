@@ -6,22 +6,40 @@ from meersolar.meerpipeline.import_model import *
 
 @patch("meersolar.meerpipeline.import_model.np.loadtxt")
 def test_get_polmodel_coeff(mock_loadtxt):
-    freq = np.array([
-        1.022, 1.465, 1.865, 2.565, 3.565, 4.885,
-        6.680, 8.435, 11.320, 14.065, 16.564
-    ])
-    I = np.array([
-        17.46, 14.64, 13.03, 10.85, 8.94, 7.33,
-        5.97, 5.12, 4.12, 3.54, 3.15
-    ])
-    pfrac = np.array([
-        0.08618, 0.09794, 0.10122, 0.10575, 0.11153,
-        0.11525, 0.11858, 0.12045, 0.12261, 0.12303, 0.12544
-    ])
-    pangle = np.array([
-        0.57632, 0.57261, 0.57613, 0.57580, 0.57624,
-        0.57503, 0.57758, 0.57827, 0.58412, 0.59534, 0.60172
-    ])
+    freq = np.array(
+        [1.022, 1.465, 1.865, 2.565, 3.565, 4.885, 6.680, 8.435, 11.320, 14.065, 16.564]
+    )
+    I = np.array([17.46, 14.64, 13.03, 10.85, 8.94, 7.33, 5.97, 5.12, 4.12, 3.54, 3.15])
+    pfrac = np.array(
+        [
+            0.08618,
+            0.09794,
+            0.10122,
+            0.10575,
+            0.11153,
+            0.11525,
+            0.11858,
+            0.12045,
+            0.12261,
+            0.12303,
+            0.12544,
+        ]
+    )
+    pangle = np.array(
+        [
+            0.57632,
+            0.57261,
+            0.57613,
+            0.57580,
+            0.57624,
+            0.57503,
+            0.57758,
+            0.57827,
+            0.58412,
+            0.59534,
+            0.60172,
+        ]
+    )
     mock_loadtxt.return_value = (freq, I, pfrac, pangle)
     ref_freq, I0, polyI, poly_pfrac, poly_pangle = get_polmodel_coeff("dummy.txt")
     assert ref_freq == freq[0]
@@ -30,12 +48,16 @@ def test_get_polmodel_coeff(mock_loadtxt):
     assert len(poly_pfrac) == 6
     assert len(poly_pangle) == 6
     assert all(isinstance(x, float) for x in polyI)
-    
-@pytest.mark.parametrize("field_name, dry_run, expected", [
-    ("3C286", True, 2.5),        # dry_run returns memory usage
-    ("3C286", False, None),      # full run calls setjy
-    ("Unknown", False, 1),       # unknown field returns 1
-])
+
+
+@pytest.mark.parametrize(
+    "field_name, dry_run, expected",
+    [
+        ("3C286", True, 2.5),  # dry_run returns memory usage
+        ("3C286", False, None),  # full run calls setjy
+        ("Unknown", False, 1),  # unknown field returns 1
+    ],
+)
 @patch("meersolar.meerpipeline.import_model.traceback.print_exc")
 @patch("meersolar.meerpipeline.import_model.suppress_casa_output")
 @patch("casatasks.setjy")
@@ -55,13 +77,13 @@ def test_polcal_setjy(
 ):
     mock_process.return_value.memory_info.return_value.rss = 2.5 * 1024**3
     mock_getmodel.return_value = (
-        1.0, 10.0, [0.1, 0.01, -0.001], [0.05, 0.01], [0.3, -0.1]
+        1.0,
+        10.0,
+        [0.1, 0.01, -0.001],
+        [0.05, 0.01],
+        [0.3, -0.1],
     )
-    result = polcal_setjy(
-        msname="test.ms",
-        field_name=field_name,
-        dry_run=dry_run
-    )
+    result = polcal_setjy(msname="test.ms", field_name=field_name, dry_run=dry_run)
     if dry_run:
         assert isinstance(result, float)
         assert round(result, 1) == expected
@@ -71,11 +93,15 @@ def test_polcal_setjy(
     else:
         assert result == expected
         mock_setjy.assert_called_once()
-        
-@pytest.mark.parametrize("dry_run, expected", [
-    (True, 2.5),     # dry-run: returns memory
-    (False, None),   # normal run
-])
+
+
+@pytest.mark.parametrize(
+    "dry_run, expected",
+    [
+        (True, 2.5),  # dry-run: returns memory
+        (False, None),  # normal run
+    ],
+)
 @patch("meersolar.meerpipeline.import_model.traceback.print_exc")
 @patch("meersolar.meerpipeline.import_model.suppress_casa_output")
 @patch("casatasks.setjy")
@@ -104,12 +130,16 @@ def test_phasecal_setjy(
     else:
         assert result == expected
         mock_setjy.assert_called_once()
-      
-@pytest.mark.parametrize("fluxcal_fields, expected_return, system_status", [
-    ([], 1, 0),  # No flux calibrators → return 1
-    (["J0408-6545"], 0, 0),  # Success path → return 0
-    (["J0408-6545"], 0, 1),  # Error path in crystalball (still continue) → return 0
-])
+
+
+@pytest.mark.parametrize(
+    "fluxcal_fields, expected_return, system_status",
+    [
+        ([], 1, 0),  # No flux calibrators → return 1
+        (["J0408-6545"], 0, 0),  # Success path → return 0
+        (["J0408-6545"], 0, 1),  # Error path in crystalball (still continue) → return 0
+    ],
+)
 @patch("meersolar.meerpipeline.import_model.os.system")
 @patch("meersolar.meerpipeline.import_model.suppress_casa_output")
 @patch("meersolar.meerpipeline.import_model.get_band_name")
@@ -123,12 +153,10 @@ def test_import_fluxcal_models(
     mock_system,
     fluxcal_fields,
     expected_return,
-    system_status
+    system_status,
 ):
     mslist = ["test1.ms", "test2.ms"]
-    fluxcal_scans = {
-        "J0408-6545": ["1", "2"]
-    }
+    fluxcal_scans = {"J0408-6545": ["1", "2"]}
     mock_get_band.return_value = "U"
     mock_get_scans.side_effect = [["1"], ["2"]]
     mock_system.return_value = system_status
@@ -143,24 +171,39 @@ def test_import_fluxcal_models(
     assert result == expected_return
     if fluxcal_fields:
         assert mock_system.call_count >= 1
-        assert any("crystalball" in str(call.args[0]) for call in mock_system.call_args_list)
+        assert any(
+            "crystalball" in str(call.args[0]) for call in mock_system.call_args_list
+        )
     else:
         mock_system.assert_not_called()
-        
+
+
 def test_import_phasecal_models(dummy_submsname):
-    mslist=[f"{dummy_submsname}/SUBMSS/test_subms.ms.0002.ms",f"{dummy_submsname}/SUBMSS/test_subms.ms.0003.ms"]
-    workdir=os.getcwd()
+    mslist = [
+        f"{dummy_submsname}/SUBMSS/test_subms.ms.0002.ms",
+        f"{dummy_submsname}/SUBMSS/test_subms.ms.0003.ms",
+    ]
+    workdir = os.getcwd()
     phasecal_fields, phasecal_scans, phasecal_flux_list = get_phasecals(dummy_submsname)
-    result=import_phasecal_models(mslist, phasecal_fields, phasecal_scans, workdir, cpu_frac=0.8, mem_frac=0.8)
-    assert result==0
-    
+    result = import_phasecal_models(
+        mslist, phasecal_fields, phasecal_scans, workdir, cpu_frac=0.8, mem_frac=0.8
+    )
+    assert result == 0
+
+
 def test_import_polcal_models(dummy_submsname):
-    mslist=[f"{dummy_submsname}/SUBMSS/test_subms.ms.0002.ms",f"{dummy_submsname}/SUBMSS/test_subms.ms.0003.ms"]
-    workdir=os.getcwd()
+    mslist = [
+        f"{dummy_submsname}/SUBMSS/test_subms.ms.0002.ms",
+        f"{dummy_submsname}/SUBMSS/test_subms.ms.0003.ms",
+    ]
+    workdir = os.getcwd()
     polcal_fields, polcal_scans = get_polcals(dummy_submsname)
-    result=import_polcal_models(mslist, polcal_fields, polcal_scans, workdir, cpu_frac=0.8, mem_frac=0.8)
-    assert result==1
-    
+    result = import_polcal_models(
+        mslist, polcal_fields, polcal_scans, workdir, cpu_frac=0.8, mem_frac=0.8
+    )
+    assert result == 1
+
+
 @patch("meersolar.meerpipeline.import_model.time.sleep")
 @patch("meersolar.meerpipeline.import_model.drop_cache")
 @patch("meersolar.meerpipeline.import_model.import_polcal_models")
@@ -181,7 +224,7 @@ def test_import_all_models(
     mock_phase_import,
     mock_pol_import,
     mock_drop_cache,
-    mock_sleep
+    mock_sleep,
 ):
     msname = "test.ms"
     workdir = "/mock/work"
@@ -200,13 +243,14 @@ def test_import_all_models(
     assert mock_phase_import.called
     assert mock_pol_import.called
     assert mock_drop_cache.call_count == 2
-    
+
+
 @pytest.mark.parametrize(
     "ms_exists, import_result, expected_msg",
     [
-        (True, (0, 0, 0), 0),     # All good
-        (True, (1, 0, 0), 1),     # Fluxcal failed
-        (False, (1, 1, 1), 1),    # MS doesn't exist
+        (True, (0, 0, 0), 0),  # All good
+        (True, (1, 0, 0), 1),  # Fluxcal failed
+        (False, (1, 1, 1), 1),  # MS doesn't exist
     ],
 )
 @patch("meersolar.meerpipeline.import_model.import_all_models")
@@ -296,6 +340,3 @@ def test_cli_function(
         else:
             result = cli()
             assert result == 0
-
-
-        

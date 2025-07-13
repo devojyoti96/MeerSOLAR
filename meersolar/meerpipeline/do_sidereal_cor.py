@@ -96,7 +96,7 @@ def cor_sidereal_motion(
             mem_frac=mem_frac,
             min_mem_per_job=mem_limit / 0.6,
         )
-        results = compute(*tasks)
+        results = list(compute(*tasks))
         dask_client.close()
         dask_cluster.close()
         splited_ms_list_phaserotated = []
@@ -146,7 +146,7 @@ def main(
     start_remote_log=False,
 ):
     """
-    Run a parallel processing pipeline for solar sidereal motion correction 
+    Run a parallel processing pipeline for solar sidereal motion correction
 
     Parameters
     ----------
@@ -182,16 +182,18 @@ def main(
 
     mslist = mslist.split(",")
     if workdir == "":
-        workdir = (
-            os.path.dirname(os.path.abspath(mslist[0])) + "/workdir"
-        )
+        workdir = os.path.dirname(os.path.abspath(mslist[0])) + "/workdir"
     os.makedirs(workdir, exist_ok=True)
 
     ############
     # Logger
     ############
     observer = None
-    if start_remote_log and os.path.exists(f"{workdir}/jobname_password.npy") and logfile is not None:
+    if (
+        start_remote_log
+        and os.path.exists(f"{workdir}/jobname_password.npy")
+        and logfile is not None
+    ):
         time.sleep(5)
         jobname, password = np.load(
             f"{workdir}/jobname_password.npy", allow_pickle=True
@@ -200,10 +202,10 @@ def main(
             observer = init_logger(
                 "do_sidereal_cor", logfile, jobname=jobname, password=password
             )
-    if observer==None:
+    if observer == None:
         print("Remote link or jobname is blank. Not transmiting to remote logger.")
     ###########
-   
+
     try:
         if len(mslist) == 0:
             print("Please provide a list of measurement sets.")
@@ -228,6 +230,7 @@ def main(
         clean_shutdown(observer)
     return msg
 
+
 def cli():
     parser = argparse.ArgumentParser(
         description="Correct measurement sets for sidereal motion",
@@ -244,7 +247,7 @@ def cli():
         help="Comma-separated list of measurement sets (required positional argument)",
     )
     basic_args.add_argument("--workdir", type=str, default="", help="Working directory")
-    
+
     # Advanced parameters
     adv_args = parser.add_argument_group(
         "###################\nAdvanced calibration and imaging parameters\n###################"
@@ -252,7 +255,7 @@ def cli():
     adv_args.add_argument(
         "--start_remote_log", action="store_true", help="Start remote logging"
     )
-    
+
     # Resource management parameters
     hard_args = parser.add_argument_group(
         "###################\nHardware resource management parameters\n###################"
@@ -293,8 +296,8 @@ def cli():
         sys.exit(1)
 
     args = parser.parse_args()
-    
-    msg=main(
+
+    msg = main(
         mslist=args.mslist,
         workdir=args.workdir,
         cpu_frac=args.cpu_frac,
@@ -306,8 +309,8 @@ def cli():
         start_remote_log=args.start_remote_log,
     )
     return msg
-    
-    
+
+
 if __name__ == "__main__":
     result = cli()
     print(

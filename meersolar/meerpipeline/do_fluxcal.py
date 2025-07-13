@@ -31,13 +31,15 @@ from meersolar.utils.proc_manage_utils import (
 from meersolar.utils.ms_metadata import (
     get_ms_size,
     get_ms_scan_size,
+)
+from meersolar.utils.meer_utils import (
     get_fluxcals,
     get_cal_target_scans,
     get_bad_chans,
     get_bad_ants,
     get_valid_scans,
+    determine_noise_diode_cal_scan,
 )
-from meersolar.utils.calibration import determine_noise_diode_cal_scan
 from meersolar.meerpipeline.flagging import single_ms_flag
 from meersolar.meerpipeline.import_model import import_fluxcal_models
 
@@ -142,7 +144,7 @@ def split_autocorr(
             )
         )
     if len(tasks) > 0:
-        autocorr_mslist = compute(*tasks)
+        autocorr_mslist = list(compute(*tasks))
     else:
         autocorr_mslist = []
     dask_client.close()
@@ -461,7 +463,7 @@ def estimate_att(
                     memory_limit=mem_limit,
                 )
             )
-        results = compute(*tasks)
+        results = list(compute(*tasks))
         dask_client.close()
         dask_cluster.close()
         for autocorr_msname in autocorr_mslist:
@@ -498,7 +500,7 @@ def estimate_att(
                 )
             )
             filtered_scans.append(scan)
-        results = compute(*tasks)
+        results = list(compute(*tasks))
         dask_client.close()
         dask_cluster.close()
         ##########################################
@@ -845,7 +847,11 @@ def main(
     # Logger
     ############
     observer = None
-    if start_remote_log and os.path.exists(f"{workdir}/jobname_password.npy") and logfile is not None:
+    if (
+        start_remote_log
+        and os.path.exists(f"{workdir}/jobname_password.npy")
+        and logfile is not None
+    ):
         time.sleep(5)
         jobname, password = np.load(
             f"{workdir}/jobname_password.npy", allow_pickle=True
@@ -854,7 +860,7 @@ def main(
             observer = init_logger(
                 "apply_selfcal", logfile, jobname=jobname, password=password
             )
-    if observer==None:
+    if observer == None:
         print("Remote link or jobname is blank. Not transmiting to remote logger.")
     ###########
     try:

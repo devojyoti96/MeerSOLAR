@@ -2,18 +2,29 @@ import pytest
 from unittest.mock import patch, MagicMock
 from meersolar.meerpipeline.do_apply_selfcal import *
 
+
 @patch("meersolar.meerpipeline.do_apply_selfcal.drop_cache")
 @patch("meersolar.meerpipeline.do_apply_selfcal.os.system")
 @patch("meersolar.meerpipeline.do_apply_selfcal.os.chdir")
-@patch("meersolar.meerpipeline.do_apply_selfcal.check_datacolumn_valid", return_value=True)
+@patch(
+    "meersolar.meerpipeline.do_apply_selfcal.check_datacolumn_valid", return_value=True
+)
 @patch("meersolar.meerpipeline.do_apply_selfcal.msmetadata")
 @patch("meersolar.meerpipeline.do_apply_selfcal.compute")
 @patch("meersolar.meerpipeline.do_apply_selfcal.get_dask_client")
 @patch("meersolar.meerpipeline.do_apply_selfcal.get_ms_size", return_value=1.0)
-@patch("meersolar.meerpipeline.do_apply_selfcal.run_limited_memory_task", return_value=4.0)
+@patch(
+    "meersolar.meerpipeline.do_apply_selfcal.run_limited_memory_task", return_value=4.0
+)
 @patch("meersolar.meerpipeline.do_apply_selfcal.delayed")
-@patch("meersolar.meerpipeline.do_apply_selfcal.glob.glob", return_value=["/tmp/caldir/selfcal_scan_1.gcal"])
-@patch("meersolar.meerpipeline.do_apply_selfcal.os.path.basename", side_effect=lambda x: x.split("/")[-1])
+@patch(
+    "meersolar.meerpipeline.do_apply_selfcal.glob.glob",
+    return_value=["/tmp/caldir/selfcal_scan_1.gcal"],
+)
+@patch(
+    "meersolar.meerpipeline.do_apply_selfcal.os.path.basename",
+    side_effect=lambda x: x.split("/")[-1],
+)
 def test_run_all_applysol(
     mock_basename,
     mock_glob,
@@ -54,8 +65,8 @@ def test_run_all_applysol(
     )
 
     assert result == 0
-    
-    
+
+
 @pytest.mark.parametrize(
     "mslist_str, caldir_exists, run_ok, expected_msg",
     [
@@ -65,7 +76,9 @@ def test_run_all_applysol(
     ],
 )
 @patch("meersolar.meerpipeline.do_apply_selfcal.save_pid")
-@patch("meersolar.meerpipeline.do_apply_selfcal.get_cachedir", return_value="/mock/cache")
+@patch(
+    "meersolar.meerpipeline.do_apply_selfcal.get_cachedir", return_value="/mock/cache"
+)
 @patch("os.makedirs")
 @patch("os.path.exists")
 @patch("os.getpid", return_value=5678)
@@ -123,6 +136,7 @@ def test_main_applysol(
     assert msg == expected_msg
     mock_makedirs.assert_any_call(workdir, exist_ok=True)
 
+
 @pytest.mark.parametrize(
     "argv, should_exit",
     [
@@ -131,13 +145,18 @@ def test_main_applysol(
             [
                 "prog.py",
                 "ms1.ms,ms2.ms",
-                "--workdir", "/mock/work",
-                "--caldir", "/mock/caldir",
+                "--workdir",
+                "/mock/work",
+                "--caldir",
+                "/mock/caldir",
                 "--overwrite_datacolumn",
                 "--force_apply",
-                "--cpu_frac", "0.6",
-                "--mem_frac", "0.7",
-                "--jobid", "321",
+                "--cpu_frac",
+                "0.6",
+                "--mem_frac",
+                "0.7",
+                "--jobid",
+                "321",
             ],
             False,
         ),
@@ -148,6 +167,7 @@ def test_cli_applysol(mock_main, argv, should_exit):
     with patch.object(sys, "argv", argv):
         if should_exit:
             import pytest
+
             with pytest.raises(SystemExit) as e:
                 cli()
             assert e.value.code == 1
@@ -155,4 +175,3 @@ def test_cli_applysol(mock_main, argv, should_exit):
             result = cli()
             assert result == 0
             assert mock_main.called
-

@@ -22,12 +22,14 @@ from meersolar.utils.proc_manage_utils import (
     save_pid,
 )
 from meersolar.utils.ms_metadata import (
+    get_ms_scans,
+    get_submsname_scans,
+)
+from meersolar.utils.meer_utils import (
     get_band_name,
     get_fluxcals,
     get_phasecals,
     get_polcals,
-    get_ms_scans,
-    get_submsname_scans,
 )
 from meersolar.utils.casatasks import correct_missing_col_subms
 
@@ -296,7 +298,7 @@ def import_phasecal_models(
                             n_threads=n_threads,
                         )
                     )
-        results = compute(*tasks)
+        results = list(compute(*tasks))
         dask_client.close()
         dask_cluster.close()
         print("Phasecal models are initiated.\n")
@@ -361,7 +363,7 @@ def import_polcal_models(
                             sub_msname, polcal_field, ismms=True, n_threads=n_threads
                         )
                     )
-        results = compute(*tasks)
+        results = list(compute(*tasks))
         dask_client.close()
         dask_cluster.close()
         return 0
@@ -504,7 +506,11 @@ def main(
     # Logger
     ############
     observer = None
-    if start_remote_log and os.path.exists(f"{workdir}/jobname_password.npy") and logfile is not None:
+    if (
+        start_remote_log
+        and os.path.exists(f"{workdir}/jobname_password.npy")
+        and logfile is not None
+    ):
         time.sleep(5)
         jobname, password = np.load(
             f"{workdir}/jobname_password.npy", allow_pickle=True
@@ -514,7 +520,7 @@ def main(
                 "import_model", logfile, jobname=jobname, password=password
             )
     ###########
-    
+
     try:
         if msname and os.path.exists(msname):
             fluxcal_result, phasecal_result, polcal_result = import_all_models(
@@ -548,6 +554,7 @@ def main(
         clean_shutdown(observer)
     return msg
 
+
 def cli():
     usage = "Import calibrator models"
     parser = argparse.ArgumentParser(
@@ -562,7 +569,7 @@ def cli():
     basic_args.add_argument(
         "--workdir", type=str, default="", help="Name of work directory"
     )
-    
+
     # Advanced parameters
     adv_args = parser.add_argument_group(
         "###################\nAdvanced parameters\n###################"
@@ -589,8 +596,8 @@ def cli():
         sys.exit(1)
 
     args = parser.parse_args()
-    
-    msg=main(
+
+    msg = main(
         msname=args.msname,
         workdir=args.workdir,
         cpu_frac=args.cpu_frac,
@@ -600,8 +607,8 @@ def cli():
         start_remote_log=args.start_remote_log,
     )
     return msg
-    
-    
+
+
 if __name__ == "__main__":
     result = cli()
     print(

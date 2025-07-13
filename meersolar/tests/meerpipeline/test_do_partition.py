@@ -2,14 +2,16 @@ import pytest
 from unittest.mock import patch, MagicMock
 from meersolar.meerpipeline.do_partition import *
 
+
 @patch("meersolar.meerpipeline.do_partition.msmetadata")
 @patch("meersolar.meerpipeline.do_partition.get_valid_scans", return_value=[1, 2])
 @patch("meersolar.meerpipeline.do_partition.get_pol_names", return_value="XX,YY")
 @patch("meersolar.meerpipeline.do_partition.get_ms_scan_size", return_value=1.0)
 @patch("meersolar.meerpipeline.do_partition.run_limited_memory_task", return_value=1.0)
 @patch("meersolar.meerpipeline.do_partition.get_dask_client")
-@patch("meersolar.meerpipeline.do_partition.tmp_with_cache_rel")
-@patch("meersolar.meerpipeline.do_partition.compute", return_value=["mock.ms", "mock.ms2"])
+@patch(
+    "meersolar.meerpipeline.do_partition.compute", return_value=["mock.ms", "mock.ms2"]
+)
 @patch("meersolar.meerpipeline.do_partition.single_mstransform")
 @patch("meersolar.meerpipeline.do_partition.suppress_casa_output")
 @patch("meersolar.meerpipeline.do_partition.os")
@@ -24,7 +26,6 @@ def test_partion_ms(
     mock_suppress,
     mock_single_transform,
     mock_compute,
-    mock_tmpdir,
     mock_get_dask_client,
     mock_memtask,
     mock_get_scan_size,
@@ -38,10 +39,6 @@ def test_partion_ms(
     mock_msmd.fieldnames.return_value = ["Field1", "Field2"]
     mock_msmd.fieldsforscan.return_value = [0]
     mock_msmetadata.return_value = mock_msmd
-    mock_context = MagicMock()
-    mock_context.__enter__.return_value = "/mock/tmp"
-    mock_context.__exit__.return_value = None
-    mock_tmpdir.return_value = mock_context
     mock_dask_client = MagicMock()
     mock_dask_cluster = MagicMock()
     mock_get_dask_client.return_value = (mock_dask_client, mock_dask_cluster, 2, 2, 1.0)
@@ -60,14 +57,14 @@ def test_partion_ms(
     )
     mock_virtualconcat.assert_called_once()
     assert result == "final.ms"
-    
-    
+
+
 @pytest.mark.parametrize(
     "ms_exists, partition_success, expected_msg",
     [
-        (True, True, 0),   # Successful partitioning
+        (True, True, 0),  # Successful partitioning
         (True, False, 1),  # partion_ms returns None or file missing
-        (False, False, 1), # Input MS does not exist
+        (False, False, 1),  # Input MS does not exist
     ],
 )
 @patch("meersolar.meerpipeline.do_partition.partion_ms")
@@ -76,7 +73,10 @@ def test_partion_ms(
 @patch("meersolar.meerpipeline.do_partition.os.makedirs")
 @patch("meersolar.meerpipeline.do_partition.os.path.exists")
 @patch("meersolar.meerpipeline.do_partition.os.getpid", return_value=12345)
-@patch("meersolar.meerpipeline.do_partition.os.path.abspath", side_effect=lambda x: f"/abs/{x}")
+@patch(
+    "meersolar.meerpipeline.do_partition.os.path.abspath",
+    side_effect=lambda x: f"/abs/{x}",
+)
 @patch("meersolar.meerpipeline.do_partition.os.path.dirname", return_value="/mock")
 @patch("meersolar.meerpipeline.do_partition.drop_cache")
 @patch("meersolar.meerpipeline.do_partition.clean_shutdown")
@@ -132,8 +132,3 @@ def test_main_partition(
     )
 
     assert msg == expected_msg
-    
-    
-
-    
-    

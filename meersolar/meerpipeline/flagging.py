@@ -24,16 +24,19 @@ from meersolar.utils.proc_manage_utils import (
     save_pid,
 )
 from meersolar.utils.ms_metadata import (
-    get_band_name,
-    get_fluxcals,
-    get_phasecals,
-    get_polcals,
     get_ms_scans,
     get_submsname_scans,
     check_datacolumn_valid,
     get_chunk_size,
-    get_bad_chans,
     get_bad_ants,
+)
+from meersolar.utils.meer_utils import (
+    get_band_name,
+    get_fluxcals,
+    get_phasecals,
+    get_polcals,
+    get_bad_chans,
+    get_good_chans,
 )
 from meersolar.utils.flagging import do_flag_backup
 from meersolar.utils.casatasks import correct_missing_col_subms
@@ -425,7 +428,7 @@ def do_flagging(
             )
             for ms in subms_list
         ]
-        results = compute(*tasks)
+        results = list(compute(*tasks))
         dask_client.close()
         dask_cluster.close()
         print("##################")
@@ -514,7 +517,11 @@ def main(
     # Logger
     ############
     observer = None
-    if start_remote_log and os.path.exists(f"{workdir}/jobname_password.npy") and logfile is not None:
+    if (
+        start_remote_log
+        and os.path.exists(f"{workdir}/jobname_password.npy")
+        and logfile is not None
+    ):
         time.sleep(5)
         jobname, password = np.load(
             f"{workdir}/jobname_password.npy", allow_pickle=True
@@ -523,7 +530,7 @@ def main(
             observer = init_logger(
                 "do_flagging", logfile, jobname=jobname, password=password
             )
-    if observer==None:
+    if observer == None:
         print("Remote link or jobname is blank. Not transmiting to remote logger.")
     ###########
 
@@ -555,6 +562,7 @@ def main(
         clean_shutdown(observer)
     return msg
 
+
 def cli():
     usage = "Initial flagging of calibrator data"
     parser = argparse.ArgumentParser(
@@ -576,7 +584,7 @@ def cli():
     # Advanced switches
     adv_args = parser.add_argument_group(
         "###################\nAdvanced parameters\n###################"
-    )    
+    )
     adv_args.add_argument(
         "--no_flag_bad_ants",
         dest="flag_bad_ants",
@@ -630,7 +638,7 @@ def cli():
         sys.exit(1)
 
     args = parser.parse_args()
-    
+
     msg = main(
         msname=args.msname,
         workdir=args.workdir,
@@ -649,7 +657,8 @@ def cli():
         start_remote_log=args.start_remote_log,
     )
     return msg
-    
+
+
 if __name__ == "__main__":
     result = cli()
     print(f"Final msg : {result}")

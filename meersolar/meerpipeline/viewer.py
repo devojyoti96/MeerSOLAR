@@ -320,7 +320,7 @@ class LogViewer(QWidget):
         QApplication.quit()
 
 
-def main():
+def cli():
     global LOG_DIR
     parser = argparse.ArgumentParser(
         description="MeerSOLAR Logger", formatter_class=SmartDefaultsHelpFormatter

@@ -308,7 +308,7 @@ def run_all_applysol(
     mem_frac=0.8,
 ):
     """
-    Apply self-calibrator solutions on all target scans
+    Apply basic-calibration solutions on all target scans
 
     Parameters
     ----------
@@ -388,7 +388,7 @@ def run_all_applysol(
             tasks = []
             for att_table in att_caltables:
                 tasks.append(delayed(scale_bandpass)(bandpass_table[0], att_table))
-            scaled_bandpass_list = compute(*tasks)
+            scaled_bandpass_list = list(compute(*tasks))
             dask_client.close()
             dask_cluster.close()
 
@@ -493,7 +493,7 @@ def run_all_applysol(
                         force_apply=force_apply,
                     )
                 )
-        results = compute(*tasks)
+        results = list(compute(*tasks))
         dask_client.close()
         dask_cluster.close()
         if np.nansum(results) == 0:
@@ -586,16 +586,18 @@ def main(
     save_pid(pid, f"{cachedir}/pids/pids_{jobid}.txt")
 
     if workdir == "":
-        workdir = (
-            os.path.dirname(os.path.abspath(mslist.split(",")[0])) + "/workdir"
-        )
+        workdir = os.path.dirname(os.path.abspath(mslist.split(",")[0])) + "/workdir"
     os.makedirs(workdir, exist_ok=True)
-    
+
     ############
     # Logger
     ############
     observer = None
-    if start_remote_log and os.path.exists(f"{workdir}/jobname_password.npy") and logfile is not None:
+    if (
+        start_remote_log
+        and os.path.exists(f"{workdir}/jobname_password.npy")
+        and logfile is not None
+    ):
         time.sleep(5)
         jobname, password = np.load(
             f"{workdir}/jobname_password.npy", allow_pickle=True
@@ -604,10 +606,10 @@ def main(
             observer = init_logger(
                 "apply_basiccal", logfile, jobname=jobname, password=password
             )
-    if observer==None:
+    if observer == None:
         print("Remote link or jobname is blank. Not transmiting to remote logger.")
     ############
-    
+
     try:
         print("\n###################################")
         print("Starting applying solutions...")
@@ -640,6 +642,7 @@ def main(
         drop_cache(workdir)
         clean_shutdown(observer)
     return msg
+
 
 def cli():
     parser = argparse.ArgumentParser(
@@ -725,8 +728,8 @@ def cli():
         sys.exit(1)
 
     args = parser.parse_args()
-    
-    msg=main(
+
+    msg = main(
         args.mslist,
         args.workdir,
         args.caldir,
@@ -742,8 +745,8 @@ def cli():
         jobid=args.jobid,
     )
     return msg
-    
-    
+
+
 if __name__ == "__main__":
     result = cli()
     print(

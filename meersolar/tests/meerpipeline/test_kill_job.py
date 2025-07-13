@@ -2,10 +2,11 @@ import pytest
 from unittest.mock import patch, MagicMock, mock_open
 from meersolar.meerpipeline.kill_job import *
 
+
 @pytest.mark.parametrize(
     "process_exists, child_count",
     [
-        (True, 2),   # Normal case: process exists with children
+        (True, 2),  # Normal case: process exists with children
         (False, 0),  # Error case: NoSuchProcess
     ],
 )
@@ -28,7 +29,7 @@ def test_kill_process_and_children(mock_process_cls, process_exists, child_count
         mock_parent.kill.assert_called_once()
     else:
         mock_process_cls.assert_called_once_with(12345)
-        
+
 
 @pytest.mark.parametrize(
     "pid_file_exists, expected_force_kill_called",
@@ -61,11 +62,13 @@ def test_kill_meerjob(
         ["123", "9999", "test.ms", "/mock/work", "/mock/out"],
         [111, 222],
     ]
+
     # Mock file existence
     def exists_side_effect(path):
         if "pids/pids_123.txt" in path:
             return pid_file_exists
         return True
+
     mock_exists.side_effect = exists_side_effect
 
     # Run the function
@@ -78,4 +81,3 @@ def test_kill_meerjob(
         mock_force_kill.assert_not_called()
     assert mock_system.call_args[0][0].startswith("rm -rf /mock/work/tmp_meersolar_")
     assert mock_drop_cache.call_count == 4
-    

@@ -22,7 +22,7 @@ from meersolar.utils.logger_utils import (
 )
 from meersolar.utils.proc_manage_utils import get_dask_client, save_pid
 from meersolar.utils.image_utils import generate_tb_map
-from meersolar.utils.ploting_utils import plot_in_hpc, save_in_hpc
+from meersolar.utils.meer_ploting_utils import plot_in_hpc, save_in_hpc
 
 logging.getLogger("distributed").setLevel(logging.WARNING)
 
@@ -134,7 +134,7 @@ def pbcor_all_images(
                     image, pbdir, pbcor_dir, apply_parang, jobid=jobid, ncpu=n_threads
                 )
                 tasks.append(task)
-            results = compute(*tasks)
+            results = list(compute(*tasks))
             dask_client.close()
             dask_cluster.close()
             successful_pbcor = 0
@@ -156,7 +156,7 @@ def pbcor_all_images(
                     image, pbdir, pbcor_dir, apply_parang, jobid=jobid, ncpu=n_threads
                 )
                 tasks.append(task)
-            results = compute(*tasks)
+            results = list(compute(*tasks))
             dask_client.close()
             dask_cluster.close()
             for r in results:
@@ -263,7 +263,7 @@ def main(
 ):
     """
     Primary beam correction of MeerKAT for a sets of images in a directory
-    
+
     Parameters
     ----------
     imagedir : str
@@ -286,7 +286,7 @@ def main(
         Job ID
     start_remote_log : bool, optional
         Start remote logger
-        
+
     Returns
     -------
     int
@@ -304,7 +304,11 @@ def main(
     # Logger
     ############
     observer = None
-    if start_remote_log and os.path.exists(f"{workdir}/jobname_password.npy") and logfile is not None:
+    if (
+        start_remote_log
+        and os.path.exists(f"{workdir}/jobname_password.npy")
+        and logfile is not None
+    ):
         time.sleep(5)
         jobname, password = np.load(
             f"{workdir}/jobname_password.npy", allow_pickle=True
@@ -314,7 +318,7 @@ def main(
                 "all_pbcor", logfile, jobname=jobname, password=password
             )
     ###########
-    
+
     try:
         if os.path.exists(imagedir):
             msg = pbcor_all_images(
@@ -402,8 +406,8 @@ def cli():
         sys.exit(1)
 
     args = parser.parse_args()
-    
-    msg=main(
+
+    msg = main(
         imagedir=args.imagedir,
         workdir=args.workdir,
         make_TB=args.make_TB,
@@ -416,8 +420,8 @@ def cli():
         start_remote_log=args.start_remote_log,
     )
     return msg
-    
-    
+
+
 if __name__ == "__main__":
     result = cli()
     print(
