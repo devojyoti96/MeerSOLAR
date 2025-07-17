@@ -68,3 +68,7 @@ source_suffix = {
     ".md": "markdown",
 }
 
+html_context = {
+    "display_github": False
+}
+
