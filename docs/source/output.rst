@@ -34,7 +34,7 @@ All final data products will be saved in ``<outputdir>``.
    .. mermaid::
 
        graph LR
-           WD["Work directory:<br>{workdir}"] --> CAL["Calibrator ms:<br>calibrator.ms"]
+           WD["Work directory:<br>workdir"] --> CAL["Calibrator ms:<br>calibrator.ms"]
            WD --> SCMS["`Self-cal ms(s):<br>selfcals_scan_*_spw_*.ms`"]
            WD --> SCDIR["`Self-cal directories:<br>selfcals_scan_*_spw_*_selfcal`"]
            WD --> TMS["`Target ms(s):<br>targets_scan_*_spw_*.ms`"]
@@ -55,23 +55,19 @@ All final data products will be saved in ``<outputdir>``.
            WD --> IMG["`Image directory:<br>imagedir_f_*_t_*_w_briggs_*`"]
            CALTABLE --> ATT["`Attenuator values:<br>*_attval_scan_*.npy`"]
            CALTABLE --> CTBL["`Caltables:<br>calibrator_caltable.bcal/gcal/kcal`"]
-           CALTABLE --> BPTBL["`Bandpass tables scaled:<br>calibrator_caltable_scan_*.bcal`"]
+           CALTABLE --> BPATT["`Bandpass tables scaled:<br>calibrator_caltable_att.bcal`"]
            CALTABLE --> SCTBL["`Self-cal tables:<br>selfcal_scan_*.gcal`"]
            IMG --> IMAGE["Fits image:<br>images"]
            IMG --> MODEL["Fits models:<br>models"]
            IMG --> RES["Fits residual:<br>residuals"]
            IMG --> PBCOR["`Primary beam<br>corrected images:<br>pbcor_images`"]
            IMG --> TBIMG["`Brightness temperature images:<br>tb_images`"]
-           IMG --> OVRPDF["Overlays of EUV:<br>PDF format:<br>overlays_pdfs"]
            IMG --> OVRPNG["Overlays of EUV:<br>PNG format:<br>overlays_pngs"]
            IMAGE --> IMAGEHPC["Radio images in HPC coordinate:<br>FITS format:<br>hpcs"]
            PBCOR --> PBCORHPC["Radio images in HPC coordinate:<br>FITS format:<br>hpcs"]
            TBIMG --> TBIMGHPC["Radio images in HPC coordinate:<br>FITS format:<br>hpcs"]
-           IMAGE --> IMAGEPDF["Quicklook in HPC coordinate:<br>PDF format:<br>pdfs"]
            IMAGE --> IMAGEPNG["Quicklook in HPC coordinate:<br>PNG format:<br>pngs"]
-           PBCOR --> PBCORPDF["Quicklook in HPC coordinate:<br>PDF format:<br>pdfs"]
            PBCOR --> PBCORPNG["Quicklook in HPC coordinate:<br>PNG format:<br>pngs"]
-           TBIMG --> TBIMGPDF["Quicklook in HPC coordinate:<br>PDF format:<br>pdfs"]
            TBIMG --> TBIMGPNG["Quicklook in HPC coordinate:<br>PNG format:<br>pngs"]
 
 Data products
@@ -120,6 +116,8 @@ Imaging products are available in ``imagedir_f_<freqres>_t_<timeres>_w_<weight>_
             RMSDYN  =  ``<rmsdyn>`` # RMS based dynamic range, ``<maxval/rms>``
                                                             
             MIMADYN =  ``<minmaxdyn>`` # Min-max based dynamic range, ``<maxval/abs(minval)>``  
+            
+            ATTCAL  =   ``<attcal>`` # Whether solar attenuation is calibrated or not
  
 2. **Primary beam corrected image fits** - Primary beam corrected fits images are available in ``imagedir_f_<freqres>_t_<timeres>_w_<weight>_<robust>/pbcor_images`` directory inside work directory.
 

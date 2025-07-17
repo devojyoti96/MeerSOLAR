@@ -60,6 +60,7 @@ myst_enable_extensions = [
     "colon_fence",
     "attrs_inline",
     "deflist",
+    "html_admonition", "html_image"
 ]
 
 source_suffix = {

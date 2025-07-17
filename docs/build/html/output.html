@@ -314,7 +314,7 @@ Note down the Job ID to view the logger.</p>
 <p class="admonition-title">Click here to see directory structure in work directory</p>
 <pre  class="mermaid">
         graph LR
-    WD[&quot;Work directory:&lt;br&gt;{workdir}&quot;] --&gt; CAL[&quot;Calibrator ms:&lt;br&gt;calibrator.ms&quot;]
+    WD[&quot;Work directory:&lt;br&gt;workdir&quot;] --&gt; CAL[&quot;Calibrator ms:&lt;br&gt;calibrator.ms&quot;]
     WD --&gt; SCMS[&quot;`Self-cal ms(s):&lt;br&gt;selfcals_scan_*_spw_*.ms`&quot;]
     WD --&gt; SCDIR[&quot;`Self-cal directories:&lt;br&gt;selfcals_scan_*_spw_*_selfcal`&quot;]
     WD --&gt; TMS[&quot;`Target ms(s):&lt;br&gt;targets_scan_*_spw_*.ms`&quot;]
@@ -333,23 +333,19 @@ Note down the Job ID to view the logger.</p>
     WD --&gt; IMG[&quot;`Image directory:&lt;br&gt;imagedir_f_*_t_*_w_briggs_*`&quot;]
     CALTABLE --&gt; ATT[&quot;`Attenuator values:&lt;br&gt;*_attval_scan_*.npy`&quot;]
     CALTABLE --&gt; CTBL[&quot;`Caltables:&lt;br&gt;calibrator_caltable.bcal/gcal/kcal`&quot;]
-    CALTABLE --&gt; BPTBL[&quot;`Bandpass tables scaled:&lt;br&gt;calibrator_caltable_scan_*.bcal`&quot;]
+    CALTABLE --&gt; BPATT[&quot;`Bandpass tables scaled:&lt;br&gt;calibrator_caltable_att.bcal`&quot;]
     CALTABLE --&gt; SCTBL[&quot;`Self-cal tables:&lt;br&gt;selfcal_scan_*.gcal`&quot;]
     IMG --&gt; IMAGE[&quot;Fits image:&lt;br&gt;images&quot;]
     IMG --&gt; MODEL[&quot;Fits models:&lt;br&gt;models&quot;]
     IMG --&gt; RES[&quot;Fits residual:&lt;br&gt;residuals&quot;]
     IMG --&gt; PBCOR[&quot;`Primary beam&lt;br&gt;corrected images:&lt;br&gt;pbcor_images`&quot;]
     IMG --&gt; TBIMG[&quot;`Brightness temperature images:&lt;br&gt;tb_images`&quot;]
-    IMG --&gt; OVRPDF[&quot;Overlays of EUV:&lt;br&gt;PDF format:&lt;br&gt;overlays_pdfs&quot;]
     IMG --&gt; OVRPNG[&quot;Overlays of EUV:&lt;br&gt;PNG format:&lt;br&gt;overlays_pngs&quot;]
     IMAGE --&gt; IMAGEHPC[&quot;Radio images in HPC coordinate:&lt;br&gt;FITS format:&lt;br&gt;hpcs&quot;]
     PBCOR --&gt; PBCORHPC[&quot;Radio images in HPC coordinate:&lt;br&gt;FITS format:&lt;br&gt;hpcs&quot;]
     TBIMG --&gt; TBIMGHPC[&quot;Radio images in HPC coordinate:&lt;br&gt;FITS format:&lt;br&gt;hpcs&quot;]
-    IMAGE --&gt; IMAGEPDF[&quot;Quicklook in HPC coordinate:&lt;br&gt;PDF format:&lt;br&gt;pdfs&quot;]
     IMAGE --&gt; IMAGEPNG[&quot;Quicklook in HPC coordinate:&lt;br&gt;PNG format:&lt;br&gt;pngs&quot;]
-    PBCOR --&gt; PBCORPDF[&quot;Quicklook in HPC coordinate:&lt;br&gt;PDF format:&lt;br&gt;pdfs&quot;]
     PBCOR --&gt; PBCORPNG[&quot;Quicklook in HPC coordinate:&lt;br&gt;PNG format:&lt;br&gt;pngs&quot;]
-    TBIMG --&gt; TBIMGPDF[&quot;Quicklook in HPC coordinate:&lt;br&gt;PDF format:&lt;br&gt;pdfs&quot;]
     TBIMG --&gt; TBIMGPNG[&quot;Quicklook in HPC coordinate:&lt;br&gt;PNG format:&lt;br&gt;pngs&quot;]
     </pre></div>
 </section>
@@ -387,6 +383,7 @@ Note down the Job ID to view the logger.</p>
 <p>MEDIAN  =  <code class="docutils literal notranslate"><span class="pre">&lt;median&gt;</span></code> # Median value on the solar disc</p>
 <p>RMSDYN  =  <code class="docutils literal notranslate"><span class="pre">&lt;rmsdyn&gt;</span></code> # RMS based dynamic range, <code class="docutils literal notranslate"><span class="pre">&lt;maxval/rms&gt;</span></code></p>
 <p>MIMADYN =  <code class="docutils literal notranslate"><span class="pre">&lt;minmaxdyn&gt;</span></code> # Min-max based dynamic range, <code class="docutils literal notranslate"><span class="pre">&lt;maxval/abs(minval)&gt;</span></code></p>
+<p>ATTCAL  =   <code class="docutils literal notranslate"><span class="pre">&lt;attcal&gt;</span></code> # Whether solar attenuation is calibrated or not</p>
 </div></blockquote>
 </div>
 </div>

@@ -1,73 +1,63 @@
 MeerSOLAR Flowchart
 =====================
-The pipeline follows several steps. By default, all steps are done. If user want, they can switch off any step. However, it will work only if the pipeline logic is still maintained.
 
-For example, if user switch off spliting the target scans, there will not be any target directory, if not present alreayd. In that case, no imaging will be performed. But, if user switched off self-calibration, pipeline will not perform self-calibration. Pipeline now only apply basic calibration and make the final images. 
+The pipeline follows several steps. By default, all steps are executed. If the user desires, they can selectively disable any step. However, the pipeline will only function correctly if its internal logic is maintained.
+
+For example, if the user disables splitting the target scans and no target directory exists beforehand, imaging will not be performed. However, if self-calibration is disabled, the pipeline will skip that step and proceed with applying basic calibrations and generating final images.
 
 .. admonition:: Recommendation
    :class: tip
-    
-   It is recommended to go through the flowchart of the pipeline and understand before playing with the pipeline keys.
+
+   It is recommended to go through the flowchart of the pipeline and understand it before modifying the pipeline keys.
 
 .. admonition:: Click here to see the MeerSOLAR pipeline flowchart
    :class: dropdown
-   
-   .. graphviz::
 
-      digraph G {
-           rankdir=TB;  // Top to Bottom
-           
-           Start [label="Start", shape=ellipse];
-           Decision1 [label="HPC?", shape=diamond];
-           Process1 [label="Fluxcal with\nnoise-diode", shape=box];
-           Process2 [label="Target spliting\nin parallel", shape=box];
-           Decision2 [label="Do basic\ncalibration?", shape=diamond];
-           Process3 [label="Make multi-ms using\ncalibrator scans", shape=box];
-           Process4 [label="Perform flagging\non calibrators", shape=box];
-           Process4a [label="Simulate\ncalibrator\nvisibilities", shape=box];
-           Process5 [label="Perform basic\ncalibration", shape=box];
-           Decision2a [label="Calibration\ntable\npresent?", shape=diamond];
-           Decision3 [label="Do\nself\ncalibration?", shape=diamond];
-           Process6 [label="Apply basic\ncalibrations", shape=box];
-           Decision1a [label="HPC?", shape=diamond];
-           Process7 [label="Target spliting\nin parallel", shape=box];
-           Process8 [label="Perform\nself-calibration", shape=box];
-           Process9 [label="Stop with\nbasic calibrated\nvisibilities", shape=ellipse];
-           Decision4 [label="Self\ncalibration\nsuccessful?", shape=diamond];
-           Process10 [label="Apply\nself-calibration", shape=box];
-           Process11 [label="Stop with\nbasic calibrated\nvisibilities", shape=ellipse];
-           Process12 [label="Split raw\ndata of\ntarget scans\nfor imaging", shape=box];
-           Process13 [label="Apply\nbasic calibrations", shape=box];
-           Process14 [label="Apply\nself calibrations", shape=box];
-           Process15 [label="Perform imaging", shape=box];
-           Process16 [label="Finished with\nfinal imaging\nproducts", shape=ellipse];
-           Stop [label="Pipeline end", shape=ellipse];
-          
-          
-           Start -> Decision1;
-           Decision1 -> Process1 [label=" Y/N", tailport=s, headport=n, rank=same];
-           Process1 -> Decision2 [tailport=s, headport=n, rank=same];
-           Decision1-> Process2 [label=" Y", tailport=e, headport=n, rank=same];
-           Decision2 -> Process3 [label=" Y", tailport=w, headport=n, rank=same];
-           Process3 -> Process4 -> Process4a-> Process5 [tailport=s, headport=n, rank=same]; 
-           Process5 -> Decision2a [tailport=s, headport=w, rank=same]; 
-           Decision2 -> Decision2a [label=" N", tailport=s, headport=n, rank=same];
-           Decision2a -> Process6 [tailport=s, headport=n, rank=same];
-           Decision2a -> Stop [tailport=e, headport=n, rank=same];
-           Process6 -> Decision3 [tailport=s, headport=n, rank=same];
-           Decision3 -> Decision1a [label=" Y", tailport=w, headport=n, rank=same]; 
-           Decision1a -> Process8 [label=" Y", tailport=e, headport=n, rank=same]; 
-           Decision1a -> Process7 [label=" N", tailport=s, headport=n, rank=same]; 
-           Process7 -> Process8 [tailport=s, headport=w, rank=same];
-           Process8 -> Decision4 [tailport=s, headport=n, rank=same];
-           Decision3 -> Process9 [label=" N", tailport=e, headport=n, rank=same];
-           Decision4 -> Process10 [label=" Y", tailport=s, headport=n, rank=same]
-           Decision4 -> Process11 [label=" N", tailport=e, headport=n, rank=same];
-           Process10 -> Process12 -> Process13 -> Process14 -> Process15 -> Process16 [tailport=s, headport=n, rank=same];            
-       }
-   
-   
-   
-   
-   
-   
+   .. mermaid::
+
+      graph TD
+          Start([Start])
+          Decision1{HPC?}
+          Process1[Fluxcal with<br>noise-diode]
+          Process2[Target splitting<br>in parallel]
+          Decision2{Do basic<br>calibration?}
+          Process3[Make multi-ms using<br>calibrator scans]
+          Process4[Perform flagging<br>on calibrators]
+          Process4a[Simulate<br>calibrator<br>visibilities]
+          Process5[Perform basic<br>calibration]
+          Decision2a{Calibration<br>table<br>present?}
+          Decision3{Do<br>self<br>calibration?}
+          Process6[Apply basic<br>calibrations]
+          Decision1a{HPC?}
+          Process7[Target splitting<br>in parallel]
+          Process8[Perform<br>self-calibration]
+          Process9([Stop with<br>basic calibrated<br>visibilities])
+          Decision4{Self<br>calibration<br>successful?}
+          Process10[Apply<br>self-calibration]
+          Process11([Stop with<br>basic calibrated<br>visibilities])
+          Process12[Split raw<br>data of<br>target scans<br>for imaging]
+          Process13[Apply<br>basic calibrations]
+          Process14[Apply<br>self calibrations]
+          Process15[Perform imaging]
+          Process16([Finished with<br>final imaging<br>products])
+          Stop([Pipeline end])
+
+          Start --> Decision1
+          Decision1 -->|Y/N| Process1
+          Process1 --> Decision2
+          Decision1 -->|Y| Process2
+          Decision2 -->|Y| Process3
+          Process3 --> Process4 --> Process4a --> Process5
+          Process5 --> Decision2a
+          Decision2 -->|N| Decision2a
+          Decision2a -->|Y| Process6
+          Decision2a -->|N| Stop
+          Process6 --> Decision3
+          Decision3 -->|Y| Decision1a
+          Decision1a -->|Y| Process8
+          Decision1a -->|N| Process7 --> Process8
+          Process8 --> Decision4
+          Decision3 -->|N| Process9
+          Decision4 -->|Y| Process10 --> Process12 --> Process13 --> Process14 --> Process15 --> Process16
+          Decision4 -->|N| Process11
+

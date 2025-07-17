@@ -291,28 +291,151 @@
 <section id="basic-run">
 <h2>Basic run<a class="headerlink" href="#basic-run" title="Link to this heading">¶</a></h2>
 <p>To run MeerSOLAR pipeline, with default settings for full analysis, run the following command from terminal. Work directory needs not to be created before hand, but the path where it will be created should exist.</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>run_meersolar<span class="w"> </span>&lt;/path/to/measurement_set&gt;<span class="w"> </span>--workdir<span class="w"> </span>&lt;/path/to/work_directory&gt;<span class="w"> </span>--outdir<span class="w"> </span>&lt;/path/to/output_product_directory&gt;
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>run-meer-meersolar<span class="w"> </span>&lt;/path/to/measurement_set&gt;<span class="w"> </span>--workdir<span class="w"> </span>&lt;/path/to/work_directory&gt;<span class="w"> </span>--outdir<span class="w"> </span>&lt;/path/to/output_product_directory&gt;
 </pre></div>
 </div>
 </section>
 <section id="advanced-run">
 <h2>Advanced run<a class="headerlink" href="#advanced-run" title="Link to this heading">¶</a></h2>
-<p>For advanced run, user is requested to first check the parameters of <strong>run_meersolar</strong>.</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>run_meersolar<span class="w"> </span>-h
+<p>For advanced run, user is requested to first check the parameters of <strong>run-meer-meersolar</strong>.</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>run-meer-meersolar<span class="w"> </span>-h
 </pre></div>
 </div>
 <div class="dropdown admonition">
 <p class="admonition-title">Click here to see parameters</p>
-<aside class="system-message">
-<p class="system-message-title">System Message: ERROR/6 (<span class="docutils literal">/media/devojyoti/Data1/meersolar/docs/source/runpipeline.rst</span>, line 23)</p>
-<p>Command ['run_meersolar', '-h'] failed: [Errno 2] No such file or directory: 'run_meersolar'</p>
-</aside>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>usage: run-meer-meersolar [-h] --workdir WORKDIR --outdir OUTDIR
+                          [--solint SOLINT] [--cal_uvrange CAL_UVRANGE]
+                          [--no_polcal] [--target_scans [TARGET_SCANS ...]]
+                          [--freqrange FREQRANGE] [--timerange TIMERANGE]
+                          [--image_freqres IMAGE_FREQRES]
+                          [--image_timeres IMAGE_TIMERES] [--pol POL]
+                          [--minuv MINUV] [--weight WEIGHT] [--robust ROBUST]
+                          [--no_multiscale]
+                          [--clean_threshold CLEAN_THRESHOLD] [--do_pbcor]
+                          [--no_apply_parang] [--cutout_rsun CUTOUT_RSUN]
+                          [--no_solar_mask] [--no_overlay] [--non_solar_data]
+                          [--non_ds] [--do_forcereset_weightflag]
+                          [--no_noise_cal] [--no_cal_partition]
+                          [--no_cal_flag] [--no_import_model] [--no_basic_cal]
+                          [--do_sidereal_cor] [--no_selfcal_split]
+                          [--no_selfcal] [--no_ap_selfcal]
+                          [--no_solar_selfcal] [--no_target_split]
+                          [--no_applycal] [--no_apply_selfcal] [--no_imaging]
+                          [--cpu_frac CPU_FRAC] [--mem_frac MEM_FRAC]
+                          [--keep_backup] [--no_remote_logger]
+                          [--logger_alivetime LOGGER_ALIVETIME]
+                          [--n_nodes N_NODES]
+                          msname
+
+Run MeerSOLAR for calibration and imaging of solar observations.
+
+options:
+  -h, --help            show this help message and exit
+
+###################
+Essential parameters
+###################:
+  msname                Measurement set name
+  --workdir WORKDIR     Working directory (default: None)
+  --outdir OUTDIR       Output products directory (default: None)
+
+###################
+Advanced calibration parameters
+###################:
+  --solint SOLINT       Solution interval for calibration (e.g. &#39;int&#39;, &#39;10s&#39;,
+                        &#39;5min&#39;, &#39;inf&#39;) (default: 5min)
+  --cal_uvrange CAL_UVRANGE
+                        UV range to filter data for calibration (e.g.
+                        &#39;&gt;100klambda&#39;, &#39;100~10000lambda&#39;) (default: )
+  --no_polcal           Disable polarization calibration
+
+###################
+Advanced imaging parameters
+###################:
+  --target_scans [TARGET_SCANS ...]
+                        List of target scans to process (space-separated, e.g.
+                        3 5 7) (default: [])
+  --freqrange FREQRANGE
+                        Frequency range in MHz to select during imaging
+                        (comma-seperate, e.g. &#39;100~110,130~140&#39;) (default: )
+  --timerange TIMERANGE
+                        Time range to select during imaging (comma-seperated,
+                        e.g. &#39;2014/09/06/09:30:00~2014/09/06/09:45:00,2014/09/
+                        06/10:30:00~2014/09/06/10:45:00&#39;) (default: )
+  --image_freqres IMAGE_FREQRES
+                        Output image frequency resolution in MHz (-1 = full)
+                        (default: -1)
+  --image_timeres IMAGE_TIMERES
+                        Output image time resolution in seconds (-1 = full)
+                        (default: -1)
+  --pol POL             Stokes parameter(s) to image (e.g. &#39;I&#39;, &#39;XX&#39;, &#39;RR&#39;,
+                        &#39;IQUV&#39;) (default: IQUV)
+  --minuv MINUV         Minimum baseline length (in wavelengths) to include in
+                        imaging (default: 0)
+  --weight WEIGHT       Imaging weighting scheme (e.g. &#39;briggs&#39;, &#39;natural&#39;,
+                        &#39;uniform&#39;) (default: briggs)
+  --robust ROBUST       Robust parameter for Briggs weighting (-2 to +2)
+                        (default: 0.0)
+  --no_multiscale       Disable multiscale CLEAN for extended structures
+  --clean_threshold CLEAN_THRESHOLD
+                        Clean threshold in sigma for final deconvolution (Note
+                        this is not auto-mask) (default: 1.0)
+  --do_pbcor            Apply primary beam correction after imaging
+  --no_apply_parang     Disable parallactic angle rotation during imaging
+  --cutout_rsun CUTOUT_RSUN
+                        Field of view cutout radius in solar radii (default:
+                        2.5)
+  --no_solar_mask       Disable use solar disk mask during deconvolution
+  --no_overlay          Disable overlay plot on GOES SUVI after imaging
+
+###################
+Advanced pipeline parameters
+###################:
+  --non_solar_data      Disable solar data mode
+  --non_ds              Disable making solar dynamic spectra
+  --do_forcereset_weightflag
+                        Force reset of weights and flags (disabled by default)
+  --no_noise_cal        Disable noise calibration
+  --no_cal_partition    Disable calibrator MS partitioning
+  --no_cal_flag         Disable initial flagging of calibrators
+  --no_import_model     Disable model import
+  --no_basic_cal        Disable basic gain calibration
+  --do_sidereal_cor     Sidereal motion correction for Sun (disabled by
+                        default)
+  --no_selfcal_split    Disable split for self-calibration
+  --no_selfcal          Disable self-calibration
+  --no_ap_selfcal       Disable amplitude-phase self-calibration
+  --no_solar_selfcal    Disable solar-specific self-calibration parameters
+  --no_target_split     Disable target data split
+  --no_applycal         Disable application of basic calibration solutions
+  --no_apply_selfcal    Disable application of self-calibration solutions
+  --no_imaging          Disable final imaging
+
+###################
+Advanced hardware resource parameters for local system or per node on HPC cluster
+###################:
+  --cpu_frac CPU_FRAC   Fraction of CPU usuage per node (default: 0.8)
+  --mem_frac MEM_FRAC   Fraction of memory usuage per node (default: 0.8)
+  --keep_backup         Keep backup of intermediate steps
+  --no_remote_logger    Disable remote logger
+  --logger_alivetime LOGGER_ALIVETIME
+                        Keep remote logger alive for this many hours
+                        (Otherwise, logger will be removed after 15 minutes of
+                        inactivity) (default: 0)
+
+###################
+Advanced HPC settings
+###################:
+  --n_nodes N_NODES     Number of compute nodes to use (0 means local cluster)
+                        (default: 0)
+</pre></div>
+</div>
 </div>
 <p>Multiple options demonstrated below can be combined to have all of them together.</p>
 <ol class="arabic simple">
 <li><p>To view details of measurement set:</p></li>
 </ol>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>run_meersolar_showms<span class="w"> </span>&lt;/path/to/measurement_set&gt;
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>show-meersolar-ms<span class="w"> </span>&lt;/path/to/measurement_set&gt;
 </pre></div>
 </div>
 <section id="runs-with-advanced-calibration-paramaters">
@@ -320,40 +443,40 @@
 <ol class="arabic simple">
 <li><p>Do calibration with custom calibration parameters. There are two parameters: <strong>cal_uvrange</strong> and <strong>solint</strong> which can be changed. Example, run the following command to perform gain solutions at 10second interval and &gt;200lambda data:</p></li>
 </ol>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>run_meersolar<span class="w"> </span>&lt;/path/to/measurement_set&gt;<span class="w"> </span>--solint<span class="w"> </span><span class="s2">&quot;10s&quot;</span><span class="w"> </span>--uvrange<span class="w"> </span><span class="s2">&quot;&gt;200lambda&quot;</span><span class="w"> </span>--workdir<span class="w"> </span>&lt;/path/to/work_directory&gt;<span class="w"> </span>--outdir<span class="w"> </span>&lt;/path/to/output_product_directory&gt;
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>run-meer-meersolar<span class="w"> </span>&lt;/path/to/measurement_set&gt;<span class="w"> </span>--solint<span class="w"> </span><span class="s2">&quot;10s&quot;</span><span class="w"> </span>--uvrange<span class="w"> </span><span class="s2">&quot;&gt;200lambda&quot;</span><span class="w"> </span>--workdir<span class="w"> </span>&lt;/path/to/work_directory&gt;<span class="w"> </span>--outdir<span class="w"> </span>&lt;/path/to/output_product_directory&gt;
 </pre></div>
 </div>
 <ol class="arabic simple" start="2">
 <li><p>By default for full-polar data, polarization calibration will be performed. To disable it:</p></li>
 </ol>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>run_meersolar<span class="w"> </span>&lt;/path/to/measurement_set&gt;<span class="w"> </span>--no_polcal<span class="w"> </span>--workdir<span class="w"> </span>&lt;/path/to/work_directory&gt;<span class="w"> </span>--outdir<span class="w"> </span>&lt;/path/to/output_product_directory&gt;
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>run-meer-meersolar<span class="w"> </span>&lt;/path/to/measurement_set&gt;<span class="w"> </span>--no_polcal<span class="w"> </span>--workdir<span class="w"> </span>&lt;/path/to/work_directory&gt;<span class="w"> </span>--outdir<span class="w"> </span>&lt;/path/to/output_product_directory&gt;
 </pre></div>
 </div>
 </section>
 <section id="runs-with-advanced-imaging-paramaters">
 <h3>Runs with advanced imaging paramaters<a class="headerlink" href="#runs-with-advanced-imaging-paramaters" title="Link to this heading">¶</a></h3>
 <ol class="arabic simple">
-<li><p>Run pipeline to image specific target scans. Default is to use all. Users are requested to check target scan number using <strong>run_meersolar_showms</strong> first. Example, run the following command to image only target scans 3,8,13 from all available target scans:</p></li>
+<li><p>Run pipeline to image specific target scans. Default is to use all. Users are requested to check target scan number using <strong>show-meersolar-ms</strong> first. Example, run the following command to image only target scans 3,8,13 from all available target scans:</p></li>
 </ol>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>run_meersolar<span class="w"> </span>&lt;/path/to/measurement_set&gt;<span class="w"> </span>--target_scans<span class="w"> </span><span class="m">3</span><span class="w"> </span><span class="m">8</span><span class="w"> </span><span class="m">13</span><span class="w"> </span>--workdir<span class="w"> </span>&lt;/path/to/work_directory&gt;<span class="w"> </span>--outdir<span class="w"> </span>&lt;/path/to/output_product_directory&gt;
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>run-meer-meersolar<span class="w"> </span>&lt;/path/to/measurement_set&gt;<span class="w"> </span>--target_scans<span class="w"> </span><span class="m">3</span><span class="w"> </span><span class="m">8</span><span class="w"> </span><span class="m">13</span><span class="w"> </span>--workdir<span class="w"> </span>&lt;/path/to/work_directory&gt;<span class="w"> </span>--outdir<span class="w"> </span>&lt;/path/to/output_product_directory&gt;
 </pre></div>
 </div>
 <ol class="arabic simple" start="2">
 <li><p>Run pipeline to image specific time and frequency range. Default is to use entire time and frequency range. Example for imaging two time ranges given in UTC and frequency ranges given in MHz:</p></li>
 </ol>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>run_meersolar<span class="w"> </span>&lt;/path/to/measurement_set&gt;<span class="w"> </span>--timerange<span class="w"> </span><span class="m">2024</span>/06/10/09:00:00~2024/06/10/09:30:00,2024/06/10/10:15:00~2024/06/10/10:45:00<span class="w"> </span>--freqrange<span class="w"> </span><span class="m">600</span>~650,700~800<span class="w"> </span>--workdir<span class="w"> </span>&lt;/path/to/work_directory&gt;<span class="w"> </span>--outdir<span class="w"> </span>&lt;/path/to/output_product_directory&gt;
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>run-meer-meersolar<span class="w"> </span>&lt;/path/to/measurement_set&gt;<span class="w"> </span>--timerange<span class="w"> </span><span class="m">2024</span>/06/10/09:00:00~2024/06/10/09:30:00,2024/06/10/10:15:00~2024/06/10/10:45:00<span class="w"> </span>--freqrange<span class="w"> </span><span class="m">600</span>~650,700~800<span class="w"> </span>--workdir<span class="w"> </span>&lt;/path/to/work_directory&gt;<span class="w"> </span>--outdir<span class="w"> </span>&lt;/path/to/output_product_directory&gt;
 </pre></div>
 </div>
 <ol class="arabic simple" start="3">
 <li><p>Run imaging with custom time and frequency resolution. Default is to use entire observing band and maximum 2 hours (or maximum scan duration) of integration to avoid smearing due to differential rotation of the Sun. Example run for imaging at 2 minutes (120 seconds) time resolution and 10 MHz frequency resolution:</p></li>
 </ol>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>run_meersolar<span class="w"> </span>&lt;/path/to/measurement_set&gt;<span class="w"> </span>--image_timeres<span class="w"> </span><span class="m">120</span><span class="w"> </span>--image_freqres<span class="w"> </span><span class="m">10</span><span class="w"> </span>--workdir<span class="w"> </span>&lt;/path/to/work_directory&gt;<span class="w"> </span>--outdir<span class="w"> </span>&lt;/path/to/output_product_directory&gt;
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>run-meer-meersolar<span class="w"> </span>&lt;/path/to/measurement_set&gt;<span class="w"> </span>--image_timeres<span class="w"> </span><span class="m">120</span><span class="w"> </span>--image_freqres<span class="w"> </span><span class="m">10</span><span class="w"> </span>--workdir<span class="w"> </span>&lt;/path/to/work_directory&gt;<span class="w"> </span>--outdir<span class="w"> </span>&lt;/path/to/output_product_directory&gt;
 </pre></div>
 </div>
 <ol class="arabic simple" start="4">
 <li><p>Default is to make only Stokes I images if <cite>do_polcal=False</cite> and Stokes IQUV, if <cite>do_polcal=True</cite>. To run only Stokes I imaging, even if <cite>do_polcal=True</cite>, run:</p></li>
 </ol>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>run_meersolar<span class="w"> </span>&lt;/path/to/measurement_set&gt;<span class="w"> </span>--pol<span class="w"> </span>I<span class="w"> </span>--workdir<span class="w"> </span>&lt;/path/to/work_directory&gt;<span class="w"> </span>--outdir<span class="w"> </span>&lt;/path/to/output_product_directory&gt;
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>run-meer-meersolar<span class="w"> </span>&lt;/path/to/measurement_set&gt;<span class="w"> </span>--pol<span class="w"> </span>I<span class="w"> </span>--workdir<span class="w"> </span>&lt;/path/to/work_directory&gt;<span class="w"> </span>--outdir<span class="w"> </span>&lt;/path/to/output_product_directory&gt;
 </pre></div>
 </div>
 <p>Similarly, all other advanced imaging parameters can be used.</p>
@@ -365,29 +488,29 @@
 <p class="admonition-title">Caution</p>
 <p>User should not modify any file and directory structure in the work directory. Switching off certain parameters will only allow to run the pipeline forward, if the expected output products from those steps are present with appropriate name in appropriate directory. Otherwise, it will fail.</p>
 </div>
-<p>Take a look at the <strong>Advanced pipeline parameters</strong> in the help page of <strong>run_meersolar</strong>. Each parameters are self explanatory. Some examples are given below:</p>
+<p>Take a look at the <strong>Advanced pipeline parameters</strong> in the help page of <strong>run-meer-meersolar</strong>. Each parameters are self explanatory. Some examples are given below:</p>
 <ol class="arabic simple">
 <li><p>To switch on noise-diode based flux calibration:</p></li>
 </ol>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>run_meersolar<span class="w"> </span>&lt;/path/to/measurement_set&gt;<span class="w"> </span>--no_noise_cal<span class="w"> </span>--workdir<span class="w"> </span>&lt;/path/to/work_directory&gt;<span class="w"> </span>--outdir<span class="w"> </span>&lt;/path/to/output_product_directory&gt;
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>run-meer-meersolar<span class="w"> </span>&lt;/path/to/measurement_set&gt;<span class="w"> </span>--no_noise_cal<span class="w"> </span>--workdir<span class="w"> </span>&lt;/path/to/work_directory&gt;<span class="w"> </span>--outdir<span class="w"> </span>&lt;/path/to/output_product_directory&gt;
 </pre></div>
 </div>
 <ol class="arabic simple" start="2">
 <li><p>To switch off self-calibration:</p></li>
 </ol>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>run_meersolar<span class="w"> </span>&lt;/path/to/measurement_set&gt;<span class="w"> </span>--no_selfcal<span class="w"> </span>--workdir<span class="w"> </span>&lt;/path/to/work_directory&gt;<span class="w"> </span>--outdir<span class="w"> </span>&lt;/path/to/output_product_directory&gt;
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>run-meer-meersolar<span class="w"> </span>&lt;/path/to/measurement_set&gt;<span class="w"> </span>--no_selfcal<span class="w"> </span>--workdir<span class="w"> </span>&lt;/path/to/work_directory&gt;<span class="w"> </span>--outdir<span class="w"> </span>&lt;/path/to/output_product_directory&gt;
 </pre></div>
 </div>
 <ol class="arabic simple" start="3">
 <li><p>To stop final imaging:</p></li>
 </ol>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>run_meersolar<span class="w"> </span>&lt;/path/to/measurement_set&gt;<span class="w"> </span>--no_imaging<span class="w"> </span>--workdir<span class="w"> </span>&lt;/path/to/work_directory&gt;<span class="w"> </span>--outdir<span class="w"> </span>&lt;/path/to/output_product_directory&gt;
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>run-meer-meersolar<span class="w"> </span>&lt;/path/to/measurement_set&gt;<span class="w"> </span>--no_imaging<span class="w"> </span>--workdir<span class="w"> </span>&lt;/path/to/work_directory&gt;<span class="w"> </span>--outdir<span class="w"> </span>&lt;/path/to/output_product_directory&gt;
 </pre></div>
 </div>
 <ol class="arabic simple" start="4">
 <li><p>To switch off self-calibration and final imaging</p></li>
 </ol>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>run_meersolar<span class="w"> </span>&lt;/path/to/measurement_set&gt;<span class="w"> </span>--no_selfcal<span class="w"> </span>--no_imaging<span class="w"> </span>--workdir<span class="w"> </span>&lt;/path/to/work_directory&gt;<span class="w"> </span>--outdir<span class="w"> </span>&lt;/path/to/output_product_directory&gt;
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>run-meer-meersolar<span class="w"> </span>&lt;/path/to/measurement_set&gt;<span class="w"> </span>--no_selfcal<span class="w"> </span>--no_imaging<span class="w"> </span>--workdir<span class="w"> </span>&lt;/path/to/work_directory&gt;<span class="w"> </span>--outdir<span class="w"> </span>&lt;/path/to/output_product_directory&gt;
 </pre></div>
 </div>
 </section>

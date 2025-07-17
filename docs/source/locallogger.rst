@@ -5,13 +5,13 @@ Local GUI Logger
 
     .. code-block :: bash
         
-        run_meerlogger --jobid <jobid>
+        run-meer-meerlogger --jobid <jobid>
         
     If user forget MeerSOLAR <jobid>, but knows the log directory, run:
 
     .. code-block :: bash
         
-        run_meerlogger --logdir <logdir>
+        run-meer-meerlogger --logdir <logdir>
         
     .. note ::
 
