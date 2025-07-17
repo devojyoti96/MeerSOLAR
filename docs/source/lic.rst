@@ -21,7 +21,7 @@ LICENSE
        in whole or in part, must include proper academic citation to the
        following reference(s):
 
-       Kansabanik, D. et al., "MeerSOLAR", 10.5281/zenodo.16040508.
+       Kansabanik, D. et al., "MeerSOLAR", 10.5281/zenodo.16058861
 
     3. A copy of the CITATION.cff file or equivalent citation information
        must be distributed with any copy of the Software or derived works.

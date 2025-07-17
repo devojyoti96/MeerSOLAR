@@ -5,7 +5,7 @@ Since MeerSOLAR runs several seperate parallel processes in background, if user 
 
 .. code-block :: bash
 
-    kill_meersolar_job --jobid <jobid>
+    kill-meersolar-job --jobid <jobid>
     
     
 

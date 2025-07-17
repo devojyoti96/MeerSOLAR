@@ -31,7 +31,6 @@ Contents
    
    quickstart
    install
-   idia_setup
    initial_setup
    tutorial
    output
