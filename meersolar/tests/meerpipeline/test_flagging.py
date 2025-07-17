@@ -34,7 +34,7 @@ def test_single_ms_flag(dummy_submsname):
 
 
 def test_do_flagging(dummy_submsname):
-    workdir=os.getcwd()
+    workdir = os.getcwd()
     result = do_flagging(
         dummy_submsname,
         workdir,

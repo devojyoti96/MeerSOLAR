@@ -11,7 +11,7 @@ def dummy_caltables(tmp_path):
     They are shallow copies of a real reference caltable.
     """
     # Path to a known valid CASA caltable
-    path=os.path.dirname(os.path.abspath(__file__))
+    path = os.path.dirname(os.path.abspath(__file__))
     ref_caltable = os.path.dirname(path) + "/testdata/test_caltable.gcal"
     if not os.path.exists(ref_caltable):
         pytest.skip("Reference caltable is not found")
@@ -25,7 +25,7 @@ def dummy_caltables(tmp_path):
 
 @pytest.fixture
 def dummy_caltable(tmp_path):
-    path=os.path.dirname(os.path.abspath(__file__))
+    path = os.path.dirname(os.path.abspath(__file__))
     ref_caltable = os.path.dirname(path) + "/testdata/test_caltable.gcal"
     if not os.path.exists(ref_caltable):
         pytest.skip("Caltable is not found")
@@ -34,7 +34,7 @@ def dummy_caltable(tmp_path):
 
 @pytest.fixture
 def dummy_msname(tmp_path):
-    path=os.path.dirname(os.path.abspath(__file__))
+    path = os.path.dirname(os.path.abspath(__file__))
     ref_msname = os.path.dirname(path) + "/testdata/test_ms.ms"
     if not os.path.exists(ref_msname):
         pytest.skip("Reference ms is not found")
@@ -43,7 +43,7 @@ def dummy_msname(tmp_path):
 
 @pytest.fixture
 def dummy_submsname(tmp_path):
-    path=os.path.dirname(os.path.abspath(__file__))
+    path = os.path.dirname(os.path.abspath(__file__))
     ref_submsname = os.path.dirname(path) + "/testdata/test_subms.ms"
     if not os.path.exists(ref_submsname):
         pytest.skip("Reference subms is not found")
@@ -52,7 +52,7 @@ def dummy_submsname(tmp_path):
 
 @pytest.fixture
 def dummy_image():
-    path=os.path.dirname(os.path.abspath(__file__))
+    path = os.path.dirname(os.path.abspath(__file__))
     ref_imagename = os.path.dirname(path) + "/testdata/test_image.fits"
     if not os.path.exists(ref_imagename):
         pytest.skip("Reference image is not found.")

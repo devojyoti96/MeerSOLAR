@@ -25,14 +25,14 @@ def download_with_parfive(record_id, update=False, output_dir="zenodo_download")
         if os.path.exists(f"{output_dir}/{filename}") == False or update:
             if os.path.exists(f"{output_dir}/{filename}"):
                 os.system(f"rm -rf {output_dir}/{filename}")
-            print (f"Final path: {output_dir}/{filename}")
+            print(f"Final path: {output_dir}/{filename}")
             dl.enqueue_file(file_url, path=output_dir, filename=filename)
     results = dl.download()
 
 
 def check_test_data(path):
     if os.path.exists(path + "/testdata/.testdata") == False:
-        os.makedirs(path+ "/testdata/", exist_ok=True)
+        os.makedirs(path + "/testdata/", exist_ok=True)
         download_with_parfive(15999983, output_dir=path + "/testdata/")
         shutil.unpack_archive(
             path + "/testdata/meersolar_test_data.tar.gz",
@@ -41,6 +41,7 @@ def check_test_data(path):
         os.system("rm -rf " + path + "/testdata/meersolar_test_data.tar.gz")
         os.system("touch " + path + "/testdata/.testdata")
 
+
 if __name__ == "__main__":
-    path=os.path.dirname(os.path.abspath(__file__))
+    path = os.path.dirname(os.path.abspath(__file__))
     check_test_data(path)
