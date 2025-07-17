@@ -4,16 +4,12 @@ build:
   os: ubuntu-22.04
   tools:
     python: "3.10"
-  jobs:
-    pre_install:
-      - pip install --upgrade pip
 
 python:
   install:
     - method: pip
-      path: .
-    - requirements: docs/requirements.txt  # adjust path to your Sphinx deps
+      requirements: docs/requirements.txt
 
 sphinx:
-  configuration: docs/source/conf.py  # adjust this if your conf.py is elsewhere
+  configuration: docs/source/conf.py
 
