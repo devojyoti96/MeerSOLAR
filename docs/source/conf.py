@@ -43,7 +43,7 @@ html_theme_options = {
 
 templates_path = ['_templates']
 exclude_patterns = []
-graphviz_dot = "dot"
+
 html_theme = "furo"
 html_static_path = ['_static']
 html_title = "MeerSOLAR"
