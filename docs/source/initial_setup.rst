@@ -10,13 +10,27 @@ Download MeerSOLAR metadata
 
 .. code-block :: bash
     
-    init_meersolar_data --init
+    init-meersolar-data --init
+    
+.. admonition:: Click here to see parameters
+   :class: dropdown
+
+    .. program-output:: init-meersolar-data -h
+   
     
 2. If data files are present, but needs to updated, run:
 
 .. code-block :: bash
 
-    init_meersolar_data --init --update
+    init-meersolar-data --init --update
+    
+Custom data directory
+----------------------
+By default, data directory will be at "~/.solarpipe/solarpipe_data". It requires 5GB space. Sometimes home directory may not have sufficient space. In that case, one can setup data directory in a custom location as follows:
+
+.. code-block :: bash
+
+    init-meersolar-data --init --datadir </path/to/custom/datadir>
     
 Setup e-mail ids
 ----------------
@@ -24,7 +38,7 @@ To receive remote logger Job ID and password, use can setup their e-mail id(s) i
 
 .. code-block :: bash
 
-    init_meersolar_data --init --emails <youremail1@email1.id1>,<youremail2@email2.id2> 
+    init-meersolar-data --init --emails <youremail1@email1.id1>,<youremail2@email2.id2> 
     
 If you setup a remote logger as described below, you will receive a Job ID and auto-generated six-character password to access logs of a particular pipeline run from the remote logger. Without this password, one can not access logs of that particular pipeline run. This added security as well as privacy when multiple user uses the same remote logger link, for example, an institute based remote logger link.   
     
@@ -34,7 +48,7 @@ If remote logger is intended to be used, setup the remote link in MeerSOLAR meta
 
 .. code-block :: bash
     
-    init_meersolar_data --init --remotelink https://<remote-logger-name>.onrender.com
+    init-meersolar-data --init --remotelink https://<remote-logger-name>.onrender.com
     
 Before doing this, create your own remote logger on free-tier cloud platform, https://render.com. One can use, same **remotelink** in multiple machines and users. However, free-tier link has some limitations on bandwidth. If you want to use **remotelink** for your institution, we suggest to purchase suitable paid version or setup seperate **remotelink** for different users.
 

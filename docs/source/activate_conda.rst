@@ -2,7 +2,7 @@ Create and Activate Conda Environment
 =====================================
 This guideline provide how to activate **conda** environment before installing and using MeerSOLAR. 
 
-Create conda environment in default conda directory:
+Create conda environment in default conda directory
 ----------------------------------------------------
 This will create the conda environment in the default conda directory where conda is installed. If a custom directory is chosen during installation, environment will be created in that directory.
 
@@ -30,7 +30,7 @@ Activate and deactivate conda environment
 
    conda deactivate
 
-Create conda environment in custom conda directory:
+Create conda environment in custom conda directory
 ---------------------------------------------------
 To create in a custom directory ``</path/to/env>``, follow the steps below.
 

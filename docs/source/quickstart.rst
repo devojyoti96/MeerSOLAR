@@ -20,13 +20,13 @@ MeerSOLAR is distributed on
 
    .. code-block:: bash
 
-      init_meersolar_data --init
+      init-meersolar-data --init
 
 4. Run MeerSOLAR pipeline
 
    .. code-block:: bash
 
-      run_meersolar <path of measurement set> --workdir <path of work directory> --outdir <path of output products directory>
+      run-meer-meersolar <path of measurement set> --workdir <path of work directory> --outdir <path of output products directory>
 
 That’s all. You started MeerSOLAR pipeline for analysing your MeerKAT solar observation 🎉.
 
@@ -34,13 +34,13 @@ That’s all. You started MeerSOLAR pipeline for analysing your MeerKAT solar ob
 
    .. code-block :: bash
         
-      show_meersolar_status --show
+      show-meersolar-status --show
        
 6. To see local log of any job using the <jobid>
 
    .. code-block :: bash
     
-      run_meersolar_log --jobid <jobid>
+      run-meer-meerlogger --jobid <jobid>
       
 7. Output products will be saved in : ``<path of output products directory>``.
 
