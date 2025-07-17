@@ -192,7 +192,8 @@
 <li class="toctree-l1"><a class="reference internal" href="ack.html">Acknowledging</a></li>
 <li class="toctree-l1"><a class="reference internal" href="lic.html">LICENSE</a></li>
 <li class="toctree-l1 has-children"><a class="reference internal" href="meersolar.html">API Reference</a><input class="toctree-checkbox" id="toctree-checkbox-5" name="toctree-checkbox-5" role="switch" type="checkbox"/><label for="toctree-checkbox-5"><div class="visually-hidden">Toggle navigation of API Reference</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
-<li class="toctree-l2"><a class="reference internal" href="meersolar.pipeline.html">Meersolar Pipeline Module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="meersolar.utils.html">Meersolar Utils Module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="meersolar.meerpipeline.html">Meersolar Pipeline Module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="meersolar.crystalball.html">Crystalball Module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="meersolar.data.html">MeerSOLAR Pre-compiled Modules</a></li>
 </ul>
@@ -243,31 +244,33 @@
 <h1>Basic CLI<a class="headerlink" href="#basic-cli" title="Link to this heading">¶</a></h1>
 <p>These are basic CLI for MeerSOLAR pipeline.</p>
 <ol class="arabic simple">
-<li><p>The main CLI of MeerSOLAR is <code class="docutils literal notranslate"><span class="pre">run_meersolar</span></code> , which is used to run MeerSOLAR pipeline.</p></li>
+<li><p>The main CLI of MeerSOLAR is <code class="docutils literal notranslate"><span class="pre">run-meer-meersolar</span></code> , which is used to run MeerSOLAR pipeline.</p></li>
 </ol>
 <div class="dropdown admonition">
 <p class="admonition-title">Click here to see parameters</p>
-<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>usage: run_meersolar [-h] --workdir WORKDIR --outdir OUTDIR [--solint SOLINT]
-                     [--cal_uvrange CAL_UVRANGE] [--no_polcal]
-                     [--target_scans [TARGET_SCANS ...]]
-                     [--freqrange FREQRANGE] [--timerange TIMERANGE]
-                     [--image_freqres IMAGE_FREQRES]
-                     [--image_timeres IMAGE_TIMERES] [--pol POL]
-                     [--minuv MINUV] [--weight WEIGHT] [--robust ROBUST]
-                     [--no_multiscale] [--clean_threshold CLEAN_THRESHOLD]
-                     [--do_pbcor] [--no_apply_parang]
-                     [--cutout_rsun CUTOUT_RSUN] [--no_solar_mask]
-                     [--no_overlay] [--non_solar_data] [--non_ds]
-                     [--do_forcereset_weightflag] [--no_noise_cal]
-                     [--no_cal_partition] [--no_cal_flag] [--no_import_model]
-                     [--no_basic_cal] [--do_sidereal_cor] [--no_selfcal_split]
-                     [--no_selfcal] [--no_ap_selfcal] [--no_solar_selfcal]
-                     [--no_target_split] [--no_applycal] [--no_apply_selfcal]
-                     [--no_imaging] [--cpu_frac CPU_FRAC]
-                     [--mem_frac MEM_FRAC] [--keep_backup]
-                     [--no_remote_logger]
-                     [--logger_alivetime LOGGER_ALIVETIME] [--n_nodes N_NODES]
-                     msname
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>usage: run-meer-meersolar [-h] --workdir WORKDIR --outdir OUTDIR
+                          [--solint SOLINT] [--cal_uvrange CAL_UVRANGE]
+                          [--no_polcal] [--target_scans [TARGET_SCANS ...]]
+                          [--freqrange FREQRANGE] [--timerange TIMERANGE]
+                          [--image_freqres IMAGE_FREQRES]
+                          [--image_timeres IMAGE_TIMERES] [--pol POL]
+                          [--minuv MINUV] [--weight WEIGHT] [--robust ROBUST]
+                          [--no_multiscale]
+                          [--clean_threshold CLEAN_THRESHOLD] [--do_pbcor]
+                          [--no_apply_parang] [--cutout_rsun CUTOUT_RSUN]
+                          [--no_solar_mask] [--no_overlay] [--non_solar_data]
+                          [--non_ds] [--do_forcereset_weightflag]
+                          [--no_noise_cal] [--no_cal_partition]
+                          [--no_cal_flag] [--no_import_model] [--no_basic_cal]
+                          [--do_sidereal_cor] [--no_selfcal_split]
+                          [--no_selfcal] [--no_ap_selfcal]
+                          [--no_solar_selfcal] [--no_target_split]
+                          [--no_applycal] [--no_apply_selfcal] [--no_imaging]
+                          [--cpu_frac CPU_FRAC] [--mem_frac MEM_FRAC]
+                          [--keep_backup] [--no_remote_logger]
+                          [--logger_alivetime LOGGER_ALIVETIME]
+                          [--n_nodes N_NODES]
+                          msname
 
 Run MeerSOLAR for calibration and imaging of solar observations.
 
@@ -374,11 +377,11 @@ Advanced HPC settings
 </div>
 </div>
 <ol class="arabic simple" start="2">
-<li><p>To view, measurement set details, use <code class="docutils literal notranslate"><span class="pre">show_meersolar_ms</span></code> .</p></li>
+<li><p>To view, measurement set details, use <code class="docutils literal notranslate"><span class="pre">show-meersolar-ms</span></code> .</p></li>
 </ol>
 <div class="dropdown admonition">
 <p class="admonition-title">Click here to see parameters</p>
-<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>usage: show_meersolar_ms [-h] msname
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>usage: show-meersolar-ms [-h] msname
 
 Run listobs and show from saved file
 
@@ -391,11 +394,11 @@ options:
 </div>
 </div>
 <ol class="arabic simple" start="3">
-<li><p>To view MeerSOLAR jobs status, use <code class="docutils literal notranslate"><span class="pre">show_meersolar_status</span></code> .</p></li>
+<li><p>To view MeerSOLAR jobs status, use <code class="docutils literal notranslate"><span class="pre">show-meersolar-status</span></code> .</p></li>
 </ol>
 <div class="dropdown admonition">
 <p class="admonition-title">Click here to see parameters</p>
-<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>usage: show_meersolar_status [-h] --show [--clean_old_jobs]
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>usage: show-meersolar-status [-h] [--show] [--clean_old_jobs]
 
 Show MeerSOLAR jobs status.
 
@@ -407,11 +410,11 @@ options:
 </div>
 </div>
 <ol class="arabic simple" start="4">
-<li><p>To see jobs logs using local GUI logger, use <code class="docutils literal notranslate"><span class="pre">run_meerlogger</span></code> .</p></li>
+<li><p>To see jobs logs using local GUI logger, use <code class="docutils literal notranslate"><span class="pre">run-meer-meerlogger</span></code> .</p></li>
 </ol>
 <div class="dropdown admonition">
 <p class="admonition-title">Click here to see parameters</p>
-<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>usage: run_meerlogger [-h] [--jobid JOBID] [--logdir LOGDIR]
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>usage: run-meer-meerlogger [-h] [--jobid JOBID] [--logdir LOGDIR]
 
 MeerSOLAR Logger
 
@@ -423,18 +426,19 @@ options:
 </div>
 </div>
 <ol class="arabic simple" start="5">
-<li><p>To update MeerSOLAR data, use <code class="docutils literal notranslate"><span class="pre">init_meersolar_data</span></code> .</p></li>
+<li><p>To update MeerSOLAR data, use <code class="docutils literal notranslate"><span class="pre">init-meersolar-data</span></code> .</p></li>
 </ol>
 <div class="dropdown admonition">
 <p class="admonition-title">Click here to see parameters</p>
-<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>usage: init_meersolar_data [-h] [--init] [--update] [--remotelink LINK]
-                           [--emails EMAILS]
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>usage: init-meersolar-data [-h] [--init] [--datadir DATADIR] [--update]
+                           [--remotelink LINK] [--emails EMAILS]
 
 Initiate MeerSOLAR data
 
 options:
   -h, --help         show this help message and exit
   --init             Initiate data
+  --datadir DATADIR  User provided data directory (default: )
   --update           Update existing data
   --remotelink LINK  Set remote log link (default: None)
   --emails EMAILS    Email addresses (comma seperated) to send Job ID and
@@ -443,11 +447,11 @@ options:
 </div>
 </div>
 <ol class="arabic simple" start="6">
-<li><p>To stop a MeerSOLAR job in between, use <code class="docutils literal notranslate"><span class="pre">kill_meersolar_job</span></code> .</p></li>
+<li><p>To stop a MeerSOLAR job in between, use <code class="docutils literal notranslate"><span class="pre">kill-meersolar-job</span></code> .</p></li>
 </ol>
 <div class="dropdown admonition">
 <p class="admonition-title">Click here to see parameters</p>
-<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>usage: kill_meersolar_job [-h] --jobid JOBID
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>usage: kill-meersolar-job [-h] --jobid JOBID
 
 Kill MeerSOLAR Job
 

@@ -191,7 +191,8 @@
 <li class="toctree-l1"><a class="reference internal" href="../../../ack.html">Acknowledging</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../lic.html">LICENSE</a></li>
 <li class="toctree-l1 has-children"><a class="reference internal" href="../../../meersolar.html">API Reference</a><input class="toctree-checkbox" id="toctree-checkbox-5" name="toctree-checkbox-5" role="switch" type="checkbox"/><label for="toctree-checkbox-5"><div class="visually-hidden">Toggle navigation of API Reference</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
-<li class="toctree-l2"><a class="reference internal" href="../../../meersolar.pipeline.html">Meersolar Pipeline Module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../meersolar.utils.html">Meersolar Utils Module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../meersolar.meerpipeline.html">Meersolar Pipeline Module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../meersolar.crystalball.html">Crystalball Module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../meersolar.data.html">MeerSOLAR Pre-compiled Modules</a></li>
 </ul>
@@ -259,14 +260,16 @@
         <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">field_datasets</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
             <span class="k">return</span> <span class="mi">0</span>
 
-        <span class="n">names</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;</span><span class="si">%s</span><span class="s2"> or </span><span class="si">%d</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">ds</span><span class="o">.</span><span class="n">NAME</span><span class="o">.</span><span class="n">values</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">i</span><span class="p">)</span>
-                 <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">ds</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">field_datasets</span><span class="p">)]</span>
+        <span class="n">names</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="s2">&quot;</span><span class="si">%s</span><span class="s2"> or </span><span class="si">%d</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">ds</span><span class="o">.</span><span class="n">NAME</span><span class="o">.</span><span class="n">values</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">i</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">ds</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">field_datasets</span><span class="p">)</span>
+        <span class="p">]</span>
 
-        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;No field was provided &quot;</span>
-                         <span class="s2">&quot;but multiple fields are present &quot;</span>
-                         <span class="s2">&quot;in the Measurement Set. &quot;</span>
-                         <span class="s2">&quot;Please select a field </span><span class="si">%s</span><span class="s2">.&quot;</span>
-                         <span class="o">%</span> <span class="n">names</span><span class="p">)</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="s2">&quot;No field was provided &quot;</span>
+            <span class="s2">&quot;but multiple fields are present &quot;</span>
+            <span class="s2">&quot;in the Measurement Set. &quot;</span>
+            <span class="s2">&quot;Please select a field </span><span class="si">%s</span><span class="s2">.&quot;</span> <span class="o">%</span> <span class="n">names</span>
+        <span class="p">)</span>
     <span class="k">elif</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">field</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
         <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;field must be None or str&quot;</span><span class="p">)</span>
 
@@ -277,11 +280,11 @@
         <span class="k">if</span> <span class="nb">str</span><span class="p">(</span><span class="n">names</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">==</span> <span class="n">field</span> <span class="ow">or</span> <span class="nb">str</span><span class="p">(</span><span class="n">i</span><span class="p">)</span> <span class="o">==</span> <span class="n">field</span><span class="p">:</span>
             <span class="k">return</span> <span class="n">i</span>
 
-    <span class="n">names</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;</span><span class="si">%s</span><span class="s2"> or </span><span class="si">%d</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">ds</span><span class="o">.</span><span class="n">NAME</span><span class="o">.</span><span class="n">values</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">i</span><span class="p">)</span>
-             <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">ds</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">field_datasets</span><span class="p">)]</span>
+    <span class="n">names</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;</span><span class="si">%s</span><span class="s2"> or </span><span class="si">%d</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">ds</span><span class="o">.</span><span class="n">NAME</span><span class="o">.</span><span class="n">values</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">i</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">ds</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">field_datasets</span><span class="p">)]</span>
 
-    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">%s</span><span class="s2"> was requested, but no matching field &quot;</span>
-                     <span class="s2">&quot;was found </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">field</span><span class="p">,</span> <span class="n">names</span><span class="p">))</span></div>
+    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+        <span class="s2">&quot;</span><span class="si">%s</span><span class="s2"> was requested, but no matching field &quot;</span> <span class="s2">&quot;was found </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">field</span><span class="p">,</span> <span class="n">names</span><span class="p">)</span>
+    <span class="p">)</span></div>
 
 
 

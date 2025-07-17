@@ -3,9 +3,9 @@ LICENSE
 
 .. code-block :: console
 
-    MIT License
+    MIT License with Citation Requirement
 
-    Copyright (c) [2025] [Devojyoti Kansabanik]
+    Copyright (c) 2025 Devojyoti Kansabanik
 
     Permission is hereby granted, free of charge, to any person obtaining a copy
     of this software and associated documentation files (the "Software"), to deal
@@ -14,8 +14,17 @@ LICENSE
     copies of the Software, and to permit persons to whom the Software is
     furnished to do so, subject to the following conditions:
 
-    The above copyright notice and this permission notice shall be included in
-    all copies or substantial portions of the Software.
+    1. The above copyright notice and this permission notice shall be included
+       in all copies or substantial portions of the Software.
+
+    2. Any publications, software, or works that make use of this Software,
+       in whole or in part, must include proper academic citation to the
+       following reference(s):
+
+       Kansabanik, D. et al., "MeerSOLAR", 10.5281/zenodo.16040508.
+
+    3. A copy of the CITATION.cff file or equivalent citation information
+       must be distributed with any copy of the Software or derived works.
 
     THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
     IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
@@ -24,4 +33,5 @@ LICENSE
     LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
     OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
     THE SOFTWARE.
+
 

@@ -191,7 +191,8 @@
 <li class="toctree-l1"><a class="reference internal" href="../../../ack.html">Acknowledging</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../lic.html">LICENSE</a></li>
 <li class="toctree-l1 has-children"><a class="reference internal" href="../../../meersolar.html">API Reference</a><input class="toctree-checkbox" id="toctree-checkbox-5" name="toctree-checkbox-5" role="switch" type="checkbox"/><label for="toctree-checkbox-5"><div class="visually-hidden">Toggle navigation of API Reference</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
-<li class="toctree-l2"><a class="reference internal" href="../../../meersolar.pipeline.html">Meersolar Pipeline Module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../meersolar.utils.html">Meersolar Utils Module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../meersolar.meerpipeline.html">Meersolar Pipeline Module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../meersolar.crystalball.html">Crystalball Module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../meersolar.data.html">MeerSOLAR Pre-compiled Modules</a></li>
 </ul>
@@ -268,38 +269,83 @@
 <a class="viewcode-back" href="../../../meersolar.crystalball.html#meersolar.crystalball.crystalball.create_parser">[docs]</a>
 <span class="k">def</span> <span class="nf">create_parser</span><span class="p">():</span>
     <span class="n">p</span> <span class="o">=</span> <span class="n">argparse</span><span class="o">.</span><span class="n">ArgumentParser</span><span class="p">()</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s2">&quot;ms&quot;</span><span class="p">,</span>
-                   <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Input .MS file.&quot;</span><span class="p">)</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s2">&quot;-sm&quot;</span><span class="p">,</span> <span class="s2">&quot;--sky-model&quot;</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="s2">&quot;sky-model.txt&quot;</span><span class="p">,</span>
-                   <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Name of file containing the sky model. &quot;</span>
-                        <span class="s2">&quot;Default is &#39;sky-model.txt&#39;&quot;</span><span class="p">)</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s2">&quot;-o&quot;</span><span class="p">,</span> <span class="s2">&quot;--output-column&quot;</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="s2">&quot;MODEL_DATA&quot;</span><span class="p">,</span>
-                   <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Output visibility column. Default is &#39;</span><span class="si">%(default)s</span><span class="s2">&#39;&quot;</span><span class="p">)</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s2">&quot;-f&quot;</span><span class="p">,</span> <span class="s2">&quot;--field&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span>
-                   <span class="n">help</span><span class="o">=</span><span class="s2">&quot;The field name or id to be predicted. &quot;</span>
-                         <span class="s2">&quot;If not provided, only a single field &quot;</span>
-                         <span class="s2">&quot;may be present in the MS&quot;</span><span class="p">)</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s2">&quot;-rc&quot;</span><span class="p">,</span> <span class="s2">&quot;--row-chunks&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
-                   <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Number of rows of input MS that are processed in &quot;</span>
-                        <span class="s2">&quot;a single chunk. If 0 it will be set automatically. &quot;</span>
-                        <span class="s2">&quot;Default is 0.&quot;</span><span class="p">)</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s2">&quot;-mc&quot;</span><span class="p">,</span> <span class="s2">&quot;--model-chunks&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
-                   <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Number of sky model components that are processed in &quot;</span>
-                        <span class="s2">&quot;a single chunk. If 0 it wil be set automatically. &quot;</span>
-                        <span class="s2">&quot;Default is 0.&quot;</span><span class="p">)</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s2">&quot;-w&quot;</span><span class="p">,</span> <span class="s2">&quot;--within&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span>
-                   <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Optional. Give JS9 region file. Only sources within &quot;</span>
-                        <span class="s2">&quot;those regions will be included.&quot;</span><span class="p">)</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s2">&quot;-po&quot;</span><span class="p">,</span> <span class="s2">&quot;--points-only&quot;</span><span class="p">,</span> <span class="n">action</span><span class="o">=</span><span class="s2">&quot;store_true&quot;</span><span class="p">,</span>
-                   <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Select only point-type sources.&quot;</span><span class="p">)</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s2">&quot;-ns&quot;</span><span class="p">,</span> <span class="s2">&quot;--num-sources&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">metavar</span><span class="o">=</span><span class="s2">&quot;N&quot;</span><span class="p">,</span>
-                   <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Select only N brightest sources.&quot;</span><span class="p">)</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s2">&quot;-j&quot;</span><span class="p">,</span> <span class="s2">&quot;--num-workers&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">metavar</span><span class="o">=</span><span class="s2">&quot;N&quot;</span><span class="p">,</span>
-                   <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Explicitly set the number of worker threads.&quot;</span><span class="p">)</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s2">&quot;-mf&quot;</span><span class="p">,</span> <span class="s2">&quot;--memory-fraction&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">float</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span>
-                   <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Fraction of system RAM that can be used. &quot;</span>
-                        <span class="s2">&quot;Used when setting automatically the &quot;</span>
-                        <span class="s2">&quot;chunk size. Default in 0.1.&quot;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s2">&quot;ms&quot;</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Input .MS file.&quot;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;-sm&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;--sky-model&quot;</span><span class="p">,</span>
+        <span class="n">default</span><span class="o">=</span><span class="s2">&quot;sky-model.txt&quot;</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Name of file containing the sky model. &quot;</span> <span class="s2">&quot;Default is &#39;sky-model.txt&#39;&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;-o&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;--output-column&quot;</span><span class="p">,</span>
+        <span class="n">default</span><span class="o">=</span><span class="s2">&quot;MODEL_DATA&quot;</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Output visibility column. Default is &#39;</span><span class="si">%(default)s</span><span class="s2">&#39;&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;-f&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;--field&quot;</span><span class="p">,</span>
+        <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;The field name or id to be predicted. &quot;</span>
+        <span class="s2">&quot;If not provided, only a single field &quot;</span>
+        <span class="s2">&quot;may be present in the MS&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;-rc&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;--row-chunks&quot;</span><span class="p">,</span>
+        <span class="nb">type</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span>
+        <span class="n">default</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Number of rows of input MS that are processed in &quot;</span>
+        <span class="s2">&quot;a single chunk. If 0 it will be set automatically. &quot;</span>
+        <span class="s2">&quot;Default is 0.&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;-mc&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;--model-chunks&quot;</span><span class="p">,</span>
+        <span class="nb">type</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span>
+        <span class="n">default</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Number of sky model components that are processed in &quot;</span>
+        <span class="s2">&quot;a single chunk. If 0 it wil be set automatically. &quot;</span>
+        <span class="s2">&quot;Default is 0.&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;-w&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;--within&quot;</span><span class="p">,</span>
+        <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Optional. Give JS9 region file. Only sources within &quot;</span>
+        <span class="s2">&quot;those regions will be included.&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;-po&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;--points-only&quot;</span><span class="p">,</span>
+        <span class="n">action</span><span class="o">=</span><span class="s2">&quot;store_true&quot;</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Select only point-type sources.&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;-ns&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;--num-sources&quot;</span><span class="p">,</span>
+        <span class="nb">type</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span>
+        <span class="n">default</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+        <span class="n">metavar</span><span class="o">=</span><span class="s2">&quot;N&quot;</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Select only N brightest sources.&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;-j&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;--num-workers&quot;</span><span class="p">,</span>
+        <span class="nb">type</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span>
+        <span class="n">default</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+        <span class="n">metavar</span><span class="o">=</span><span class="s2">&quot;N&quot;</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Explicitly set the number of worker threads.&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;-mf&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;--memory-fraction&quot;</span><span class="p">,</span>
+        <span class="nb">type</span><span class="o">=</span><span class="nb">float</span><span class="p">,</span>
+        <span class="n">default</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Fraction of system RAM that can be used. &quot;</span>
+        <span class="s2">&quot;Used when setting automatically the &quot;</span>
+        <span class="s2">&quot;chunk size. Default in 0.1.&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
 
     <span class="k">return</span> <span class="n">p</span></div>
 
@@ -321,10 +367,13 @@
 <span class="sd">    table_map : dict of :class:`xarray.Dataset`</span>
 <span class="sd">        {name: dataset}</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">return</span> <span class="p">{</span><span class="n">t</span><span class="p">:</span> <span class="p">[</span><span class="n">ds</span><span class="o">.</span><span class="n">compute</span><span class="p">()</span> <span class="k">for</span> <span class="n">ds</span> <span class="ow">in</span>
-                <span class="n">xds_from_table</span><span class="p">(</span><span class="s2">&quot;::&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">((</span><span class="n">args</span><span class="o">.</span><span class="n">ms</span><span class="p">,</span> <span class="n">t</span><span class="p">)),</span>
-                               <span class="n">group_cols</span><span class="o">=</span><span class="s2">&quot;__row__&quot;</span><span class="p">)]</span>
-            <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">tables</span><span class="p">}</span></div>
+    <span class="k">return</span> <span class="p">{</span>
+        <span class="n">t</span><span class="p">:</span> <span class="p">[</span>
+            <span class="n">ds</span><span class="o">.</span><span class="n">compute</span><span class="p">()</span>
+            <span class="k">for</span> <span class="n">ds</span> <span class="ow">in</span> <span class="n">xds_from_table</span><span class="p">(</span><span class="s2">&quot;::&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">((</span><span class="n">args</span><span class="o">.</span><span class="n">ms</span><span class="p">,</span> <span class="n">t</span><span class="p">)),</span> <span class="n">group_cols</span><span class="o">=</span><span class="s2">&quot;__row__&quot;</span><span class="p">)</span>
+        <span class="p">]</span>
+        <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">tables</span>
+    <span class="p">}</span></div>
 
 
 
@@ -376,13 +425,15 @@
     <span class="n">spi_chunks</span> <span class="o">=</span> <span class="p">(</span><span class="n">chunks</span><span class="p">,)</span> <span class="o">+</span> <span class="n">sm</span><span class="o">.</span><span class="n">spi</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span>
     <span class="n">gauss_chunks</span> <span class="o">=</span> <span class="p">(</span><span class="n">chunks</span><span class="p">,)</span> <span class="o">+</span> <span class="n">sm</span><span class="o">.</span><span class="n">gauss_shape</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span>
 
-    <span class="k">return</span> <span class="n">WSCleanModel</span><span class="p">(</span><span class="n">da</span><span class="o">.</span><span class="n">from_array</span><span class="p">(</span><span class="n">sm</span><span class="o">.</span><span class="n">source_type</span><span class="p">,</span> <span class="n">chunks</span><span class="o">=</span><span class="n">chunks</span><span class="p">),</span>
-                        <span class="n">da</span><span class="o">.</span><span class="n">from_array</span><span class="p">(</span><span class="n">sm</span><span class="o">.</span><span class="n">radec</span><span class="p">,</span> <span class="n">chunks</span><span class="o">=</span><span class="n">radec_chunks</span><span class="p">),</span>
-                        <span class="n">da</span><span class="o">.</span><span class="n">from_array</span><span class="p">(</span><span class="n">sm</span><span class="o">.</span><span class="n">flux</span><span class="p">,</span> <span class="n">chunks</span><span class="o">=</span><span class="n">chunks</span><span class="p">),</span>
-                        <span class="n">da</span><span class="o">.</span><span class="n">from_array</span><span class="p">(</span><span class="n">sm</span><span class="o">.</span><span class="n">spi</span><span class="p">,</span> <span class="n">chunks</span><span class="o">=</span><span class="n">spi_chunks</span><span class="p">),</span>
-                        <span class="n">da</span><span class="o">.</span><span class="n">from_array</span><span class="p">(</span><span class="n">sm</span><span class="o">.</span><span class="n">ref_freq</span><span class="p">,</span> <span class="n">chunks</span><span class="o">=</span><span class="n">chunks</span><span class="p">),</span>
-                        <span class="n">da</span><span class="o">.</span><span class="n">from_array</span><span class="p">(</span><span class="n">sm</span><span class="o">.</span><span class="n">log_poly</span><span class="p">,</span> <span class="n">chunks</span><span class="o">=</span><span class="n">chunks</span><span class="p">),</span>
-                        <span class="n">da</span><span class="o">.</span><span class="n">from_array</span><span class="p">(</span><span class="n">sm</span><span class="o">.</span><span class="n">gauss_shape</span><span class="p">,</span> <span class="n">chunks</span><span class="o">=</span><span class="n">gauss_chunks</span><span class="p">))</span></div>
+    <span class="k">return</span> <span class="n">WSCleanModel</span><span class="p">(</span>
+        <span class="n">da</span><span class="o">.</span><span class="n">from_array</span><span class="p">(</span><span class="n">sm</span><span class="o">.</span><span class="n">source_type</span><span class="p">,</span> <span class="n">chunks</span><span class="o">=</span><span class="n">chunks</span><span class="p">),</span>
+        <span class="n">da</span><span class="o">.</span><span class="n">from_array</span><span class="p">(</span><span class="n">sm</span><span class="o">.</span><span class="n">radec</span><span class="p">,</span> <span class="n">chunks</span><span class="o">=</span><span class="n">radec_chunks</span><span class="p">),</span>
+        <span class="n">da</span><span class="o">.</span><span class="n">from_array</span><span class="p">(</span><span class="n">sm</span><span class="o">.</span><span class="n">flux</span><span class="p">,</span> <span class="n">chunks</span><span class="o">=</span><span class="n">chunks</span><span class="p">),</span>
+        <span class="n">da</span><span class="o">.</span><span class="n">from_array</span><span class="p">(</span><span class="n">sm</span><span class="o">.</span><span class="n">spi</span><span class="p">,</span> <span class="n">chunks</span><span class="o">=</span><span class="n">spi_chunks</span><span class="p">),</span>
+        <span class="n">da</span><span class="o">.</span><span class="n">from_array</span><span class="p">(</span><span class="n">sm</span><span class="o">.</span><span class="n">ref_freq</span><span class="p">,</span> <span class="n">chunks</span><span class="o">=</span><span class="n">chunks</span><span class="p">),</span>
+        <span class="n">da</span><span class="o">.</span><span class="n">from_array</span><span class="p">(</span><span class="n">sm</span><span class="o">.</span><span class="n">log_poly</span><span class="p">,</span> <span class="n">chunks</span><span class="o">=</span><span class="n">chunks</span><span class="p">),</span>
+        <span class="n">da</span><span class="o">.</span><span class="n">from_array</span><span class="p">(</span><span class="n">sm</span><span class="o">.</span><span class="n">gauss_shape</span><span class="p">,</span> <span class="n">chunks</span><span class="o">=</span><span class="n">gauss_chunks</span><span class="p">),</span>
+    <span class="p">)</span></div>
 
 
 
@@ -409,17 +460,20 @@
 
     <span class="c1"># Import source data from WSClean component list</span>
     <span class="c1"># See https://sourceforge.net/p/wsclean/wiki/ComponentList</span>
-    <span class="n">source_model</span> <span class="o">=</span> <span class="n">import_from_wsclean</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">sky_model</span><span class="p">,</span>
-                                       <span class="n">include_regions</span><span class="o">=</span><span class="n">include_regions</span><span class="p">,</span>
-                                       <span class="n">point_only</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">points_only</span><span class="p">,</span>
-                                       <span class="n">num</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">num_sources</span> <span class="ow">or</span> <span class="kc">None</span><span class="p">)</span>
+    <span class="n">source_model</span> <span class="o">=</span> <span class="n">import_from_wsclean</span><span class="p">(</span>
+        <span class="n">args</span><span class="o">.</span><span class="n">sky_model</span><span class="p">,</span>
+        <span class="n">include_regions</span><span class="o">=</span><span class="n">include_regions</span><span class="p">,</span>
+        <span class="n">point_only</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">points_only</span><span class="p">,</span>
+        <span class="n">num</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">num_sources</span> <span class="ow">or</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="p">)</span>
 
     <span class="c1"># Add output column if it isn&#39;t present</span>
     <span class="n">ms_rows</span><span class="p">,</span> <span class="n">ms_datatype</span> <span class="o">=</span> <span class="n">ms_preprocess</span><span class="p">(</span><span class="n">args</span><span class="p">)</span>
 
     <span class="c1"># Get the support tables</span>
-    <span class="n">tables</span> <span class="o">=</span> <span class="n">support_tables</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="p">[</span><span class="s2">&quot;FIELD&quot;</span><span class="p">,</span> <span class="s2">&quot;DATA_DESCRIPTION&quot;</span><span class="p">,</span>
-                                   <span class="s2">&quot;SPECTRAL_WINDOW&quot;</span><span class="p">,</span> <span class="s2">&quot;POLARIZATION&quot;</span><span class="p">])</span>
+    <span class="n">tables</span> <span class="o">=</span> <span class="n">support_tables</span><span class="p">(</span>
+        <span class="n">args</span><span class="p">,</span> <span class="p">[</span><span class="s2">&quot;FIELD&quot;</span><span class="p">,</span> <span class="s2">&quot;DATA_DESCRIPTION&quot;</span><span class="p">,</span> <span class="s2">&quot;SPECTRAL_WINDOW&quot;</span><span class="p">,</span> <span class="s2">&quot;POLARIZATION&quot;</span><span class="p">]</span>
+    <span class="p">)</span>
 
     <span class="n">field_ds</span> <span class="o">=</span> <span class="n">tables</span><span class="p">[</span><span class="s2">&quot;FIELD&quot;</span><span class="p">]</span>
     <span class="n">ddid_ds</span> <span class="o">=</span> <span class="n">tables</span><span class="p">[</span><span class="s2">&quot;DATA_DESCRIPTION&quot;</span><span class="p">]</span>
@@ -431,29 +485,29 @@
 
     <span class="c1"># Perform resource budgeting</span>
     <span class="n">nsources</span> <span class="o">=</span> <span class="n">source_model</span><span class="o">.</span><span class="n">source_type</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
-    <span class="n">args</span><span class="o">.</span><span class="n">row_chunks</span><span class="p">,</span> <span class="n">args</span><span class="o">.</span><span class="n">model_chunks</span> <span class="o">=</span> <span class="n">get_budget</span><span class="p">(</span><span class="n">nsources</span><span class="p">,</span>
-                                                    <span class="n">ms_rows</span><span class="p">,</span>
-                                                    <span class="n">max_num_chan</span><span class="p">,</span>
-                                                    <span class="n">max_num_corr</span><span class="p">,</span>
-                                                    <span class="n">ms_datatype</span><span class="p">,</span> <span class="n">args</span><span class="p">)</span>
+    <span class="n">args</span><span class="o">.</span><span class="n">row_chunks</span><span class="p">,</span> <span class="n">args</span><span class="o">.</span><span class="n">model_chunks</span> <span class="o">=</span> <span class="n">get_budget</span><span class="p">(</span>
+        <span class="n">nsources</span><span class="p">,</span> <span class="n">ms_rows</span><span class="p">,</span> <span class="n">max_num_chan</span><span class="p">,</span> <span class="n">max_num_corr</span><span class="p">,</span> <span class="n">ms_datatype</span><span class="p">,</span> <span class="n">args</span>
+    <span class="p">)</span>
 
     <span class="n">source_model</span> <span class="o">=</span> <span class="n">source_model_to_dask</span><span class="p">(</span><span class="n">source_model</span><span class="p">,</span> <span class="n">args</span><span class="o">.</span><span class="n">model_chunks</span><span class="p">)</span>
 
     <span class="c1"># List of write operations</span>
     <span class="n">writes</span> <span class="o">=</span> <span class="p">[]</span>
 
-    <span class="n">datasets</span> <span class="o">=</span> <span class="n">xds_from_ms</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">ms</span><span class="p">,</span>
-                           <span class="n">columns</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;UVW&quot;</span><span class="p">,</span> <span class="s2">&quot;ANTENNA1&quot;</span><span class="p">,</span> <span class="s2">&quot;ANTENNA2&quot;</span><span class="p">,</span> <span class="s2">&quot;TIME&quot;</span><span class="p">],</span>
-                           <span class="n">group_cols</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;FIELD_ID&quot;</span><span class="p">,</span> <span class="s2">&quot;DATA_DESC_ID&quot;</span><span class="p">],</span>
-                           <span class="n">chunks</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;row&quot;</span><span class="p">:</span> <span class="n">args</span><span class="o">.</span><span class="n">row_chunks</span><span class="p">})</span>
+    <span class="n">datasets</span> <span class="o">=</span> <span class="n">xds_from_ms</span><span class="p">(</span>
+        <span class="n">args</span><span class="o">.</span><span class="n">ms</span><span class="p">,</span>
+        <span class="n">columns</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;UVW&quot;</span><span class="p">,</span> <span class="s2">&quot;ANTENNA1&quot;</span><span class="p">,</span> <span class="s2">&quot;ANTENNA2&quot;</span><span class="p">,</span> <span class="s2">&quot;TIME&quot;</span><span class="p">],</span>
+        <span class="n">group_cols</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;FIELD_ID&quot;</span><span class="p">,</span> <span class="s2">&quot;DATA_DESC_ID&quot;</span><span class="p">],</span>
+        <span class="n">chunks</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;row&quot;</span><span class="p">:</span> <span class="n">args</span><span class="o">.</span><span class="n">row_chunks</span><span class="p">},</span>
+    <span class="p">)</span>
 
     <span class="n">field_id</span> <span class="o">=</span> <span class="n">select_field_id</span><span class="p">(</span><span class="n">field_ds</span><span class="p">,</span> <span class="n">args</span><span class="o">.</span><span class="n">field</span><span class="p">)</span>
 
     <span class="k">for</span> <span class="n">xds</span> <span class="ow">in</span> <span class="n">filter_datasets</span><span class="p">(</span><span class="n">datasets</span><span class="p">,</span> <span class="n">field_id</span><span class="p">):</span>
         <span class="c1"># Extract frequencies from the spectral window associated</span>
         <span class="c1"># with this data descriptor id</span>
-        <span class="n">field</span> <span class="o">=</span> <span class="n">field_ds</span><span class="p">[</span><span class="n">xds</span><span class="o">.</span><span class="n">attrs</span><span class="p">[</span><span class="s1">&#39;FIELD_ID&#39;</span><span class="p">]]</span>
-        <span class="n">ddid</span> <span class="o">=</span> <span class="n">ddid_ds</span><span class="p">[</span><span class="n">xds</span><span class="o">.</span><span class="n">attrs</span><span class="p">[</span><span class="s1">&#39;DATA_DESC_ID&#39;</span><span class="p">]]</span>
+        <span class="n">field</span> <span class="o">=</span> <span class="n">field_ds</span><span class="p">[</span><span class="n">xds</span><span class="o">.</span><span class="n">attrs</span><span class="p">[</span><span class="s2">&quot;FIELD_ID&quot;</span><span class="p">]]</span>
+        <span class="n">ddid</span> <span class="o">=</span> <span class="n">ddid_ds</span><span class="p">[</span><span class="n">xds</span><span class="o">.</span><span class="n">attrs</span><span class="p">[</span><span class="s2">&quot;DATA_DESC_ID&quot;</span><span class="p">]]</span>
         <span class="n">spw</span> <span class="o">=</span> <span class="n">spw_ds</span><span class="p">[</span><span class="n">ddid</span><span class="o">.</span><span class="n">SPECTRAL_WINDOW_ID</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span>
         <span class="n">pol</span> <span class="o">=</span> <span class="n">pol_ds</span><span class="p">[</span><span class="n">ddid</span><span class="o">.</span><span class="n">POLARIZATION_ID</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span>
         <span class="n">frequency</span> <span class="o">=</span> <span class="n">spw</span><span class="o">.</span><span class="n">CHAN_FREQ</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
@@ -463,27 +517,32 @@
         <span class="k">with</span> <span class="n">warnings</span><span class="o">.</span><span class="n">catch_warnings</span><span class="p">():</span>
             <span class="c1"># Ignore dask chunk warnings emitted when going from 1D</span>
             <span class="c1"># inputs to a 2D space of chunks</span>
-            <span class="n">warnings</span><span class="o">.</span><span class="n">simplefilter</span><span class="p">(</span><span class="s1">&#39;ignore&#39;</span><span class="p">,</span> <span class="n">category</span><span class="o">=</span><span class="n">PerformanceWarning</span><span class="p">)</span>
-            <span class="n">vis</span> <span class="o">=</span> <span class="n">wsclean_predict</span><span class="p">(</span><span class="n">xds</span><span class="o">.</span><span class="n">UVW</span><span class="o">.</span><span class="n">data</span><span class="p">,</span>
-                                  <span class="n">lm</span><span class="p">,</span>
-                                  <span class="n">source_model</span><span class="o">.</span><span class="n">source_type</span><span class="p">,</span>
-                                  <span class="n">source_model</span><span class="o">.</span><span class="n">flux</span><span class="p">,</span>
-                                  <span class="n">source_model</span><span class="o">.</span><span class="n">spi</span><span class="p">,</span>
-                                  <span class="n">source_model</span><span class="o">.</span><span class="n">log_poly</span><span class="p">,</span>
-                                  <span class="n">source_model</span><span class="o">.</span><span class="n">ref_freq</span><span class="p">,</span>
-                                  <span class="n">source_model</span><span class="o">.</span><span class="n">gauss_shape</span><span class="p">,</span>
-                                  <span class="n">frequency</span><span class="p">)</span>
+            <span class="n">warnings</span><span class="o">.</span><span class="n">simplefilter</span><span class="p">(</span><span class="s2">&quot;ignore&quot;</span><span class="p">,</span> <span class="n">category</span><span class="o">=</span><span class="n">PerformanceWarning</span><span class="p">)</span>
+            <span class="n">vis</span> <span class="o">=</span> <span class="n">wsclean_predict</span><span class="p">(</span>
+                <span class="n">xds</span><span class="o">.</span><span class="n">UVW</span><span class="o">.</span><span class="n">data</span><span class="p">,</span>
+                <span class="n">lm</span><span class="p">,</span>
+                <span class="n">source_model</span><span class="o">.</span><span class="n">source_type</span><span class="p">,</span>
+                <span class="n">source_model</span><span class="o">.</span><span class="n">flux</span><span class="p">,</span>
+                <span class="n">source_model</span><span class="o">.</span><span class="n">spi</span><span class="p">,</span>
+                <span class="n">source_model</span><span class="o">.</span><span class="n">log_poly</span><span class="p">,</span>
+                <span class="n">source_model</span><span class="o">.</span><span class="n">ref_freq</span><span class="p">,</span>
+                <span class="n">source_model</span><span class="o">.</span><span class="n">gauss_shape</span><span class="p">,</span>
+                <span class="n">frequency</span><span class="p">,</span>
+            <span class="p">)</span>
 
         <span class="n">vis</span> <span class="o">=</span> <span class="n">fill_correlations</span><span class="p">(</span><span class="n">vis</span><span class="p">,</span> <span class="n">pol</span><span class="p">)</span>
 
-        <span class="n">log</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Field </span><span class="si">{0}</span><span class="s1"> DDID </span><span class="si">{1:d}</span><span class="s1"> rows </span><span class="si">{2}</span><span class="s1"> chans </span><span class="si">{3}</span><span class="s1"> corrs </span><span class="si">{4}</span><span class="s1">&#39;</span><span class="p">,</span>
-                 <span class="n">field</span><span class="o">.</span><span class="n">NAME</span><span class="o">.</span><span class="n">values</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
-                 <span class="n">xds</span><span class="o">.</span><span class="n">DATA_DESC_ID</span><span class="p">,</span>
-                 <span class="n">vis</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">vis</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">vis</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span>
+        <span class="n">log</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+            <span class="s2">&quot;Field </span><span class="si">{0}</span><span class="s2"> DDID </span><span class="si">{1:d}</span><span class="s2"> rows </span><span class="si">{2}</span><span class="s2"> chans </span><span class="si">{3}</span><span class="s2"> corrs </span><span class="si">{4}</span><span class="s2">&quot;</span><span class="p">,</span>
+            <span class="n">field</span><span class="o">.</span><span class="n">NAME</span><span class="o">.</span><span class="n">values</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+            <span class="n">xds</span><span class="o">.</span><span class="n">DATA_DESC_ID</span><span class="p">,</span>
+            <span class="n">vis</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+            <span class="n">vis</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span>
+            <span class="n">vis</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span>
+        <span class="p">)</span>
 
         <span class="c1"># Assign visibilities to MODEL_DATA array on the dataset</span>
-        <span class="n">xds</span> <span class="o">=</span> <span class="n">xds</span><span class="o">.</span><span class="n">assign</span><span class="p">(</span>
-            <span class="o">**</span><span class="p">{</span><span class="n">args</span><span class="o">.</span><span class="n">output_column</span><span class="p">:</span> <span class="p">((</span><span class="s2">&quot;row&quot;</span><span class="p">,</span> <span class="s2">&quot;chan&quot;</span><span class="p">,</span> <span class="s2">&quot;corr&quot;</span><span class="p">),</span> <span class="n">vis</span><span class="p">)})</span>
+        <span class="n">xds</span> <span class="o">=</span> <span class="n">xds</span><span class="o">.</span><span class="n">assign</span><span class="p">(</span><span class="o">**</span><span class="p">{</span><span class="n">args</span><span class="o">.</span><span class="n">output_column</span><span class="p">:</span> <span class="p">((</span><span class="s2">&quot;row&quot;</span><span class="p">,</span> <span class="s2">&quot;chan&quot;</span><span class="p">,</span> <span class="s2">&quot;corr&quot;</span><span class="p">),</span> <span class="n">vis</span><span class="p">)})</span>
         <span class="c1"># Create a write to the table</span>
         <span class="n">write</span> <span class="o">=</span> <span class="n">xds_to_table</span><span class="p">(</span><span class="n">xds</span><span class="p">,</span> <span class="n">args</span><span class="o">.</span><span class="n">ms</span><span class="p">,</span> <span class="p">[</span><span class="n">args</span><span class="o">.</span><span class="n">output_column</span><span class="p">])</span>
         <span class="c1"># Add to the list of writes</span>

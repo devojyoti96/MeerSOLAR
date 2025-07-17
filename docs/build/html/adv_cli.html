@@ -192,7 +192,8 @@
 <li class="toctree-l1"><a class="reference internal" href="ack.html">Acknowledging</a></li>
 <li class="toctree-l1"><a class="reference internal" href="lic.html">LICENSE</a></li>
 <li class="toctree-l1 has-children"><a class="reference internal" href="meersolar.html">API Reference</a><input class="toctree-checkbox" id="toctree-checkbox-5" name="toctree-checkbox-5" role="switch" type="checkbox"/><label for="toctree-checkbox-5"><div class="visually-hidden">Toggle navigation of API Reference</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
-<li class="toctree-l2"><a class="reference internal" href="meersolar.pipeline.html">Meersolar Pipeline Module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="meersolar.utils.html">Meersolar Utils Module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="meersolar.meerpipeline.html">Meersolar Pipeline Module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="meersolar.crystalball.html">Crystalball Module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="meersolar.data.html">MeerSOLAR Pre-compiled Modules</a></li>
 </ul>
@@ -244,14 +245,15 @@
 <section id="calibration-related-cli">
 <h2>Calibration related CLI<a class="headerlink" href="#calibration-related-cli" title="Link to this heading">¶</a></h2>
 <ol class="arabic simple">
-<li><p>To perform solar attenuation calibration using noise diode, use <code class="docutils literal notranslate"><span class="pre">run_fluxcal</span></code> .</p></li>
+<li><p>To perform solar attenuation calibration using noise diode, use <code class="docutils literal notranslate"><span class="pre">run-meer-fluxcal</span></code> .</p></li>
 </ol>
 <div class="dropdown admonition">
 <p class="admonition-title">Click here to see parameters</p>
-<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>usage: run_fluxcal [-h] --workdir WORKDIR --caldir CALDIR [--keep_backup]
-                   [--cpu_frac CPU_FRAC] [--mem_frac MEM_FRAC]
-                   [--logfile LOGFILE] [--jobid JOBID]
-                   msname
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>usage: run-meer-fluxcal [-h] --workdir WORKDIR --caldir CALDIR [--keep_backup]
+                        [--start_remote_log] [--cpu_frac CPU_FRAC]
+                        [--mem_frac MEM_FRAC] [--logfile LOGFILE]
+                        [--jobid JOBID]
+                        msname
 
 Basic calibration using calibrators
 
@@ -271,6 +273,7 @@ Essential parameters
 Advanced parameters
 ###################:
   --keep_backup        Keep backup of measurement set after each round
+  --start_remote_log   Start remote logging
 
 ###################
 Hardware resource management parameters
@@ -283,16 +286,17 @@ Hardware resource management parameters
 </div>
 </div>
 <ol class="arabic simple" start="2">
-<li><p>Parition calibrator scans from main measurement set, use <code class="docutils literal notranslate"><span class="pre">run_partition</span></code> .</p></li>
+<li><p>Parition calibrator scans from main measurement set, use <code class="docutils literal notranslate"><span class="pre">run-meer-partition</span></code> .</p></li>
 </ol>
 <div class="dropdown admonition">
 <p class="admonition-title">Click here to see parameters</p>
-<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>usage: run_partition [-h] [--outputms OUTPUTMS] --workdir WORKDIR
-                     [--fields FIELDS] [--scans SCANS] [--width WIDTH]
-                     [--timebin TIMEBIN] [--datacolumn DATACOLUMN]
-                     [--split_fullpol] [--cpu_frac CPU_FRAC]
-                     [--mem_frac MEM_FRAC] [--logfile LOGFILE] [--jobid JOBID]
-                     msname
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>usage: run-meer-partition [-h] [--outputms OUTPUTMS] --workdir WORKDIR
+                          [--fields FIELDS] [--scans SCANS] [--width WIDTH]
+                          [--timebin TIMEBIN] [--datacolumn DATACOLUMN]
+                          [--start_remote_log] [--cpu_frac CPU_FRAC]
+                          [--mem_frac MEM_FRAC] [--logfile LOGFILE]
+                          [--jobid JOBID]
+                          msname
 
 Partition measurement set in multi-MS format
 
@@ -316,7 +320,7 @@ Advanced parameters
   --timebin TIMEBIN     Time averaging bin (e.g., &#39;10s&#39;, &#39;1min&#39;) (default: )
   --datacolumn DATACOLUMN
                         Datacolumn to split (default: data)
-  --split_fullpol       Split all polarizations (default: False)
+  --start_remote_log    Start remote logging
 
 ###################
 Hardware resource management parameters
@@ -329,16 +333,17 @@ Hardware resource management parameters
 </div>
 </div>
 <ol class="arabic simple" start="3">
-<li><p>Flagging of calibrators, use <code class="docutils literal notranslate"><span class="pre">run_flag</span></code> .</p></li>
+<li><p>Flagging of calibrators, use <code class="docutils literal notranslate"><span class="pre">run-meer-flag</span></code> .</p></li>
 </ol>
 <div class="dropdown admonition">
 <p class="admonition-title">Click here to see parameters</p>
-<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>usage: run_flag [-h] [--workdir WORKDIR] [--datacolumn DATACOLUMN]
-                [--no_flag_bad_ants] [--no_flag_bad_spw] [--use_tfcrop]
-                [--use_rflag] [--no_flag_autocorr] [--no_flagbackup]
-                [--flagdimension FLAGDIMENSION] [--cpu_frac CPU_FRAC]
-                [--mem_frac MEM_FRAC] [--logfile LOGFILE] [--jobid JOBID]
-                msname
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>usage: run-meer-flag [-h] [--workdir WORKDIR] [--datacolumn DATACOLUMN]
+                     [--no_flag_bad_ants] [--no_flag_bad_spw] [--use_tfcrop]
+                     [--use_rflag] [--no_flag_autocorr] [--no_flagbackup]
+                     [--start_remote_log] [--flagdimension FLAGDIMENSION]
+                     [--cpu_frac CPU_FRAC] [--mem_frac MEM_FRAC]
+                     [--logfile LOGFILE] [--jobid JOBID]
+                     msname
 
 Initial flagging of calibrator data
 
@@ -362,6 +367,7 @@ Advanced parameters
   --use_rflag           Use rflag flagging
   --no_flag_autocorr    Do not flag auto-correlations
   --no_flagbackup       Do not backup flags
+  --start_remote_log    Start remote logging
 
 ###################
 Hardware resource management parameters
@@ -376,13 +382,14 @@ Hardware resource management parameters
 </div>
 </div>
 <ol class="arabic simple" start="4">
-<li><p>Simulate visibilities for calibrators, use <code class="docutils literal notranslate"><span class="pre">import_model</span></code> .</p></li>
+<li><p>Simulate visibilities for calibrators, use <code class="docutils literal notranslate"><span class="pre">run-meer-import-model</span></code> .</p></li>
 </ol>
 <div class="dropdown admonition">
 <p class="admonition-title">Click here to see parameters</p>
-<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>usage: import_model [-h] [--workdir WORKDIR] [--cpu_frac CPU_FRAC]
-                    [--mem_frac MEM_FRAC] [--logfile LOGFILE] [--jobid JOBID]
-                    msname
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>usage: run-meer-import-model [-h] [--workdir WORKDIR] [--start_remote_log]
+                             [--cpu_frac CPU_FRAC] [--mem_frac MEM_FRAC]
+                             [--logfile LOGFILE] [--jobid JOBID]
+                             msname
 
 Import calibrator models
 
@@ -396,6 +403,11 @@ Essential parameters
   --workdir WORKDIR    Name of work directory (default: )
 
 ###################
+Advanced parameters
+###################:
+  --start_remote_log   Start remote logging
+
+###################
 Hardware resource management parameters
 ###################:
   --cpu_frac CPU_FRAC  CPU fraction to use (default: 0.8)
@@ -406,15 +418,17 @@ Hardware resource management parameters
 </div>
 </div>
 <ol class="arabic simple" start="5">
-<li><p>Perform basic calibration, use <code class="docutils literal notranslate"><span class="pre">run_basic_cal</span></code> .</p></li>
+<li><p>Perform basic calibration, use <code class="docutils literal notranslate"><span class="pre">run-meer-basic-cal</span></code> .</p></li>
 </ol>
 <div class="dropdown admonition">
 <p class="admonition-title">Click here to see parameters</p>
-<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>usage: run_basic_cal [-h] --workdir WORKDIR --caldir CALDIR [--refant REFANT]
-                     [--uvrange UVRANGE] [--do_delaycal] [--perform_polcal]
-                     [--keep_backup] [--cpu_frac CPU_FRAC]
-                     [--mem_frac MEM_FRAC] [--logfile LOGFILE] [--jobid JOBID]
-                     msname
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>usage: run-meer-basic-cal [-h] --workdir WORKDIR --caldir CALDIR
+                          [--refant REFANT] [--uvrange UVRANGE]
+                          [--perform_polcal] [--keep_backup]
+                          [--start_remote_log] [--cpu_frac CPU_FRAC]
+                          [--mem_frac MEM_FRAC] [--logfile LOGFILE]
+                          [--jobid JOBID]
+                          msname
 
 Basic calibration using calibrators
 
@@ -436,10 +450,10 @@ Advanced calibration parameters
   --refant REFANT      Reference antenna (default: 1)
   --uvrange UVRANGE    UV range for calibration (e.g. &#39;&gt;100lambda&#39;) (default:
                        )
-  --do_delaycal        Enable delay calibration
   --perform_polcal     Enable polarization calibration
   --keep_backup        Keep backup of measurement set after each calibration
                        round
+  --start_remote_log   Start remote logging
 
 ###################
 Hardware resource management parameters
@@ -452,17 +466,17 @@ Hardware resource management parameters
 </div>
 </div>
 <ol class="arabic simple" start="6">
-<li><p>Apply basic calibration solutions, use <code class="docutils literal notranslate"><span class="pre">run_apply_basiccal</span></code> .</p></li>
+<li><p>Apply basic calibration solutions, use <code class="docutils literal notranslate"><span class="pre">run-meer-apply-basiccal</span></code> .</p></li>
 </ol>
 <div class="dropdown admonition">
 <p class="admonition-title">Click here to see parameters</p>
-<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>usage: run_apply_basiccal [-h] [--workdir WORKDIR] [--caldir CALDIR]
-                          [--use_only_bandpass] [--applymode APPLYMODE]
-                          [--overwrite_datacolumn] [--force_apply]
-                          [--do_post_flag] [--cpu_frac CPU_FRAC]
-                          [--mem_frac MEM_FRAC] [--logfile LOGFILE]
-                          [--jobid JOBID]
-                          mslist
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>usage: run-meer-apply-basiccal [-h] --workdir WORKDIR --caldir CALDIR
+                               [--use_only_bandpass] [--applymode APPLYMODE]
+                               [--overwrite_datacolumn] [--force_apply]
+                               [--do_post_flag] [--start_remote_log]
+                               [--cpu_frac CPU_FRAC] [--mem_frac MEM_FRAC]
+                               [--logfile LOGFILE] [--jobid JOBID]
+                               mslist
 
 Apply basic calibration solutions to target scans
 
@@ -487,6 +501,7 @@ Advanced parameters
                         Overwrite corrected data column in MS
   --force_apply         Force apply calibration even if already applied
   --do_post_flag        Perform post-calibration flagging
+  --start_remote_log    Start remote logging
 
 ###################
 Hardware resource management parameters
@@ -499,20 +514,21 @@ Hardware resource management parameters
 </div>
 </div>
 <ol class="arabic simple" start="7">
-<li><p>Split measurement set for self-calibration or final imaging, use <code class="docutils literal notranslate"><span class="pre">run_target_split</span></code> .</p></li>
+<li><p>Split measurement set for self-calibration or final imaging, use <code class="docutils literal notranslate"><span class="pre">run-meer-split</span></code> .</p></li>
 </ol>
 <div class="dropdown admonition">
 <p class="admonition-title">Click here to see parameters</p>
-<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>usage: run_target_split [-h] [--workdir WORKDIR] [--datacolumn DATACOLUMN]
-                        [--spw SPW] [--scans SCANS (Comma seperated)]
-                        [--time_window Float] [--time_interval Float]
-                        [--quack_timestamps Integer] [--spectral_chunk Float]
-                        [--n_spectral_chunk Integer] [--freqres Float]
-                        [--timeres Float] [--prefix PREFIX] [--split_fullpol]
-                        [--merge_spws] [--cpu_frac Float] [--mem_frac Float]
-                        [--max_cpu_frac Float] [--max_mem_frac Float]
-                        [--logfile LOGFILE] [--jobid JOBID]
-                        msname
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>usage: run-meer-split [-h] [--workdir WORKDIR] [--datacolumn DATACOLUMN]
+                      [--spw SPW] [--scans SCANS (Comma seperated)]
+                      [--time_window Float] [--time_interval Float]
+                      [--quack_timestamps Integer] [--spectral_chunk Float]
+                      [--n_spectral_chunk Integer] [--freqres Float]
+                      [--timeres Float] [--prefix PREFIX] [--merge_spws]
+                      [--start_remote_log] [--cpu_frac Float]
+                      [--mem_frac Float] [--max_cpu_frac Float]
+                      [--max_mem_frac Float] [--logfile LOGFILE]
+                      [--jobid JOBID]
+                      msname
 
 Split target scans
 
@@ -546,8 +562,8 @@ Advanced parameters
   --freqres Float       Frequency to average in MHz (default: -1)
   --timeres Float       Time bin to average in seconds (default: -1)
   --prefix PREFIX       Splited ms prefix name (default: targets)
-  --split_fullpol       Split full polar data
   --merge_spws          Merge spectral windows
+  --start_remote_log    Start remote logging
 
 ###################
 Hardware resource management parameters
@@ -562,19 +578,21 @@ Hardware resource management parameters
 </div>
 </div>
 <ol class="arabic simple" start="8">
-<li><p>Perform self-calibration, use <code class="docutils literal notranslate"><span class="pre">run_selfcal</span></code> .</p></li>
+<li><p>Perform self-calibration, use <code class="docutils literal notranslate"><span class="pre">run-meer-selfcal</span></code> .</p></li>
 </ol>
 <div class="dropdown admonition">
 <p class="admonition-title">Click here to see parameters</p>
-<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>usage: run_selfcal [-h] --workdir WORKDIR --caldir CALDIR
-                   [--start_thresh Float] [--stop_thresh Float]
-                   [--max_iter Integer] [--max_DR Float] [--min_iter Integer]
-                   [--conv_frac Float] [--solint SOLINT] [--uvrange UVRANGE]
-                   [--minuv Float] [--weight WEIGHT] [--robust Float]
-                   [--applymode String] [--min_tol_factor Float] [--no_apcal]
-                   [--no_solar_selfcal] [--keep_backup] [--cpu_frac Float]
-                   [--mem_frac Float] [--jobid JOBID]
-                   mslist
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>usage: run-meer-selfcal [-h] --workdir WORKDIR --caldir CALDIR
+                        [--start_thresh Float] [--stop_thresh Float]
+                        [--max_iter Integer] [--max_DR Float]
+                        [--min_iter Integer] [--conv_frac Float]
+                        [--solint SOLINT] [--uvrange UVRANGE] [--minuv Float]
+                        [--weight WEIGHT] [--robust Float]
+                        [--applymode String] [--min_tol_factor Float]
+                        [--no_apcal] [--no_solar_selfcal] [--keep_backup]
+                        [--start_remote_log] [--cpu_frac Float]
+                        [--mem_frac Float] [--jobid JOBID]
+                        mslist
 
 Self-calibration
 
@@ -611,6 +629,7 @@ Advanced calibration and imaging parameters
   --no_apcal            Do not perform ap-selfcal
   --no_solar_selfcal    Do not perform solar self-calibration
   --keep_backup         Keep backup of self-calibration rounds
+  --start_remote_log    Start remote logging
 
 ###################
 Hardware resource management parameters
@@ -622,16 +641,16 @@ Hardware resource management parameters
 </div>
 </div>
 <ol class="arabic simple" start="9">
-<li><p>Apply self-calibration solutions, use <code class="docutils literal notranslate"><span class="pre">run_apply_selfcal</span></code> .</p></li>
+<li><p>Apply self-calibration solutions, use <code class="docutils literal notranslate"><span class="pre">run-meer-apply-selfcal</span></code> .</p></li>
 </ol>
 <div class="dropdown admonition">
 <p class="admonition-title">Click here to see parameters</p>
-<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>usage: run_apply_selfcal [-h] [--workdir WORKDIR] [--caldir CALDIR]
-                         [--applymode APPLYMODE] [--overwrite_datacolumn]
-                         [--force_apply] [--cpu_frac CPU_FRAC]
-                         [--mem_frac MEM_FRAC] [--logfile LOGFILE]
-                         [--jobid JOBID]
-                         mslist
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>usage: run-meer-apply-selfcal [-h] --workdir WORKDIR --caldir CALDIR
+                              [--applymode APPLYMODE] [--overwrite_datacolumn]
+                              [--force_apply] [--start_remote_log]
+                              [--cpu_frac CPU_FRAC] [--mem_frac MEM_FRAC]
+                              [--logfile LOGFILE] [--jobid JOBID]
+                              mslist
 
 Apply self-calibration solutions to target scans
 
@@ -655,6 +674,7 @@ Advanced parameters
   --overwrite_datacolumn
                         Overwrite corrected data column in MS
   --force_apply         Force apply calibration even if already applied
+  --start_remote_log    Start remote logging
 
 ###################
 Hardware resource management parameters
@@ -670,15 +690,16 @@ Hardware resource management parameters
 <section id="solar-specific-cli">
 <h2>Solar specific CLI<a class="headerlink" href="#solar-specific-cli" title="Link to this heading">¶</a></h2>
 <ol class="arabic simple">
-<li><p>To correct sidereal motion of the Sun, if the Sun is not tracked by the correlator delay center, use <code class="docutils literal notranslate"><span class="pre">run_solar_siderealcor</span></code> . This is useful for observations where the Sun is in sidelobe of the telescope primary beam.</p></li>
+<li><p>To correct sidereal motion of the Sun, if the Sun is not tracked by the correlator delay center, use <code class="docutils literal notranslate"><span class="pre">run-meer-solar-siderealcor</span></code> . This is useful for observations where the Sun is in sidelobe of the telescope primary beam.</p></li>
 </ol>
 <div class="dropdown admonition">
 <p class="admonition-title">Click here to see parameters</p>
-<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>usage: run_solar_siderealcor [-h] [--workdir WORKDIR] [--cpu_frac Float]
-                             [--mem_frac Float] [--max_cpu_frac Float]
-                             [--max_mem_frac Float] [--logfile LOGFILE]
-                             [--jobid JOBID]
-                             mslist
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>usage: run-meer-solar-siderealcor [-h] [--workdir WORKDIR]
+                                  [--start_remote_log] [--cpu_frac Float]
+                                  [--mem_frac Float] [--max_cpu_frac Float]
+                                  [--max_mem_frac Float] [--logfile LOGFILE]
+                                  [--jobid JOBID]
+                                  mslist
 
 Correct measurement sets for sidereal motion
 
@@ -693,6 +714,11 @@ Essential parameters
   --workdir WORKDIR     Working directory (default: )
 
 ###################
+Advanced calibration and imaging parameters
+###################:
+  --start_remote_log    Start remote logging
+
+###################
 Hardware resource management parameters
 ###################:
   --cpu_frac Float      CPU fraction to use (default: 0.8)
@@ -705,15 +731,17 @@ Hardware resource management parameters
 </div>
 </div>
 <ol class="arabic simple" start="2">
-<li><p>Make dynamic spectra of solar scans, use <code class="docutils literal notranslate"><span class="pre">run_makeds</span></code> .</p></li>
+<li><p>Make dynamic spectra of solar scans, use <code class="docutils literal notranslate"><span class="pre">run-meer-makeds</span></code> .</p></li>
 </ol>
 <div class="dropdown admonition">
 <p class="admonition-title">Click here to see parameters</p>
-<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>usage: run_makeds [-h] --workdir WORKDIR --outdir OUTDIR
-                  [--extension EXTENSION] [--target_scans [TARGET_SCANS ...]]
-                  [--no_merge] [--no_seperate] [--cpu_frac CPU_FRAC]
-                  [--mem_frac MEM_FRAC] [--logfile LOGFILE] [--jobid JOBID]
-                  msname
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>usage: run-meer-makeds [-h] --workdir WORKDIR --outdir OUTDIR
+                       [--extension EXTENSION]
+                       [--target_scans [TARGET_SCANS ...]] [--no_merge]
+                       [--no_seperate] [--start_remote_log]
+                       [--cpu_frac CPU_FRAC] [--mem_frac MEM_FRAC]
+                       [--logfile LOGFILE] [--jobid JOBID]
+                       msname
 
 Make dynamic spectra of solar scans
 
@@ -737,6 +765,7 @@ Advanced parameters
                         3 5 7) (default: [])
   --no_merge            Do not merge scans
   --no_seperate         Do not seperate scans
+  --start_remote_log    Start remote logging
 
 ###################
 Hardware resource management parameters
@@ -752,20 +781,22 @@ Hardware resource management parameters
 <section id="imaging-related-cli">
 <h2>Imaging related CLI<a class="headerlink" href="#imaging-related-cli" title="Link to this heading">¶</a></h2>
 <ol class="arabic simple">
-<li><p>Perform spectro-polarimetric snapshot imaging, use <code class="docutils literal notranslate"><span class="pre">run_imaging</span></code> .</p></li>
+<li><p>Perform spectro-polarimetric snapshot imaging, use <code class="docutils literal notranslate"><span class="pre">run-meer-imaging</span></code> .</p></li>
 </ol>
 <div class="dropdown admonition">
 <p class="admonition-title">Click here to see parameters</p>
-<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>usage: run_imaging [-h] --workdir WORKDIR --outdir OUTDIR
-                   [--freqrange FREQRANGE] [--timerange TIMERANGE]
-                   [--datacolumn DATACOLUMN] [--pol POL] [--freqres FREQRES]
-                   [--timeres TIMERES] [--weight WEIGHT] [--robust ROBUST]
-                   [--minuv_l MINUV] [--threshold THRESHOLD] [--band BAND]
-                   [--cutout_rsun CUTOUT_RSUN] [--no_multiscale]
-                   [--no_solar_mask] [--no_savemodel] [--no_saveres]
-                   [--no_make_overlay] [--no_make_plots] [--cpu_frac CPU_FRAC]
-                   [--mem_frac MEM_FRAC] [--jobid JOBID]
-                   mslist
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>usage: run-meer-imaging [-h] --workdir WORKDIR --outdir OUTDIR
+                        [--freqrange FREQRANGE] [--timerange TIMERANGE]
+                        [--datacolumn DATACOLUMN] [--pol POL]
+                        [--freqres FREQRES] [--timeres TIMERES]
+                        [--weight WEIGHT] [--robust ROBUST] [--minuv_l MINUV]
+                        [--threshold THRESHOLD] [--band BAND]
+                        [--cutout_rsun CUTOUT_RSUN] [--no_multiscale]
+                        [--no_solar_mask] [--no_savemodel] [--no_saveres]
+                        [--no_make_overlay] [--no_make_plots]
+                        [--start_remote_log] [--cpu_frac CPU_FRAC]
+                        [--mem_frac MEM_FRAC] [--jobid JOBID]
+                        mslist
 
 Perform spectropolarimetric snapshot imaging
 
@@ -801,13 +832,14 @@ Advanced imaging parameters
                         CLEAN threshold in Jy (default: 1.0)
   --band BAND           Band name label for output (default: )
   --cutout_rsun CUTOUT_RSUN
-                        Cutout radius for images (solar radii) (default: 2.5)
+                        Cutout radius for images (solar radii) (default: -1)
   --no_multiscale       Do not use multiscale CLEAN
   --no_solar_mask       Do not use solar disk mask for CLEANing
   --no_savemodel        Do no save model images
   --no_saveres          Do not save residual images
   --no_make_overlay     Do not generate overlay with SUVI images
   --no_make_plots       Do not make generate helioprojective plots
+  --start_remote_log    Start remote logging
 
 ###################
 Hardware resource management parameters
@@ -819,11 +851,11 @@ Hardware resource management parameters
 </div>
 </div>
 <ol class="arabic simple" start="2">
-<li><p>Perform primary beam correction of MeerKAT primary beam, for a single image, use <code class="docutils literal notranslate"><span class="pre">run_single_meerpbcor</span></code> .</p></li>
+<li><p>Perform primary beam correction of MeerKAT primary beam, for a single image, use <code class="docutils literal notranslate"><span class="pre">run-meer-singlepbcor</span></code> .</p></li>
 </ol>
 <div class="dropdown admonition">
 <p class="admonition-title">Click here to see parameters</p>
-<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>usage: run_single_meerpbcor [-h] [--pbdir PBDIR] [--pbcor_dir PBCOR_DIR]
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>usage: run-meer-singlepbcor [-h] [--pbdir PBDIR] [--pbcor_dir PBCOR_DIR]
                             [--no_save_beam] [--band BAND] [--no_apply_parang]
                             [--verbose] [--ncpu Integer] [--jobid JOBID]
                             imagename
@@ -853,20 +885,22 @@ Advanced parameters
 ###################
 Hardware resource management parameters
 ###################:
-  --ncpu Integer        Number of CPU threads to use (default: 8)
+  --ncpu Integer        Number of CPU threads to use (default: 1)
   --jobid JOBID         Job ID (default: 0)
 </pre></div>
 </div>
 </div>
 <ol class="arabic simple" start="2">
-<li><p>Perform primary beam corrections of MeerKAT primary beam for all images in a directory, use <code class="docutils literal notranslate"><span class="pre">run_meerpbcor</span></code> .</p></li>
+<li><p>Perform primary beam corrections of MeerKAT primary beam for all images in a directory, use <code class="docutils literal notranslate"><span class="pre">run-meer-meerpbcor</span></code> .</p></li>
 </ol>
 <div class="dropdown admonition">
 <p class="admonition-title">Click here to see parameters</p>
-<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>usage: run_meerpbcor [-h] [--workdir WORKDIR] [--no_make_TB] [--no_make_plots]
-                     [--no_apply_parang] [--cpu_frac CPU_FRAC]
-                     [--mem_frac MEM_FRAC] [--logfile LOGFILE] [--jobid JOBID]
-                     imagedir
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>usage: run-meer-meerpbcor [-h] [--workdir WORKDIR] [--no_make_TB]
+                          [--no_make_plots] [--no_apply_parang]
+                          [--start_remote_log] [--cpu_frac CPU_FRAC]
+                          [--mem_frac MEM_FRAC] [--logfile LOGFILE]
+                          [--jobid JOBID]
+                          imagedir
 
 Correct all images for MeerKAT full-pol averaged primary beam
 
@@ -883,8 +917,9 @@ Essential parameters
 Advanced parameters
 ###################:
   --no_make_TB         Do not generate brightness temperature map
-  --no_make_plots      Do not make png and pdf plots
+  --no_make_plots      Do not make png plots
   --no_apply_parang    Do not apply parallactic angle correction
+  --start_remote_log   Start remote logger
 
 ###################
 Hardware resource management parameters

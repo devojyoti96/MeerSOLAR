@@ -3,7 +3,7 @@
   <head><meta charset="utf-8"/>
     <meta name="viewport" content="width=device-width,initial-scale=1"/>
     <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
-<link rel="index" title="Index" href="genindex.html" /><link rel="search" title="Search" href="search.html" /><link rel="next" title="Meersolar Pipeline Module" href="meersolar.pipeline.html" /><link rel="prev" title="LICENSE" href="lic.html" />
+<link rel="index" title="Index" href="genindex.html" /><link rel="search" title="Search" href="search.html" /><link rel="next" title="Meersolar Utils Module" href="meersolar.utils.html" /><link rel="prev" title="LICENSE" href="lic.html" />
 
     <!-- Generated with Sphinx 7.4.7 and Furo 2024.01.29 -->
         <title>API Reference - MeerSOLAR</title>
@@ -192,7 +192,8 @@
 <li class="toctree-l1"><a class="reference internal" href="ack.html">Acknowledging</a></li>
 <li class="toctree-l1"><a class="reference internal" href="lic.html">LICENSE</a></li>
 <li class="toctree-l1 current has-children current-page"><a class="current reference internal" href="#">API Reference</a><input checked="" class="toctree-checkbox" id="toctree-checkbox-5" name="toctree-checkbox-5" role="switch" type="checkbox"/><label for="toctree-checkbox-5"><div class="visually-hidden">Toggle navigation of API Reference</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
-<li class="toctree-l2"><a class="reference internal" href="meersolar.pipeline.html">Meersolar Pipeline Module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="meersolar.utils.html">Meersolar Utils Module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="meersolar.meerpipeline.html">Meersolar Pipeline Module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="meersolar.crystalball.html">Crystalball Module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="meersolar.data.html">MeerSOLAR Pre-compiled Modules</a></li>
 </ul>
@@ -244,28 +245,47 @@
 <p>This page provides details of API of different modules of MeerSOLAR pipeline.</p>
 <div class="toctree-wrapper compound">
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="meersolar.pipeline.html">Meersolar Pipeline Module</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="meersolar.pipeline.html#module-meersolar.pipeline.basic_func">meersolar.pipeline.basic_func module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="meersolar.pipeline.html#module-meersolar.pipeline.basic_cal">meersolar.pipeline.basic_cal module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="meersolar.pipeline.html#module-meersolar.pipeline.do_apply_basiccal">meersolar.pipeline.do_apply_basiccal module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="meersolar.pipeline.html#module-meersolar.pipeline.do_apply_selfcal">meersolar.pipeline.do_apply_selfcal module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="meersolar.pipeline.html#module-meersolar.pipeline.do_fluxcal">meersolar.pipeline.do_fluxcal module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="meersolar.pipeline.html#module-meersolar.pipeline.do_imaging">meersolar.pipeline.do_imaging module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="meersolar.pipeline.html#module-meersolar.pipeline.do_partition">meersolar.pipeline.do_partition module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="meersolar.pipeline.html#module-meersolar.pipeline.do_selfcal">meersolar.pipeline.do_selfcal module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="meersolar.pipeline.html#module-meersolar.pipeline.do_sidereal_cor">meersolar.pipeline.do_sidereal_cor module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="meersolar.pipeline.html#module-meersolar.pipeline.do_target_split">meersolar.pipeline.do_target_split module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="meersolar.pipeline.html#module-meersolar.pipeline.flagging">meersolar.pipeline.flagging module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="meersolar.pipeline.html#module-meersolar.pipeline.import_model">meersolar.pipeline.import_model module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="meersolar.pipeline.html#module-meersolar.pipeline.init_data">meersolar.pipeline.init_data module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="meersolar.pipeline.html#module-meersolar.pipeline.kill_job">meersolar.pipeline.kill_job module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="meersolar.pipeline.html#module-meersolar.pipeline.make_ds">meersolar.pipeline.make_ds module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="meersolar.pipeline.html#module-meersolar.pipeline.master_controller">meersolar.pipeline.master_controller module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="meersolar.pipeline.html#module-meersolar.pipeline.meer_pbcor">meersolar.pipeline.meer_pbcor module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="meersolar.pipeline.html#module-meersolar.pipeline.show_msdetails">meersolar.pipeline.show_msdetails module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="meersolar.pipeline.html#module-meersolar.pipeline.show_status">meersolar.pipeline.show_status module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="meersolar.pipeline.html#module-meersolar.pipeline.single_image_meerpbcor">meersolar.pipeline.single_image_meerpbcor module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="meersolar.pipeline.html#module-meersolar.pipeline.viewer">meersolar.pipeline.viewer module</a></li>
+<li class="toctree-l1"><a class="reference internal" href="meersolar.utils.html">Meersolar Utils Module</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="meersolar.utils.html#module-meersolar.utils.basic_utils">meersolar.utils.basic_utils module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="meersolar.utils.html#module-meersolar.utils.calibration">meersolar.utils.calibration module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="meersolar.utils.html#module-meersolar.utils.casatasks">meersolar.utils.casatasks module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="meersolar.utils.html#module-meersolar.utils.flagging">meersolar.utils.flagging module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="meersolar.utils.html#module-meersolar.utils.image_utils">meersolar.utils.image_utils module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="meersolar.utils.html#module-meersolar.utils.imaging">meersolar.utils.imaging module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="meersolar.utils.html#module-meersolar.utils.logger_utils">meersolar.utils.logger_utils module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="meersolar.utils.html#module-meersolar.utils.meer_ploting_utils">meersolar.utils.meer_ploting_utils module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="meersolar.utils.html#module-meersolar.utils.meer_utils">meersolar.utils.meer_utils module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="meersolar.utils.html#module-meersolar.utils.ms_metadata">meersolar.utils.ms_metadata module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="meersolar.utils.html#module-meersolar.utils.proc_manage_utils">meersolar.utils.proc_manage_utils module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="meersolar.utils.html#module-meersolar.utils.resource_utils">meersolar.utils.resource_utils module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="meersolar.utils.html#module-meersolar.utils.selfcal_utils">meersolar.utils.selfcal_utils module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="meersolar.utils.html#module-meersolar.utils.sunpos_utils">meersolar.utils.sunpos_utils module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="meersolar.utils.html#module-meersolar.utils.udocker_utils">meersolar.utils.udocker_utils module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="meersolar.utils.html#module-meersolar.utils">Module contents</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="meersolar.meerpipeline.html">Meersolar Pipeline Module</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="meersolar.meerpipeline.html#module-meersolar.meerpipeline.basic_cal">meersolar.meerpipeline.basic_cal module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="meersolar.meerpipeline.html#module-meersolar.meerpipeline.do_apply_basiccal">meersolar.meerpipeline.do_apply_basiccal module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="meersolar.meerpipeline.html#module-meersolar.meerpipeline.do_apply_selfcal">meersolar.meerpipeline.do_apply_selfcal module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="meersolar.meerpipeline.html#module-meersolar.meerpipeline.do_fluxcal">meersolar.meerpipeline.do_fluxcal module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="meersolar.meerpipeline.html#module-meersolar.meerpipeline.do_imaging">meersolar.meerpipeline.do_imaging module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="meersolar.meerpipeline.html#module-meersolar.meerpipeline.do_partition">meersolar.meerpipeline.do_partition module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="meersolar.meerpipeline.html#module-meersolar.meerpipeline.do_selfcal">meersolar.meerpipeline.do_selfcal module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="meersolar.meerpipeline.html#module-meersolar.meerpipeline.do_sidereal_cor">meersolar.meerpipeline.do_sidereal_cor module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="meersolar.meerpipeline.html#module-meersolar.meerpipeline.do_target_split">meersolar.meerpipeline.do_target_split module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="meersolar.meerpipeline.html#module-meersolar.meerpipeline.flagging">meersolar.meerpipeline.flagging module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="meersolar.meerpipeline.html#module-meersolar.meerpipeline.import_model">meersolar.meerpipeline.import_model module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="meersolar.meerpipeline.html#module-meersolar.meerpipeline.init_data">meersolar.meerpipeline.init_data module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="meersolar.meerpipeline.html#module-meersolar.meerpipeline.kill_job">meersolar.meerpipeline.kill_job module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="meersolar.meerpipeline.html#module-meersolar.meerpipeline.master_controller">meersolar.meerpipeline.master_controller module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="meersolar.meerpipeline.html#module-meersolar.meerpipeline.meer_make_ds">meersolar.meerpipeline.meer_make_ds module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="meersolar.meerpipeline.html#module-meersolar.meerpipeline.meer_pbcor">meersolar.meerpipeline.meer_pbcor module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="meersolar.meerpipeline.html#module-meersolar.meerpipeline.show_msdetails">meersolar.meerpipeline.show_msdetails module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="meersolar.meerpipeline.html#module-meersolar.meerpipeline.show_status">meersolar.meerpipeline.show_status module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="meersolar.meerpipeline.html#module-meersolar.meerpipeline.single_image_meerpbcor">meersolar.meerpipeline.single_image_meerpbcor module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="meersolar.meerpipeline.html#module-meersolar.meerpipeline.viewer">meersolar.meerpipeline.viewer module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="meersolar.meerpipeline.html#module-meersolar.meerpipeline">Module contents</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="meersolar.crystalball.html">Crystalball Module</a><ul>
@@ -291,12 +311,12 @@
       <footer>
         
         <div class="related-pages">
-          <a class="next-page" href="meersolar.pipeline.html">
+          <a class="next-page" href="meersolar.utils.html">
               <div class="page-info">
                 <div class="context">
                   <span>Next</span>
                 </div>
-                <div class="title">Meersolar Pipeline Module</div>
+                <div class="title">Meersolar Utils Module</div>
               </div>
               <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
             </a>

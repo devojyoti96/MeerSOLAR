@@ -191,7 +191,8 @@
 <li class="toctree-l1"><a class="reference internal" href="../../../ack.html">Acknowledging</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../lic.html">LICENSE</a></li>
 <li class="toctree-l1 has-children"><a class="reference internal" href="../../../meersolar.html">API Reference</a><input class="toctree-checkbox" id="toctree-checkbox-5" name="toctree-checkbox-5" role="switch" type="checkbox"/><label for="toctree-checkbox-5"><div class="visually-hidden">Toggle navigation of API Reference</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
-<li class="toctree-l2"><a class="reference internal" href="../../../meersolar.pipeline.html">Meersolar Pipeline Module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../meersolar.utils.html">Meersolar Utils Module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../meersolar.meerpipeline.html">Meersolar Pipeline Module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../meersolar.crystalball.html">Crystalball Module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../meersolar.data.html">MeerSOLAR Pre-compiled Modules</a></li>
 </ul>
@@ -257,8 +258,9 @@
         <span class="n">tmpfile</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">rf</span><span class="o">.</span><span class="n">read</span><span class="p">()</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span><span class="o">.</span><span class="n">encode</span><span class="p">())</span>
         <span class="n">tmpfile</span><span class="o">.</span><span class="n">flush</span><span class="p">()</span>
         <span class="n">include_regions</span> <span class="o">=</span> <span class="n">read_ds9</span><span class="p">(</span><span class="n">tmpfile</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
-        <span class="n">log</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Read </span><span class="si">%s</span><span class="s2"> inclusion region(s) from </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span>
-                 <span class="nb">len</span><span class="p">(</span><span class="n">include_regions</span><span class="p">),</span> <span class="n">region_file</span><span class="p">)</span>
+        <span class="n">log</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+            <span class="s2">&quot;Read </span><span class="si">%s</span><span class="s2"> inclusion region(s) from </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">include_regions</span><span class="p">),</span> <span class="n">region_file</span>
+        <span class="p">)</span>
 
         <span class="k">return</span> <span class="n">include_regions</span></div>
 

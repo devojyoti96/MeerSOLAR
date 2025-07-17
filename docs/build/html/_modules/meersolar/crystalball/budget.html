@@ -191,7 +191,8 @@
 <li class="toctree-l1"><a class="reference internal" href="../../../ack.html">Acknowledging</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../lic.html">LICENSE</a></li>
 <li class="toctree-l1 has-children"><a class="reference internal" href="../../../meersolar.html">API Reference</a><input class="toctree-checkbox" id="toctree-checkbox-5" name="toctree-checkbox-5" role="switch" type="checkbox"/><label for="toctree-checkbox-5"><div class="visually-hidden">Toggle navigation of API Reference</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
-<li class="toctree-l2"><a class="reference internal" href="../../../meersolar.pipeline.html">Meersolar Pipeline Module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../meersolar.utils.html">Meersolar Utils Module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../meersolar.meerpipeline.html">Meersolar Pipeline Module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../meersolar.crystalball.html">Crystalball Module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../meersolar.data.html">MeerSOLAR Pre-compiled Modules</a></li>
 </ul>
@@ -237,25 +238,33 @@
 
 <div class="viewcode-block" id="get_budget">
 <a class="viewcode-back" href="../../../meersolar.crystalball.html#meersolar.crystalball.budget.get_budget">[docs]</a>
-<span class="k">def</span> <span class="nf">get_budget</span><span class="p">(</span><span class="n">nr_sources</span><span class="p">,</span> <span class="n">nr_rows</span><span class="p">,</span> <span class="n">nr_chans</span><span class="p">,</span> <span class="n">nr_corrs</span><span class="p">,</span> <span class="n">data_type</span><span class="p">,</span> <span class="n">cb_args</span><span class="p">,</span>
-               <span class="n">fudge_factor</span><span class="o">=</span><span class="mf">1.25</span><span class="p">,</span> <span class="n">row2source_ratio</span><span class="o">=</span><span class="mi">100</span><span class="p">):</span>
+<span class="k">def</span> <span class="nf">get_budget</span><span class="p">(</span>
+    <span class="n">nr_sources</span><span class="p">,</span>
+    <span class="n">nr_rows</span><span class="p">,</span>
+    <span class="n">nr_chans</span><span class="p">,</span>
+    <span class="n">nr_corrs</span><span class="p">,</span>
+    <span class="n">data_type</span><span class="p">,</span>
+    <span class="n">cb_args</span><span class="p">,</span>
+    <span class="n">fudge_factor</span><span class="o">=</span><span class="mf">1.25</span><span class="p">,</span>
+    <span class="n">row2source_ratio</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span>
+<span class="p">):</span>
     <span class="n">systmem</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">psutil</span><span class="o">.</span><span class="n">virtual_memory</span><span class="p">()[</span><span class="mi">0</span><span class="p">])</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="n">cb_args</span><span class="o">.</span><span class="n">num_workers</span><span class="p">:</span>
         <span class="n">nrthreads</span> <span class="o">=</span> <span class="n">psutil</span><span class="o">.</span><span class="n">cpu_count</span><span class="p">()</span>
     <span class="k">else</span><span class="p">:</span>
         <span class="n">nrthreads</span> <span class="o">=</span> <span class="n">cb_args</span><span class="o">.</span><span class="n">num_workers</span>
 
-    <span class="n">log</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;-&#39;</span> <span class="o">*</span> <span class="mi">50</span><span class="p">)</span>
-    <span class="n">log</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Budgeting&#39;</span><span class="p">)</span>
-    <span class="n">log</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;-&#39;</span> <span class="o">*</span> <span class="mi">50</span><span class="p">)</span>
-    <span class="n">log</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;system RAM = </span><span class="si">{0:.2f}</span><span class="s1"> GB&#39;</span><span class="p">,</span> <span class="n">systmem</span> <span class="o">/</span> <span class="mi">1024</span><span class="o">**</span><span class="mi">3</span><span class="p">)</span>
-    <span class="n">log</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;nr of logical CPUs = </span><span class="si">{0:d}</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">nrthreads</span><span class="p">)</span>
-    <span class="n">log</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;nr sources = </span><span class="si">{0:d}</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">nr_sources</span><span class="p">)</span>
-    <span class="n">log</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;nr rows    = </span><span class="si">{0:d}</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">nr_rows</span><span class="p">)</span>
-    <span class="n">log</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;nr chans   = </span><span class="si">{0:d}</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">nr_chans</span><span class="p">)</span>
-    <span class="n">log</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;nr corrs   = </span><span class="si">{0:d}</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">nr_corrs</span><span class="p">)</span>
+    <span class="n">log</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;-&quot;</span> <span class="o">*</span> <span class="mi">50</span><span class="p">)</span>
+    <span class="n">log</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Budgeting&quot;</span><span class="p">)</span>
+    <span class="n">log</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;-&quot;</span> <span class="o">*</span> <span class="mi">50</span><span class="p">)</span>
+    <span class="n">log</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;system RAM = </span><span class="si">{0:.2f}</span><span class="s2"> GB&quot;</span><span class="p">,</span> <span class="n">systmem</span> <span class="o">/</span> <span class="mi">1024</span><span class="o">**</span><span class="mi">3</span><span class="p">)</span>
+    <span class="n">log</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;nr of logical CPUs = </span><span class="si">{0:d}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">nrthreads</span><span class="p">)</span>
+    <span class="n">log</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;nr sources = </span><span class="si">{0:d}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">nr_sources</span><span class="p">)</span>
+    <span class="n">log</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;nr rows    = </span><span class="si">{0:d}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">nr_rows</span><span class="p">)</span>
+    <span class="n">log</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;nr chans   = </span><span class="si">{0:d}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">nr_chans</span><span class="p">)</span>
+    <span class="n">log</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;nr corrs   = </span><span class="si">{0:d}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">nr_corrs</span><span class="p">)</span>
 
-    <span class="n">data_type</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;complex&#39;</span><span class="p">:</span> <span class="s1">&#39;complex64&#39;</span><span class="p">,</span> <span class="s1">&#39;dcomplex&#39;</span><span class="p">:</span> <span class="s1">&#39;complex128&#39;</span><span class="p">}[</span><span class="n">data_type</span><span class="p">]</span>
+    <span class="n">data_type</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;complex&quot;</span><span class="p">:</span> <span class="s2">&quot;complex64&quot;</span><span class="p">,</span> <span class="s2">&quot;dcomplex&quot;</span><span class="p">:</span> <span class="s2">&quot;complex128&quot;</span><span class="p">}[</span><span class="n">data_type</span><span class="p">]</span>
     <span class="n">data_bytes</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dtype</span><span class="p">(</span><span class="n">data_type</span><span class="p">)</span><span class="o">.</span><span class="n">itemsize</span>
     <span class="n">bytes_per_row</span> <span class="o">=</span> <span class="n">nr_chans</span> <span class="o">*</span> <span class="n">nr_corrs</span> <span class="o">*</span> <span class="n">data_bytes</span>
     <span class="n">memory_per_row</span> <span class="o">=</span> <span class="n">bytes_per_row</span> <span class="o">*</span> <span class="n">fudge_factor</span>
@@ -267,27 +276,30 @@
     <span class="k">elif</span> <span class="ow">not</span> <span class="n">cb_args</span><span class="o">.</span><span class="n">model_chunks</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">cb_args</span><span class="o">.</span><span class="n">row_chunks</span><span class="p">:</span>
 
         <span class="k">if</span> <span class="n">cb_args</span><span class="o">.</span><span class="n">memory_fraction</span> <span class="o">&gt;</span> <span class="mi">1</span> <span class="ow">or</span> <span class="n">cb_args</span><span class="o">.</span><span class="n">memory_fraction</span> <span class="o">&lt;=</span> <span class="mi">0</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;The memory fraction must be a number in the &#39;</span>
-                             <span class="s1">&#39;interval (0,1]. You have set it to </span><span class="si">{0:f}</span><span class="s1"> &#39;</span>
-                             <span class="s1">&#39;.&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">cb_args</span><span class="o">.</span><span class="n">memory_fraction</span><span class="p">))</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s2">&quot;The memory fraction must be a number in the &quot;</span>
+                <span class="s2">&quot;interval (0,1]. You have set it to </span><span class="si">{0:f}</span><span class="s2"> &quot;</span>
+                <span class="s2">&quot;.&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">cb_args</span><span class="o">.</span><span class="n">memory_fraction</span><span class="p">)</span>
+            <span class="p">)</span>
 
-        <span class="n">allowed_rows_per_thread</span> <span class="o">=</span> <span class="p">(</span><span class="n">systmem</span> <span class="o">*</span> <span class="n">cb_args</span><span class="o">.</span><span class="n">memory_fraction</span> <span class="o">/</span>
-                                   <span class="p">(</span><span class="n">memory_per_row</span> <span class="o">*</span> <span class="n">nrthreads</span><span class="p">))</span>
+        <span class="n">allowed_rows_per_thread</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">systmem</span> <span class="o">*</span> <span class="n">cb_args</span><span class="o">.</span><span class="n">memory_fraction</span> <span class="o">/</span> <span class="p">(</span><span class="n">memory_per_row</span> <span class="o">*</span> <span class="n">nrthreads</span><span class="p">)</span>
+        <span class="p">)</span>
         <span class="n">rows_per_chunk</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="nb">min</span><span class="p">(</span><span class="n">nr_rows</span><span class="p">,</span> <span class="n">allowed_rows_per_thread</span><span class="p">))</span>
-        <span class="n">sources_per_chunk</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="nb">min</span><span class="p">(</span><span class="n">nr_sources</span><span class="p">,</span>
-                                    <span class="n">rows_per_chunk</span> <span class="o">/</span> <span class="n">row2source_ratio</span><span class="p">))</span>
+        <span class="n">sources_per_chunk</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="nb">min</span><span class="p">(</span><span class="n">nr_sources</span><span class="p">,</span> <span class="n">rows_per_chunk</span> <span class="o">/</span> <span class="n">row2source_ratio</span><span class="p">))</span>
         <span class="n">strat_type</span> <span class="o">=</span> <span class="s2">&quot;(auto settings)&quot;</span>
     <span class="k">else</span><span class="p">:</span>
-        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;For now you must set both row and source chunk, or &#39;</span>
-                         <span class="s1">&#39;leave both unset (=0); &#39;</span>
-                         <span class="s1">&#39;you cannot set only one of them.&#39;</span><span class="p">)</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="s2">&quot;For now you must set both row and source chunk, or &quot;</span>
+            <span class="s2">&quot;leave both unset (=0); &quot;</span>
+            <span class="s2">&quot;you cannot set only one of them.&quot;</span>
+        <span class="p">)</span>
 
-    <span class="n">log</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;sources per chunk = </span><span class="si">{0:.0f}</span><span class="s1"> </span><span class="si">{1}</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">sources_per_chunk</span><span class="p">,</span> <span class="n">strat_type</span><span class="p">)</span>
-    <span class="n">log</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;rows per chunk    = </span><span class="si">{0:.0f}</span><span class="s1"> </span><span class="si">{1}</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">rows_per_chunk</span><span class="p">,</span> <span class="n">strat_type</span><span class="p">)</span>
+    <span class="n">log</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;sources per chunk = </span><span class="si">{0:.0f}</span><span class="s2"> </span><span class="si">{1}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">sources_per_chunk</span><span class="p">,</span> <span class="n">strat_type</span><span class="p">)</span>
+    <span class="n">log</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;rows per chunk    = </span><span class="si">{0:.0f}</span><span class="s2"> </span><span class="si">{1}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">rows_per_chunk</span><span class="p">,</span> <span class="n">strat_type</span><span class="p">)</span>
 
-    <span class="n">memory_usage</span> <span class="o">=</span> <span class="p">(</span><span class="n">rows_per_chunk</span> <span class="o">*</span> <span class="n">memory_per_row</span> <span class="o">*</span> <span class="n">nrthreads</span>
-                    <span class="o">+</span> <span class="n">sources_per_chunk</span><span class="p">)</span>
-    <span class="n">log</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;expected memory usage = </span><span class="si">{0:.2f}</span><span class="s1"> GB&#39;</span><span class="p">,</span> <span class="n">memory_usage</span> <span class="o">/</span> <span class="mi">1024</span><span class="o">**</span><span class="mi">3</span><span class="p">)</span>
+    <span class="n">memory_usage</span> <span class="o">=</span> <span class="n">rows_per_chunk</span> <span class="o">*</span> <span class="n">memory_per_row</span> <span class="o">*</span> <span class="n">nrthreads</span> <span class="o">+</span> <span class="n">sources_per_chunk</span>
+    <span class="n">log</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;expected memory usage = </span><span class="si">{0:.2f}</span><span class="s2"> GB&quot;</span><span class="p">,</span> <span class="n">memory_usage</span> <span class="o">/</span> <span class="mi">1024</span><span class="o">**</span><span class="mi">3</span><span class="p">)</span>
 
     <span class="k">return</span> <span class="n">rows_per_chunk</span><span class="p">,</span> <span class="n">sources_per_chunk</span></div>
 
