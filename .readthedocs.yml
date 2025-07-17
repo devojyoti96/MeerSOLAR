@@ -11,6 +11,7 @@ build:
 python:
   install:
     - method: pip
+      path: .
     - requirements: docs/requirements.txt  # adjust path to your Sphinx deps
 
 sphinx:
