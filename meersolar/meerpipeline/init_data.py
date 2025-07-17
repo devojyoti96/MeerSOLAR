@@ -7,9 +7,14 @@ import os
 from casatasks import casalog
 from datetime import datetime as dt
 from parfive import Downloader
-from meersolar.utils.basic_utils import get_datadir, get_cachedir, create_datadir
-from meersolar.utils.udocker_utils import init_udocker
-from meersolar.utils.logger_utils import SmartDefaultsHelpFormatter
+from meersolar.utils import (
+    get_datadir,
+    get_cachedir,
+    create_datadir,
+    init_udocker,
+    initialize_wsclean_container,
+    SmartDefaultsHelpFormatter,
+)
 
 logging.getLogger("distributed").setLevel(logging.WARNING)
 
@@ -131,6 +136,7 @@ def main(
         init_meersolar_data(update=update, remote_link=link, emails=emails)
         print(f"MeerSOLAR data are initiated.")
         init_udocker()
+        initialize_wsclean_container()
         print("uDOCKER inititalized")
         return 0
     else:

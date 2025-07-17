@@ -12,40 +12,10 @@ import sys
 import os
 from casatasks import casalog
 from casatools import msmetadata
-from dask import delayed, compute
-from meersolar.utils.basic_utils import get_datadir, timestamp_to_mjdsec, get_cachedir
-from meersolar.utils.resource_utils import drop_cache
-from meersolar.utils.logger_utils import (
-    init_logger,
-    clean_shutdown,
-    SmartDefaultsHelpFormatter,
-    create_logger,
-)
-from meersolar.utils.proc_manage_utils import (
-    run_limited_memory_task,
-    get_dask_client,
-    save_pid,
-)
-from meersolar.utils.ms_metadata import check_datacolumn_valid
-from meersolar.utils.meer_utils import get_band_name
-from meersolar.utils.imaging import (
-    calc_field_of_view,
-    calc_cellsize,
-    calc_sun_dia,
-    calc_npix_in_psf,
-    calc_multiscale_scales,
-    get_multiscale_bias,
-)
-from meersolar.utils.image_utils import (
-    create_circular_mask,
-    make_stokes_wsclean_imagecube,
-)
-from meersolar.utils.meer_ploting_utils import rename_meersolar_image
-from meersolar.utils.udocker_utils import (
-    check_udocker_container,
-    run_wsclean,
-    initialize_wsclean_container,
-)
+from dask import delayed
+from meersolar.utils import *
+from concurrent.futures import ThreadPoolExecutor, as_completed
+
 
 logging.getLogger("distributed").setLevel(logging.WARNING)
 
@@ -313,7 +283,7 @@ def perform_imaging(
                 )
             if fits_mask is not None and os.path.exists(fits_mask):
                 wsclean_args.append("-fits-mask " + fits_mask)
-        final_list = []
+        final_list_dic = {"image": [], "model": [], "residual": []}
         for i in range(len(start_chans)):
             for j in range(len(start_times)):
                 temp_wsclean_args = copy.deepcopy(wsclean_args)
@@ -360,7 +330,7 @@ def perform_imaging(
                 logger.info(
                     f"{os.path.basename(msname)} -- WSClean command: {wsclean_cmd}\n",
                 )
-                msg = run_wsclean(wsclean_cmd, "meerwsclean", verbose=False)
+                msg = run_wsclean(wsclean_cmd, "solarwsclean", verbose=False)
                 if msg == 0:
                     os.system("rm -rf " + prefix + "*psf.fits")
                     ######################
@@ -449,10 +419,13 @@ def perform_imaging(
                     # Renaming images
                     ######################
                     if len(imagelist) > 0:
+                        logger.info(f"Total {len(imagelist)} images are made.")
+                        logger.info("Renaming and making plots...")
                         os.makedirs(imagedir + "/images", exist_ok=True)
                         final_image_list = []
-                        for imagename in imagelist:
-                            renamed_image = rename_meersolar_image(
+
+                        def wrapper(imagename):
+                            return rename_meersolar_image(
                                 imagename,
                                 imagedir=imagedir + "/images",
                                 pol=pol,
@@ -462,8 +435,16 @@ def perform_imaging(
                                 make_overlay=make_overlay,
                                 make_plots=make_plots,
                             )
-                            final_image_list.append(renamed_image)
-                        final_list.append(final_image_list)
+
+                        with ThreadPoolExecutor(max_workers=ncpu) as executor:
+                            futures = [
+                                executor.submit(wrapper, imagename)
+                                for imagename in imagelist
+                            ]
+                            for future in as_completed(futures):
+                                final_image_list.append(future.result())
+
+                        final_list_dic["image"] = final_image_list
                         if savemodel and len(modellist) > 0:
                             final_model_list = []
                             os.makedirs(imagedir + "/models", exist_ok=True)
@@ -479,7 +460,7 @@ def perform_imaging(
                                     make_plots=False,
                                 )
                                 final_model_list.append(renamed_model)
-                            final_list.append(final_model_list)
+                            final_list_dic["model"] = final_model_list
                         if saveres and len(reslist) > 0:
                             final_res_list = []
                             os.makedirs(imagedir + "/residuals", exist_ok=True)
@@ -495,23 +476,25 @@ def perform_imaging(
                                     make_plots=False,
                                 )
                                 final_res_list.append(renamed_res)
-                            final_list.append(final_res_list)
+                            final_list_dic["residual"] = final_res_list
+            if os.path.exists(f"{imagedir}/images/dask-scratch-space"):
+                os.system(f"rm -rf {imagedir}/images/dask-scratch-space")
             if use_solar_mask and os.path.exists(fits_mask):
                 os.system("rm -rf " + fits_mask)
-            if len(final_list) == 0 or len(final_list[0]) == 0:
+            if len(final_list_dic["image"]) == 0:
                 logger.info(
                     f"{os.path.basename(msname)} -- No image is made.\n",
                 )
                 time.sleep(5)
                 clean_shutdown(sub_observer)
-                return 1, final_list
+                return 1, final_list_dic
             else:
                 logger.info(
                     f"{os.path.basename(msname)} -- Imaging is successfully done.\n",
                 )
                 time.sleep(5)
                 clean_shutdown(sub_observer)
-                return 0, final_list
+                return 0, final_list_dic
         else:
             if use_solar_mask and os.path.exists(fits_mask):
                 os.system("rm -rf " + fits_mask)
@@ -520,12 +503,15 @@ def perform_imaging(
             )
             time.sleep(5)
             clean_shutdown(sub_observer)
-            return 1, []
+            return 1, {}
     except Exception as e:
         traceback.print_exc()
+        logger.info(
+            f"{os.path.basename(msname)} -- Error in imaging.\n",
+        )
         time.sleep(5)
         clean_shutdown(sub_observer)
-        return 1, []
+        return 1, {}
     finally:
         time.sleep(5)
         drop_cache(msname)
@@ -603,7 +589,9 @@ def run_all_imaging(
     band : str, optional
         Band name
     cutout_rsun : float, optional
-        Cutout image size from center in solar radii (default : 2 times sun size)
+        Cutout image size (width ans height is : 2 times cutout_rsun)
+        Default value: 2 solar radii
+        Note: default FoV is 2 solar solar radii. If cutout_rsun is chosen larger than 2 solar radii, FoV will be increased accordingly.
     make_overlay : bool, optional
         Make SUVI MeerKAT overlay
     make_plots : bool, optional
@@ -645,7 +633,7 @@ def run_all_imaging(
     ###########################
     # WSClean container
     ###########################
-    container_name = "meerwsclean"
+    container_name = "solarwsclean"
     container_present = check_udocker_container(container_name)
     if not container_present:
         container_name = initialize_wsclean_container(name=container_name)
@@ -765,12 +753,12 @@ def run_all_imaging(
             sun_size = calc_sun_dia(freqMHz)
             fov = min(
                 instrument_fov, 2 * sun_size * 60
-            )  # 2 times sun size at that frequency
+            )  # 3 times sun size at that frequency
             if cutout_rsun == -1:
                 cutout_rsun = 2 * round(
                     sun_size / 32, 2
                 )  # Multiple of optical disk of the sun
-            elif fov < (2 * (cutout_rsun * 16) * 60):
+            if fov < (2 * (cutout_rsun * 16) * 60):
                 fov = 2 * (cutout_rsun * 16) * 60
             imsize = int(fov / cellsize)
             pow2 = np.ceil(np.log2(imsize)).astype("int")
@@ -822,21 +810,27 @@ def run_all_imaging(
                 )
             )
 
-        results = list(compute(*tasks))
+        results = list(dask_client.compute(tasks, sync=True))
         dask_client.close()
         dask_cluster.close()
         all_image_list = []
         all_imaged_ms_list = []
         for i in range(len(results)):
-            r = results[i]
-            if r[0] != 0:
+            r = results[i][1]
+            if len(r) == 0:
                 mainlogger.info(
                     f"Imaging failed for ms : {mslist[i]}",
                 )
             else:
-                all_imaged_ms_list.append(mslist[i])
-                for image in r[1][0]:
-                    all_image_list.append(image)
+                image_list = r["image"]
+                if len(image_list) == 0:
+                    mainlogger.info(
+                        f"No image is made for ms : {mslist[i]}",
+                    )
+                else:
+                    all_imaged_ms_list.append(mslist[i])
+                    for image in image_list:
+                        all_image_list.append(image)
         mainlogger.info(
             f"Numbers of input measurement sets : {len(mslist)}.",
         )
@@ -858,11 +852,6 @@ def run_all_imaging(
         time.sleep(5)
         clean_shutdown(observer)
         return 1
-    finally:
-        time.sleep(5)
-        for ms in mslist:
-            drop_cache(ms)
-        drop_cache(workdir)
 
 
 def main(
@@ -969,9 +958,12 @@ def main(
 
     os.makedirs(workdir + "/logs/", exist_ok=True)
 
-    mainlog_file = workdir + "/logs/imaging_targets.mainlog"
+    mainlog_file = workdir + "/logs/imaging_targets.log"
     mainlogger, mainlog_file = create_logger(
-        os.path.basename(mainlog_file).split(".mainlog")[0], mainlog_file, verbose=False
+        os.path.basename(mainlog_file).split(".log")[0],
+        mainlog_file,
+        get_print=True,
+        verbose=False,
     )
 
     ############
@@ -981,15 +973,15 @@ def main(
     if (
         start_remote_log
         and os.path.exists(f"{workdir}/jobname_password.npy")
-        and logfile is not None
+        and mainlog_file is not None
     ):
         time.sleep(5)
         jobname, password = np.load(
             f"{workdir}/jobname_password.npy", allow_pickle=True
         )
-        if os.path.exists(logfile):
+        if os.path.exists(mainlog_file):
             observer = init_logger(
-                "all_imaging", logfile, jobname=jobname, password=password
+                "all_imaging", mainlog_file, jobname=jobname, password=password
             )
     if observer == None:
         print("Remote link or jobname is blank. Not transmiting to remote logger.")

@@ -9,36 +9,8 @@ import sys
 import os
 from casatasks import casalog
 from casatools import msmetadata
-from dask import delayed, compute
-from meersolar.utils.basic_utils import (
-    get_datadir,
-    suppress_casa_output,
-    split_into_chunks,
-    get_cachedir,
-)
-from meersolar.utils.resource_utils import drop_cache, limit_threads
-from meersolar.utils.logger_utils import (
-    init_logger,
-    clean_shutdown,
-    SmartDefaultsHelpFormatter,
-)
-from meersolar.utils.proc_manage_utils import (
-    run_limited_memory_task,
-    get_dask_client,
-    save_pid,
-)
-from meersolar.utils.ms_metadata import (
-    get_pol_names,
-    get_timeranges_for_scan,
-    get_common_spw,
-    get_ms_scan_size,
-)
-from meersolar.utils.meer_utils import (
-    get_cal_target_scans,
-    get_valid_scans,
-    get_bad_chans,
-)
-from meersolar.utils.casatasks import single_mstransform
+from dask import delayed
+from meersolar.utils import *
 
 logging.getLogger("distributed").setLevel(logging.WARNING)
 
@@ -59,7 +31,6 @@ def partion_ms(
     scans="",
     width=1,
     timebin="",
-    fullpol=False,
     datacolumn="DATA",
     cpu_frac=0.8,
     mem_frac=0.8,
@@ -83,8 +54,6 @@ def partion_ms(
         Number of channels to average
     timebin : str, optional
         Time to average
-    fullpol : bool, optional
-        Split full polar
     datacolumn : str, optional
         Data column to split
     ncpu : int, optional
@@ -147,7 +116,6 @@ def partion_ms(
     msmd.close()
     msmd.done()
     field = ",".join(field_list)
-    corr = get_pol_names(msname, fullpol=fullpol)
 
     ###########################
     # Dask local cluster setup
@@ -174,14 +142,13 @@ def partion_ms(
             outputms=outputvis,
             scan=str(scan),
             field="",
-            corr=corr,
             width=width,
             timebin=timebin,
             n_threads=n_threads,
             numsubms=1,
         )
         tasks.append(task)
-    splited_ms_list = list(compute(*tasks))
+    splited_ms_list = list(dask_client.compute(tasks, sync=True))
     dask_client.close()
     dask_cluster.close()
     splited_ms_list_copy = copy.deepcopy(splited_ms_list)
@@ -207,9 +174,6 @@ def partion_ms(
     print("##################")
     print("Total time taken : " + str(time.time() - start_time) + "s")
     print("##################\n")
-    time.sleep(5)
-    drop_cache(msname)
-    drop_cache(workdir)
     return outputms
 
 
@@ -222,7 +186,6 @@ def main(
     width=1,
     timebin="",
     datacolumn="data",
-    fullpol=False,
     cpu_frac=0.8,
     mem_frac=0.8,
     logfile=None,
@@ -250,8 +213,6 @@ def main(
         Time averaging interval (e.g., "10s", "1min"). Empty string disables time averaging. Default is "".
     datacolumn : str, optional
         Name of the data column to operate on (e.g., "data", "corrected"). Default is "data".
-    fullpol : bool, optional
-        If True, retains full polarization products; otherwise, Stokes I only. Default is False.
     cpu_frac : float, optional
         Fraction of available CPUs to use per task. Default is 0.8.
     mem_frac : float, optional
@@ -307,7 +268,6 @@ def main(
                 scans=scans,
                 width=width,
                 timebin=timebin,
-                fullpol=fullpol,
                 datacolumn=datacolumn,
                 cpu_frac=cpu_frac,
                 mem_frac=mem_frac,
@@ -390,13 +350,6 @@ def cli():
         help="Datacolumn to split",
     )
     adv_args.add_argument(
-        "--split_fullpol",
-        dest="fullpol",
-        action="store_true",
-        default=False,
-        help="Split all polarizations (default: False)",
-    )
-    adv_args.add_argument(
         "--start_remote_log", action="store_true", help="Start remote logging"
     )
 
@@ -440,7 +393,6 @@ def cli():
         width=args.width,
         timebin=args.timebin,
         datacolumn=args.datacolumn,
-        fullpol=args.fullpol,
         cpu_frac=float(args.cpu_frac),
         mem_frac=float(args.mem_frac),
         logfile=args.logfile,

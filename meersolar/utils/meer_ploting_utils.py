@@ -1,13 +1,16 @@
 import types
 import astropy.units as u
 import logging
+import psutil
 import numpy as np
 import warnings
 import glob
+import dask
 import os
 import matplotlib
 import matplotlib.pyplot as plt
 from dask import delayed, compute
+from multiprocessing.pool import ThreadPool
 from sunpy.net import Fido, attrs as a
 from sunpy.map import Map
 from astropy.visualization import ImageNormalize, PowerStretch, LogStretch
@@ -60,6 +63,7 @@ def get_meermap(fits_image, band="", do_sharpen=False):
     from sunpy.coordinates import frames, sun
 
     logging.getLogger("sunpy").setLevel(logging.ERROR)
+
     MEERLAT = -30.7133
     MEERLON = 21.4429
     MEERALT = 1086.6
@@ -143,6 +147,7 @@ def save_in_hpc(fits_image, outdir="", xlim=[-1600, 1600], ylim=[-1600, 1600]):
     str
         FITS image in helioprojective coordinate
     """
+    logging.getLogger("sunpy").setLevel(logging.ERROR)
     fits_header = fits.getheader(fits_image)
     meermap = get_meermap(fits_image)
     if len(xlim) == 2 and len(ylim) == 2:
@@ -249,6 +254,7 @@ def plot_in_hpc(
     from matplotlib import cm
     from sunpy.coordinates import sun
 
+    logging.getLogger("sunpy").setLevel(logging.ERROR)
     if not showgui:
         matplotlib.use("Agg")
     else:
@@ -446,11 +452,11 @@ def get_suvi_map(obs_date, obs_time, workdir, wavelength=195):
     sunpy.map
         Sunpy SUVIMap
     """
+    logging.getLogger("sunpy").setLevel(logging.ERROR)
     warnings.filterwarnings(
         "ignore",
         message="This download has been started in a thread which is not the main thread",
     )
-    logging.getLogger("sunpy").setLevel(logging.ERROR)
     os.makedirs(workdir, exist_ok=True)
     start_time = dt.fromisoformat(f"{obs_date}T{obs_time}")
     t_start = (start_time - timedelta(minutes=2)).strftime("%Y-%m-%dT%H:%M")
@@ -535,7 +541,9 @@ def make_meer_overlay(
     ylim=[-1600, 1600],
     extensions=["png"],
     outdirs=[],
+    ncpu=-1,
     showgui=False,
+    verbose=False,
 ):
     """
     Make overlay of MeerKAT image on GOES SUVI image
@@ -564,30 +572,34 @@ def make_meer_overlay(
         Image file extensions
     outdirs : list, optional
         Output directories for each extensions
+    ncpu : int, optional
+        Number of CPUs to use
     showgui : bool, optional
         Show GUI
+    verbose: bool, optinal
+        Verbose output
 
     Returns
     -------
     list
         Plot file names
     """
+    import matplotlib
+    import matplotlib.ticker as ticker
+    import matplotlib.pyplot as plt
     from sunpy.coordinates import SphericalScreen
+    from matplotlib.colors import ListedColormap
+    from matplotlib import cm
+    from sunpy.map import make_fitswcs_header
+
+    logging.getLogger("sunpy").setLevel(logging.ERROR)
+    logging.getLogger("reproject.common").setLevel(logging.WARNING)
 
     @delayed
     def reproject_map(smap, target_header):
         with SphericalScreen(smap.observer_coordinate):
             return smap.reproject_to(target_header)
 
-    import matplotlib
-    import matplotlib.ticker as ticker
-    import matplotlib.pyplot as plt
-    from matplotlib.colors import ListedColormap
-    from matplotlib import cm
-    from sunpy.map import make_fitswcs_header
-
-    logging.getLogger("sunpy").setLevel(logging.ERROR)
-    logging.getLogger("reproject.common").setLevel(logging.ERROR)
     if showgui:
         matplotlib.use("TkAgg")
     else:
@@ -615,8 +627,15 @@ def make_meer_overlay(
         instrument=suvi_map.instrument,
         wavelength=suvi_map.wavelength,
     )
-    reprojected = [reproject_map(m, projected_header) for m in [meermap, suvi_map]]
-    meer_reprojected, suvi_reprojected = compute(*reprojected)
+    reprojected = [
+        reproject_map(meermap, projected_header),
+        reproject_map(suvi_map, projected_header),
+    ]
+    if ncpu < 1:
+        ncpu = 1
+    pool = ThreadPool(processes=ncpu)
+    with dask.config.set(pool=pool):
+        meer_reprojected, suvi_reprojected = compute(*reprojected, scheduler="threads")
     meertime = meermap.meta["date-obs"].split(".")[0]
     suvitime = suvi_map.meta["date-obs"].split(".")[0]
     if plot_meer_colormap and len(contour_levels) > 0:
@@ -721,7 +740,8 @@ def make_meer_overlay(
         ax_contour.coords.grid(False)
     fig.tight_layout()
     plot_file_list = []
-    print("#######################")
+    if verbose:
+        print("#######################")
     if plot_file_prefix:
         for i in range(len(extensions)):
             ext = extensions[i]
@@ -731,9 +751,11 @@ def make_meer_overlay(
                 savedir = workdir
             plot_file = f"{savedir}/{plot_file_prefix}.{ext}"
             plt.savefig(plot_file, bbox_inches="tight")
-            print(f"Plot saved: {plot_file}")
+            if verbose:
+                print(f"Plot saved: {plot_file}")
             plot_file_list.append(plot_file)
-        print("#######################\n")
+        if verbose:
+            print("#######################\n")
     else:
         plot_file = None
     if showgui:
@@ -822,6 +844,11 @@ def make_ds_file_per_scan(msname, save_file, scan, datacolumn):
                             all_data.append(data)
                             del data
                             count += 1
+        finally:
+            try:
+                mstool.close()
+            except:
+                pass
         all_data = np.array(all_data)
         data = np.nanmedian(all_data, axis=0)
         bad_chans = get_bad_chans(msname)
@@ -841,7 +868,6 @@ def make_ds_file_per_scan(msname, save_file, scan, datacolumn):
             save_file,
             np.array([freqs, times, timestamps, data], dtype="object"),
         )
-        del msmd, mstool, data
     if ".npy" in save_file:
         return save_file
     else:
@@ -1145,32 +1171,28 @@ def rename_meersolar_image(
     if make_plots:
         try:
             pngdir = f"{os.path.dirname(imagedir)}/images/pngs"
-            pdfdir = f"{os.path.dirname(imagedir)}/images/pdfs"
             os.makedirs(pngdir, exist_ok=True)
-            os.makedirs(pdfdir, exist_ok=True)
             outimages, cropped_map = plot_in_hpc(
                 new_name,
                 draw_limb=True,
-                extensions=["png", "pdf"],
-                outdirs=[pngdir, pdfdir],
+                extensions=["png"],
+                outdirs=[pngdir],
             )
-        except BaseException:
+        except Exception:
             pass
     if make_overlay:
         try:
             overlay_pngdir = f"{os.path.dirname(imagedir)}/overlays_pngs"
-            overlay_pdfdir = f"{os.path.dirname(imagedir)}/overlays_pdfs"
             os.makedirs(overlay_pngdir, exist_ok=True)
-            os.makedirs(overlay_pdfdir, exist_ok=True)
             outimages = make_meer_overlay(
                 new_name,
                 plot_file_prefix=os.path.basename(new_name).split(".fits")[0]
                 + "_suvi_meerkat_overlay",
-                extensions=["png", "pdf"],
-                outdirs=[overlay_pngdir, overlay_pdfdir],
+                extensions=["png"],
+                outdirs=[overlay_pngdir],
+                verbose=False,
             )
-        except Exception as e:
-            traceback.print_exc()
+        except Exception:
             pass
     return new_name
 

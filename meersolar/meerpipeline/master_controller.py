@@ -106,7 +106,7 @@ def run_flag(
     if flag_calibrators:
         flagfield_type = "cal"
         flagging_cmd = (
-            f"run_meersolar_flag {msname}"
+            f"run-meer-flag {msname}"
             + " --datacolumn DATA --use_tfcrop"
             + " --cpu_frac "
             + str(cpu_frac)
@@ -120,7 +120,7 @@ def run_flag(
     else:
         flagfield_type = "target"
         flagging_cmd = (
-            f"run_meersolar_flag {msname}"
+            f"run-meer-flag {msname}"
             + " --datacolumn DATA --use_tfcrop --flagdimension freq"
             + " --cpu_frac "
             + str(cpu_frac)
@@ -189,7 +189,7 @@ def run_import_model(
     print("###########################\n")
     msname = msname.rstrip("/")
     import_model_cmd = (
-        f"run_meersolar_import_model {msname}"
+        f"run-meer-import-model {msname}"
         + " --workdir "
         + str(workdir)
         + " --cpu_frac "
@@ -272,7 +272,7 @@ def run_basic_cal_jobs(
     msname = msname.rstrip("/")
     cal_basename = "basic_cal"
     basic_cal_cmd = (
-        f"run_meersolar_basic_cal {msname}"
+        f"run-meer-basic-cal {msname}"
         + " --workdir "
         + workdir
         + " --caldir "
@@ -355,7 +355,7 @@ def run_noise_diode_cal(
         msname = msname.rstrip("/")
         noisecal_basename = "noise_cal"
         noise_cal_cmd = (
-            f"run_meersolar_fluxcal {msname}"
+            f"run-meer-fluxcal {msname}"
             + " --workdir "
             + workdir
             + " --caldir "
@@ -398,7 +398,6 @@ def run_noise_diode_cal(
 def run_partition(
     msname,
     workdir,
-    split_fullpol=False,
     jobid=0,
     cpu_frac=0.8,
     mem_frac=0.8,
@@ -413,8 +412,6 @@ def run_partition(
         Name of the measurement set
     workdir : str
         Working directory
-    split_fullpol : bool, optional
-        Perform full polar split
     cpu_frac : float, optional
         CPU fraction to use
     mem_frac : float, optional
@@ -460,11 +457,9 @@ def run_partition(
     cal_scans = copy.deepcopy(cal_scans_copy)
     cal_scans = ",".join([str(s) for s in cal_scans])
     calibrator_ms = workdir + "/calibrator.ms"
-    split_cmd = f"run_meersolar_partition {msname} --outputms {calibrator_ms} --scans {cal_scans} --timebin {timebin} --width {width} --cpu_frac {cpu_frac} --mem_frac {mem_frac} --workdir {workdir} --jobid {jobid}"
+    split_cmd = f"run-meer-partition {msname} --outputms {calibrator_ms} --scans {cal_scans} --timebin {timebin} --width {width} --cpu_frac {cpu_frac} --mem_frac {mem_frac} --workdir {workdir} --jobid {jobid}"
     if remote_log:
         split_cmd += " --start_remote_log"
-    if split_fullpol:
-        split_cmd += " --split_fullpol"
     ####################################
     # Partition fields
     ####################################
@@ -505,7 +500,6 @@ def run_target_split_jobs(
     n_spectral_chunk=-1,
     target_scans=[],
     prefix="targets",
-    split_fullpol=False,
     merge_spws=False,
     time_window=-1,
     time_interval=-1,
@@ -541,8 +535,6 @@ def run_target_split_jobs(
         Target scans
     prefix : str, optional
         Prefix of splited targets
-    split_fullpol : bool, optional
-        Split full polar data or not
     merge_spws : bool, optional
         Merge spectral windows
     time_window : float, optional
@@ -568,7 +560,7 @@ def run_target_split_jobs(
         msname = msname.rstrip("/")
         split_basename = f"split_{prefix}"
         split_cmd = (
-            f"run_meersolar_target_split {msname}"
+            f"run-meer-split {msname}"
             + " --workdir "
             + workdir
             + " --datacolumn "
@@ -600,8 +592,6 @@ def run_target_split_jobs(
         )
         if remote_log:
             split_cmd += " --start_remote_log"
-        if split_fullpol:
-            split_cmd += " --split_fullpol"
         if merge_spws:
             split_cmd += " --merge_spws"
         if spw != "":
@@ -669,7 +659,7 @@ def run_solar_siderealcor_jobs(
         mslist = ",".join(mslist)
         sidereal_basename = f"cor_sidereal_{prefix}"
         sidereal_cor_cmd = (
-            f"run_meersolar_solar_siderealcor {mslist}"
+            f"run-meer-solar-siderealcor {mslist}"
             + " --workdir "
             + str(workdir)
             + " --cpu_frac "
@@ -749,7 +739,7 @@ def run_apply_pbcor(
         print("###########################\n")
         applypbcor_basename = "apply_pbcor"
         applypbcor_cmd = (
-            f"run_meersolar_meerpbcor {imagedir}"
+            f"run-meer-meerpbcor {imagedir}"
             + " --workdir "
             + str(workdir)
             + " --cpu_frac "
@@ -839,7 +829,7 @@ def run_apply_basiccal_sol(
         applycal_basename = "apply_basiccal"
         mslist = ",".join(target_mslist)
         applycal_cmd = (
-            f"run_meersolar_apply_basiccal {mslist}"
+            f"run-meer-apply-basiccal {mslist}"
             + " --workdir "
             + workdir
             + " --caldir "
@@ -932,7 +922,7 @@ def run_apply_selfcal_sol(
         applycal_basename = "apply_selfcal"
         mslist = ",".join(target_mslist)
         applycal_cmd = (
-            f"run_meersolar_apply_selfcal {mslist}"
+            f"run-meer-apply-selfcal {mslist}"
             + " --workdir "
             + workdir
             + " --caldir "
@@ -1061,7 +1051,7 @@ def run_selfcal_jobs(
         selfcal_basename = "selfcal_targets"
         mslist = ",".join(mslist)
         selfcal_cmd = (
-            f"run_meersolar_selfcal {mslist}"
+            f"run-meer-selfcal {mslist}"
             + " --workdir "
             + workdir
             + " --caldir "
@@ -1218,7 +1208,7 @@ def run_imaging_jobs(
         imaging_basename = "imaging_targets"
         mslist = ",".join(mslist)
         imaging_cmd = (
-            f"run_meersolar_imaging {mslist}"
+            f"run-meer-imaging {mslist}"
             + " --workdir "
             + workdir
             + " --outdir "
@@ -1266,7 +1256,7 @@ def run_imaging_jobs(
             imaging_cmd += " --band " + str(band)
         os.makedirs(workdir + "/logs", exist_ok=True)
         batch_file, logfile = create_batch_script_nonhpc(
-            imaging_cmd, workdir, imaging_basename
+            imaging_cmd, workdir, imaging_basename, write_logfile=False
         )
         print(imaging_cmd + "\n")
         os.system("bash " + batch_file)
@@ -1329,7 +1319,7 @@ def run_ds_jobs(
         print("###########################\n")
         ds_basename = "ds_targets"
         target_scans = " ".join([str(s) for s in target_scans])
-        ds_cmd = f"run_meersolar_makeds {msname} --workdir {workdir} --outdir {outdir} --cpu_frac {cpu_frac} --mem_frac {mem_frac} --jobid {jobid} --target_scans {target_scans}"
+        ds_cmd = f"run-meer-makeds {msname} --workdir {workdir} --outdir {outdir} --cpu_frac {cpu_frac} --mem_frac {mem_frac} --jobid {jobid} --target_scans {target_scans}"
         if remote_log:
             ds_cmd += " --start_remote_log"
         os.makedirs(workdir + "/logs", exist_ok=True)
@@ -1662,7 +1652,6 @@ def master_control(
                 print("Please provide a valid remote link.")
                 remote_logger = False
 
-        print("Starting logger....")
         if not remote_logger:
             emails = get_emails()
             timestamp = dt.utcnow().strftime("%Y-%m-%dT%H:%M:%S")
@@ -1705,7 +1694,7 @@ def master_control(
             print(f"Job ID: {job_name}")
             print(f"Remote access password: {password}")
             print(
-                "#############################################################################"
+                "#############################################################################\n"
             )
             emails = get_emails()
             if emails != "":
@@ -1851,7 +1840,7 @@ def master_control(
         #############################
         # Reset any previous weights
         ############################
-        print("Resetting previous flags and weights....")
+        print("Resetting previous flags and weights....\n")
         cpu_usage = psutil.cpu_percent(interval=1)  # Average over 1 second
         total_cpus = psutil.cpu_count(logical=True)
         available_cpus = int(total_cpus * (1 - cpu_usage / 100.0))
@@ -1859,6 +1848,36 @@ def master_control(
         reset_weights_and_flags(
             msname, n_threads=available_cpus, force_reset=do_forcereset_weightflag
         )
+
+        #############################################
+        # Check spliting target scans finished or not
+        #############################################
+        # If corrected data is requested or imaging is requested
+        prefix = "targets"
+        split_started = False
+        if do_target_split and (do_applycal or do_imaging):
+            msg = run_target_split_jobs(
+                msname,
+                workdir,
+                datacolumn="data",
+                spw=spw,
+                target_freq_chunk=target_freq_chunk,
+                freqres=freqavg,
+                timeres=timeavg,
+                n_spectral_chunk=-1,
+                target_scans=target_scans,
+                prefix=prefix,
+                jobid=jobid,
+                cpu_frac=round(cpu_frac, 2),
+                mem_frac=round(mem_frac, 2),
+                max_cpu_frac=round(cpu_frac, 2),
+                max_mem_frac=round(mem_frac, 2),
+                remote_log=remote_logger,
+            )
+            if msg != 0:
+                print("!!!! WARNING: Error in running spliting target scans. !!!!")
+            else:
+                split_started = True
 
         #######################################
         # Run dynamic spectra making
@@ -1918,7 +1937,6 @@ def master_control(
             msg = run_partition(
                 msname,
                 workdir,
-                split_fullpol=do_polcal,
                 jobid=jobid,
                 cpu_frac=round(cpu_frac, 2),
                 mem_frac=round(mem_frac, 2),
@@ -2130,7 +2148,6 @@ def master_control(
                     merge_spws=True,
                     time_window=min(60, time_interval),
                     time_interval=time_interval,
-                    split_fullpol=do_polcal,
                     jobid=jobid,
                     cpu_frac=round(cpu_frac, 2),
                     mem_frac=round(mem_frac, 2),
@@ -2262,65 +2279,27 @@ def master_control(
             )
             do_apply_selfcal = False
 
-        #############################################
-        # Check spliting target scans finished or not
-        #############################################
-        # If corrected data is requested or imaging is requested
-        prefix = "targets"
-        if do_target_split and (do_applycal or do_imaging):
-            msg = run_target_split_jobs(
-                msname,
-                workdir,
-                datacolumn="data",
-                spw=spw,
-                target_freq_chunk=target_freq_chunk,
-                freqres=freqavg,
-                timeres=timeavg,
-                n_spectral_chunk=-1,
-                target_scans=target_scans,
-                prefix=prefix,
-                split_fullpol=do_polcal,
-                jobid=jobid,
-                cpu_frac=round(cpu_frac, 2),
-                mem_frac=round(mem_frac, 2),
-                max_cpu_frac=round(cpu_frac, 2),
-                max_mem_frac=round(mem_frac, 2),
-                remote_log=remote_logger,
-            )
-            if msg != 0:
-                print("!!!! WARNING: Error in running spliting target scans. !!!!")
-                exit_job(start_time, mspath, workdir)
-                if remote_logger:
-                    pid = start_ping_logger(
-                        jobid,
-                        remote_job_id,
-                        remote_logger_waittime,
-                        remote_link=remote_link,
-                    )
-                    cachedir = get_cachedir()
-                    if pid is not None:
-                        save_pid(pid, f"{cachedir}/pids/pids_{jobid}.txt")
-                return 1
-            ##################################
-            # Waiting only spliting is started
-            ##################################
+        ##################################
+        # Waiting for splited datasets
+        ##################################
+        split_basename = f"split_{prefix}"
+        if split_started:
             print("Waiting to finish spliting of target scans...\n")
-            split_basename = f"split_{prefix}"
             while True:
                 finished_file = glob.glob(
                     workdir + "/.Finished_" + split_basename + "*"
                 )
                 if len(finished_file) > 0:
+                    success_index_split_target = int(finished_file[0].split("_")[-1])
                     break
                 else:
                     time.sleep(1)
-            success_index_split_target = int(finished_file[0].split("_")[-1])
-            if success_index_split_target == 0:
-                print("Spliting target scans are done successfully.\n")
+        else:
+            finished_file = glob.glob(workdir + "/.Finished_" + split_basename + "*")
+            if len(finished_file) > 0:
+                success_index_split_target = int(finished_file[0].split("_")[-1])
             else:
-                print(
-                    "!!!! WARNING: Error in spliting target scans. Not continuing further. !!!!"
-                )
+                print("No splited targets.")
                 exit_job(start_time, mspath, workdir)
                 if remote_logger:
                     pid = start_ping_logger(
@@ -2333,6 +2312,24 @@ def master_control(
                     if pid is not None:
                         save_pid(pid, f"{cachedir}/pids/pids_{jobid}.txt")
                 return 1
+        if success_index_split_target == 0:
+            print("Spliting target scans are done successfully.\n")
+        else:
+            print(
+                "!!!! WARNING: Error in spliting target scans. Not continuing further. !!!!"
+            )
+            exit_job(start_time, mspath, workdir)
+            if remote_logger:
+                pid = start_ping_logger(
+                    jobid,
+                    remote_job_id,
+                    remote_logger_waittime,
+                    remote_link=remote_link,
+                )
+                cachedir = get_cachedir()
+                if pid is not None:
+                    save_pid(pid, f"{cachedir}/pids/pids_{jobid}.txt")
+            return 1
 
         cpu_frac = copy.deepcopy(cpu_frac_bkp)
         mem_frac = copy.deepcopy(mem_frac_bkp)

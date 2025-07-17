@@ -161,16 +161,25 @@ def calc_solar_image_stat(imagename, disc_size=18):
     masked_data[mask] = np.nan
     unmasked_data = copy.deepcopy(data)
     unmasked_data[~mask] = np.nan
-    maxval = round(float(np.nanmax(unmasked_data)), 2)
-    minval = round(float(np.nanmin(data)), 2)
-    rms = round(float(np.nanstd(masked_data)), 2)
-    total_val = round(float(np.nansum(unmasked_data)), 2)
-    rms_dyn = round(maxval / rms, 2)
-    minmax_dyn = round(maxval / abs(minval), 2)
-    mean_val = round(float(np.nanmean(unmasked_data)), 2)
-    median_val = round(float(np.nanmedian(unmasked_data)), 2)
+    maxval = float(np.nanmax(unmasked_data))
+    minval = float(np.nanmin(masked_data))
+    rms = float(np.nanstd(masked_data))
+    total_val = float(np.nansum(unmasked_data))
+    rms_dyn = float(maxval / rms)
+    minmax_dyn = float(maxval / abs(minval))
+    mean_val = float(np.nanmean(unmasked_data))
+    median_val = float(np.nanmedian(unmasked_data))
     del data, mask, unmasked_data, masked_data
-    return maxval, minval, rms, total_val, mean_val, median_val, rms_dyn, minmax_dyn
+    return (
+        round(maxval, 2),
+        round(minval, 2),
+        round(rms, 2),
+        round(total_val, 2),
+        round(mean_val, 2),
+        round(median_val, 2),
+        round(rms_dyn, 2),
+        round(minmax_dyn, 2),
+    )
 
 
 def calc_dyn_range(imagename, modelname, residualname, fits_mask=""):
@@ -251,7 +260,6 @@ def generate_tb_map(imagename, outfile=""):
     str
         Output image name
     """
-    print(f"Generating brightness temperature map for image: {imagename}")
     if outfile == "":
         outfile = imagename.split(".fits")[0] + "_TB.fits"
     image_header = fits.getheader(imagename)
@@ -263,7 +271,7 @@ def generate_tb_map(imagename, outfile=""):
     elif image_header["CTYPE4"] == "FREQ":
         freq = image_header["CRVAL4"] / 10**9  # In GHz
     else:
-        print("No frequency information is present in header.")
+        print(f"No frequency information is present in header for {imagename}.")
         return
     TB_conv_factor = (1.222e6) / ((freq**2) * major * minor)
     TB_data = image_data * TB_conv_factor

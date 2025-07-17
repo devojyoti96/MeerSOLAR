@@ -189,9 +189,6 @@ def get_phasecals(msname):
     for field in phasecal_scans:
         scans = np.unique(phasecal_scans[field]).tolist()
         phasecal_scans[field] = scans
-    for field in phasecal_flux_list:
-        scans = np.unique(phasecal_flux_list[field]).tolist()
-        phasecal_flux_list[field] = scans
     return phasecal_fields, phasecal_scans, phasecal_flux_list
 
 

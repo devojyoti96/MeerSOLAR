@@ -6,8 +6,7 @@ import sys
 import os
 import signal
 from casatasks import casalog
-from meersolar.utils.basic_utils import get_cachedir
-from meersolar.utils.resource_utils import drop_cache
+from meersolar.utils import get_cachedir, drop_cache
 
 try:
     casalogfile = casalog.logfile()

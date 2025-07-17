@@ -11,18 +11,9 @@ import os
 from astropy.io import fits
 from astropy.wcs import FITSFixedWarning
 from casatasks import casalog
-from dask import delayed, compute
+from dask import delayed
 from meersolar.meerpipeline.single_image_meerpbcor import get_pbcor_image
-from meersolar.utils.basic_utils import get_datadir, get_cachedir
-from meersolar.utils.resource_utils import drop_cache
-from meersolar.utils.logger_utils import (
-    init_logger,
-    clean_shutdown,
-    SmartDefaultsHelpFormatter,
-)
-from meersolar.utils.proc_manage_utils import get_dask_client, save_pid
-from meersolar.utils.image_utils import generate_tb_map
-from meersolar.utils.meer_ploting_utils import plot_in_hpc, save_in_hpc
+from meersolar.utils import *
 
 logging.getLogger("distributed").setLevel(logging.WARNING)
 
@@ -46,13 +37,41 @@ def get_fits_freq(image_file):
         freq = hdr["CRVAL4"]
         return freq
     else:
-        print("No frequency axis in image.")
+        print(f"No frequency axis in image: {image_file}.")
         return
 
 
-def run_pbcor(imagename, pbdir, pbcor_dir, apply_parang, jobid=0, ncpu=8):
-    cmd = f"run_single_meerpbcor {imagename} --pbdir {pbdir} --pbcor_dir {pbcor_dir} --ncpu {ncpu} --jobid {jobid}"
-    print(cmd)
+def run_pbcor(
+    imagename, pbdir, pbcor_dir, apply_parang, jobid=0, ncpu=8, verbose=False
+):
+    """
+    Run single image orimary beam correction
+
+    Parameters
+    ----------
+    imagename : str
+        Imagename
+    pbdir : str
+        Primary beam directory
+    pbcor_dir : str
+        Primary beam corrected image directory
+    apply_parang : bool
+        Apply parallactic angle correction or not
+    jobid : int, optional
+        Job ID
+    ncpu : int, optional
+        Number of CPU threads to use
+    verbose: bool, optional
+        Verbose output
+
+    Returns
+    -------
+    int
+        Success message
+    """
+    cmd = f"run-meer-singlepbcor {imagename} --pbdir {pbdir} --pbcor_dir {pbcor_dir} --ncpu {ncpu} --jobid {jobid}"
+    if verbose:
+        print(cmd)
     if not apply_parang:
         cmd += " --no_apply_parang"
     a = os.system(f"{cmd} > {imagename}.tmp")
@@ -134,7 +153,7 @@ def pbcor_all_images(
                     image, pbdir, pbcor_dir, apply_parang, jobid=jobid, ncpu=n_threads
                 )
                 tasks.append(task)
-            results = list(compute(*tasks))
+            results = list(dask_client.compute(tasks, sync=True))
             dask_client.close()
             dask_cluster.close()
             successful_pbcor = 0
@@ -156,7 +175,7 @@ def pbcor_all_images(
                     image, pbdir, pbcor_dir, apply_parang, jobid=jobid, ncpu=n_threads
                 )
                 tasks.append(task)
-            results = list(compute(*tasks))
+            results = list(dask_client.compute(tasks, sync=True))
             dask_client.close()
             dask_cluster.close()
             for r in results:
@@ -176,22 +195,18 @@ def pbcor_all_images(
             if make_plots:
                 print("Making plots of primary beam corrected images ...")
                 pngdir = f"{pbcor_dir}/pngs"
-                pdfdir = f"{pbcor_dir}/pdfs"
                 os.makedirs(pngdir, exist_ok=True)
-                os.makedirs(pdfdir, exist_ok=True)
                 for image in pbcor_images:
                     try:
                         outimages = plot_in_hpc(
                             image,
                             draw_limb=True,
-                            extensions=["png", "pdf"],
-                            outdirs=[pngdir, pdfdir],
+                            extensions=["png"],
+                            outdirs=[pngdir],
                         )
                     except BaseException:
                         junkpng = f"{pngdir}/{os.path.basename(image).split('.fits')[0]}.png.junk"
-                        junkpdf = f"{pngdir}/{os.path.basename(image).split('.fits')[0]}.pdf.junk"
                         os.system(f"touch {junkpng}")
-                        os.system(f"touch {junkpdf}")
 
         ####################################
         # Making brightness temperature maps
@@ -219,15 +234,13 @@ def pbcor_all_images(
             if make_plots:
                 print("Making plots of brightness temperature maps..")
                 pngdir = f"{tb_dir}/pngs"
-                pdfdir = f"{tb_dir}/pdfs"
                 os.makedirs(pngdir, exist_ok=True)
-                os.makedirs(pdfdir, exist_ok=True)
                 for image in tb_images:
                     outimages = plot_in_hpc(
                         image,
                         draw_limb=True,
-                        extensions=["png", "pdf"],
-                        outdirs=[pngdir, pdfdir],
+                        extensions=["png"],
+                        outdirs=[pngdir],
                     )
 
         #########################################
@@ -243,9 +256,6 @@ def pbcor_all_images(
         traceback.print_exc()
         return 1
     finally:
-        time.sleep(5)
-        drop_cache(imagedir)
-        drop_cache(pbcor_dir)
         os.system(f"rm -rf {pbdir}")
 
 
@@ -273,7 +283,7 @@ def main(
     make_TB : bool, optional
         Make brightness temperature map or not
     make_plots : bool, optional
-        Make png/pdf plots
+        Make png plots
     apply_parang : bool, optional
         Apply parallactic correction or not
     cpu_frac : float,optional
@@ -371,7 +381,7 @@ def cli():
         "--no_make_plots",
         action="store_false",
         dest="make_plots",
-        help="Do not make png and pdf plots",
+        help="Do not make png plots",
     )
     adv_args.add_argument(
         "--no_apply_parang",

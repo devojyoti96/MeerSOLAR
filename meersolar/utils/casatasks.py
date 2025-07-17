@@ -163,10 +163,10 @@ def single_mstransform(
         Name of the measurement set
     outputms : str
         Output ms name
+    scan : int
+        Scan to split (a single scan)
     field : str, optional
         Field name
-    scan : str, optional
-        Scans to split
     width : int, optional
         Number of channels to average
     timebin : str, optional
@@ -214,6 +214,11 @@ def single_mstransform(
             n_threads = 2
         else:
             n_threads = min(n_threads, 2)
+        if field == "":
+            msmd = msmetadata()
+            msmd.open(msname)
+            field = str(msmd.fieldsforscan(int(scan))[0])
+            msmd.close()
         with suppress_casa_output():
             mstransform(
                 vis=msname,

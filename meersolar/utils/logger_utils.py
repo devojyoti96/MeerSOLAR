@@ -81,6 +81,22 @@ def get_emails():
         return lines[0]
 
 
+class StreamToLogger:
+    def __init__(self, logger, log_level=logging.INFO):
+        self.logger = logger
+        self.log_level = log_level
+        self._buffer = ""
+
+    def write(self, message):
+        # Remove trailing newlines and skip empty messages
+        message = message.rstrip()
+        if message:
+            self.logger.log(self.log_level, message)
+
+    def flush(self):
+        pass  # Required for compatibility
+
+
 class RemoteLogger(logging.Handler):
     """
     Remote logging handler for posting log messages to a web endpoint.
@@ -156,7 +172,7 @@ def ping_logger(jobid, remote_jobid, stop_event, remote_link=""):
             stop_event.wait(interval)
 
 
-def create_logger(logname, logfile, verbose=False):
+def create_logger(logname, logfile, get_print=False, verbose=False):
     """
     Create logger.
 
@@ -164,12 +180,12 @@ def create_logger(logname, logfile, verbose=False):
     ----------
     logname : str
         Name of the log
-    workdir : str, optional
-        Name of the working directory
-    verbose : bool, optional
-        Verbose output or not
     logfile : str, optional
         Log file name
+    get_print : bool, optional
+        Get print output to log
+    verbose : bool, optional
+        Verbose output or not
 
     Returns
     -------
@@ -191,6 +207,9 @@ def create_logger(logname, logfile, verbose=False):
     filehandle.setFormatter(formatter)
     logger.addHandler(filehandle)
     logger.propagate = False
+    if get_print:
+        sys.stdout = StreamToLogger(logger, logging.INFO)
+        sys.stderr = StreamToLogger(logger, logging.ERROR)
     logger.info("Log file : " + logfile + "\n")
     return logger, logfile
 

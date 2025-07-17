@@ -11,24 +11,12 @@ import glob
 import sys
 import os
 from casatasks import casalog
-from casatools import msmetadata, table
-from dask import delayed, compute
+from casatools import table
+from dask import delayed
 from scipy.interpolate import CubicSpline
 from scipy.ndimage import gaussian_filter1d
 from scipy.interpolate import interp1d
-from meersolar.utils.basic_utils import suppress_casa_output, get_datadir, get_cachedir
-from meersolar.utils.resource_utils import drop_cache, limit_threads
-from meersolar.utils.logger_utils import (
-    init_logger,
-    clean_shutdown,
-    SmartDefaultsHelpFormatter,
-)
-from meersolar.utils.proc_manage_utils import (
-    run_limited_memory_task,
-    get_dask_client,
-    save_pid,
-)
-from meersolar.utils.ms_metadata import get_ms_size, check_datacolumn_valid
+from meersolar.utils import *
 from meersolar.meerpipeline.flagging import single_ms_flag
 
 logging.getLogger("distributed").setLevel(logging.WARNING)
@@ -99,19 +87,16 @@ def filter_outliers(data, threshold=5, max_iter=3):
     return filtered_data
 
 
-def scale_bandpass(bandpass_table, att_table, freqavg=10):
+def scale_bandpass(bandpass_table, att_tables):
     """
     Scale a bandpass calibration table using attenuation data.
-
 
     Parameters
     ----------
     bandpass_table : str
         Input bandpass calibration table.
-    att_table : str
-        NumPy .npy file containing attenuation frequency and values.
-    freqavg : float, optional
-        Frequency average in MHz for polynomial fitting (default is 10 MHz). Final table has same number of channels as input.
+    att_tables : list
+        Attenuation NumPy .npy files containing attenuation frequency and values for different scans.
 
     Returns
     -------
@@ -119,15 +104,19 @@ def scale_bandpass(bandpass_table, att_table, freqavg=10):
         Name of the output table.
     """
     warnings.filterwarnings("ignore", category=RuntimeWarning)
-    if att_table == "":
-        print(f"No attenuation caltable is provided for scan : {scan}")
+    if isinstance(att_tables, str):
+        att_tables = [att_tables]
+    if len(att_tables) == 0:
+        print("No attenuation table is provided.")
         return
-    print(f"Bandpass table: {bandpass_table}, Attenuation table: {att_table}")
-    results = np.load(att_table, allow_pickle=True)
-    scan, freqs, att_values, flag_ants, att_array = results
-    freqres = abs(freqs[1] - freqs[0]) / 10**6  # In MHz
-    n = int(freqavg / freqres)
-    output_table = bandpass_table.split(".bcal")[0] + "_scan_" + str(scan) + ".bcal"
+    scan_att_array = []
+    for att_table in att_tables:
+        results = np.load(att_table, allow_pickle=True)
+        scan, freqs, att_values, flag_ants, att_array = results
+        scan_att_array.append(att_values)
+    scan_att_array = np.array(scan_att_array)
+    att_values = np.nanmedian(scan_att_array, axis=0)  # Median across scans
+    output_table = bandpass_table.split(".bcal")[0] + "_att.bcal"
     tb = table()
     tb.open(f"{bandpass_table}/SPECTRAL_WINDOW")
     caltable_freqs = tb.getcol("CHAN_FREQ").flatten()
@@ -141,13 +130,10 @@ def scale_bandpass(bandpass_table, att_table, freqavg=10):
     flag = tb.getcol("FLAG")
     for i in range(att_values.shape[0]):
         att = filter_outliers(att_values[i])
-        num_blocks = att.shape[0] // n
-        att_avg = np.nanmedian(att[: num_blocks * n].reshape(-1, n), axis=1)
-        freq_avg = freqs[: num_blocks * n].reshape(-1, n).mean(axis=1)
-        valid = ~np.isnan(att_avg)
+        valid = ~np.isnan(att)
         best_fit, best_std = None, np.inf
         for deg in range(3, 9):
-            coeffs = np.polyfit(freq_avg[valid], att_avg[valid], deg)
+            coeffs = np.polyfit(freqs[valid], att[valid], deg)
             interp_func = np.poly1d(coeffs)
             interp_att = interp_func(caltable_freqs)
             residuals = att_values[i] - interp_att
@@ -377,20 +363,9 @@ def run_all_applysol(
             print(
                 "No attenuation table is present. Bandpass is not scaled for attenuation."
             )
-            scaled_bandpass_list = []
+            scaled_bandpass_table = ""
         else:
-            dask_client, dask_cluster, n_jobs, n_threads, mem_limit = get_dask_client(
-                len(att_caltables),
-                dask_dir=workdir,
-                cpu_frac=cpu_frac,
-                mem_frac=mem_frac,
-            )
-            tasks = []
-            for att_table in att_caltables:
-                tasks.append(delayed(scale_bandpass)(bandpass_table[0], att_table))
-            scaled_bandpass_list = list(compute(*tasks))
-            dask_client.close()
-            dask_cluster.close()
+            scaled_bandpass_table = scale_bandpass(bandpass_table[0], att_caltables)
 
         ###############################
         # Arranging applycal
@@ -436,7 +411,7 @@ def run_all_applysol(
         print(f"Total ms list: {len(mslist)}")
         task = delayed(applysol)(dry_run=True)
         mem_limit = run_limited_memory_task(task, dask_dir=workdir)
-        ms_size_list = [get_ms_size(ms) + mem_limit for ms in mslist]
+        ms_size_list = [get_column_size(ms) + mem_limit for ms in mslist]
         mem_limit = max(ms_size_list)
         dask_client, dask_cluster, n_jobs, n_threads, mem_limit = get_dask_client(
             len(mslist),
@@ -446,54 +421,42 @@ def run_all_applysol(
             min_mem_per_job=mem_limit / 0.6,
         )
         tasks = []
-        if len(scaled_bandpass_list) > 0:
-            scaled_bandpass_scans = []
-            try:
-                scaled_bandpass_scans = [
-                    int(a.split("scan_")[-1].split(".bcal")[0])
-                    for a in scaled_bandpass_list
-                ]
-            except:
-                pass
-        msmd = msmetadata()
+        if scaled_bandpass_table != "" and os.path.exists(scaled_bandpass_table):
+            bpass_table = scaled_bandpass_table
+            if os.path.exists(f"{workdir}/.noattcal"):
+                os.system(f"rm -rf {workdir}/.noattcal")
+            os.system(f"touch {workdir}/.attcal")
+        else:
+            print("Bandpass tables with attenuation scaling are not found.")
+            if os.path.exists(f"{workdir}/.attcal"):
+                os.system(f"rm -rf {workdir}/.attcal")
+            os.system(f"touch {workdir}/.noattcal")
+            bpass_table = bandpass_table[0]
         for ms in mslist:
-            msmd.open(ms)
-            scans = msmd.scannumbers()
-            msmd.close()
-            for scan in scans:
-                if len(scaled_bandpass_scans) > 0:
-                    pos = scaled_bandpass_scans.index(scan)
-                    bpass_table = scaled_bandpass_list[pos]
+            interp = []
+            final_gaintable = gaintable + [bpass_table]
+            for g in final_gaintable:
+                if ".gcal" in g:
+                    interp.append("linear")
+                elif ".kcal" in g:
+                    interp.append("nearest")
                 else:
-                    print("Bandpass tables with attenuation scaling are not found.")
-                    if os.path.exists(f"{workdir}/.attcal"):
-                        os.system(f"rm -rf {workdir}/.attcal")
-                    os.system(f"touch {workdir}/.noattcal")
-                    bpass_table = bandpass_table[0]
-                interp = []
-                final_gaintable = gaintable + [bpass_table]
-                for g in final_gaintable:
-                    if ".gcal" in g:
-                        interp.append("linear")
-                    elif ".kcal" in g:
-                        interp.append("nearest")
-                    else:
-                        interp.append("nearestflag")
-                tasks.append(
-                    delayed(applysol)(
-                        ms,
-                        gaintable=final_gaintable,
-                        overwrite_datacolumn=overwrite_datacolumn,
-                        applymode=applymode,
-                        interp=interp,
-                        do_post_flag=do_post_flag,
-                        n_threads=n_threads,
-                        parang=parang,
-                        memory_limit=mem_limit,
-                        force_apply=force_apply,
-                    )
+                    interp.append("nearestflag")
+            tasks.append(
+                delayed(applysol)(
+                    ms,
+                    gaintable=final_gaintable,
+                    overwrite_datacolumn=overwrite_datacolumn,
+                    applymode=applymode,
+                    interp=interp,
+                    do_post_flag=do_post_flag,
+                    n_threads=n_threads,
+                    parang=parang,
+                    memory_limit=mem_limit,
+                    force_apply=force_apply,
                 )
-        results = list(compute(*tasks))
+            )
+        results = list(dask_client.compute(tasks, sync=True))
         dask_client.close()
         dask_cluster.close()
         if np.nansum(results) == 0:
@@ -522,11 +485,6 @@ def run_all_applysol(
         print("Total time taken : ", time.time() - start_time)
         print("##################\n")
         return 1
-    finally:
-        time.sleep(5)
-        for ms in mslist:
-            drop_cache(ms)
-        drop_cache(workdir)
 
 
 def main(
@@ -734,7 +692,7 @@ def cli():
         args.workdir,
         args.caldir,
         use_only_bandpass=args.use_only_bandpass,
-        applymode=args.use_only_bandpass,
+        applymode=args.applymode,
         overwrite_datacolumn=args.overwrite_datacolumn,
         force_apply=args.force_apply,
         do_post_flag=args.do_post_flag,

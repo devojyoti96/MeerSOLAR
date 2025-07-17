@@ -10,36 +10,8 @@ import sys
 import os
 from casatasks import casalog
 from casatools import msmetadata, ms as casamstool, table
-from dask import delayed, compute
-from meersolar.utils.basic_utils import (
-    suppress_casa_output,
-    get_datadir,
-    mjdsec_to_timestamp,
-    get_cachedir,
-)
-from meersolar.utils.resource_utils import drop_cache, limit_threads
-from meersolar.utils.logger_utils import (
-    init_logger,
-    clean_shutdown,
-    SmartDefaultsHelpFormatter,
-)
-from meersolar.utils.proc_manage_utils import (
-    run_limited_memory_task,
-    get_dask_client,
-    save_pid,
-)
-from meersolar.utils.ms_metadata import (
-    get_ms_size,
-    get_ms_scan_size,
-)
-from meersolar.utils.meer_utils import (
-    get_fluxcals,
-    get_cal_target_scans,
-    get_bad_chans,
-    get_bad_ants,
-    get_valid_scans,
-    determine_noise_diode_cal_scan,
-)
+from dask import delayed
+from meersolar.utils import *
 from meersolar.meerpipeline.flagging import single_ms_flag
 from meersolar.meerpipeline.import_model import import_fluxcal_models
 
@@ -144,7 +116,7 @@ def split_autocorr(
             )
         )
     if len(tasks) > 0:
-        autocorr_mslist = list(compute(*tasks))
+        autocorr_mslist = list(dask_client.compute(tasks, sync=True))
     else:
         autocorr_mslist = []
     dask_client.close()
@@ -326,8 +298,8 @@ def get_power_diff(
     ########################################
     # Determining chunk size
     ########################################
-    cal_mssize = get_ms_size(cal_msname, only_autocorr=True)
-    source_mssize = get_ms_size(source_msname, only_autocorr=True)
+    cal_mssize = get_column_size(cal_msname, only_autocorr=True)
+    source_mssize = get_column_size(source_msname, only_autocorr=True)
     total_mssize = cal_mssize + source_mssize
     scale_factor_size = nant * ntime * scale_factor.nbytes / (1024.0**3)
     att_ant_array_size = (npol * nchan * nant * 16) / (1024.0**3)
@@ -424,8 +396,6 @@ def estimate_att(
             cpu_frac=cpu_frac,
             mem_frac=mem_frac,
         )
-        drop_cache(msname)
-        drop_cache(workdir)
         if len(autocorr_mslist) == 0:
             print("No scans splited.")
 
@@ -463,7 +433,7 @@ def estimate_att(
                     memory_limit=mem_limit,
                 )
             )
-        results = list(compute(*tasks))
+        results = list(dask_client.compute(tasks, sync=True))
         dask_client.close()
         dask_cluster.close()
         for autocorr_msname in autocorr_mslist:
@@ -500,7 +470,7 @@ def estimate_att(
                 )
             )
             filtered_scans.append(scan)
-        results = list(compute(*tasks))
+        results = list(dask_client.compute(tasks, sync=True))
         dask_client.close()
         dask_cluster.close()
         ##########################################
@@ -557,10 +527,6 @@ def estimate_att(
     except Exception as e:
         traceback.print_exc()
         return 1, None, None
-    finally:
-        time.sleep(5)
-        drop_cache(msname)
-        drop_cache(workdir)
 
 
 def run_noise_cal(
@@ -784,10 +750,6 @@ def run_noise_cal(
         print("Total time taken : ", time.time() - start_time)
         print("##################\n")
         return 1, None, None
-    finally:
-        time.sleep(5)
-        drop_cache(msname)
-        drop_cache(workdir)
 
 
 def main(

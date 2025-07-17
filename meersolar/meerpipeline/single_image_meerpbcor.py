@@ -18,9 +18,12 @@ from numpy.linalg import inv
 from astropy.wcs import WCS
 from scipy.interpolate import RectBivariateSpline
 from joblib import Parallel, delayed as joblid_delayed
-from meersolar.utils.basic_utils import get_datadir, get_cachedir
-from meersolar.utils.logger_utils import SmartDefaultsHelpFormatter
-from meersolar.utils.proc_manage_utils import save_pid
+from meersolar.utils import (
+    get_datadir,
+    get_cachedir,
+    SmartDefaultsHelpFormatter,
+    save_pid,
+)
 
 logging.getLogger("distributed").setLevel(logging.WARNING)
 
@@ -192,7 +195,7 @@ def load_beam(image_file, band=""):
         freq = hdr["CRVAL4"]
         delfreq = hdr["CDELT4"]
     else:
-        print("No frequency axis in image.")
+        print(f"No frequency axis in image {image_file}.")
         return
     freq1 = (freq - (delfreq / 2)) / 10**6  # In MHz
     freq2 = (freq + (delfreq / 2)) / 10**6  # In MHz
@@ -205,14 +208,14 @@ def load_beam(image_file, band=""):
             elif freq1 >= 856 and freq2 <= 1712:  # L band
                 band = "L"
             else:
-                print("Image is not in UHF or L-band.")
+                print(f"Image: {image_file} is not in UHF or L-band.")
                 return
     if band == "U":
         beam_data = np.load(datadir + "/MeerKAT_antavg_Uband.npz", mmap_mode="r")
     elif band == "L":
         beam_data = np.load(datadir + "/MeerKAT_antavg_Lband.npz", mmap_mode="r")
     else:
-        print("Image is not in UHF or L-band.")
+        print(f"Image: {image_file} is not in UHF or L-band.")
         return
     freqs = beam_data["freqs"]
     coords = np.deg2rad(
@@ -451,7 +454,7 @@ def get_image_beam(
     elif header["CTYPE4"] == "FREQ":
         freq = header["CRVAL4"]
     else:
-        print("No frequency axis in image.")
+        print(f"No frequency axis in image: {image_file}.")
         return
     freq = round(freq / 10**6, 1)  # In MHz
     pbfile = f"{pbdir}/freq_{freq}_pb.npy"

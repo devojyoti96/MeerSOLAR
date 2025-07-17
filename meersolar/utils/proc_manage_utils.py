@@ -411,10 +411,14 @@ def get_dask_client(
     dask_dir,
     cpu_frac=0.8,
     mem_frac=0.8,
+    ncpu=-1,
+    mem=-1,
     spill_frac=0.6,
     min_mem_per_job=-1,
     min_cpu_per_job=1,
     only_cal=False,
+    process=True,
+    verbose=True,
 ):
     """
     Create a Dask client optimized for one-task-per-worker execution,
@@ -426,10 +430,14 @@ def get_dask_client(
         Number of MS tasks (ideally = number of MS files)
     dask_dir : str
         Dask temporary directory
-    cpu_frac : float
+    cpu_frac : float, optional
         Fraction of total CPUs to use
-    mem_frac : float
+    mem_frac : float, optinal;
         Fraction of total memory to use
+    ncpu : int, optional
+        Number of CPUs to use (if specified, cpu_frac will be ignored)
+    mem : float, optional
+        Memory in GB to use (if specified, mem_frac will be ignored)
     spill_frac : float, optional
         Spill to disk at this fraction
     min_mem_per_job : float, optional
@@ -438,6 +446,10 @@ def get_dask_client(
         Minimum CPU threads per job
     only_cal : bool, optional
         Only calculate number of workers
+    process : bool, optional
+        Process based or thread based
+    verbose : bool, optional
+        Verbose (details of cluster)
 
     Returns
     -------
@@ -459,15 +471,21 @@ def get_dask_client(
     # Detect total system resources
     total_cpus = psutil.cpu_count(logical=True)  # Total logical CPU cores
     total_mem = psutil.virtual_memory().total  # Total system memory (bytes)
+    if ncpu >= 1:
+        cpu_frac = float(ncpu / total_cpus)
+    if mem > 0:
+        mem_frac = float((mem * 1024**3) / total_mem)
     if cpu_frac > 0.8:
-        print(
-            "Given CPU fraction is more than 80%. Resetting to 80% to avoid system crash."
-        )
+        if verbose:
+            print(
+                "Given CPU fraction is more than 80%. Resetting to 80% to avoid system crash."
+            )
         cpu_frac = 0.8
     if mem_frac > 0.8:
-        print(
-            "Given memory fraction is more than 80%. Resetting to 80% to avoid system crash."
-        )
+        if verbose:
+            print(
+                "Given memory fraction is more than 80%. Resetting to 80% to avoid system crash."
+            )
         mem_frac = 0.8
 
     ############################################
@@ -494,6 +512,7 @@ def get_dask_client(
                 print("Waiting for available free CPUs...")
             time.sleep(5)  # Wait a bit and retry
         count += 1
+
     ############################################
     # Wait until enough free memory is available
     ############################################
@@ -525,9 +544,10 @@ def get_dask_client(
     if min_mem_per_job > 0 and mem_per_worker < (min_mem_per_job * 1024**3):
         # If calculated memory per worker is smaller than user-requested
         # minimum, adjust number of workers
-        print(
-            f"Total memory per job is smaller than {min_mem_per_job} GB. Adjusting total number of workers to meet this."
-        )
+        if verbose:
+            print(
+                f"Total memory per job is smaller than {min_mem_per_job} GB. Adjusting total number of workers to meet this."
+            )
         mem_per_worker = (
             min_mem_per_job * 1024**3
         )  # Reset memory per worker to minimum allowed
@@ -551,7 +571,7 @@ def get_dask_client(
     )  # Each worker gets min_cpu_per_job or more threads
 
     ##########################################
-    if not only_cal:
+    if not only_cal and verbose:
         print("#################################")
         print(
             f"Dask workers: {n_workers}, Threads per worker: {threads_per_worker}, Mem/worker: {round(mem_per_worker/(1024.0**3),2)} GB"
@@ -584,8 +604,8 @@ def get_dask_client(
         # one python-thread per worker, in workers OpenMP threads can be used
         memory_limit=f"{round(mem_per_worker/(1024.0**3),2)}GB",
         local_directory=dask_dir,
-        processes=True,  # one process per worker
-        dashboard_address=None,
+        processes=process,  # one process per worker
+        dashboard_address=":0",
         env={
             "TMPDIR": dask_dir_tmp,
             "TMP": dask_dir_tmp,
@@ -603,6 +623,8 @@ def get_dask_client(
             "distributed.worker.memory.terminate": spill_frac + 0.25,
         }
     )
+    if verbose:
+        print(f"Dask dashboard available at: {client.dashboard_link}")
 
     client.run_on_scheduler(gc.collect)
     final_mem_per_worker = round((mem_per_worker * spill_frac) / (1024.0**3), 2)

@@ -10,45 +10,8 @@ import sys
 import os
 from casatasks import casalog
 from casatools import msmetadata, table
-from dask import delayed, compute
-from meersolar.utils.basic_utils import (
-    suppress_casa_output,
-    get_datadir,
-    mjdsec_to_timestamp,
-    get_cachedir,
-)
-from meersolar.utils.resource_utils import drop_cache, limit_threads
-from meersolar.utils.logger_utils import (
-    init_logger,
-    clean_shutdown,
-    SmartDefaultsHelpFormatter,
-)
-from meersolar.utils.proc_manage_utils import (
-    run_limited_memory_task,
-    get_dask_client,
-    save_pid,
-)
-from meersolar.utils.flagging import do_flag_backup
-from meersolar.utils.ms_metadata import (
-    get_ms_size,
-    get_ms_scan_size,
-    get_bad_ants,
-    check_datacolumn_valid,
-    get_chunk_size,
-    get_submsname_scans,
-    get_refant,
-)
-from meersolar.utils.meer_utils import (
-    get_fluxcals,
-    get_phasecals,
-    get_polcals,
-    get_cal_target_scans,
-    get_bad_chans,
-    get_valid_scans,
-    determine_noise_diode_cal_scan,
-)
-from meersolar.utils.casatasks import correct_missing_col_subms
-from meersolar.utils.calibration import merge_caltables
+from dask import delayed
+from meersolar.utils import *
 from meersolar.meerpipeline.flagging import single_ms_flag
 from meersolar.meerpipeline.import_model import import_fluxcal_models
 
@@ -650,7 +613,7 @@ def single_round_cal_and_flag(
             #############################################
             task = delayed(run_delaycal)(dry_run=True)
             mem_limit = run_limited_memory_task(task, dask_dir=workdir)
-            ms_size_list = [get_ms_size(ms) + mem_limit for ms in fluxcal_mslist]
+            ms_size_list = [get_column_size(ms) + mem_limit for ms in fluxcal_mslist]
             mem_limit = max(ms_size_list)
             dask_client, dask_cluster, n_jobs, n_threads, mem_limit = get_dask_client(
                 len(delaycal_mslist),
@@ -669,7 +632,7 @@ def single_round_cal_and_flag(
                 )
                 for sub_msname in delaycal_mslist
             ]
-            delaycal_tables = list(compute(*tasks))
+            delaycal_tables = list(dask_client.compute(tasks, sync=True))
             dask_client.close()
             dask_cluster.close()
             delay_caltable = merge_caltables(
@@ -693,7 +656,7 @@ def single_round_cal_and_flag(
         if len(fluxcal_mslist) > 0:
             task = delayed(run_bandpass)(dry_run=True)
             mem_limit = run_limited_memory_task(task, dask_dir=workdir)
-            ms_size_list = [get_ms_size(ms) + mem_limit for ms in fluxcal_mslist]
+            ms_size_list = [get_column_size(ms) + mem_limit for ms in fluxcal_mslist]
             mem_limit = max(ms_size_list)
             dask_client, dask_cluster, n_jobs, n_threads, mem_limit = get_dask_client(
                 len(fluxcal_mslist),
@@ -714,7 +677,7 @@ def single_round_cal_and_flag(
                 )
                 for sub_msname in fluxcal_mslist
             ]
-            bandpass_tables = list(compute(*tasks))
+            bandpass_tables = list(dask_client.compute(tasks, sync=True))
             dask_client.close()
             dask_cluster.close()
             bpass_caltable = merge_caltables(
@@ -740,7 +703,7 @@ def single_round_cal_and_flag(
         if len(gaincal_mslist) > 0:
             task = delayed(run_gaincal)(dry_run=True)
             mem_limit = run_limited_memory_task(task, dask_dir=workdir)
-            ms_size_list = [get_ms_size(ms) + mem_limit for ms in gaincal_mslist]
+            ms_size_list = [get_column_size(ms) + mem_limit for ms in gaincal_mslist]
             mem_limit = max(ms_size_list)
             dask_client, dask_cluster, n_jobs, n_threads, mem_limit = get_dask_client(
                 len(gaincal_mslist),
@@ -763,7 +726,7 @@ def single_round_cal_and_flag(
                 )
                 for sub_msname in gaincal_mslist
             ]
-            gain_tables = list(compute(*tasks))
+            gain_tables = list(dask_client.compute(tasks, sync=True))
             dask_client.close()
             dask_cluster.close()
             gain_caltable = merge_caltables(gain_tables, gain_caltable, keepcopy=False)
@@ -793,7 +756,9 @@ def single_round_cal_and_flag(
             else:
                 task = delayed(run_gaincal)(dry_run=True)
                 mem_limit = run_limited_memory_task(task, dask_dir=workdir)
-                ms_size_list = [get_ms_size(ms) + mem_limit for ms in phasecal_mslist]
+                ms_size_list = [
+                    get_column_size(ms) + mem_limit for ms in phasecal_mslist
+                ]
                 mem_limit = max(ms_size_list)
                 dask_client, dask_cluster, n_jobs, n_threads, mem_limit = (
                     get_dask_client(
@@ -819,7 +784,7 @@ def single_round_cal_and_flag(
                     )
                     for sub_msname in phasecal_mslist
                 ]
-                gain_tables = list(compute(*tasks))
+                gain_tables = list(dask_client.compute(tasks, sync=True))
                 dask_client.close()
                 dask_cluster.close()
                 gain_caltable = merge_caltables(
@@ -883,7 +848,9 @@ def single_round_cal_and_flag(
             elif len(fluxcal_mslist) > 0:
                 task = delayed(run_leakagecal)(dry_run=True)
                 mem_limit = run_limited_memory_task(task, dask_dir=workdir)
-                ms_size_list = [get_ms_size(ms) + mem_limit for ms in fluxcal_mslist]
+                ms_size_list = [
+                    get_column_size(ms) + mem_limit for ms in fluxcal_mslist
+                ]
                 mem_limit = max(ms_size_list)
                 dask_client, dask_cluster, n_jobs, n_threads, mem_limit = (
                     get_dask_client(
@@ -906,7 +873,7 @@ def single_round_cal_and_flag(
                     )
                     for sub_msname in fluxcal_mslist
                 ]
-                leakage_tables = list(compute(*tasks))
+                leakage_tables = list(dask_client.compute(tasks, sync=True))
                 dask_client.close()
                 dask_cluster.close()
                 leakage_caltable = merge_caltables(
@@ -932,7 +899,7 @@ def single_round_cal_and_flag(
             else:
                 task = delayed(run_polcal)(dry_run=True)
                 mem_limit = run_limited_memory_task(task, dask_dir=workdir)
-                ms_size_list = [get_ms_size(ms) + mem_limit for ms in polcal_mslist]
+                ms_size_list = [get_column_size(ms) + mem_limit for ms in polcal_mslist]
                 mem_limit = max(ms_size_list)
                 dask_client, dask_cluster, n_jobs, n_threads, mem_limit = (
                     get_dask_client(
@@ -961,7 +928,7 @@ def single_round_cal_and_flag(
                     )
                     for sub_msname in polcal_mslist
                 ]
-                results = list(compute(*tasks))
+                results = list(dask_client.compute(tasks, sync=True))
                 dask_client.close()
                 dask_cluster.close()
                 kcross_tables = []
@@ -1026,7 +993,7 @@ def single_round_cal_and_flag(
             do_flag_backup(msname, flagtype="applycal")
             task = delayed(run_applycal)(dry_run=True)
             mem_limit = run_limited_memory_task(task, dask_dir=workdir)
-            ms_size_list = [get_ms_size(ms) + mem_limit for ms in all_mslist]
+            ms_size_list = [get_column_size(ms) + mem_limit for ms in all_mslist]
             mem_limit = max(ms_size_list)
             dask_client, dask_cluster, n_jobs, n_threads, mem_limit = get_dask_client(
                 len(all_mslist),
@@ -1048,7 +1015,7 @@ def single_round_cal_and_flag(
                 )
                 for sub_msname in all_mslist
             ]
-            results = list(compute(*tasks))
+            results = list(dask_client.compute(tasks, sync=True))
             dask_client.close()
             dask_cluster.close()
 
@@ -1059,7 +1026,7 @@ def single_round_cal_and_flag(
             do_flag_backup(msname, flagtype="flagdata")
             task = delayed(run_postcal_flag)(dry_run=True)
             mem_limit = run_limited_memory_task(task, dask_dir=workdir)
-            ms_size_list = [get_ms_size(ms) + mem_limit for ms in all_mslist]
+            ms_size_list = [get_column_size(ms) + mem_limit for ms in all_mslist]
             mem_limit = max(ms_size_list)
             dask_client, dask_cluster, n_jobs, n_threads, mem_limit = get_dask_client(
                 len(all_mslist),
@@ -1086,7 +1053,7 @@ def single_round_cal_and_flag(
                             memory_limit=mem_limit,
                         )
                     )
-            results = list(compute(*tasks))
+            results = list(dask_client.compute(tasks, sync=True))
             dask_client.close()
             dask_cluster.close()
 
@@ -1140,10 +1107,6 @@ def single_round_cal_and_flag(
     except Exception as e:
         traceback.print_exc()
         return 1, []
-    finally:
-        time.sleep(5)
-        drop_cache(msname)
-        drop_cache(workdir)
 
 
 def run_basic_cal_rounds(
@@ -1299,10 +1262,6 @@ def run_basic_cal_rounds(
         print(f"Total time taken : {time.time() - start_time}")
         print("##################\n")
         return 1, []
-    finally:
-        time.sleep(5)
-        drop_cache(msname)
-        drop_cache(workdir)
 
 
 def main(

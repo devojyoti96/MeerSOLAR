@@ -8,30 +8,8 @@ import sys
 import os
 import logging
 from casatasks import casalog
-from dask import delayed, compute
-from meersolar.utils.basic_utils import suppress_casa_output, get_datadir, get_cachedir
-from meersolar.utils.resource_utils import drop_cache, limit_threads
-from meersolar.utils.logger_utils import (
-    init_logger,
-    clean_shutdown,
-    SmartDefaultsHelpFormatter,
-)
-from meersolar.utils.proc_manage_utils import (
-    run_limited_memory_task,
-    get_dask_client,
-    save_pid,
-)
-from meersolar.utils.ms_metadata import (
-    get_ms_scans,
-    get_submsname_scans,
-)
-from meersolar.utils.meer_utils import (
-    get_band_name,
-    get_fluxcals,
-    get_phasecals,
-    get_polcals,
-)
-from meersolar.utils.casatasks import correct_missing_col_subms
+from dask import delayed
+from meersolar.utils import *
 
 logging.getLogger("distributed").setLevel(logging.WARNING)
 
@@ -298,7 +276,7 @@ def import_phasecal_models(
                             n_threads=n_threads,
                         )
                     )
-        results = list(compute(*tasks))
+        results = list(dask_client.compute(tasks, sync=True))
         dask_client.close()
         dask_cluster.close()
         print("Phasecal models are initiated.\n")
@@ -363,7 +341,7 @@ def import_polcal_models(
                             sub_msname, polcal_field, ismms=True, n_threads=n_threads
                         )
                     )
-        results = list(compute(*tasks))
+        results = list(dask_client.compute(tasks, sync=True))
         dask_client.close()
         dask_cluster.close()
         return 0
@@ -452,10 +430,6 @@ def import_all_models(msname, workdir, cpu_frac=0.8, mem_frac=0.8):
         print("##################\n")
         traceback.print_exc()
         return 1, 1, 1
-    finally:
-        time.sleep(5)
-        drop_cache(msname)
-        drop_cache(workdir)
 
 
 def main(

@@ -8,31 +8,12 @@ import traceback
 import time
 import sys
 import os
+import copy
 from casatasks import casalog
 from casatools import msmetadata, table
-from dask import delayed, compute
+from dask import delayed
 from functools import partial
-from meersolar.utils.basic_utils import get_datadir, suppress_casa_output, get_cachedir
-from meersolar.utils.resource_utils import drop_cache, limit_threads
-from meersolar.utils.logger_utils import (
-    init_logger,
-    clean_shutdown,
-    SmartDefaultsHelpFormatter,
-    create_logger,
-)
-from meersolar.utils.proc_manage_utils import (
-    run_limited_memory_task,
-    get_dask_client,
-    save_pid,
-)
-from meersolar.utils.ms_metadata import check_datacolumn_valid
-from meersolar.utils.flagging import get_unflagged_antennas
-from meersolar.utils.imaging import calc_field_of_view, calc_cellsize, calc_sun_dia
-from meersolar.utils.udocker_utils import (
-    check_udocker_container,
-    initialize_wsclean_container,
-)
-from meersolar.utils.selfcal_utils import intensity_selfcal
+from meersolar.utils import *
 
 logging.getLogger("distributed").setLevel(logging.WARNING)
 
@@ -125,7 +106,7 @@ def do_selfcal(
         Final caltable
     """
     limit_threads(n_threads=ncpu)
-    from casatasks import split, flagdata, initweights, flagmanager
+    from casatasks import split, flagdata, flagmanager
 
     if dry_run:
         process = psutil.Process(os.getpid())
@@ -222,9 +203,6 @@ def do_selfcal(
                 datacolumn="data",
                 flagbackup=False,
             )
-        logger.info("Initiating weights ....")
-        with suppress_casa_output():
-            initweights(vis=msname, wtmode="ones", dowtsp=True)
 
         ############################################
         # Imaging and calibration parameters
@@ -561,9 +539,6 @@ def do_selfcal(
         time.sleep(5)
         clean_shutdown(sub_observer)
         return 1, []
-    finally:
-        time.sleep(5)
-        drop_cache(msname)
 
 
 def main(
@@ -673,15 +648,15 @@ def main(
     if (
         start_remote_log
         and os.path.exists(f"{workdir}/jobname_password.npy")
-        and logfile is not None
+        and mainlog_file is not None
     ):
         time.sleep(5)
         jobname, password = np.load(
             f"{workdir}/jobname_password.npy", allow_pickle=True
         )
-        if os.path.exists(logfile):
+        if os.path.exists(mainlog_file):
             observer = init_logger(
-                "all_selfcal", logfile, jobname=jobname, password=password
+                "all_selfcal", mainlog_file, jobname=jobname, password=password
             )
     if observer == None:
         print("Remote link or jobname is blank. Not transmiting to remote logger.")
@@ -690,7 +665,7 @@ def main(
     ###########################
     # WSClean container
     ###########################
-    container_name = "meerwsclean"
+    container_name = "solarwsclean"
     container_present = check_udocker_container(container_name)
     if not container_present:
         container_name = initialize_wsclean_container(name=container_name)
@@ -699,6 +674,7 @@ def main(
                 f"Container {container_name} is not initiated. First initiate container and then run."
             )
             return 1
+    org_mslist = copy.deepcopy(mslist)
     try:
         if len(mslist) == 0:
             mainlogger.info("Please provide at-least one measurement set.")
@@ -821,7 +797,7 @@ def main(
                             logfile=logfile,
                         )
                     )
-                results = list(compute(*tasks))
+                results = list(dask_client.compute(tasks, sync=True))
                 dask_client.close()
                 dask_cluster.close()
                 gcal_list = []
@@ -861,7 +837,7 @@ def main(
         msg = 1
     finally:
         time.sleep(5)
-        for ms in mslist:
+        for ms in org_mslist:
             drop_cache(ms)
         drop_cache(workdir)
         clean_shutdown(observer)

@@ -10,36 +10,8 @@ import sys
 import os
 from casatasks import casalog
 from casatools import msmetadata
-from dask import delayed, compute
-from meersolar.utils.basic_utils import suppress_casa_output, get_datadir, get_cachedir
-from meersolar.utils.resource_utils import drop_cache, limit_threads
-from meersolar.utils.logger_utils import (
-    init_logger,
-    clean_shutdown,
-    SmartDefaultsHelpFormatter,
-)
-from meersolar.utils.proc_manage_utils import (
-    run_limited_memory_task,
-    get_dask_client,
-    save_pid,
-)
-from meersolar.utils.ms_metadata import (
-    get_ms_scans,
-    get_submsname_scans,
-    check_datacolumn_valid,
-    get_chunk_size,
-    get_bad_ants,
-)
-from meersolar.utils.meer_utils import (
-    get_band_name,
-    get_fluxcals,
-    get_phasecals,
-    get_polcals,
-    get_bad_chans,
-    get_good_chans,
-)
-from meersolar.utils.flagging import do_flag_backup
-from meersolar.utils.casatasks import correct_missing_col_subms
+from dask import delayed
+from meersolar.utils import *
 
 logging.getLogger("distributed").setLevel(logging.WARNING)
 
@@ -314,13 +286,11 @@ def single_ms_flag(
     except Exception as e:
         traceback.print_exc()
         return 1
-    finally:
-        time.sleep(5)
-        drop_cache(msname)
 
 
 def do_flagging(
     msname,
+    workdir,
     datacolumn="data",
     flag_bad_ants=True,
     flag_bad_spw=True,
@@ -403,10 +373,10 @@ def do_flagging(
         else:
             subms_list = [msname]
         task = delayed(single_ms_flag)(dry_run=True)
-        mem_limit = run_limited_memory_task(task, dask_dir=mspath)
+        mem_limit = run_limited_memory_task(task, dask_dir=workdir)
         dask_client, dask_cluster, n_jobs, n_threads, mem_limit = get_dask_client(
             len(subms_list),
-            dask_dir=mspath,
+            dask_dir=workdir,
             cpu_frac=cpu_frac,
             mem_frac=mem_frac,
             min_mem_per_job=mem_limit / 0.6,
@@ -428,7 +398,7 @@ def do_flagging(
             )
             for ms in subms_list
         ]
-        results = list(compute(*tasks))
+        results = list(dask_client.compute(tasks, sync=True))
         dask_client.close()
         dask_cluster.close()
         print("##################")
@@ -441,9 +411,6 @@ def do_flagging(
         print("Total time taken : " + str(time.time() - start_time) + "s")
         print("##################\n")
         return 1
-    finally:
-        time.sleep(5)
-        drop_cache(msname)
 
 
 def main(
@@ -538,6 +505,7 @@ def main(
         if msname and os.path.exists(msname):
             msg = do_flagging(
                 msname,
+                workdir,
                 datacolumn=datacolumn,
                 flag_bad_ants=flag_bad_ants,
                 flag_bad_spw=flag_bad_spw,

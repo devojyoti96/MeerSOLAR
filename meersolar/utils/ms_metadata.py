@@ -168,7 +168,8 @@ def baseline_names(msname):
 
 def get_ms_size(msname, only_autocorr=False):
     """
-    Get measurement set total size
+    Get measurement set total size on-disk
+    (Note: it could be smaller than actual data size, because of data compression)
 
     Parameters
     ----------
@@ -200,7 +201,8 @@ def get_ms_size(msname, only_autocorr=False):
 
 def get_column_size(msname, only_autocorr=False):
     """
-    Get column size
+    Get datacolumn size
+    (Note: this is true datasize in memory)
 
     Parameters
     ----------
@@ -214,17 +216,18 @@ def get_column_size(msname, only_autocorr=False):
     float
         A single datacolumn data size in GB
     """
-    mssize = get_ms_size(msname, only_autocorr=only_autocorr)
-    tb = table()
-    tb.open(msname)
-    colnames = tb.colnames()
-    tb.close()
-    ncol = 1
-    if "CORRECTED_DATA" in colnames:
-        ncol += 1
-    if "MODEL_DATA" in colnames:
-        ncol += 1
-    datasize = mssize / ncol
+    msmd = msmetadata()
+    msmd.open(msname)
+    nrow = int(msmd.nrows())
+    nchan = msmd.nchan(0)
+    npol = msmd.ncorrforpol()[0]
+    nant = msmd.nantennas()
+    msmd.close()
+    datasize = nrow * nchan * npol * 16 / (1024.0**3)
+    if only_autocorr:
+        all_baselines = (nant * nant) / 2
+        datasize /= all_baselines
+        datasize *= nant
     return round(datasize, 2)
 
 
@@ -255,7 +258,7 @@ def get_ms_scan_size(msname, scan, only_autocorr=False):
     mstool.select({"scan_number": int(scan)})
     scan_nrow = mstool.nrow(True)
     mstool.close()
-    ms_size = get_ms_size(msname, only_autocorr=only_autocorr)
+    ms_size = get_column_size(msname, only_autocorr=only_autocorr)
     scan_size = scan_nrow * (ms_size / nrow)
     return round(scan_size, 2)
 
@@ -697,7 +700,14 @@ def get_pol_names(msname, fullpol=True):
     msmd.close()
     pol_names = []
     for p in pols:
-        pol_names.append(CASA_POL_PRODUCTS[int(p)])
+        pol_name = CASA_POL_PRODUCTS[int(p)]
+        if fullpol is True:
+            pol_names.append(pol_name)
+        else:
+            if pol_name in ["XX", "YY", "RR", "LL", "I"]:
+                pol_names.append(pol_name)
+            else:
+                pass
     return pol_names
 
 

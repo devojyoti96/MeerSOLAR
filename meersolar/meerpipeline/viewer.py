@@ -84,7 +84,7 @@ def get_cachedir():
     if homedir is None:
         homedir = os.path.expanduser("~")
     username = os.getlogin()
-    cachedir = f"{homedir}/.meersolar"
+    cachedir = f"{homedir}/.solarpipe"
     os.makedirs(cachedir, exist_ok=True)
     return cachedir
 
@@ -100,6 +100,9 @@ class SmartDefaultsHelpFormatter(argparse.ArgumentDefaultsHelpFormatter):
 
 
 def get_logid(logfile):
+    """
+    Get log id for remote logger from logfile name
+    """
     name = os.path.basename(logfile)
     logmap = {
         "apply_basiccal.log": "Applying basic calibration solutions",
@@ -110,27 +113,27 @@ def get_logid(logfile):
         "cor_sidereal_targets.log": "Correction of sidereal motion for target scans",
         "flagging_cal_calibrator.log": "Basic flagging",
         "modeling_calibrator.log": "Simulating visibilities of calibrators",
-        "split_targets.log": "Splitting target scans",
-        "split_selfcals.log": "Splitting for self-calibration",
-        "selfcal_targets.mainlog": "All self-calibrations main log",
-        "imaging_targets.mainlog": "All imaging main log",
+        "split_targets.log": "Spliting target scans",
+        "split_selfcals.log": "Spliting for self-calibration",
         "selfcal_targets.log": "All self-calibrations",
         "imaging_targets.log": "All imaging",
         "noise_cal.log": "Flux calibration using noise-diode",
-        "partition_cal.log": "Partitioning for basic calibration",
+        "partition_cal.log": "Partioning for basic calibration",
+        "ds_targets.log": "Making dynamic spectra",
     }
+
     if name in logmap:
         return logmap[name]
     elif "selfcals_scan_" in name:
         name = name.rstrip("_selfcal.log")
         scan = name.split("scan_")[-1].split("_spw")[0]
         spw = name.split("spw_")[-1].split("_selfcal")[0]
-        return f"Self-calibration for: Scan {scan}, SPW {spw}"
+        return f"Self-calibration for: Scan : {scan}, Spectral window: {spw}"
     elif "imaging_targets_scan_" in name:
         name = name.rstrip(".log")
         scan = name.split("scan_")[-1].split("_spw")[0]
         spw = name.split("spw_")[-1].split("_selfcal")[0]
-        return f"Imaging for: Scan {scan}, SPW {spw}"
+        return f"Imaging for: Scan : {scan}, Spectral window: {spw}"
     else:
         return name
 

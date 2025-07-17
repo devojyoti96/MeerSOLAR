@@ -9,36 +9,8 @@ import sys
 import os
 from casatasks import casalog
 from casatools import msmetadata
-from dask import delayed, compute
-from meersolar.utils.basic_utils import (
-    get_datadir,
-    suppress_casa_output,
-    split_into_chunks,
-    get_cachedir,
-)
-from meersolar.utils.resource_utils import drop_cache, limit_threads
-from meersolar.utils.logger_utils import (
-    init_logger,
-    clean_shutdown,
-    SmartDefaultsHelpFormatter,
-)
-from meersolar.utils.proc_manage_utils import (
-    run_limited_memory_task,
-    get_dask_client,
-    save_pid,
-    get_nprocess_solarpipe,
-)
-from meersolar.utils.ms_metadata import (
-    get_pol_names,
-    get_timeranges_for_scan,
-    get_common_spw,
-)
-from meersolar.utils.meer_utils import (
-    get_cal_target_scans,
-    get_valid_scans,
-    get_bad_chans,
-)
-from meersolar.utils.casatasks import single_mstransform
+from dask import delayed
+from meersolar.utils import *
 
 logging.getLogger("distributed").setLevel(logging.WARNING)
 
@@ -81,7 +53,6 @@ def split_target_scans(
     n_spectral_chunk=-1,
     scans=[],
     prefix="targets",
-    fullpol=False,
     time_interval=-1,
     time_window=-1,
     quack_timestamps=-1,
@@ -116,8 +87,6 @@ def split_target_scans(
         Scan list to split
     prefix : str, optional
         Splited ms prefix
-    fullpol : bool, optional
-        Full polar split
     time_interval : float
         Time interval in seconds
     time_window : float
@@ -175,7 +144,6 @@ def split_target_scans(
             timebin = str(timeres) + "s"
         else:
             timebin = ""
-        corr = get_pol_names(msname, fullpol=fullpol)
 
         #############################
         # Making spectral chunks
@@ -283,9 +251,8 @@ def split_target_scans(
                         timebin=timebin,
                         datacolumn="DATA",
                         spw="0:" + chanrange,
-                        corr=corr,
+                        corr="",
                         timerange=timerange,
-                        numsubms="auto",
                         n_threads=n_threads,
                         dry_run=False,
                     )
@@ -305,7 +272,7 @@ def split_target_scans(
                         min_mem_per_job=mem_limit / 0.6,
                     )
                 )
-                results = list(compute(*tasks))
+                results = list(dask_client.compute(tasks, sync=True))
                 dask_client.close()
                 dask_cluster.close()
                 for r in results:
@@ -364,10 +331,6 @@ def split_target_scans(
         print("Total time taken : ", time.time() - start_time)
         print("##################\n")
         return 1, []
-    finally:
-        time.sleep(5)
-        drop_cache(msname)
-        drop_cache(workdir)
 
 
 def main(
@@ -384,7 +347,6 @@ def main(
     freqres=-1,
     timeres=-1,
     prefix="targets",
-    split_fullpol=False,
     merge_spws=False,
     cpu_frac=0.8,
     mem_frac=0.8,
@@ -425,8 +387,6 @@ def main(
         Time resolution in seconds for time averaging. Set -1 to disable. Default is -1.
     prefix : str, optional
         Prefix for the output split MS files. Default is "targets".
-    split_fullpol : bool, optional
-        If True, split all polarization products; otherwise split only Stokes I. Default is False.
     merge_spws : bool, optional
         If True, merge all SPWs before splitting. Default is False.
     cpu_frac : float, optional
@@ -495,7 +455,6 @@ def main(
                 time_interval=float(time_interval),
                 quack_timestamps=int(quack_timestamps),
                 scans=scans,
-                fullpol=split_fullpol,
                 n_spectral_chunk=int(n_spectral_chunk),
                 prefix=prefix,
                 merge_spws=merge_spws,
@@ -616,9 +575,6 @@ def cli():
         help="Splited ms prefix name",
     )
     adv_args.add_argument(
-        "--split_fullpol", action="store_true", help="Split full polar data"
-    )
-    adv_args.add_argument(
         "--merge_spws", action="store_true", help="Merge spectral windows"
     )
     adv_args.add_argument(
@@ -680,7 +636,6 @@ def cli():
         freqres=args.freqres,
         timeres=args.timeres,
         prefix=args.prefix,
-        split_fullpol=args.split_fullpol,
         merge_spws=args.merge_spws,
         cpu_frac=args.cpu_frac,
         mem_frac=args.mem_frac,

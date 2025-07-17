@@ -6,9 +6,7 @@ import sys
 import os
 from casatasks import casalog
 from casatasks import listobs
-from meersolar.utils.basic_utils import get_cachedir
-from meersolar.utils.resource_utils import drop_cache
-from meersolar.utils.logger_utils import SmartDefaultsHelpFormatter
+from meersolar.utils import get_cachedir, drop_cache, SmartDefaultsHelpFormatter
 
 try:
     casalogfile = casalog.logfile()

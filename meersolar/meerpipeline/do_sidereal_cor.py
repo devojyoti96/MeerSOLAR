@@ -7,24 +7,8 @@ import time
 import sys
 import os
 from casatasks import casalog
-from dask import delayed, compute
-from meersolar.utils.basic_utils import get_datadir, get_cachedir
-from meersolar.utils.resource_utils import drop_cache
-from meersolar.utils.logger_utils import (
-    init_logger,
-    clean_shutdown,
-    SmartDefaultsHelpFormatter,
-)
-from meersolar.utils.proc_manage_utils import (
-    run_limited_memory_task,
-    get_dask_client,
-    save_pid,
-)
-from meersolar.utils.sunpos_utils import correct_solar_sidereal_motion
-from meersolar.utils.udocker_utils import (
-    check_udocker_container,
-    initialize_wsclean_container,
-)
+from dask import delayed
+from meersolar.utils import *
 
 logging.getLogger("distributed").setLevel(logging.WARNING)
 
@@ -96,7 +80,7 @@ def cor_sidereal_motion(
             mem_frac=mem_frac,
             min_mem_per_job=mem_limit / 0.6,
         )
-        results = list(compute(*tasks))
+        results = list(dask_client.compute(tasks, sync=True))
         dask_client.close()
         dask_cluster.close()
         splited_ms_list_phaserotated = []
@@ -127,11 +111,6 @@ def cor_sidereal_motion(
         print("Total time taken : ", time.time() - start_time)
         print("##################\n")
         return 1, []
-    finally:
-        time.sleep(5)
-        for ms in mslist:
-            drop_cache(ms)
-        drop_cache(workdir)
 
 
 def main(

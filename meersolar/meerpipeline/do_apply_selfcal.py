@@ -9,20 +9,8 @@ import sys
 import os
 from casatasks import casalog
 from casatools import msmetadata
-from dask import delayed, compute
-from meersolar.utils.basic_utils import get_datadir, get_cachedir
-from meersolar.utils.resource_utils import drop_cache
-from meersolar.utils.logger_utils import (
-    init_logger,
-    clean_shutdown,
-    SmartDefaultsHelpFormatter,
-)
-from meersolar.utils.proc_manage_utils import (
-    run_limited_memory_task,
-    get_dask_client,
-    save_pid,
-)
-from meersolar.utils.ms_metadata import check_datacolumn_valid, get_ms_size
+from dask import delayed
+from meersolar.utils import *
 from meersolar.meerpipeline.do_apply_basiccal import applysol
 
 logging.getLogger("distributed").setLevel(logging.WARNING)
@@ -112,7 +100,7 @@ def run_all_applysol(
         print(f"Total ms list: {len(mslist)}")
         task = delayed(applysol)(dry_run=True)
         mem_limit = run_limited_memory_task(task, dask_dir=workdir)
-        ms_size_list = [get_ms_size(ms) + mem_limit for ms in mslist]
+        ms_size_list = [get_column_size(ms) + mem_limit for ms in mslist]
         mem_limit = max(ms_size_list)
         dask_client, dask_cluster, n_jobs, n_threads, mem_limit = get_dask_client(
             len(mslist),
@@ -147,7 +135,7 @@ def run_all_applysol(
                     soltype="selfcal",
                 )
             )
-        results = list(compute(*tasks))
+        results = list(dask_client.compute(tasks, sync=True))
         dask_client.close()
         dask_cluster.close()
         if np.nansum(results) == 0:
@@ -176,11 +164,6 @@ def run_all_applysol(
         print("Total time taken : ", time.time() - start_time)
         print("##################\n")
         return 1
-    finally:
-        time.sleep(5)
-        for ms in mslist:
-            drop_cache(ms)
-        drop_cache(workdir)
 
 
 def main(

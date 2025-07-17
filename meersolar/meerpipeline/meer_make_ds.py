@@ -10,21 +10,8 @@ import sys
 import os
 from casatasks import casalog
 from casatools import msmetadata, ms as casamstool
-from dask import delayed, compute
-from meersolar.utils.basic_utils import get_datadir, get_cachedir
-from meersolar.utils.resource_utils import drop_cache
-from meersolar.utils.logger_utils import (
-    init_logger,
-    clean_shutdown,
-    SmartDefaultsHelpFormatter,
-)
-from meersolar.utils.proc_manage_utils import get_dask_client, save_pid
-from meersolar.utils.ms_metadata import check_datacolumn_valid
-from meersolar.utils.meer_utils import (
-    get_valid_scans,
-    get_cal_target_scans,
-)
-from meersolar.utils.meer_ploting_utils import make_ds_plot, make_ds_file_per_scan
+from dask import delayed
+from meersolar.utils import *
 
 logging.getLogger("distributed").setLevel(logging.WARNING)
 
@@ -146,7 +133,7 @@ def make_solar_DS(
                 datacolumn,
             )
         )
-    compute(*tasks)
+    dask_client.compute(tasks, sync=True)
     dask_client.close()
     dask_cluster.close()
     ds_files = [
