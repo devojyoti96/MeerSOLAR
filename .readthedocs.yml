@@ -16,4 +16,6 @@ python:
 
 sphinx:
   configuration: docs/source/conf.py  # adjust this if your conf.py is elsewhere
-
+  
+apt_packages:
+  - graphviz
