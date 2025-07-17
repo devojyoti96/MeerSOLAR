@@ -1,10 +1,10 @@
 [build-system]
-requires = ["setuptools >= 77.0.3"]
+requires = ["setuptools >= 77.0.3,<81"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "meersolar"
-version = "1.0.2"
+version = "1.0.3"
 description = "A package to calibrate MeerKAT solar observation"
 readme = { file = "README.md", content-type = "text/markdown" }
 license = "MIT"
@@ -20,6 +20,7 @@ classifiers = [
 dependencies = [
     "aiapy==0.10.1",
     "aiobotocore==2.21.1",
+    "astroquery==0.4.10",
     "aioftp==0.23.1",
     "aiohappyeyeballs==2.4.3",
     "aiohttp==3.10.10",
@@ -185,32 +186,33 @@ urls = { "Homepage" = "https://github.com/devojyoti96/MeerSOLAR" }
 
 # Console scripts entry points
 [project.scripts]
-run_basic_cal = "meersolar.pipeline.basic_cal:main"
-run_apply_basiccal = "meersolar.pipeline.do_apply_basiccal:main"
-run_apply_selfcal = "meersolar.pipeline.do_apply_selfcal:main"
-run_fluxcal = "meersolar.pipeline.do_fluxcal:main"
-run_partition = "meersolar.pipeline.do_partition:main"
-run_target_split = "meersolar.pipeline.do_target_split:main"
-run_solar_siderealcor = "meersolar.pipeline.do_sidereal_cor:main"
-run_flag = "meersolar.pipeline.flagging:main"
-import_model = "meersolar.pipeline.import_model:main"
-run_selfcal = "meersolar.pipeline.do_selfcal:main"
-run_imaging = "meersolar.pipeline.do_imaging:main"
-run_single_meerpbcor ="meersolar.pipeline.single_image_meerpbcor:main"
-run_meerpbcor ="meersolar.pipeline.meer_pbcor:main"
-run_meerlogger ="meersolar.pipeline.viewer:main"
+run-meer-basic-cal = "meersolar.meerpipeline.basic_cal:cli"
+run-meer-apply-basiccal = "meersolar.meerpipeline.do_apply_basiccal:cli"
+run-meer-apply-selfcal = "meersolar.meerpipeline.do_apply_selfcal:cli"
+run-meer-fluxcal = "meersolar.meerpipeline.do_fluxcal:cli"
+run-meer-partition = "meersolar.meerpipeline.do_partition:cli"
+run-meer-split = "meersolar.meerpipeline.do_target_split:cli"
+run-meer-solar-siderealcor = "meersolar.meerpipeline.do_sidereal_cor:cli"
+run-meer-flag = "meersolar.meerpipeline.flagging:cli"
+run-meer-import-model = "meersolar.meerpipeline.import_model:cli"
+run-meer-selfcal = "meersolar.meerpipeline.do_selfcal:cli"
+run-meer-imaging = "meersolar.meerpipeline.do_imaging:cli"
+run-meer-singlepbcor ="meersolar.meerpipeline.single_image_meerpbcor:cli"
+run-meer-meerpbcor ="meersolar.meerpipeline.meer_pbcor:cli"
+run-meer-meerlogger ="meersolar.meerpipeline.viewer:cli"
 crystalball = "meersolar.crystalball.crystalball:predict"
-init_meersolar_data = "meersolar.pipeline.init_data:main"
-kill_meersolar_job = "meersolar.pipeline.kill_job:kill_meerjob"
-run_meersolar = "meersolar.pipeline.master_controller:main"
-show_meersolar_ms="meersolar.pipeline.show_msdetails:main"
-show_meersolar_status = "meersolar.pipeline.show_status:main"
-run_makeds = "meersolar.pipeline.make_ds:main"
+init-meersolar-data = "meersolar.meerpipeline.init_data:cli"
+kill-meersolar-job = "meersolar.meerpipeline.kill_job:kill_meerjob"
+run-meer-meersolar = "meersolar.meerpipeline.master_controller:cli"
+show-meersolar-ms="meersolar.meerpipeline.show_msdetails:cli"
+show-meersolar-status = "meersolar.meerpipeline.show_status:cli"
+run-meer-makeds = "meersolar.meerpipeline.meer_make_ds:cli"
 
 [tool.setuptools]
 packages = [
     "meersolar",
-    "meersolar.pipeline",
+    "meersolar.utils",
+    "meersolar.meerpipeline",
     "meersolar.crystalball",
     "meersolar.data"
 ]
