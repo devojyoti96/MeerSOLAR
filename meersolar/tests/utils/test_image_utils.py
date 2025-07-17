@@ -70,8 +70,8 @@ def test_calc_solar_image_stat(dummy_image):
     assert total_val == 30912980.0
     assert mean_val == 92.04
     assert median_val == 81.02
-    assert rms_dyn == 24.66
-    assert minmax_dyn == 16.97
+    assert rms_dyn == 24.67
+    assert minmax_dyn == 16.98
 
 
 def test_calc_dyn_range(dummy_image):

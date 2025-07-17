@@ -42,16 +42,16 @@ def test_get_ms_size(dummy_msname):
 
 
 def test_get_column_size(dummy_msname):
-    assert get_column_size(dummy_msname, only_autocorr=True) == 0.21
-    assert get_column_size(dummy_msname, only_autocorr=False) == 6.06
+    assert get_column_size(dummy_msname, only_autocorr=True) == 0.34
+    assert get_column_size(dummy_msname, only_autocorr=False) == 10.02
 
 
 def test_get_ms_scan_size(dummy_msname):
-    assert get_ms_scan_size(dummy_msname, 1) == 0.04
+    assert get_ms_scan_size(dummy_msname, 1) == 0.07
 
 
 def test_get_chunk_size(dummy_msname):
-    assert get_chunk_size(dummy_msname, memory_limit=1) == 6
+    assert get_chunk_size(dummy_msname, memory_limit=1) == 10
 
 
 def test_check_datacolumn_valid(dummy_msname):

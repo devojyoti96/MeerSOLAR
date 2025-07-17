@@ -38,8 +38,14 @@ def test_filter_outliers(data, threshold, expected_n_nan):
 
 
 def test_scale_bandpass(dummy_bpass, dummy_att_table):
-    expected = dummy_bpass.split(".bcal")[0] + "_scan_15.bcal"
-    result = scale_bandpass(dummy_bpass, dummy_att_table, freqavg=10)
+    expected = dummy_bpass.split(".bcal")[0] + "_att.bcal"
+    result = scale_bandpass(dummy_bpass, dummy_att_table)
+    assert result == expected
+    assert os.path.exists(result)
+    os.system(f"rm -rf {result}")
+    assert os.path.exists(result) == False
+    expected = dummy_bpass.split(".bcal")[0] + "_att.bcal"
+    result = scale_bandpass(dummy_bpass, [dummy_att_table, dummy_att_table])
     assert result == expected
     assert os.path.exists(result)
     os.system(f"rm -rf {result}")
@@ -138,8 +144,7 @@ def mock_glob_pattern(pattern):
 @patch(
     "meersolar.meerpipeline.do_apply_basiccal.check_datacolumn_valid", return_value=True
 )
-@patch("meersolar.meerpipeline.do_apply_basiccal.msmetadata")
-@patch("meersolar.meerpipeline.do_apply_basiccal.get_ms_size", return_value=1.0)
+@patch("meersolar.meerpipeline.do_apply_basiccal.get_column_size", return_value=1.0)
 @patch(
     "meersolar.meerpipeline.do_apply_basiccal.run_limited_memory_task", return_value=1.0
 )
@@ -147,10 +152,6 @@ def mock_glob_pattern(pattern):
 @patch(
     "meersolar.meerpipeline.do_apply_basiccal.delayed",
     side_effect=lambda f, *a, **kw: f,
-)
-@patch(
-    "meersolar.meerpipeline.do_apply_basiccal.compute",
-    side_effect=lambda *args: [0] * len(args),
 )
 @patch("meersolar.meerpipeline.do_apply_basiccal.applysol", return_value=0)
 @patch(
@@ -160,12 +161,10 @@ def mock_glob_pattern(pattern):
 def test_run_all_applysol(
     mock_scale,
     mock_applysol,
-    mock_compute,
     mock_delayed,
     mock_dask,
     mock_memtask,
     mock_ms_size,
-    mock_msmd,
     mock_checkcol,
     mock_glob,
     mock_exists,
@@ -177,9 +176,6 @@ def test_run_all_applysol(
 ):
     mock_dask.return_value = (MagicMock(), MagicMock(), 1, 1, 1.0)
     mock_glob.side_effect = mock_glob_pattern
-    mock_msmd_inst = MagicMock()
-    mock_msmd_inst.scannumbers.return_value = [1]
-    mock_msmd.return_value = mock_msmd_inst
     result = run_all_applysol(
         mslist="test1.ms,test2.ms",
         workdir="/mock/workdir",

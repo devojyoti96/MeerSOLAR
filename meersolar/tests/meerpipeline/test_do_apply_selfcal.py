@@ -10,9 +10,8 @@ from meersolar.meerpipeline.do_apply_selfcal import *
     "meersolar.meerpipeline.do_apply_selfcal.check_datacolumn_valid", return_value=True
 )
 @patch("meersolar.meerpipeline.do_apply_selfcal.msmetadata")
-@patch("meersolar.meerpipeline.do_apply_selfcal.compute")
 @patch("meersolar.meerpipeline.do_apply_selfcal.get_dask_client")
-@patch("meersolar.meerpipeline.do_apply_selfcal.get_ms_size", return_value=1.0)
+@patch("meersolar.meerpipeline.do_apply_selfcal.get_column_size", return_value=1.0)
 @patch(
     "meersolar.meerpipeline.do_apply_selfcal.run_limited_memory_task", return_value=4.0
 )
@@ -30,9 +29,8 @@ def test_run_all_applysol(
     mock_glob,
     mock_delayed,
     mock_run_limited,
-    mock_get_ms_size,
+    mock_get_column_size,
     mock_get_dask_client,
-    mock_compute,
     mock_msmetadata,
     mock_check_datacol,
     mock_chdir,
@@ -46,8 +44,6 @@ def test_run_all_applysol(
     mock_msmetadata.return_value = mock_msmd
 
     mock_delayed.side_effect = lambda fn=None, *args, **kwargs: MagicMock()
-
-    mock_compute.return_value = [0]
 
     mock_dask_client = MagicMock()
     mock_dask_cluster = MagicMock()

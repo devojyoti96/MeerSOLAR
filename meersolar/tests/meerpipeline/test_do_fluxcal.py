@@ -15,20 +15,18 @@ def test_split_casatask(dummy_msname):
 @patch("meersolar.meerpipeline.do_fluxcal.split_casatask")
 @patch("meersolar.meerpipeline.do_fluxcal.run_limited_memory_task", return_value=0.5)
 @patch("meersolar.meerpipeline.do_fluxcal.get_dask_client")
-@patch("meersolar.meerpipeline.do_fluxcal.compute")
 @patch("meersolar.meerpipeline.do_fluxcal.os.path.exists", return_value=False)
 def test_split_autocorr(
     mock_exists,
-    mock_compute,
     mock_get_dask_client,
     mock_run_limited,
     mock_split_casatask,
 ):
     mock_split_casatask.return_value = "mock.ms"
-    mock_compute.return_value = ["autocorr_scan_1.ms", "autocorr_scan_2.ms"]
     dummy_client = MagicMock()
     dummy_cluster = MagicMock()
     mock_get_dask_client.return_value = (dummy_client, dummy_cluster, 2, 1, 0.5)
+    dummy_client.compute.return_value = ["autocorr_scan_1.ms", "autocorr_scan_2.ms"]
     result = split_autocorr(
         msname="mock.ms",
         workdir="/mock/workdir",
@@ -39,7 +37,8 @@ def test_split_autocorr(
     )
     assert isinstance(result, list)
     assert result == ["autocorr_scan_1.ms", "autocorr_scan_2.ms"]
-    assert mock_compute.called
+    mock_get_dask_client.assert_called_once()
+    dummy_client.compute.assert_called()
     assert dummy_client.close.called
     assert dummy_cluster.close.called
 
@@ -102,7 +101,7 @@ def test_get_att_per_ant(mock_get_on_off_power, mock_msmetadata):
 @patch("meersolar.meerpipeline.do_fluxcal.psutil.Process")
 @patch("meersolar.meerpipeline.do_fluxcal.get_att_per_ant")
 @patch("meersolar.meerpipeline.do_fluxcal.get_on_off_power")
-@patch("meersolar.meerpipeline.do_fluxcal.get_ms_size")
+@patch("meersolar.meerpipeline.do_fluxcal.get_column_size")
 @patch("meersolar.meerpipeline.do_fluxcal.table")
 @patch("meersolar.meerpipeline.do_fluxcal.msmetadata")
 @patch("meersolar.meerpipeline.do_fluxcal.limit_threads")
@@ -110,7 +109,7 @@ def test_get_power_diff(
     mock_limit_threads,
     mock_msmetadata,
     mock_table,
-    mock_get_ms_size,
+    mock_get_column_size,
     mock_get_on_off_power,
     mock_get_att_per_ant,
     mock_psutil_process,
@@ -127,7 +126,7 @@ def test_get_power_diff(
     on_gain = np.ones((2, 3, 4), dtype=np.complex64)
     off_gain = np.full((2, 3, 4), 0.5, dtype=np.complex64)
     mock_table_instance.getcol.side_effect = [on_gain, off_gain]
-    mock_get_ms_size.side_effect = [0.01, 0.02]  # in GB
+    mock_get_column_size.side_effect = [0.01, 0.02]  # in GB
     mock_get_on_off_power.return_value = 0.01  # function memory cost in GB
     mock_att_per_ant = np.ones((2, 3, 4)) * 0.5
     mock_get_att_per_ant.return_value = mock_att_per_ant
@@ -156,7 +155,6 @@ def test_get_power_diff(
 @patch("meersolar.meerpipeline.do_fluxcal.get_bad_ants")
 @patch("meersolar.meerpipeline.do_fluxcal.run_limited_memory_task")
 @patch("meersolar.meerpipeline.do_fluxcal.get_dask_client")
-@patch("meersolar.meerpipeline.do_fluxcal.compute")
 @patch("meersolar.meerpipeline.do_fluxcal.msmetadata")
 @patch("meersolar.meerpipeline.do_fluxcal.get_ms_scan_size")
 @patch("meersolar.meerpipeline.do_fluxcal.split_autocorr")
@@ -174,7 +172,6 @@ def test_estimate_att(
     mock_split_autocorr,
     mock_ms_size,
     mock_msmetadata,
-    mock_compute,
     mock_get_dask_client,
     mock_run_limited_memory_task,
     mock_get_bad_ants,
@@ -192,7 +189,9 @@ def test_estimate_att(
     mock_get_bad_chans.return_value = [1, 2]
     mock_get_bad_ants.return_value = ([0, 1], "0,1")
     mock_run_limited_memory_task.return_value = 0.1
-    mock_get_dask_client.return_value = (MagicMock(), MagicMock(), 1, 1, 0.1)
+    mock_dask_client = MagicMock()
+    mock_dask_cluster = MagicMock()
+    mock_get_dask_client.return_value = (mock_dask_client, mock_dask_cluster, 1, 1, 0.1)
     mock_split_autocorr.return_value = [
         f"{workdir}/autocorr_scan_{flux_scan}.ms",
         f"{workdir}/autocorr_scan_{target_scans[0]}.ms",
@@ -211,7 +210,9 @@ def test_estimate_att(
             [[0.5, 0.53, 0.51, 0.54], [0.6, 0.63, 0.6, 0.64], [0.7, 0.73, 0.7, 0.74]],
         ]
     )
-    mock_compute.side_effect = lambda *args, **kwargs: [[att_array, att_ant_array]]
+    mock_dask_client.compute.side_effect = lambda *args, **kwargs: [
+        [att_array, att_ant_array]
+    ]
 
     mock_msmd = MagicMock()
     mock_msmd.chanfreqs.return_value = np.array([100e6, 110e6, 120e6])
@@ -229,7 +230,7 @@ def test_estimate_att(
         cpu_frac=0.5,
         mem_frac=0.5,
     )
-
+    mock_dask_client.compute.assert_called()
     assert status == 0
     assert isinstance(att_level, dict)
     assert isinstance(att_files, list)

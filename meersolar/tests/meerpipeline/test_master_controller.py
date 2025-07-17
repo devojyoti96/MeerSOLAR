@@ -184,12 +184,10 @@ def test_run_noise_diode_cal(
 
 
 @pytest.mark.parametrize(
-    "split_fullpol, ms_exists, expected_return",
+    "ms_exists, expected_return",
     [
-        (False, True, 0),
-        (False, False, 1),
-        (True, True, 0),
-        (True, False, 1),
+        (True, 0),
+        (False, 1),
     ],
 )
 @patch("meersolar.meerpipeline.master_controller.glob.glob")
@@ -211,7 +209,6 @@ def test_run_partition(
     mock_system,
     mock_sleep,
     mock_glob,
-    split_fullpol,
     ms_exists,
     expected_return,
 ):
@@ -231,7 +228,6 @@ def test_run_partition(
     result = run_partition(
         msname="test.ms",
         workdir="/mock/workdir",
-        split_fullpol=split_fullpol,
         jobid=1,
         cpu_frac=0.9,
         mem_frac=0.9,
@@ -248,14 +244,13 @@ def test_run_partition(
 
 
 @pytest.mark.parametrize(
-    "split_fullpol, merge_spws, spw, target_scans, should_raise, expected_return",
+    "merge_spws, spw, target_scans, should_raise, expected_return",
     [
-        (False, False, "", [], False, 0),
-        (True, False, "", [], False, 0),
-        (False, True, "", [], False, 0),
-        (False, False, "0:10~20", [], False, 0),
-        (False, False, "", [5, 6], False, 0),
-        (False, False, "", [], True, 1),
+        (False, "", [], False, 0),
+        (True, "", [], False, 0),
+        (False, "0:10~20", [], False, 0),
+        (False, "", [5, 6], False, 0),
+        (False, "", [], True, 1),
     ],
 )
 @patch("meersolar.meerpipeline.master_controller.traceback.print_exc")
@@ -267,7 +262,6 @@ def test_run_target_split_jobs(
     mock_makedirs,
     mock_create_batch_script,
     mock_print_exc,
-    split_fullpol,
     merge_spws,
     spw,
     target_scans,
@@ -289,7 +283,6 @@ def test_run_target_split_jobs(
         n_spectral_chunk=2,
         target_scans=target_scans,
         prefix="targets",
-        split_fullpol=split_fullpol,
         merge_spws=merge_spws,
         time_window=5,
         time_interval=2,
@@ -997,6 +990,8 @@ def test_master_control(
             return ["/mock/workdir/selfcals_scan0.ms"]
         elif "targets_scan*.ms" in pattern:
             return ["/mock/workdir/targets_scan0.ms"]
+        elif ".Finished_split_" in pattern:
+            return ["/mock/workdir/.Finished_split_test_0"]
         return []
 
     mock_glob.side_effect = glob_side_effect
@@ -1014,7 +1009,10 @@ def test_master_control(
     mock_msmetadata.return_value = msmd_mock
 
     with patch("os.path.abspath", side_effect=lambda x: x.rstrip("/")):
+        from meersolar.meerpipeline.master_controller import master_control
+
         ret = master_control(**kwargs)
+
     assert ret == expected_return
 
 

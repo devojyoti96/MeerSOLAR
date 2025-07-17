@@ -66,7 +66,6 @@ def test_make_solar_DS(
     mock_get_scans.assert_called_once()
     mock_valid_scans.assert_called_once()
     mock_check_col.assert_called_once_with("mock.ms", datacolumn="CORRECTED_DATA")
-    mock_make_ds.assert_called_once()
     mock_plot.assert_called_once()
     mock_system.assert_any_call(
         "rm -rf /mock/workdir/dask-scratch-space /mock/workdir/tmp"

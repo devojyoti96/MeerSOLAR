@@ -359,16 +359,12 @@ def test_run_postcal_flag(
 @patch("meersolar.meerpipeline.basic_cal.msmetadata")
 @patch("meersolar.meerpipeline.basic_cal.get_dask_client")
 @patch("meersolar.meerpipeline.basic_cal.run_limited_memory_task")
-@patch(
-    "meersolar.meerpipeline.basic_cal.compute",
-    side_effect=lambda *args: [[f"{i}.cal" for i in range(len(args))]],
-)
 @patch("meersolar.meerpipeline.basic_cal.delayed", side_effect=lambda f: f)
 @patch(
     "meersolar.meerpipeline.basic_cal.merge_caltables",
     side_effect=lambda x, y, **kwargs: y,
 )
-@patch("meersolar.meerpipeline.basic_cal.get_ms_size", return_value=1.0)
+@patch("meersolar.meerpipeline.basic_cal.get_column_size", return_value=1.0)
 @patch("meersolar.meerpipeline.basic_cal.do_flag_backup")
 @patch("meersolar.meerpipeline.basic_cal.run_applycal", return_value=None)
 @patch("meersolar.meerpipeline.basic_cal.run_postcal_flag", return_value=None)
@@ -411,7 +407,6 @@ def test_single_round_cal_and_flag(
     mock_ms_size,
     mock_merge,
     mock_delayed,
-    mock_compute,
     mock_memtask,
     mock_dask,
     mock_msmd,

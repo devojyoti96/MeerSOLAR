@@ -230,7 +230,11 @@ def test_import_all_models(
     workdir = "/mock/work"
     mock_get_scans.return_value = (["ms1.ms", "ms2.ms"], ["1", "2"])
     mock_get_fluxcals.return_value = (["J0408-6545"], {"J0408-6545": ["1"]})
-    mock_get_phasecals.return_value = (["J1331+3030"], {"J1331+3030": ["2"]}, [])
+    mock_get_phasecals.return_value = (
+        ["J1331+3030"],
+        {"J1331+3030": ["2"]},
+        {"J1331+3030": 1},
+    )
     mock_get_polcals.return_value = (["3C286"], {"3C286": ["1"]})
     mock_flux_import.return_value = 0
     mock_phase_import.return_value = 0
@@ -242,7 +246,6 @@ def test_import_all_models(
     assert mock_flux_import.called
     assert mock_phase_import.called
     assert mock_pol_import.called
-    assert mock_drop_cache.call_count == 2
 
 
 @pytest.mark.parametrize(

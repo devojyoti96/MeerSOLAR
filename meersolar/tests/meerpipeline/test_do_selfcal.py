@@ -177,7 +177,15 @@ def test_do_selfcal(
 @patch("time.sleep", return_value=None)
 @patch("traceback.print_exc", return_value=None)
 @patch("meersolar.meerpipeline.do_selfcal.msmetadata")
+@patch("meersolar.meerpipeline.do_selfcal.psutil.virtual_memory")
+@patch(
+    "meersolar.meerpipeline.do_selfcal.resource.getrlimit", return_value=(1024, 4096)
+)
+@patch("meersolar.meerpipeline.do_selfcal.resource.setrlimit")
 def test_main_selfcal(
+    mock_setrlimit,
+    mock_getrlimit,
+    mock_virtual_memory,
     mock_msmetadata,
     mock_trace,
     mock_sleep,
@@ -229,24 +237,34 @@ def test_main_selfcal(
     msmd_instance.chanfreqs.return_value = np.array([100.0, 101.0, 102.0])
     mock_msmetadata.return_value = msmd_instance
 
-    # Mock logger and dask
-    mock_check_container.return_value = container_ok
-    mock_check_datacolumn.return_value = valid_cols
-    mock_create_logger.return_value = (MagicMock(), "mock.log")
-    mock_get_dask_client.return_value = (MagicMock(), MagicMock(), 1, 1, 2)
-
     # CASA table mock
     table_instance = MagicMock()
     table_instance.open.return_value = None
-    table_instance.getcol.return_value = [1]
+    table_instance.getcol.return_value = np.array([1])
     table_instance.close.return_value = None
     mock_table.return_value = table_instance
 
+    # psutil virtual memory
+    vm = MagicMock()
+    vm.available = 8 * 1024**3  # 8 GB
+    mock_virtual_memory.return_value = vm
+
+    # Logger and containers
+    mock_check_container.return_value = container_ok
+    mock_check_datacolumn.return_value = valid_cols
+    mock_create_logger.return_value = (MagicMock(), "mock.log")
     if container_ok:
-        mock_init_container.return_value = "meerwsclean"
+        mock_init_container.return_value = "solarwsclean"
     else:
         mock_init_container.return_value = None
 
+    # Dask client simulate compute success
+    dask_client = MagicMock()
+    dask_client.compute.return_value = [(0, "mock.gcal")] * len(mslist)
+    dask_cluster = MagicMock()
+    mock_get_dask_client.return_value = (dask_client, dask_cluster, len(mslist), 1, 2)
+
+    # Run main
     msg = main(
         mslist=mslist_str,
         workdir=workdir,
@@ -275,9 +293,19 @@ def test_main_selfcal(
 
     assert msg == expected_msg
 
-    # Ensure makedirs called for both workdir and caldir
+    # Directories should be created
     mock_makedirs.assert_any_call(workdir, exist_ok=True)
     mock_makedirs.assert_any_call(caldir, exist_ok=True)
+    mock_makedirs.assert_any_call(workdir + "/logs", exist_ok=True)
+    # Ensure drop_cache is called on all MSs and workdir
+    if container_ok and valid_cols:
+        for ms in mslist:
+            mock_drop_cache.assert_any_call(ms)
+        mock_drop_cache.assert_any_call(workdir)
+        # clean_shutdown always called
+        mock_shutdown.assert_called_once()
+    else:
+        pass
 
 
 @pytest.mark.parametrize(

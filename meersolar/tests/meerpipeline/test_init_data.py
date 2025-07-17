@@ -204,6 +204,7 @@ def test_init_meersolar_data(
                 "get_datadir": 1,
                 "init_meersolar_data": 1,
                 "init_udocker": 1,
+                "initialize_wsclean_container": 1,
             },
         ),
         # Case 2: init=False, nothing should be called
@@ -214,6 +215,7 @@ def test_init_meersolar_data(
                 "get_datadir": 0,
                 "init_meersolar_data": 0,
                 "init_udocker": 0,
+                "initialize_wsclean_container": 0,
             },
         ),
     ],
@@ -262,6 +264,11 @@ def test_main(init_flag, expected_calls, monkeypatch):
         mocks["init_udocker"].assert_called_once()
         if expected_calls["init_udocker"]
         else mocks["init_udocker"].assert_not_called()
+    )
+    (
+        mocks["initialize_wsclean_container"].assert_called_once()
+        if expected_calls["initialize_wsclean_container"]
+        else mocks["initialize_wsclean_container"].assert_not_called()
     )
 
 

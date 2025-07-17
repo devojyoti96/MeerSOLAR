@@ -34,7 +34,6 @@ from meersolar.meerpipeline.do_sidereal_cor import *
 )
 @patch("meersolar.meerpipeline.do_sidereal_cor.drop_cache")
 @patch("meersolar.meerpipeline.do_sidereal_cor.time.sleep", return_value=None)
-@patch("meersolar.meerpipeline.do_sidereal_cor.compute")
 @patch("meersolar.meerpipeline.do_sidereal_cor.delayed")
 @patch("meersolar.meerpipeline.do_sidereal_cor.get_dask_client")
 @patch(
@@ -53,7 +52,6 @@ def test_cor_sidereal_motion(
     mock_run_memtask,
     mock_get_dask,
     mock_delayed,
-    mock_compute,
     mock_sleep,
     mock_drop,
     container_present,
@@ -81,7 +79,7 @@ def test_cor_sidereal_motion(
     mock_get_dask.return_value = (mock_client, mock_cluster, 2, 2, 4.0)
 
     # Compute mock return
-    mock_compute.return_value = compute_result
+    mock_client.compute.return_value = compute_result
 
     # Mock existence of .sidereal_cor
     def exists_side_effect(path):

@@ -5,13 +5,10 @@ from meersolar.meerpipeline.do_partition import *
 
 @patch("meersolar.meerpipeline.do_partition.msmetadata")
 @patch("meersolar.meerpipeline.do_partition.get_valid_scans", return_value=[1, 2])
-@patch("meersolar.meerpipeline.do_partition.get_pol_names", return_value="XX,YY")
+@patch("meersolar.meerpipeline.do_partition.get_pol_names", return_value=["XX", "YY"])
 @patch("meersolar.meerpipeline.do_partition.get_ms_scan_size", return_value=1.0)
 @patch("meersolar.meerpipeline.do_partition.run_limited_memory_task", return_value=1.0)
 @patch("meersolar.meerpipeline.do_partition.get_dask_client")
-@patch(
-    "meersolar.meerpipeline.do_partition.compute", return_value=["mock.ms", "mock.ms2"]
-)
 @patch("meersolar.meerpipeline.do_partition.single_mstransform")
 @patch("meersolar.meerpipeline.do_partition.suppress_casa_output")
 @patch("meersolar.meerpipeline.do_partition.os")
@@ -25,7 +22,6 @@ def test_partion_ms(
     mock_os,
     mock_suppress,
     mock_single_transform,
-    mock_compute,
     mock_get_dask_client,
     mock_memtask,
     mock_get_scan_size,
@@ -42,6 +38,7 @@ def test_partion_ms(
     mock_dask_client = MagicMock()
     mock_dask_cluster = MagicMock()
     mock_get_dask_client.return_value = (mock_dask_client, mock_dask_cluster, 2, 2, 1.0)
+    mock_dask_client.compute.return_value = ["mock.ms", "mock.ms2"]
     result = partion_ms(
         msname="mock.ms",
         outputms="final.ms",
@@ -50,11 +47,12 @@ def test_partion_ms(
         scans="",
         width=1,
         timebin="5s",
-        fullpol=True,
         datacolumn="DATA",
         cpu_frac=0.5,
         mem_frac=0.5,
     )
+    mock_get_dask_client.assert_called_once()
+    mock_dask_client.compute.assert_called()
     mock_virtualconcat.assert_called_once()
     assert result == "final.ms"
 
@@ -123,7 +121,6 @@ def test_main_partition(
         width=2,
         timebin="10s",
         datacolumn="data",
-        fullpol=True,
         cpu_frac=0.5,
         mem_frac=0.5,
         logfile=None,

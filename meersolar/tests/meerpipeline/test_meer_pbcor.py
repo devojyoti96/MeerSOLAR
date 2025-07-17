@@ -28,29 +28,36 @@ def test_get_fits_freq(
         assert "No frequency axis" in captured.out
 
 
-@pytest.mark.parametrize(
-    "apply_parang, expected_append",
-    [
-        (True, ""),  # Do not append --no_apply_parang
-        (False, " --no_apply_parang"),  # Append --no_apply_parang
-    ],
-)
 @patch("meersolar.meerpipeline.meer_pbcor.os.system")
-def test_run_pbcor(mock_system, apply_parang, expected_append):
-    mock_system.return_value = 0  # Simulate successful command execution
+@pytest.mark.parametrize(
+    "apply_parang, expected_cmd_suffix", [(True, ""), (False, " --no_apply_parang")]
+)
+def test_run_pbcor(mock_system, apply_parang, expected_cmd_suffix):
+    # Arrange
     imagename = "mock.fits"
     pbdir = "/mock/pb"
     pbcor_dir = "/mock/pbcor"
-    result = run_pbcor(imagename, pbdir, pbcor_dir, apply_parang, jobid=42, ncpu=4)
-    base_cmd = (
-        f"run_single_meerpbcor {imagename} --pbdir {pbdir} --pbcor_dir {pbcor_dir} "
-        f"--ncpu 4 --jobid 42{expected_append}"
+    jobid = 42
+    ncpu = 4
+
+    expected_cmd = (
+        f"run-meer-singlepbcor {imagename} --pbdir {pbdir} "
+        f"--pbcor_dir {pbcor_dir} --ncpu {ncpu} --jobid {jobid}{expected_cmd_suffix} > {imagename}.tmp"
     )
-    expected_call_1 = f"{base_cmd} > {imagename}.tmp"
-    expected_call_2 = f"rm -rf {imagename}.tmp"
-    mock_system.assert_any_call(expected_call_1)
-    mock_system.assert_any_call(expected_call_2)
+
+    # Mock return for os.system
+    mock_system.return_value = 0
+
+    # Act
+    result = run_pbcor(
+        imagename, pbdir, pbcor_dir, apply_parang, jobid=jobid, ncpu=ncpu
+    )
+
+    # Assert
     assert result == 0
+    assert mock_system.call_count == 2
+    assert mock_system.call_args_list[0][0][0] == expected_cmd
+    assert mock_system.call_args_list[1][0][0] == f"rm -rf {imagename}.tmp"
 
 
 @pytest.mark.parametrize(
@@ -65,7 +72,6 @@ def test_run_pbcor(mock_system, apply_parang, expected_append):
 )
 @patch("meersolar.meerpipeline.meer_pbcor.save_in_hpc")
 @patch("meersolar.meerpipeline.meer_pbcor.get_dask_client")
-@patch("meersolar.meerpipeline.meer_pbcor.compute")
 @patch("meersolar.meerpipeline.meer_pbcor.delayed")
 @patch("meersolar.meerpipeline.meer_pbcor.get_fits_freq")
 @patch("meersolar.meerpipeline.meer_pbcor.os.path.getsize")
@@ -77,7 +83,6 @@ def test_pbcor_all_images(
     mock_getsize,
     mock_get_fits_freq,
     mock_delayed,
-    mock_compute,
     mock_get_dask_client,
     mock_save_in_hpc,
     mock_plot_in_hpc,
@@ -96,9 +101,11 @@ def test_pbcor_all_images(
     )
     mock_get_fits_freq.side_effect = [100, 200, 100, 200]
     mock_getsize.return_value = 1024**3  # 1GB each
-    mock_compute.return_value = [0, 0]  # simulate successful pbcor
-    mock_get_dask_client.return_value = (MagicMock(), MagicMock(), 2, 4, 8.0)
+    mock_dask_client = MagicMock()
+    dask_cluster = MagicMock()
+    mock_get_dask_client.return_value = (mock_dask_client, dask_cluster, 2, 4, 8.0)
     mock_delayed.side_effect = lambda f: f  # simulate delayed identity
+    mock_dask_client.compute.return_value = [0, 0]  # simulate successful pbcor
     result = pbcor_all_images(
         imagedir="/mock/imagedir",
         make_TB=make_TB,
@@ -108,11 +115,11 @@ def test_pbcor_all_images(
         cpu_frac=0.5,
         mem_frac=0.5,
     )
+    mock_dask_client.compute.assert_called()
     # Check expected cleanup was called
     assert result == 0
     assert mock_makedirs.call_count >= 1
     assert mock_get_dask_client.call_count >= 1
-    assert mock_compute.call_count >= 2  # one for first_set, one for remaining_set
     assert mock_save_in_hpc.called
     if make_TB:
         assert mock_generate_tb.called

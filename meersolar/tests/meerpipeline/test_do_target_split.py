@@ -9,7 +9,6 @@ def test_chanlist_to_str():
 
 
 @patch("meersolar.meerpipeline.do_target_split.get_dask_client")
-@patch("meersolar.meerpipeline.do_target_split.compute", return_value=["mock.ms"])
 @patch(
     "meersolar.meerpipeline.do_target_split.run_limited_memory_task", return_value=1.0
 )
@@ -22,7 +21,9 @@ def test_chanlist_to_str():
     "meersolar.meerpipeline.do_target_split.get_bad_chans",
     return_value="0:0~100;200~300",
 )
-@patch("meersolar.meerpipeline.do_target_split.get_pol_names", return_value="XX,YY")
+@patch(
+    "meersolar.meerpipeline.do_target_split.get_pol_names", return_value=["XX", "YY"]
+)
 @patch(
     "meersolar.meerpipeline.do_target_split.get_common_spw",
     return_value="0:0~100;200~300",
@@ -55,12 +56,12 @@ def test_split_target_scans(
     mock_get_valid_scans,
     mock_get_cal_target_scans,
     mock_run_mem,
-    mock_compute,
     mock_get_dask_client,
 ):
     mock_dask_client = MagicMock()
     mock_dask_cluster = MagicMock()
     mock_get_dask_client.return_value = (mock_dask_client, mock_dask_cluster, 1, 1, 1.0)
+    mock_dask_client.compute.return_value = ["mock.ms"]
     mock_msmd = MagicMock()
     mock_msmd.chanres.return_value = [0.1]
     mock_msmd.chanfreqs.return_value = [100.0, 200.0, 300.0]
@@ -75,6 +76,7 @@ def test_split_target_scans(
         datacolumn="DATA",
         scans=[],
     )
+    mock_dask_client.compute.assert_called()
     assert msg == 0
     assert result == ["mock.ms"]
 
@@ -142,7 +144,6 @@ def test_main_split_target_scans(
         freqres=-1,
         timeres=-1,
         prefix="targets",
-        split_fullpol=False,
         merge_spws=False,
         cpu_frac=0.8,
         mem_frac=0.8,

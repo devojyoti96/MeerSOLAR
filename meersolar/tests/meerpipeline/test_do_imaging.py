@@ -95,8 +95,8 @@ def test_perform_imaging(
     )
 
     assert code == expected_status
-    assert isinstance(output, list)
-    assert all(isinstance(sublist, list) for sublist in output)
+    assert isinstance(output, dict)
+    assert all(isinstance(v, list) for v in output.values())
 
 
 @pytest.mark.parametrize(
@@ -126,7 +126,6 @@ def test_perform_imaging(
 @patch("meersolar.meerpipeline.do_imaging.init_logger")
 @patch("meersolar.meerpipeline.do_imaging.create_logger")
 @patch("meersolar.meerpipeline.do_imaging.msmetadata")
-@patch("meersolar.meerpipeline.do_imaging.compute")
 @patch("meersolar.meerpipeline.do_imaging.get_dask_client")
 @patch("meersolar.meerpipeline.do_imaging.run_limited_memory_task", return_value=4.0)
 @patch("meersolar.meerpipeline.do_imaging.np.load", return_value=["job", "pass"])
@@ -136,7 +135,6 @@ def test_run_all_imaging(
     mock_npload,
     mock_run_limited,
     mock_get_dask,
-    mock_compute,
     mock_msmd,
     mock_create_logger,
     mock_init_logger,
@@ -181,7 +179,9 @@ def test_run_all_imaging(
     mock_get_dask.return_value = (client, cluster, 2, 2, 4.0)
 
     # Imaging result
-    mock_compute.return_value = [(0, [["img.fits"], ["mod.fits"], ["res.fits"]])]
+    client.compute.return_value = [
+        (0, {"image": ["img.fits"], "model": ["mod.fits"], "residual": ["res.fits"]})
+    ]
 
     mslist = ["mock.ms"]
     workdir = "/tmp/mockwork"
@@ -195,6 +195,8 @@ def test_run_all_imaging(
         timeres=timeres,
         pol="IQUV",
     )
+    mock_get_dask.assert_called_once()
+    client.compute.assert_called()
 
     assert result == expected
 

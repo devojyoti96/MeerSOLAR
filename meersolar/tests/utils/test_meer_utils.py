@@ -77,7 +77,7 @@ def test_get_phasecals(
     # Assertions
     assert fields == ["J1234-5678"]
     assert scans == {"J1234-5678": [1, 2, 3]}
-    assert fluxes == {"J1234-5678": [1.23]}
+    assert fluxes == {"J1234-5678": 1.23}
     expected_call = call("/mock/datadir/L_band_cal.npy", allow_pickle=True)
     assert mock_np_load.call_args_list.count(expected_call) == 2
 
