@@ -309,6 +309,8 @@ def do_flagging(
     ----------
     msname : str
         Name of the ms
+    workdir : str
+        Work directory
     datacolumn : str, optional
         Data column
     flag_bad_ants : bool, optional

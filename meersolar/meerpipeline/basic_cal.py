@@ -21,7 +21,6 @@ try:
     casalogfile = casalog.logfile()
     os.system("rm -rf " + casalogfile)
 except BaseException:
-    traceback.print_exc()
     pass
 
 datadir = get_datadir()

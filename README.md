@@ -84,7 +84,7 @@ MeerSOLAR is developed by Devojyoti Kansabanik (CPAESS-UCAR, Boulder, USA) and D
 This MeerKAT solar observations are analysed using MeerSOLAR pipeline.
 ```
 
-1. MeerSOLAR software in zenodo: https://doi.org/10.5281/zenodo.16040507
+1. MeerSOLAR software in zenodo: https://doi.org/10.5281/zenodo.16058861
 
 <!-- will be updated one published.
 and cite the following papers.

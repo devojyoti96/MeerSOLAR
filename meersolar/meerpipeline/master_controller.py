@@ -13,41 +13,7 @@ from casatasks import casalog
 from casatools import msmetadata
 from datetime import datetime as dt
 from multiprocessing import Process, Event
-from meersolar.utils.basic_utils import (
-    get_datadir,
-    get_cachedir,
-)
-from meersolar.utils.resource_utils import drop_cache
-from meersolar.utils.logger_utils import (
-    SmartDefaultsHelpFormatter,
-    ping_logger,
-    get_emails,
-    generate_password,
-    get_remote_logger_link,
-)
-from meersolar.utils.proc_manage_utils import (
-    save_pid,
-    create_batch_script_nonhpc,
-    create_batch_script_slurm,
-    save_main_process_info,
-    get_jobid,
-)
-from meersolar.utils.flagging import do_flag_backup
-from meersolar.utils.ms_metadata import check_datacolumn_valid
-from meersolar.utils.meer_utils import (
-    get_fluxcals,
-    get_phasecals,
-    get_band_name,
-    get_cal_target_scans,
-    get_bad_chans,
-    determine_noise_diode_cal_scan,
-)
-from meersolar.utils.casatasks import reset_weights_and_flags
-from meersolar.utils.calibration import (
-    calc_bw_smearing_freqwidth,
-    calc_time_smearing_timewidth,
-    max_time_solar_smearing,
-)
+from meersolar.utils import *
 from meersolar.meerpipeline.init_data import init_meersolar_data
 
 logging.getLogger("distributed").setLevel(logging.WARNING)
@@ -56,7 +22,6 @@ try:
     casalogfile = casalog.logfile()
     os.system("rm -rf " + casalogfile)
 except BaseException:
-    traceback.print_exc()
     pass
 
 datadir = get_datadir()
