@@ -5,7 +5,7 @@
 
 # -- Project information -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
-import os, sys, shutil
+import os, sys
 sys.path.insert(0, os.path.abspath("../../meersolar"))  # Adjust path if needed
 
 project = 'MeerSOLAR'
@@ -43,7 +43,7 @@ html_theme_options = {
 
 templates_path = ['_templates']
 exclude_patterns = []
-graphviz_dot = shutil.which('dot')
+graphviz_dot = os.getenv("GRAPHVIZ_DOT")
 html_theme = "furo"
 html_static_path = ['_static']
 html_title = "MeerSOLAR"
