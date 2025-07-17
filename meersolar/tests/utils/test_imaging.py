@@ -10,14 +10,14 @@ def test_calc_sun_dia():
 
 def test_calc_maxuv(dummy_submsname):
     maxuv, maxuv_l = calc_maxuv(f"{dummy_submsname}/SUBMSS/test_subms.ms.0000.ms")
-    assert maxuv == 7390.51
-    assert maxuv_l == 18785.18
+    assert maxuv == 7390.71
+    assert maxuv_l == 18785.68
 
 
 def test_calc_minuv(dummy_submsname):
     minuv, minuv_l = calc_minuv(f"{dummy_submsname}/SUBMSS/test_subms.ms.0000.ms")
     assert minuv == 26.82
-    assert minuv_l == 68.18
+    assert minuv_l == 68.17
 
 
 def test_calc_field_of_view(dummy_msname):
@@ -31,8 +31,8 @@ def test_get_optimal_image_interval(dummy_submsname):
         temporal_tol_factor=0.1,
         spectral_tol_factor=0.1,
     )
-    assert ntime == 67
-    assert nchan == 1
+    assert ntime == 1
+    assert nchan == 11
     ntime, nchan = get_optimal_image_interval(
         f"{dummy_submsname}/SUBMSS/test_subms.ms.0000.ms",
         temporal_tol_factor=1.0,

@@ -11,7 +11,8 @@ def dummy_caltables(tmp_path):
     They are shallow copies of a real reference caltable.
     """
     # Path to a known valid CASA caltable
-    ref_caltable = os.path.dirname(os.getcwd()) + "/testdata/test_caltable.gcal"
+    path=os.path.dirname(os.path.abspath(__file__))
+    ref_caltable = os.path.dirname(path) + "/testdata/test_caltable.gcal"
     if not os.path.exists(ref_caltable):
         pytest.skip("Reference caltable is not found")
     # Create two dummy copies
@@ -24,7 +25,8 @@ def dummy_caltables(tmp_path):
 
 @pytest.fixture
 def dummy_caltable(tmp_path):
-    ref_caltable = os.path.dirname(os.getcwd()) + "/testdata/test_caltable.gcal"
+    path=os.path.dirname(os.path.abspath(__file__))
+    ref_caltable = os.path.dirname(path) + "/testdata/test_caltable.gcal"
     if not os.path.exists(ref_caltable):
         pytest.skip("Caltable is not found")
     return ref_caltable
@@ -32,7 +34,8 @@ def dummy_caltable(tmp_path):
 
 @pytest.fixture
 def dummy_bpass(tmp_path):
-    ref_caltable = os.path.dirname(os.getcwd()) + "/testdata/test_caltable.bcal"
+    path=os.path.dirname(os.path.abspath(__file__))
+    ref_caltable = os.path.dirname(path) + "/testdata/test_caltable.bcal"
     if not os.path.exists(ref_caltable):
         pytest.skip("Caltable is not found")
     return ref_caltable
@@ -40,7 +43,8 @@ def dummy_bpass(tmp_path):
 
 @pytest.fixture
 def dummy_att_table(tmp_path):
-    ref_atttable = os.path.dirname(os.getcwd()) + "/testdata/test_att.npy"
+    path=os.path.dirname(os.path.abspath(__file__))
+    ref_atttable = os.path.dirname(path) + "/testdata/test_att.npy"
     if not os.path.exists(ref_atttable):
         pytest.skip("Reference attenuation table is not found.")
     return ref_atttable
@@ -48,7 +52,8 @@ def dummy_att_table(tmp_path):
 
 @pytest.fixture
 def dummy_msname(tmp_path):
-    ref_msname = os.path.dirname(os.getcwd()) + "/testdata/test_ms.ms"
+    path=os.path.dirname(os.path.abspath(__file__))
+    ref_msname = os.path.dirname(path) + "/testdata/test_ms.ms"
     if not os.path.exists(ref_msname):
         pytest.skip("Reference ms is not found")
     return ref_msname
@@ -56,7 +61,8 @@ def dummy_msname(tmp_path):
 
 @pytest.fixture
 def dummy_submsname(tmp_path):
-    ref_submsname = os.path.dirname(os.getcwd()) + "/testdata/test_subms.ms"
+    path=os.path.dirname(os.path.abspath(__file__))
+    ref_submsname = os.path.dirname(path) + "/testdata/test_subms.ms"
     if not os.path.exists(ref_submsname):
         pytest.skip("Reference subms is not found")
     return ref_submsname
@@ -64,7 +70,8 @@ def dummy_submsname(tmp_path):
 
 @pytest.fixture
 def dummy_image(tmp_path):
-    ref_imagename = os.path.dirname(os.getcwd()) + "/testdata/test_image.fits"
+    path=os.path.dirname(os.path.abspath(__file__))
+    ref_imagename = os.path.dirname(path) + "/testdata/test_image.fits"
     if not os.path.exists(ref_imagename):
         pytest.skip("Reference image is not found.")
     return ref_imagename

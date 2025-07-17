@@ -25,21 +25,22 @@ def download_with_parfive(record_id, update=False, output_dir="zenodo_download")
         if os.path.exists(f"{output_dir}/{filename}") == False or update:
             if os.path.exists(f"{output_dir}/{filename}"):
                 os.system(f"rm -rf {output_dir}/{filename}")
+            print (f"Final path: {output_dir}/{filename}")
             dl.enqueue_file(file_url, path=output_dir, filename=filename)
     results = dl.download()
 
 
-def check_test_data():
-    if os.path.exists(os.getcwd() + "/testdata/.testdata") == False:
-        os.makedirs(os.getcwd() + "/testdata/", exist_ok=True)
-        download_with_parfive(15999984, output_dir=os.getcwd() + "/testdata/")
+def check_test_data(path):
+    if os.path.exists(path + "/testdata/.testdata") == False:
+        os.makedirs(path+ "/testdata/", exist_ok=True)
+        download_with_parfive(15999983, output_dir=path + "/testdata/")
         shutil.unpack_archive(
-            os.getcwd() + "/testdata/meersolar_test_data.zip",
-            extract_dir=os.getcwd() + "/testdata/",
+            path + "/testdata/meersolar_test_data.tar.gz",
+            extract_dir=path,
         )
-        os.system("rm -rf " + os.getcwd() + "/testdata/meersolar_test_data.zip")
-        os.system("touch " + os.getcwd() + "/testdata/.testdata")
-
+        os.system("rm -rf " + path + "/testdata/meersolar_test_data.tar.gz")
+        os.system("touch " + path + "/testdata/.testdata")
 
 if __name__ == "__main__":
-    check_test_data()
+    path=os.path.dirname(os.path.abspath(__file__))
+    check_test_data(path)

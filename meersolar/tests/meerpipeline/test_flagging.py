@@ -34,8 +34,10 @@ def test_single_ms_flag(dummy_submsname):
 
 
 def test_do_flagging(dummy_submsname):
+    workdir=os.getcwd()
     result = do_flagging(
         dummy_submsname,
+        workdir,
         datacolumn="data",
         flag_bad_ants=True,
         flag_bad_spw=True,
@@ -56,6 +58,7 @@ def test_do_flagging(dummy_submsname):
     tb.flush()
     tb.close()
     os.system(f"rm -rf {dummy_submsname}.flagversions")
+    os.system(f"rm -rf {workdir}/dask-scratch-space {workdir}/tmp")
     assert os.path.exists(f"{dummy_submsname}.flagversions") == False
 
 
