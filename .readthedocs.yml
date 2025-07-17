@@ -17,8 +17,5 @@ python:
 sphinx:
   configuration: docs/source/conf.py  # adjust this if your conf.py is elsewhere
 
-# Optional: include system packages or use conda
-# system_packages: true
-# conda:
-#   environment: environment.yml
-
+system_packages:
+  - graphviz
