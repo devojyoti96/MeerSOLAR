@@ -9,6 +9,7 @@ from casatasks import casalog
 from casatools import msmetadata
 from .basic_utils import *
 from .udocker_utils import *
+from .ms_metadata import *
 
 
 try:
@@ -23,38 +24,44 @@ except BaseException:
 #####################################
 
 
-def get_solar_elevation_MeerKAT(date_time=""):
+def get_solar_elevation(lat, lon, elev, date_time):
     """
-    Get solar elevation at MeerKAT at a time
+    Get solar elevation 
 
     Parameters
     ----------
+    lat : float
+        Latitude in degrees
+    lon : float
+        Longitude in degrees
+    elev : float
+        Elevation in degrees
     date_time : str
-        Date and time in 'yyyy-mm-ddTHH:MM:SS' format (default: current time)
+        Date time in YYYY-MM-DDThh:mm:ss (ISOT) format, default : present time
+        
 
     Returns
     -------
     float
         Solar elevation in degree
     """
-    from astropy.coordinates import get_sun
-
-    lat = -30.7130
-    lon = 21.4430
-    elev = 1038
     latitude = lat * u.deg  # In degree
     longitude = lon * u.deg  # In degree
     elevation = elev * u.m  # In meter
     if date_time == "":
-        time = Time.now()
+        astro_time = Time.now()
     else:
-        time = Time(date_time)
+        astro_time = Time(date_time)
     location = EarthLocation(lat=latitude, lon=longitude, height=elevation)
-    sun_coords = get_sun(time)
-    altaz_frame = AltAz(obstime=time, location=location)
+    sun_jpl = Horizons(id="10", location="500", epochs=astro_time.jd)
+    eph = sun_jpl.ephemerides()
+    sun_coords = SkyCoord(
+        ra=eph["RA"][0] * u.deg, dec=eph["DEC"][0] * u.deg, frame="icrs"
+    )
+    altaz_frame = AltAz(obstime=astro_time, location=location)
     sun_altaz = sun_coords.transform_to(altaz_frame)
     solar_elevation = sun_altaz.alt.deg
-    return solar_elevation
+    return round(solar_elevation,3)
 
 
 def radec_sun(msname):
@@ -135,7 +142,7 @@ def move_to_sun(msname, only_uvw=False):
     """
     sun_radec_string, sunra, sundec, sunra_deg, sundec_deg = radec_sun(msname)
     msg = run_chgcenter(
-        msname, sunra, sundec, only_uvw=only_uvw, container_name="meerwsclean"
+        msname, sunra, sundec, only_uvw=only_uvw, container_name="solarwsclean"
     )
     if msg != 0:
         print("Phasecenter could not be shifted.")
@@ -162,7 +169,7 @@ def correct_solar_sidereal_motion(msname="", verbose=False, dry_run=False):
     print(f"Correcting sidereal motion for ms: {msname}\n")
     if os.path.exists(msname + "/.sidereal_cor") == False:
         msg = run_solar_sidereal_cor(
-            msname=msname, container_name="meerwsclean", verbose=verbose
+            msname=msname, container_name="solarwsclean", verbose=verbose
         )
         if msg != 0:
             print("Sidereal motion correction is not successful.")

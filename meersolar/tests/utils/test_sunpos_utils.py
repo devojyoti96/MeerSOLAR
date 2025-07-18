@@ -5,9 +5,10 @@ from unittest.mock import patch, MagicMock
 from meersolar.utils.sunpos_utils import *
 
 
-def test_get_solar_elevation_MeerKAT():
-    result = get_solar_elevation_MeerKAT()
+def test_get_solar_elevation():
+    result = get_solar_elevation(-30,21,1050,"2024-06-10T09:30:00")
     assert isinstance(result, float)
+    assert result==34.651
 
 
 def test_radec_sun(dummy_msname):
