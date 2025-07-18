@@ -103,9 +103,9 @@ def radec_sun(msname):
     sun_dec = (
         str(int(sun_coord.dec.dms.d))
         + "d"
-        + str(int(sun_coord.dec.dms.m))
+        + str(abs(int(sun_coord.dec.dms.m)))
         + "m"
-        + str(round(sun_coord.dec.dms.s, 2))
+        + str(abs(round(sun_coord.dec.dms.s, 2)))
         + "s"
     )
     sun_radec_string = "J2000 " + str(sun_ra) + " " + str(sun_dec)
