@@ -130,7 +130,7 @@ def perform_imaging(
         usemem = round(process.memory_info().rss / 1024**3, 2)  # in GB
         return usemem
     logger, logfile = create_logger(
-        os.path.basename(logfile).split(".log")[0], logfile, verbose=False
+        os.path.basename(logfile).split(".log")[0], logfile, verbose=False, get_print=True,
     )
     sub_observer = None
     if os.path.exists(f"{workdir}/jobname_password.npy") and logfile is not None:
@@ -423,9 +423,8 @@ def perform_imaging(
                         logger.info("Renaming and making plots...")
                         os.makedirs(imagedir + "/images", exist_ok=True)
                         final_image_list = []
-
-                        def wrapper(imagename):
-                            return rename_meersolar_image(
+                        for imagename in imagelist:
+                            renamed_image = rename_meersolar_image(
                                 imagename,
                                 imagedir=imagedir + "/images",
                                 pol=pol,
@@ -435,15 +434,7 @@ def perform_imaging(
                                 make_overlay=make_overlay,
                                 make_plots=make_plots,
                             )
-
-                        with ThreadPoolExecutor(max_workers=ncpu) as executor:
-                            futures = [
-                                executor.submit(wrapper, imagename)
-                                for imagename in imagelist
-                            ]
-                            for future in as_completed(futures):
-                                final_image_list.append(future.result())
-
+                            final_image_list.append(renamed_image)
                         final_list_dic["image"] = final_image_list
                         if savemodel and len(modellist) > 0:
                             final_model_list = []
@@ -610,11 +601,12 @@ def run_all_imaging(
     mslist = sorted(mslist)
     observer = None
     if mainlogger is None:
-        mainlog_file = workdir + "/logs/imaging_targets.mainlog"
+        mainlog_file = workdir + "/logs/imaging_targets.log"
         mainlogger, mainlog_file = create_logger(
-            os.path.basename(mainlog_file).split(".mainlog")[0],
+            os.path.basename(mainlog_file).split(".log")[0],
             mainlog_file,
             verbose=False,
+            get_print=True,
         )
         observer = None
         if (

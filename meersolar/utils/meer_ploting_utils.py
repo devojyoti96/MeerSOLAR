@@ -7,6 +7,7 @@ import warnings
 import glob
 import dask
 import os
+import traceback
 import matplotlib
 import matplotlib.pyplot as plt
 from dask import delayed, compute
@@ -327,108 +328,112 @@ def plot_in_hpc(
         cmap = "cubehelix"
         pos_color = "cyan"
         neg_color = "gold"
-    fig = plt.figure()
-    ax = plt.subplot(projection=cropped_map)
-    cropped_map.plot(norm=norm, cmap=cmap, axes=ax)
-    if len(contour_levels) > 0:
-        contour_levels = np.array(contour_levels)
-        pos_cont = contour_levels[contour_levels >= 0]
-        neg_cont = contour_levels[contour_levels < 0]
-        if len(pos_cont) > 0:
-            cropped_map.draw_contours(
-                np.sort(pos_cont) * np.nanmax(meer_data), colors=pos_color
-            )
-        if len(neg_cont) > 0:
-            cropped_map.draw_contours(
-                np.sort(neg_cont) * np.nanmax(meer_data), colors=neg_color
-            )
-    ax.coords.grid(False)
-    rgba_vmin = plt.get_cmap(cmap)(norm(norm.vmin))
-    ax.set_facecolor(rgba_vmin)
-    # Read synthesized beam from header
     try:
-        bmaj = meer_header["BMAJ"] * u.deg.to(u.arcsec)  # in arcsec
-        bmin = meer_header["BMIN"] * u.deg.to(u.arcsec)
-        bpa = meer_header["BPA"] - sun.P(obstime).deg  # in degrees
-    except KeyError:
-        bmaj = bmin = bpa = None
-    # Plot PSF ellipse in bottom-left if all values are present
-    if bmaj and bmin and bpa is not None:
-        # Coordinates where to place the beam (e.g., 5% above bottom-left
-        # corner)
-        x0, x1 = ax.get_xlim()
-        y0, y1 = ax.get_ylim()
-
-        beam_center = SkyCoord(
-            x0 + 0.08 * (x1 - x0),
-            y0 + 0.08 * (y1 - y0),
-            unit=u.arcsec,
-            frame=cropped_map.coordinate_frame,
-        )
-
-        # Add ellipse patch
-        beam_ellipse = Ellipse(
-            (beam_center.Tx.value, beam_center.Ty.value),  # center in arcsec
-            width=bmin,
-            height=bmaj,
-            angle=bpa,
-            edgecolor="white",
-            facecolor="white",
-            lw=1,
-        )
-        ax.add_patch(beam_ellipse)
-        # Draw square box around the ellipse
-        box_size = 100  # slightly bigger than beam
-        rect = Rectangle(
-            (beam_center.Tx.value - box_size / 2, beam_center.Ty.value - box_size / 2),
-            width=box_size,
-            height=box_size,
-            edgecolor="white",
-            facecolor="none",
-            lw=1.2,
-            linestyle="solid",
-        )
-        ax.add_patch(rect)
-    if draw_limb:
-        cropped_map.draw_limb()
-    formatter = ticker.FuncFormatter(lambda x, _: f"{int(x):.0e}")
-    cbar = plt.colorbar(format=formatter)
-    # Optional: set max 5 ticks to prevent clutter
-    cbar.locator = ticker.MaxNLocator(nbins=5)
-    cbar.update_ticks()
-    if pixel_unit == "K":
-        cbar.set_label("Brightness temperature (K)")
-    elif pixel_unit == "JY/BEAM":
-        cbar.set_label("Flux density (Jy/beam)")
-    fig.tight_layout()
-    output_image_list = []
-    for i in range(len(extensions)):
-        ext = extensions[i]
-        try:
-            outdir = outdirs[i]
-        except BaseException:
-            outdir = os.path.dirname(os.path.abspath(fits_image))
+        fig = plt.figure()
+        ax = plt.subplot(projection=cropped_map)
+        cropped_map.plot(norm=norm, cmap=cmap, axes=ax)
         if len(contour_levels) > 0:
-            output_image = (
-                outdir
-                + "/"
-                + os.path.basename(fits_image).split(".fits")[0]
-                + f"_contour.{ext}"
+            contour_levels = np.array(contour_levels)
+            pos_cont = contour_levels[contour_levels >= 0]
+            neg_cont = contour_levels[contour_levels < 0]
+            if len(pos_cont) > 0:
+                cropped_map.draw_contours(
+                    np.sort(pos_cont) * np.nanmax(meer_data), colors=pos_color
+                )
+            if len(neg_cont) > 0:
+                cropped_map.draw_contours(
+                    np.sort(neg_cont) * np.nanmax(meer_data), colors=neg_color
+                )
+        ax.coords.grid(False)
+        rgba_vmin = plt.get_cmap(cmap)(norm(norm.vmin))
+        ax.set_facecolor(rgba_vmin)
+        # Read synthesized beam from header
+        try:
+            bmaj = meer_header["BMAJ"] * u.deg.to(u.arcsec)  # in arcsec
+            bmin = meer_header["BMIN"] * u.deg.to(u.arcsec)
+            bpa = meer_header["BPA"] - sun.P(obstime).deg  # in degrees
+        except KeyError:
+            bmaj = bmin = bpa = None
+        # Plot PSF ellipse in bottom-left if all values are present
+        if bmaj and bmin and bpa is not None:
+            # Coordinates where to place the beam (e.g., 5% above bottom-left
+            # corner)
+            x0, x1 = ax.get_xlim()
+            y0, y1 = ax.get_ylim()
+
+            beam_center = SkyCoord(
+                x0 + 0.08 * (x1 - x0),
+                y0 + 0.08 * (y1 - y0),
+                unit=u.arcsec,
+                frame=cropped_map.coordinate_frame,
             )
-        else:
-            output_image = (
-                outdir
-                + "/"
-                + os.path.basename(fits_image).split(".fits")[0]
-                + f".{ext}"
+
+            # Add ellipse patch
+            beam_ellipse = Ellipse(
+                (beam_center.Tx.value, beam_center.Ty.value),  # center in arcsec
+                width=bmin,
+                height=bmaj,
+                angle=bpa,
+                edgecolor="white",
+                facecolor="white",
+                lw=1,
             )
-        output_image_list.append(output_image)
-    for output_image in output_image_list:
-        fig.savefig(output_image)
-    if showgui:
-        plt.show()
-    plt.close(fig)
-    plt.close("all")
+            ax.add_patch(beam_ellipse)
+            # Draw square box around the ellipse
+            box_size = 100  # slightly bigger than beam
+            rect = Rectangle(
+                (beam_center.Tx.value - box_size / 2, beam_center.Ty.value - box_size / 2),
+                width=box_size,
+                height=box_size,
+                edgecolor="white",
+                facecolor="none",
+                lw=1.2,
+                linestyle="solid",
+            )
+            ax.add_patch(rect)
+        if draw_limb:
+            cropped_map.draw_limb()
+        formatter = ticker.FuncFormatter(lambda x, _: f"{int(x):.0e}")
+        cbar = plt.colorbar(format=formatter)
+        # Optional: set max 5 ticks to prevent clutter
+        cbar.locator = ticker.MaxNLocator(nbins=5)
+        cbar.update_ticks()
+        if pixel_unit == "K":
+            cbar.set_label("Brightness temperature (K)")
+        elif pixel_unit == "JY/BEAM":
+            cbar.set_label("Flux density (Jy/beam)")
+        fig.tight_layout()
+        output_image_list = []
+        for i in range(len(extensions)):
+            ext = extensions[i]
+            try:
+                outdir = outdirs[i]
+            except BaseException:
+                outdir = os.path.dirname(os.path.abspath(fits_image))
+            if len(contour_levels) > 0:
+                output_image = (
+                    outdir
+                    + "/"
+                    + os.path.basename(fits_image).split(".fits")[0]
+                    + f"_contour.{ext}"
+                )
+            else:
+                output_image = (
+                    outdir
+                    + "/"
+                    + os.path.basename(fits_image).split(".fits")[0]
+                    + f".{ext}"
+                )
+            output_image_list.append(output_image)
+        for output_image in output_image_list:
+            fig.savefig(output_image)
+        if showgui:
+            plt.show()
+        plt.close(fig)
+    except Exception:
+        traceback.print_exc()
+    finally:    
+        plt.close("all")
     return output_image_list, cropped_map
 
 
@@ -638,132 +643,136 @@ def make_meer_overlay(
         meer_reprojected, suvi_reprojected = compute(*reprojected, scheduler="threads")
     meertime = meermap.meta["date-obs"].split(".")[0]
     suvitime = suvi_map.meta["date-obs"].split(".")[0]
-    if plot_meer_colormap and len(contour_levels) > 0:
-        matplotlib.rcParams.update({"font.size": 18})
-        fig = plt.figure(figsize=(16, 8))
-        ax_colormap = fig.add_subplot(1, 2, 1, projection=suvi_reprojected)
-        ax_contour = fig.add_subplot(1, 2, 2, projection=suvi_reprojected)
-    elif plot_meer_colormap:
-        matplotlib.rcParams.update({"font.size": 14})
-        fig = plt.figure(figsize=(10, 8))
-        ax_colormap = fig.add_subplot(projection=suvi_reprojected)
-    elif len(contour_levels) > 0:
-        matplotlib.rcParams.update({"font.size": 14})
-        fig = plt.figure(figsize=(10, 8))
-        ax_contour = fig.add_subplot(projection=suvi_reprojected)
-    else:
-        print("No overlay is plotting.")
-        return
-
-    title = f"SUVI time: {suvitime}\n MeerKAT time: {meertime}"
-    if "transparent_inferno" not in plt.colormaps():
-        cmap = cm.get_cmap("inferno", 256)
-        colors = cmap(np.linspace(0, 1, 256))
-        x = np.linspace(0, 1, 256)
-        alpha = 0.8 * (1 - np.exp(-3 * x))
-        colors[:, -1] = alpha  # Update the alpha channel
-        transparent_inferno = ListedColormap(colors)
-        plt.colormaps.register(name="transparent_inferno", cmap=transparent_inferno)
-    if plot_meer_colormap and len(contour_levels) > 0:
-        suptitle = title.replace("\n", ",")
-        title = ""
-        fig.suptitle(suptitle)
-    if plot_meer_colormap:
-        z = 0
-        suvi_reprojected.plot(
-            axes=ax_colormap,
-            title=title,
-            autoalign=True,
-            clip_interval=(3, 99.9) * u.percent,
-            zorder=z,
-        )
-        z += 1
-        meer_reprojected.plot(
-            axes=ax_colormap,
-            title=title,
-            clip_interval=(3, 99.9) * u.percent,
-            cmap="transparent_inferno",
-            zorder=z,
-        )
-    if len(contour_levels) > 0:
-        z = 0
-        suvi_reprojected.plot(
-            axes=ax_contour,
-            title=title,
-            autoalign=True,
-            clip_interval=(3, 99.9) * u.percent,
-            zorder=z,
-        )
-        z += 1
-        contour_levels = np.array(contour_levels) * np.nanmax(meer_reprojected.data)
-        meer_reprojected.draw_contours(
-            contour_levels, axes=ax_contour, cmap="YlGnBu", zorder=z
-        )
-        ax_contour.set_facecolor("black")
-
-    if len(xlim) > 0:
-        x_pix_limits = []
-        for x in xlim:
-            sky = SkyCoord(
-                x * u.arcsec, 0 * u.arcsec, frame=suvi_reprojected.coordinate_frame
-            )
-            x_pix = suvi_reprojected.world_to_pixel(sky)[0].value
-            x_pix_limits.append(x_pix)
+    try:
         if plot_meer_colormap and len(contour_levels) > 0:
-            ax_colormap.set_xlim(x_pix_limits)
-            ax_contour.set_xlim(x_pix_limits)
+            matplotlib.rcParams.update({"font.size": 18})
+            fig = plt.figure(figsize=(16, 8))
+            ax_colormap = fig.add_subplot(1, 2, 1, projection=suvi_reprojected)
+            ax_contour = fig.add_subplot(1, 2, 2, projection=suvi_reprojected)
         elif plot_meer_colormap:
-            ax_colormap.set_xlim(x_pix_limits)
+            matplotlib.rcParams.update({"font.size": 14})
+            fig = plt.figure(figsize=(10, 8))
+            ax_colormap = fig.add_subplot(projection=suvi_reprojected)
         elif len(contour_levels) > 0:
-            ax_contour.set_xlim(x_pix_limits)
-    if len(ylim) > 0:
-        y_pix_limits = []
-        for y in ylim:
-            sky = SkyCoord(
-                0 * u.arcsec, y * u.arcsec, frame=suvi_reprojected.coordinate_frame
-            )
-            y_pix = suvi_reprojected.world_to_pixel(sky)[1].value
-            y_pix_limits.append(y_pix)
+            matplotlib.rcParams.update({"font.size": 14})
+            fig = plt.figure(figsize=(10, 8))
+            ax_contour = fig.add_subplot(projection=suvi_reprojected)
+        else:
+            print("No overlay is plotting.")
+            return
+
+        title = f"SUVI time: {suvitime}\n MeerKAT time: {meertime}"
+        if "transparent_inferno" not in plt.colormaps():
+            cmap = cm.get_cmap("inferno", 256)
+            colors = cmap(np.linspace(0, 1, 256))
+            x = np.linspace(0, 1, 256)
+            alpha = 0.8 * (1 - np.exp(-3 * x))
+            colors[:, -1] = alpha  # Update the alpha channel
+            transparent_inferno = ListedColormap(colors)
+            plt.colormaps.register(name="transparent_inferno", cmap=transparent_inferno)
         if plot_meer_colormap and len(contour_levels) > 0:
-            ax_colormap.set_ylim(y_pix_limits)
-            ax_contour.set_ylim(y_pix_limits)
+            suptitle = title.replace("\n", ",")
+            title = ""
+            fig.suptitle(suptitle)
+        if plot_meer_colormap:
+            z = 0
+            suvi_reprojected.plot(
+                axes=ax_colormap,
+                title=title,
+                autoalign=True,
+                clip_interval=(3, 99.9) * u.percent,
+                zorder=z,
+            )
+            z += 1
+            meer_reprojected.plot(
+                axes=ax_colormap,
+                title=title,
+                clip_interval=(3, 99.9) * u.percent,
+                cmap="transparent_inferno",
+                zorder=z,
+            )
+        if len(contour_levels) > 0:
+            z = 0
+            suvi_reprojected.plot(
+                axes=ax_contour,
+                title=title,
+                autoalign=True,
+                clip_interval=(3, 99.9) * u.percent,
+                zorder=z,
+            )
+            z += 1
+            contour_levels = np.array(contour_levels) * np.nanmax(meer_reprojected.data)
+            meer_reprojected.draw_contours(
+                contour_levels, axes=ax_contour, cmap="YlGnBu", zorder=z
+            )
+            ax_contour.set_facecolor("black")
+
+        if len(xlim) > 0:
+            x_pix_limits = []
+            for x in xlim:
+                sky = SkyCoord(
+                    x * u.arcsec, 0 * u.arcsec, frame=suvi_reprojected.coordinate_frame
+                )
+                x_pix = suvi_reprojected.world_to_pixel(sky)[0].value
+                x_pix_limits.append(x_pix)
+            if plot_meer_colormap and len(contour_levels) > 0:
+                ax_colormap.set_xlim(x_pix_limits)
+                ax_contour.set_xlim(x_pix_limits)
+            elif plot_meer_colormap:
+                ax_colormap.set_xlim(x_pix_limits)
+            elif len(contour_levels) > 0:
+                ax_contour.set_xlim(x_pix_limits)
+        if len(ylim) > 0:
+            y_pix_limits = []
+            for y in ylim:
+                sky = SkyCoord(
+                    0 * u.arcsec, y * u.arcsec, frame=suvi_reprojected.coordinate_frame
+                )
+                y_pix = suvi_reprojected.world_to_pixel(sky)[1].value
+                y_pix_limits.append(y_pix)
+            if plot_meer_colormap and len(contour_levels) > 0:
+                ax_colormap.set_ylim(y_pix_limits)
+                ax_contour.set_ylim(y_pix_limits)
+            elif plot_meer_colormap:
+                ax_colormap.set_ylim(y_pix_limits)
+            elif len(contour_levels) > 0:
+                ax_contour.set_ylim(y_pix_limits)
+        if plot_meer_colormap and len(contour_levels) > 0:
+            ax_colormap.coords.grid(False)
+            ax_contour.coords.grid(False)
         elif plot_meer_colormap:
-            ax_colormap.set_ylim(y_pix_limits)
+            ax_colormap.coords.grid(False)
         elif len(contour_levels) > 0:
-            ax_contour.set_ylim(y_pix_limits)
-    if plot_meer_colormap and len(contour_levels) > 0:
-        ax_colormap.coords.grid(False)
-        ax_contour.coords.grid(False)
-    elif plot_meer_colormap:
-        ax_colormap.coords.grid(False)
-    elif len(contour_levels) > 0:
-        ax_contour.coords.grid(False)
-    fig.tight_layout()
-    plot_file_list = []
-    if verbose:
-        print("#######################")
-    if plot_file_prefix:
-        for i in range(len(extensions)):
-            ext = extensions[i]
-            try:
-                savedir = outdirs[i]
-            except BaseException:
-                savedir = workdir
-            plot_file = f"{savedir}/{plot_file_prefix}.{ext}"
-            plt.savefig(plot_file, bbox_inches="tight")
-            if verbose:
-                print(f"Plot saved: {plot_file}")
-            plot_file_list.append(plot_file)
+            ax_contour.coords.grid(False)
+        fig.tight_layout()
+        plot_file_list = []
         if verbose:
-            print("#######################\n")
-    else:
-        plot_file = None
-    if showgui:
-        plt.show()
-        plt.close(fig)
+            print("#######################")
+        if plot_file_prefix:
+            for i in range(len(extensions)):
+                ext = extensions[i]
+                try:
+                    savedir = outdirs[i]
+                except BaseException:
+                    savedir = workdir
+                plot_file = f"{savedir}/{plot_file_prefix}.{ext}"
+                plt.savefig(plot_file, bbox_inches="tight")
+                if verbose:
+                    print(f"Plot saved: {plot_file}")
+                plot_file_list.append(plot_file)
+            if verbose:
+                print("#######################\n")
+        else:
+            plot_file = None
+        if showgui:
+            plt.show()
+            plt.close(fig)
+        else:
+            plt.close(fig)
+    except Exception:
+        traceback.print_exc()
+    finally:
         plt.close("all")
-    else:
-        plt.close(fig)
     return plot_file_list
 
 
@@ -957,54 +966,58 @@ def make_ds_plot(dsfiles, plot_file=None, showgui=False):
         vmin=0.99 * np.nanmin(data),
         vmax=0.99 * np.nanmax(data),
     )
-    # Create figure and GridSpec layout
-    fig = plt.figure(figsize=(18, 10))
-    gs = GridSpec(nrows=3, ncols=2, width_ratios=[1, 0.03], height_ratios=[4, 1.5, 2])
-    # Axes
-    ax_spec = fig.add_subplot(gs[0, 0])
-    ax_ts = fig.add_subplot(gs[1, 0])
-    ax_goes = fig.add_subplot(gs[2, 0])
-    cax = fig.add_subplot(gs[:, 1])  # colorbar spans both rows
-    # Plot dynamic spectrum
-    im = ax_spec.imshow(data, aspect="auto", origin="lower", norm=norm, cmap="magma")
-    ax_spec.set_ylabel("Frequency (MHz)")
-    ax_spec.set_xticklabels([])  # Remove x-axis labels from top plot
-    # Y-ticks
-    yticks = ax_spec.get_yticks()
-    yticks = yticks[(yticks >= 0) & (yticks < len(freqs))]
-    ax_spec.set_yticks(yticks)
-    ax_spec.set_yticklabels([f"{freqs[int(i)]:.1f}" for i in yticks])
-    # Plot time series
-    ax_ts.plot(timeseries)
-    ax_ts.set_xlim(0, len(timeseries) - 1)
-    ax_ts.set_ylabel("Mean \n flux density")
-    goes_tseries.plot(axes=ax_goes)
-    goes_times = goes_tseries.time
-    times_dt = goes_times.to_datetime()
-    ax_goes.set_xlim(times_dt[0], times_dt[-1])
-    ax_goes.set_ylabel(r"Flux ($\frac{W}{m^2}$)")
-    ax_goes.legend(ncol=2, loc="upper right")
-    ax_goes.set_title("GOES light curve", fontsize=14)
-    ax_ts.set_title("MeerKAT light curve", fontsize=14)
-    ax_spec.set_title("MeerKAT dynamic spectrum", fontsize=14)
-    ax_goes.set_xlabel("Time (UTC)")
-    # Format x-ticks
-    ax_ts.set_xticks([])
-    ax_ts.set_xticklabels([])
-    # Colorbar
-    cbar = fig.colorbar(im, cax=cax)
-    cbar.set_label("Flux density (arb. unit)")
-    plt.tight_layout()
-    # Save or show
-    if plot_file:
-        plt.savefig(plot_file, bbox_inches="tight")
-        print(f"Plot saved: {plot_file}")
-    if showgui:
-        plt.show()
-        plt.close(fig)
+    try:
+        # Create figure and GridSpec layout
+        fig = plt.figure(figsize=(18, 10))
+        gs = GridSpec(nrows=3, ncols=2, width_ratios=[1, 0.03], height_ratios=[4, 1.5, 2])
+        # Axes
+        ax_spec = fig.add_subplot(gs[0, 0])
+        ax_ts = fig.add_subplot(gs[1, 0])
+        ax_goes = fig.add_subplot(gs[2, 0])
+        cax = fig.add_subplot(gs[:, 1])  # colorbar spans both rows
+        # Plot dynamic spectrum
+        im = ax_spec.imshow(data, aspect="auto", origin="lower", norm=norm, cmap="magma")
+        ax_spec.set_ylabel("Frequency (MHz)")
+        ax_spec.set_xticklabels([])  # Remove x-axis labels from top plot
+        # Y-ticks
+        yticks = ax_spec.get_yticks()
+        yticks = yticks[(yticks >= 0) & (yticks < len(freqs))]
+        ax_spec.set_yticks(yticks)
+        ax_spec.set_yticklabels([f"{freqs[int(i)]:.1f}" for i in yticks])
+        # Plot time series
+        ax_ts.plot(timeseries)
+        ax_ts.set_xlim(0, len(timeseries) - 1)
+        ax_ts.set_ylabel("Mean \n flux density")
+        goes_tseries.plot(axes=ax_goes)
+        goes_times = goes_tseries.time
+        times_dt = goes_times.to_datetime()
+        ax_goes.set_xlim(times_dt[0], times_dt[-1])
+        ax_goes.set_ylabel(r"Flux ($\frac{W}{m^2}$)")
+        ax_goes.legend(ncol=2, loc="upper right")
+        ax_goes.set_title("GOES light curve", fontsize=14)
+        ax_ts.set_title("MeerKAT light curve", fontsize=14)
+        ax_spec.set_title("MeerKAT dynamic spectrum", fontsize=14)
+        ax_goes.set_xlabel("Time (UTC)")
+        # Format x-ticks
+        ax_ts.set_xticks([])
+        ax_ts.set_xticklabels([])
+        # Colorbar
+        cbar = fig.colorbar(im, cax=cax)
+        cbar.set_label("Flux density (arb. unit)")
+        plt.tight_layout()
+        # Save or show
+        if plot_file:
+            plt.savefig(plot_file, bbox_inches="tight")
+            print(f"Plot saved: {plot_file}")
+        if showgui:
+            plt.show()
+            plt.close(fig)
+        else:
+            plt.close(fig)
+    except Exception:
+        traceback.print_exc()
+    finally:
         plt.close("all")
-    else:
-        plt.close(fig)
     return plot_file
 
 

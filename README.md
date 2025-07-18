@@ -75,6 +75,9 @@ That's all. You started MeerSOLAR pipeline for analysing your MeerKAT solar obse
 
 <!-- end quickstart -->
 
+## Sample dataset
+User can download and test entire MeerSOLAR pipeline using the sample dataset available in Zenodo: https://doi.org/10.5281/zenodo.16068485 
+
 
 ## Acknowledgements
 
