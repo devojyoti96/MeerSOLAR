@@ -382,7 +382,10 @@ def plot_in_hpc(
             # Draw square box around the ellipse
             box_size = 100  # slightly bigger than beam
             rect = Rectangle(
-                (beam_center.Tx.value - box_size / 2, beam_center.Ty.value - box_size / 2),
+                (
+                    beam_center.Tx.value - box_size / 2,
+                    beam_center.Ty.value - box_size / 2,
+                ),
                 width=box_size,
                 height=box_size,
                 edgecolor="white",
@@ -432,7 +435,7 @@ def plot_in_hpc(
         plt.close(fig)
     except Exception:
         traceback.print_exc()
-    finally:    
+    finally:
         plt.close("all")
     return output_image_list, cropped_map
 
@@ -969,14 +972,18 @@ def make_ds_plot(dsfiles, plot_file=None, showgui=False):
     try:
         # Create figure and GridSpec layout
         fig = plt.figure(figsize=(18, 10))
-        gs = GridSpec(nrows=3, ncols=2, width_ratios=[1, 0.03], height_ratios=[4, 1.5, 2])
+        gs = GridSpec(
+            nrows=3, ncols=2, width_ratios=[1, 0.03], height_ratios=[4, 1.5, 2]
+        )
         # Axes
         ax_spec = fig.add_subplot(gs[0, 0])
         ax_ts = fig.add_subplot(gs[1, 0])
         ax_goes = fig.add_subplot(gs[2, 0])
         cax = fig.add_subplot(gs[:, 1])  # colorbar spans both rows
         # Plot dynamic spectrum
-        im = ax_spec.imshow(data, aspect="auto", origin="lower", norm=norm, cmap="magma")
+        im = ax_spec.imshow(
+            data, aspect="auto", origin="lower", norm=norm, cmap="magma"
+        )
         ax_spec.set_ylabel("Frequency (MHz)")
         ax_spec.set_xticklabels([])  # Remove x-axis labels from top plot
         # Y-ticks
