@@ -71,7 +71,7 @@ def has_space(path, required_gb):
 
 
 @contextmanager
-def shm_or_tmp(required_gb, workdir, prefix="meersolar_", verbose=False):
+def shm_or_tmp(required_gb, workdir, prefix="solar_", verbose=False):
     """
     Create a temporary working directory:
     1. Try /dev/shm if it has required space
@@ -135,7 +135,7 @@ def shm_or_tmp(required_gb, workdir, prefix="meersolar_", verbose=False):
 
 
 @contextmanager
-def tmp_with_cache_rel(required_gb, workdir, prefix="meersolar_", verbose=False):
+def tmp_with_cache_rel(required_gb, workdir, prefix="solar_", verbose=False):
     """
     Combined context manager:
     - Uses shm_or_tmp() for workspace

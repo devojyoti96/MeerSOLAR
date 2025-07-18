@@ -55,7 +55,7 @@ def create_circular_mask(msname, cellsize, imsize, mask_radius=20):
             "-interval 0 1",
         ]
         wsclean_cmd = "wsclean " + " ".join(wsclean_args) + " " + msname
-        msg = run_wsclean(wsclean_cmd, "meerwsclean", verbose=False)
+        msg = run_wsclean(wsclean_cmd, "solarwsclean", verbose=False)
         if msg == 0:
             center = (int(imsize / 2), int(imsize / 2))
             radius = mask_radius * 60 / cellsize
