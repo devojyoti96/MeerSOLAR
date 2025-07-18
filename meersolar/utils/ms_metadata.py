@@ -440,7 +440,7 @@ def get_common_spw(spw1, spw2):
                 grp = list(g)
                 a, b = grp[0][1], grp[-1][1]
                 result.append(f"{a}" if a == b else f"{a}~{b}")
-        if len(result)>0:
+        if len(result) > 0:
             return "0:" + ";".join(result)
         else:
             return ""
@@ -670,12 +670,12 @@ def get_observatory_name(msname):
 def get_observatory_coord(msname):
     """
     Get observatory coordinate
-    
+
     Parameters
     ----------
     msname : str
         Measurement set
-        
+
     Returns
     -------
     float
@@ -690,11 +690,11 @@ def get_observatory_coord(msname):
     position = msmd.observatoryposition()
     me = measures()
     obs_pos = me.observatory(msmd.observatorynames()[0])
-    lon = obs_pos['m0']['value'] * (180.0 / 3.141592653589793)
-    lat = obs_pos['m1']['value'] * (180.0 / 3.141592653589793)
-    height = obs_pos['m2']['value']  
+    lon = obs_pos["m0"]["value"] * (180.0 / 3.141592653589793)
+    lat = obs_pos["m1"]["value"] * (180.0 / 3.141592653589793)
+    height = obs_pos["m2"]["value"]
     msmd.close()
-    return round(lat,3), round(lon,3), round(height,3)
+    return round(lat, 3), round(lon, 3), round(height, 3)
 
 
 def get_pol_names(msname, fullpol=True):
