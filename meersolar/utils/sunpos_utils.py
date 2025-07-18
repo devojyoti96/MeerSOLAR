@@ -26,7 +26,7 @@ except BaseException:
 
 def get_solar_elevation(lat, lon, elev, date_time):
     """
-    Get solar elevation 
+    Get solar elevation
 
     Parameters
     ----------
@@ -38,7 +38,7 @@ def get_solar_elevation(lat, lon, elev, date_time):
         Elevation in degrees
     date_time : str
         Date time in YYYY-MM-DDThh:mm:ss (ISOT) format, default : present time
-        
+
 
     Returns
     -------
@@ -61,7 +61,7 @@ def get_solar_elevation(lat, lon, elev, date_time):
     altaz_frame = AltAz(obstime=astro_time, location=location)
     sun_altaz = sun_coords.transform_to(altaz_frame)
     solar_elevation = sun_altaz.alt.deg
-    return round(solar_elevation,3)
+    return round(solar_elevation, 3)
 
 
 def radec_sun(msname):
