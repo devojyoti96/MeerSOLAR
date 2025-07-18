@@ -39,7 +39,7 @@ def suppress_casa_output():
 
 def get_cachedir():
     """
-    Get MeerSOLAR cache directory
+    Get cache directory
     """
     homedir = os.environ.get("HOME")
     if homedir is None:
