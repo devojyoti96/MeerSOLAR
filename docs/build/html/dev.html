@@ -3,10 +3,10 @@
   <head><meta charset="utf-8"/>
     <meta name="viewport" content="width=device-width,initial-scale=1"/>
     <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
-<link rel="index" title="Index" href="genindex.html" /><link rel="search" title="Search" href="search.html" /><link rel="next" title="Installation" href="install.html" /><link rel="prev" title="MeerSOLAR Documentation" href="index.html" />
+<link rel="index" title="Index" href="genindex.html" /><link rel="search" title="Search" href="search.html" /><link rel="next" title="API Reference" href="meersolar.html" /><link rel="prev" title="LICENSE" href="lic.html" />
 
     <!-- Generated with Sphinx 8.1.3 and Furo 2024.08.06 -->
-        <title>Quickstart - MeerSOLAR</title>
+        <title>Developer Instruction - MeerSOLAR</title>
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=a746c00c" />
     <link rel="stylesheet" type="text/css" href="_static/styles/furo.css?v=354aac6f" />
     <link rel="stylesheet" type="text/css" href="_static/copybutton.css?v=76b2166b" />
@@ -182,7 +182,7 @@
           <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
         </button>
       </div>
-      <label class="toc-overlay-icon toc-header-icon no-toc" for="__toc">
+      <label class="toc-overlay-icon toc-header-icon" for="__toc">
         <div class="visually-hidden">Toggle table of contents sidebar</div>
         <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
       </label>
@@ -207,7 +207,7 @@
 </form>
 <div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
   <ul class="current">
-<li class="toctree-l1 current current-page"><a class="current reference internal" href="#">Quickstart</a></li>
+<li class="toctree-l1"><a class="reference internal" href="quickstart.html">Quickstart</a></li>
 <li class="toctree-l1 has-children"><a class="reference internal" href="install.html">Installation</a><input class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><div class="visually-hidden">Toggle navigation of Installation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
 <li class="toctree-l2"><a class="reference internal" href="install_conda.html">Install Conda: Anaconda or Miniconda</a></li>
 <li class="toctree-l2"><a class="reference internal" href="activate_conda.html">Create and Activate Conda Environment</a></li>
@@ -234,7 +234,7 @@
 </li>
 <li class="toctree-l1"><a class="reference internal" href="ack.html">Acknowledging</a></li>
 <li class="toctree-l1"><a class="reference internal" href="lic.html">LICENSE</a></li>
-<li class="toctree-l1"><a class="reference internal" href="dev.html">Developer Instruction</a></li>
+<li class="toctree-l1 current current-page"><a class="current reference internal" href="#">Developer Instruction</a></li>
 <li class="toctree-l1 has-children"><a class="reference internal" href="meersolar.html">API Reference</a><input class="toctree-checkbox" id="toctree-checkbox-5" name="toctree-checkbox-5" role="switch" type="checkbox"/><label for="toctree-checkbox-5"><div class="visually-hidden">Toggle navigation of API Reference</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
 <li class="toctree-l2"><a class="reference internal" href="meersolar.utils.html">Meersolar Utils Module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="meersolar.meerpipeline.html">Meersolar Pipeline Module</a></li>
@@ -262,12 +262,12 @@
         </a>
         <div class="content-icon-container">
           <div class="view-this-page">
-  <a class="muted-link" href="https://github.com/devojyoti96/MeerSOLAR/blob/master/docs/source/quickstart.rst?plain=true" title="View this page">
+  <a class="muted-link" href="https://github.com/devojyoti96/MeerSOLAR/blob/master/docs/source/dev.rst?plain=true" title="View this page">
     <svg><use href="#svg-eye"></use></svg>
     <span class="visually-hidden">View this page</span>
   </a>
 </div><div class="edit-this-page">
-  <a class="muted-link" href="https://github.com/devojyoti96/MeerSOLAR/edit/master/docs/source/quickstart.rst" title="Edit this page">
+  <a class="muted-link" href="https://github.com/devojyoti96/MeerSOLAR/edit/master/docs/source/dev.rst" title="Edit this page">
     <svg><use href="#svg-pencil"></use></svg>
     <span class="visually-hidden">Edit this page</span>
   </a>
@@ -280,53 +280,46 @@
               <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
             </button>
           </div>
-          <label class="toc-overlay-icon toc-content-icon no-toc" for="__toc">
+          <label class="toc-overlay-icon toc-content-icon" for="__toc">
             <div class="visually-hidden">Toggle table of contents sidebar</div>
             <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
           </label>
         </div>
         <article role="main" id="furo-main-content">
-          <section id="quickstart">
-<h1>Quickstart<a class="headerlink" href="#quickstart" title="Link to this heading">¶</a></h1>
-<p>MeerSOLAR is distributed on
-<a class="reference external" href="https://pypi.org/project/meersolar/">PyPI</a>. To use it:</p>
+          <section id="developer-instruction">
+<h1>Developer Instruction<a class="headerlink" href="#developer-instruction" title="Link to this heading">¶</a></h1>
+<ol class="arabic simple">
+<li><p>Developers are instructed to follow the similar format of the scripts.</p></li>
+<li><p>Include new functions in proper modules. If suitable module is not found, include them in <code class="docutils literal notranslate"><span class="pre">basic_utils</span></code>.</p></li>
+<li><p>After including any function, add a <code class="docutils literal notranslate"><span class="pre">pytest</span></code> in appropriate testing scripts and test it. Without proper <code class="docutils literal notranslate"><span class="pre">pytest</span></code> new functions will not be included in the main branch and future release.</p></li>
+</ol>
+<section id="instructions-for-testing">
+<h2>Instructions for testing<a class="headerlink" href="#instructions-for-testing" title="Link to this heading">¶</a></h2>
+<p>## Steps to test
+Install <code class="docutils literal notranslate"><span class="pre">pytest</span></code> using <code class="docutils literal notranslate"><span class="pre">pip</span> <span class="pre">install</span> <span class="pre">pytest</span></code> before running the test.</p>
 <ol class="arabic">
-<li><p>Create conda environment with python 3.10</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>conda<span class="w"> </span>create<span class="w"> </span>-n<span class="w"> </span>meersolar_env<span class="w"> </span><span class="nv">python</span><span class="o">=</span><span class="m">3</span>.10
-conda<span class="w"> </span>activate<span class="w"> </span>meersolar_env
+<li><p>Go to test directory</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">cd</span><span class="w"> </span>&lt;repo_path&gt;/meersolar/tests
 </pre></div>
 </div>
 </li>
-<li><p>Install MeerSOLAR in conda environment</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>pip<span class="w"> </span>install<span class="w"> </span>meersolar
+<li><p>Download test data</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python3<span class="w"> </span>download_test_data.py
 </pre></div>
 </div>
 </li>
-<li><p>Initiate necessary metadata</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>init-meersolar-data<span class="w"> </span>--init
+<li><p>Run utils module test:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>pytest<span class="w"> </span>-s<span class="w"> </span>-v<span class="w"> </span>utils
 </pre></div>
 </div>
 </li>
-<li><p>Run MeerSOLAR pipeline</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>run-meer-meersolar<span class="w"> </span>&lt;path<span class="w"> </span>of<span class="w"> </span>measurement<span class="w"> </span>set&gt;<span class="w"> </span>--workdir<span class="w"> </span>&lt;path<span class="w"> </span>of<span class="w"> </span>work<span class="w"> </span>directory&gt;<span class="w"> </span>--outdir<span class="w"> </span>&lt;path<span class="w"> </span>of<span class="w"> </span>output<span class="w"> </span>products<span class="w"> </span>directory&gt;
+<li><p>Run meerpipeline module test:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>pytest<span class="w"> </span>-s<span class="w"> </span>-v<span class="w"> </span>meerpipeline
 </pre></div>
 </div>
 </li>
 </ol>
-<p>That’s all. You started MeerSOLAR pipeline for analysing your MeerKAT solar observation 🎉.</p>
-<ol class="arabic" start="5">
-<li><p>To see all running MeerSOLAR jobs</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>show-meersolar-status<span class="w"> </span>--show
-</pre></div>
-</div>
-</li>
-<li><p>To see local log of any job using the &lt;jobid&gt;</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>run-meer-meerlogger<span class="w"> </span>--jobid<span class="w"> </span>&lt;jobid&gt;
-</pre></div>
-</div>
-</li>
-<li><p>Output products will be saved in : <code class="docutils literal notranslate"><span class="pre">&lt;path</span> <span class="pre">of</span> <span class="pre">output</span> <span class="pre">products</span> <span class="pre">directory&gt;</span></code>.</p></li>
-</ol>
+</section>
 </section>
 
         </article>
@@ -334,23 +327,23 @@ conda<span class="w"> </span>activate<span class="w"> </span>meersolar_env
       <footer>
         
         <div class="related-pages">
-          <a class="next-page" href="install.html">
+          <a class="next-page" href="meersolar.html">
               <div class="page-info">
                 <div class="context">
                   <span>Next</span>
                 </div>
-                <div class="title">Installation</div>
+                <div class="title">API Reference</div>
               </div>
               <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
             </a>
-          <a class="prev-page" href="index.html">
+          <a class="prev-page" href="lic.html">
               <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
               <div class="page-info">
                 <div class="context">
                   <span>Previous</span>
                 </div>
                 
-                <div class="title">Home</div>
+                <div class="title">LICENSE</div>
                 
               </div>
             </a>
@@ -372,8 +365,27 @@ conda<span class="w"> </span>activate<span class="w"> </span>meersolar_env
         
       </footer>
     </div>
-    <aside class="toc-drawer no-toc">
+    <aside class="toc-drawer">
       
+      
+      <div class="toc-sticky toc-scroll">
+        <div class="toc-title-container">
+          <span class="toc-title">
+            On this page
+          </span>
+        </div>
+        <div class="toc-tree-container">
+          <div class="toc-tree">
+            <ul>
+<li><a class="reference internal" href="#">Developer Instruction</a><ul>
+<li><a class="reference internal" href="#instructions-for-testing">Instructions for testing</a></li>
+</ul>
+</li>
+</ul>
+
+          </div>
+        </div>
+      </div>
       
       
     </aside>

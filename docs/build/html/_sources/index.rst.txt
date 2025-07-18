@@ -24,6 +24,11 @@ MeerSOLAR serves as a reference pipeline for science-ready processing of **MeerK
 - It is tested on IDIA-supercomputing facility (where most of the MeerKAT observations are analysed)
 - A free-tier cloud-based remote logger to monitor pipeline over the internet
 
+Sample dataset
+---------------
+
+User can download and test entire MeerSOLAR pipeline using the sample dataset available in Zenodo: https://doi.org/10.5281/zenodo.16068485. Do not use this sample dataset for any publication without permission from the developer.
+
 Contents
 ---------
 .. toctree::
@@ -38,6 +43,7 @@ Contents
    cli
    ack
    lic
+   dev
    meersolar
 
 Indices
