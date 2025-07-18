@@ -149,15 +149,28 @@ def split_target_scans(
         # Making spectral chunks
         #############################
         bad_spws = get_bad_chans(msname).split("0:")[-1].split(";")
-        good_spws = []
+        # Derive good spectral windows by finding gaps between bad SPWs
+        good_spws_list = []
         for i in range(len(bad_spws) - 1):
             start_chan = int(bad_spws[i].split("~")[-1]) + 1
             end_chan = int(bad_spws[i + 1].split("~")[0]) - 1
-            good_spws.append(f"{start_chan}~{end_chan}")
-        if spw != "":
-            good_spws = "0:" + ";".join(good_spws)
+            good_spws_list.append(f"{start_chan}~{end_chan}")
+
+        # If no gaps found, fall back to full good channels
+        if good_spws_list:
+            good_spws = "0:" + ";".join(good_spws_list)
+        else:
+            good_spws = get_good_chans(msname)
+
+        # Intersect with user-specified SPW if provided
+        spw_suffix = good_spws.split("0:")[-1].split(";")
+        if spw:
             common_spws = get_common_spw(good_spws, spw)
             good_spws = common_spws.split("0:")[-1].split(";")
+        else:
+            good_spws = spw_suffix
+       #############################
+       
         chanlist = []
         if spectral_chunk > 0:
             if spectral_chunk > bw:
@@ -172,6 +185,7 @@ def split_target_scans(
                 end_chan = int(good_spw.split("~")[-1])
                 for s in range(start_chan, end_chan):
                     good_channels.append(s)
+            print (good_channels,nchan_per_chunk)
             channel_chunks = split_into_chunks(good_channels, nchan_per_chunk)
             for chunk in channel_chunks:
                 chan_str = chanlist_to_str(chunk)
