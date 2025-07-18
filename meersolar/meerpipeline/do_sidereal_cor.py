@@ -70,7 +70,7 @@ def cor_sidereal_motion(
         tasks = []
         for ms in mslist:
             tasks.append(
-                delayed(correct_solar_sidereal_motion)(ms, check_container=False)
+                delayed(correct_solar_sidereal_motion)(ms)
             )
         total_chunks = len(tasks)
         dask_client, dask_cluster, n_jobs, n_threads, mem_limit = get_dask_client(
