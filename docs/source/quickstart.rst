@@ -28,7 +28,7 @@ MeerSOLAR is distributed on
 
       run-meer-meersolar <path of measurement set> --workdir <path of work directory> --outdir <path of output products directory>
 
-That’s all. You started MeerSOLAR pipeline for analysing your MeerKAT solar observation 🎉.
+That’s all. You started MeerSOLAR pipeline for analysing your MeerKAT solar observation 🎉. Read the ``Directory Structure and Data Products`` section to understand how to find final images.
 
 5. To see all running MeerSOLAR jobs
 
