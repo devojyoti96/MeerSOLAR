@@ -11,6 +11,7 @@ import glob
 import os
 import subprocess
 import sys
+import tempfile
 from pathlib import Path
 from dask import delayed, compute, config
 from dask.distributed import Client, LocalCluster
@@ -461,9 +462,13 @@ def get_dask_client(
         Number of workers
     threads_per_worker : int
         Threads per worker to use
+    str
+        Dask directory
     """
     logging.getLogger("distributed").setLevel(logging.ERROR)
     # Create the Dask temporary working directory if it does not already exist
+    dask_dir=dask_dir.rstrip("/")
+    dask_dir = tempfile.mkdtemp(prefix=f"{dask_dir}_")
     os.makedirs(dask_dir, exist_ok=True)
     dask_dir_tmp = dask_dir + "/tmp"
     os.makedirs(dask_dir_tmp, exist_ok=True)
@@ -628,7 +633,7 @@ def get_dask_client(
 
     client.run_on_scheduler(gc.collect)
     final_mem_per_worker = round((mem_per_worker * spill_frac) / (1024.0**3), 2)
-    return client, cluster, n_workers, threads_per_worker, final_mem_per_worker
+    return client, cluster, n_workers, threads_per_worker, final_mem_per_worker, dask_dir
 
 
 def run_limited_memory_task(task, dask_dir="/tmp", timeout=30):

@@ -152,7 +152,7 @@ def calc_sum(i):
 
 
 def test_get_dask_client():
-    client, cluster, n, t, mem = get_dask_client(
+    client, cluster, n, t, mem, dask_dir = get_dask_client(
         n_jobs=10,
         dask_dir="/tmp/test_dask",
         only_cal=False,
@@ -166,7 +166,9 @@ def test_get_dask_client():
     client.close()
     cluster.close()
     assert results == expected_results
-
+    assert os.path.exists(dask_dir)
+    os.system(f"rm -rf {dask_dir}")
+    assert os.path.exists(dask_dir)==False
 
 def dummy_task():
     time.sleep(2)
