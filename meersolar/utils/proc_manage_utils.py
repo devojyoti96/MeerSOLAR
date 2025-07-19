@@ -595,8 +595,7 @@ def get_dask_client(
     if spill_frac > 0.7:
         spill_frac = 0.7
     if only_cal:
-        final_mem_per_worker = round((mem_per_worker * spill_frac) / (1024.0**3), 2)
-        return None, None, n_workers, threads_per_worker, final_mem_per_worker
+        return None, None, n_workers, threads_per_worker, round(mem_per_worker/(1024.0**3),2), dask_dir
 
     soft, hard = resource.getrlimit(resource.RLIMIT_NOFILE)
     new_soft = min(int(hard * 0.8), hard)  # safe cap
@@ -632,8 +631,7 @@ def get_dask_client(
         print(f"Dask dashboard available at: {client.dashboard_link}")
 
     client.run_on_scheduler(gc.collect)
-    final_mem_per_worker = round((mem_per_worker * spill_frac) / (1024.0**3), 2)
-    return client, cluster, n_workers, threads_per_worker, final_mem_per_worker, dask_dir
+    return client, cluster, n_workers, threads_per_worker, round(mem_per_worker/(1024.0**3),2), dask_dir
 
 
 def run_limited_memory_task(task, dask_dir="/tmp", timeout=30):
