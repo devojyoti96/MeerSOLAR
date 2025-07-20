@@ -10,6 +10,7 @@ import os
 from casatasks import casalog
 from casatools import msmetadata
 from dask import delayed
+from dask.distributed import get_client
 from meersolar.utils import *
 
 logging.getLogger("distributed").setLevel(logging.WARNING)
@@ -61,6 +62,7 @@ def split_target_scans(
     mem_frac=0.8,
     max_cpu_frac=0.8,
     max_mem_frac=0.8,
+    dask_env=False,
 ):
     """
     Split target scans
@@ -103,6 +105,8 @@ def split_target_scans(
         Maximum CPU fraction to use
     max_mem_frac : float, optional
         Maximum memory fraction to use
+    dask_env : bool, optional
+        In dask environment or not
 
     Returns
     -------
@@ -166,11 +170,17 @@ def split_target_scans(
         spw_suffix = good_spws.split("0:")[-1].split(";")
         if spw:
             common_spws = get_common_spw(good_spws, spw)
-            good_spws = common_spws.split("0:")[-1].split(";")
+            if common_spws != "":
+                good_spws = common_spws.split("0:")[-1].split(";")
+            else:
+                good_spws = spw_suffix
         else:
             good_spws = spw_suffix
-       #############################
-       
+        if len(good_spws) == 0:
+            print("No good spectral window is found.")
+            return 1, []
+
+        #############################
         chanlist = []
         if spectral_chunk > 0:
             if spectral_chunk > bw:
@@ -185,7 +195,6 @@ def split_target_scans(
                 end_chan = int(good_spw.split("~")[-1])
                 for s in range(start_chan, end_chan):
                     good_channels.append(s)
-            print (good_channels,nchan_per_chunk)
             channel_chunks = split_into_chunks(good_channels, nchan_per_chunk)
             for chunk in channel_chunks:
                 chan_str = chanlist_to_str(chunk)
@@ -226,14 +235,17 @@ def split_target_scans(
         task = delayed(single_mstransform)(dry_run=True)
         mem_limit = run_limited_memory_task(task, dask_dir=workdir)
         #######################
-        dask_client, dask_cluster, max_n_jobs, n_threads, mem_limit = get_dask_client(
-            total_chunks,
-            dask_dir=workdir,
-            cpu_frac=max_cpu_frac,
-            mem_frac=max_mem_frac,
-            min_mem_per_job=mem_limit / 0.6,
-            only_cal=True,
+        _, _, max_n_jobs, n_threads, mem_limit, dask_dir = (
+            get_dask_client(
+                total_chunks,
+                dask_dir=workdir,
+                cpu_frac=max_cpu_frac,
+                mem_frac=max_mem_frac,
+                min_mem_per_job=mem_limit,
+                only_cal=True,
+            )
         )
+        os.system(f"rm -rf {dask_dir}")
         tasks = []
         splited_ms_list = []
         for scan in filtered_scan_list:
@@ -277,18 +289,36 @@ def split_target_scans(
         if cpu_frac == max_cpu_frac and mem_frac == max_mem_frac:
             total_chunks = len(tasks)
             if total_chunks > 0:
-                dask_client, dask_cluster, n_jobs, n_threads, mem_limit = (
-                    get_dask_client(
-                        total_chunks,
-                        dask_dir=workdir,
-                        cpu_frac=cpu_frac,
-                        mem_frac=mem_frac,
-                        min_mem_per_job=mem_limit / 0.6,
+                if dask_env is not True:
+                    dask_client, dask_cluster, n_jobs, n_threads, mem_limit, dask_dir = (
+                        get_dask_client(
+                            total_chunks,
+                            dask_dir=workdir,
+                            cpu_frac=cpu_frac,
+                            mem_frac=mem_frac,
+                            min_mem_per_job=mem_limit,
+                        )
                     )
-                )
-                results = list(dask_client.compute(tasks, sync=True))
+                else:
+                    _, _, n_jobs, n_threads, mem_limit, dask_dir = (
+                        get_dask_client(
+                            total_chunks,
+                            dask_dir=workdir,
+                            cpu_frac=cpu_frac,
+                            mem_frac=mem_frac,
+                            min_mem_per_job=mem_limit,
+                            only_cal=True,
+                        )
+                    )
+                    dask_client=get_client()
+                    os.system(f"rm -rf {dask_dir}")
+                futures = dask_client.compute(tasks)
+                dask_client.wait_for_workers(1)
+                results = list(dask_client.gather(futures))
                 dask_client.close()
-                dask_cluster.close()
+                if dask_env is not True:
+                    dask_cluster.close()
+                    os.system(f"rm -rf {dask_dir}")
                 for r in results:
                     splited_ms_list.append(r)
         else:
@@ -297,21 +327,49 @@ def split_target_scans(
                 if total_chunks == 0:
                     break
                 else:
-                    dask_client, dask_cluster, n_jobs, n_threads, mem_limit = (
-                        get_dask_client(
+                    if dask_env is not True:
+                        (
+                            dask_client,
+                            dask_cluster,
+                            n_jobs,
+                            n_threads,
+                            mem_limit,
+                            dask_dir,
+                        ) = get_dask_client(
                             total_chunks,
                             dask_dir=workdir,
                             cpu_frac=cpu_frac,
                             mem_frac=mem_frac,
-                            min_mem_per_job=mem_limit / 0.6,
+                            min_mem_per_job=mem_limit,
                         )
-                    )
+                    else:
+                        (
+                            _,
+                            _,
+                            n_jobs,
+                            n_threads,
+                            mem_limit,
+                            dask_dir,
+                        ) = get_dask_client(
+                            total_chunks,
+                            dask_dir=workdir,
+                            cpu_frac=cpu_frac,
+                            mem_frac=mem_frac,
+                            min_mem_per_job=mem_limit,
+                            only_cal=True,
+                        )
+                        dask_client=get_client()
+                        os.system(f"rm -rf {dask_dir}")
                     chunk_tasks = tasks[0 : min(n_jobs, max_n_jobs)]
                     for ctask in chunk_tasks:
                         tasks.remove(ctask)
-                    results = list(compute(*chunk_tasks))
+                    futures = dask_client.compute(tasks)
+                    dask_client.wait_for_workers(1)
+                    results = list(dask_client.gather(futures))
                     dask_client.close()
-                    dask_cluster.close()
+                    if dask_env is not True:
+                        dask_cluster.close()
+                        os.system(f"rm -rf {dask_dir}")
                     for r in results:
                         splited_ms_list.append(r)
                     n_current_process = (
@@ -369,6 +427,7 @@ def main(
     logfile=None,
     jobid=0,
     start_remote_log=False,
+    dask_env=False,
 ):
     """
     Split target scans from a measurement set into smaller chunks for parallel processing.
@@ -417,6 +476,8 @@ def main(
         Job identifier for tracking and PID storage. Default is 0.
     start_remote_log : bool, optional
         If True, enables remote logging using credentials stored in workdir. Default is False.
+    dask_env : bool, optional
+        In dask environment or not
 
     Returns
     -------
@@ -477,6 +538,7 @@ def main(
                 mem_frac=float(mem_frac),
                 max_cpu_frac=float(max_cpu_frac),
                 max_mem_frac=float(max_mem_frac),
+                dask_env=dask_env,
             )
         else:
             print("Please provide correct measurement set.\n")

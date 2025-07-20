@@ -8,10 +8,12 @@ import time
 import glob
 import sys
 import os
+import subprocess
 from astropy.io import fits
 from astropy.wcs import FITSFixedWarning
 from casatasks import casalog
 from dask import delayed
+from dask.distributed import get_client
 from meersolar.meerpipeline.single_image_meerpbcor import get_pbcor_image
 from meersolar.utils import *
 
@@ -69,14 +71,38 @@ def run_pbcor(
     int
         Success message
     """
-    cmd = f"run-meer-singlepbcor {imagename} --pbdir {pbdir} --pbcor_dir {pbcor_dir} --ncpu {ncpu} --jobid {jobid}"
-    if verbose:
-        print(cmd)
+    cmd = [
+        "run-meer-singlepbcor",
+        imagename,
+        "--pbdir",
+        pbdir,
+        "--pbcor_dir",
+        pbcor_dir,
+        "--ncpu",
+        str(ncpu),
+        "--jobid",
+        str(jobid),
+    ]
     if not apply_parang:
-        cmd += " --no_apply_parang"
-    a = os.system(f"{cmd} > {imagename}.tmp")
-    os.system(f"rm -rf {imagename}.tmp")
-    return a
+        cmd.append("--no_apply_parang")
+
+    if verbose:
+        print("Executing:", " ".join(cmd))
+
+    try:
+        result = subprocess.run(
+            cmd,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True,
+            check=False,  # Set to True if you want to raise on error
+        )
+        if verbose or result.returncode != 0:
+            print(result.stdout)
+        return result.returncode
+    except Exception as e:
+        print(f"Exception during primary beam correction: {e}")
+        return 1
 
 
 def pbcor_all_images(
@@ -87,6 +113,7 @@ def pbcor_all_images(
     jobid=0,
     cpu_frac=0.8,
     mem_frac=0.8,
+    dask_env=False,
 ):
     """
     Correct primary beam of MeerKAT for images in a directory
@@ -140,44 +167,84 @@ def pbcor_all_images(
             16 * max([os.path.getsize(image) for image in images]) / 1024**3
         )  # In GB
         if len(first_set) > 0:
-            dask_client, dask_cluster, n_jobs, n_threads, mem_limit = get_dask_client(
-                len(first_set),
-                dask_dir=pbdir,
-                cpu_frac=cpu_frac,
-                mem_frac=mem_frac,
-                min_mem_per_job=mem_limit / 0.6,
-            )
+            if dask_env is not True:
+                dask_client, dask_cluster, n_jobs, n_threads, mem_limit, dask_dir = (
+                    get_dask_client(
+                        len(first_set),
+                        dask_dir=pbdir,
+                        cpu_frac=cpu_frac,
+                        mem_frac=mem_frac,
+                        min_mem_per_job=mem_limit,
+                    )
+                )
+            else:
+                _, _, n_jobs, n_threads, mem_limit, dask_dir = (
+                    get_dask_client(
+                        len(first_set),
+                        dask_dir=pbdir,
+                        cpu_frac=cpu_frac,
+                        mem_frac=mem_frac,
+                        min_mem_per_job=mem_limit,
+                        only_cal=True,
+                    )
+                )
+                dask_client=get_client()
+                os.system(f"rm -rf {dask_dir}")
             tasks = []
             for image in first_set:
                 task = delayed(run_pbcor)(
                     image, pbdir, pbcor_dir, apply_parang, jobid=jobid, ncpu=n_threads
                 )
                 tasks.append(task)
-            results = list(dask_client.compute(tasks, sync=True))
+            futures = dask_client.compute(tasks)
+            dask_client.wait_for_workers(1)
+            results = list(dask_client.gather(futures))
             dask_client.close()
-            dask_cluster.close()
+            if dask_env is not True:
+                dask_cluster.close()
+                os.system(f"rm -rf {dask_dir}")
             successful_pbcor = 0
             for r in results:
                 if r == 0:
                     successful_pbcor += 1
         if len(remaining_set) > 0:
             print(f"Correcting remaining images of different timestamps.")
-            dask_client, dask_cluster, n_jobs, n_threads, mem_limit = get_dask_client(
-                len(remaining_set),
-                dask_dir=pbdir,
-                cpu_frac=cpu_frac,
-                mem_frac=mem_frac,
-                min_mem_per_job=mem_limit / 0.6,
-            )
+            if dask_env is not True:
+                dask_client, dask_cluster, n_jobs, n_threads, mem_limit, dask_dir = (
+                    get_dask_client(
+                        len(remaining_set),
+                        dask_dir=pbdir,
+                        cpu_frac=cpu_frac,
+                        mem_frac=mem_frac,
+                        min_mem_per_job=mem_limit,
+                    )
+                )
+            else:
+                _, _, n_jobs, n_threads, mem_limit, dask_dir = (
+                    get_dask_client(
+                        len(remaining_set),
+                        dask_dir=pbdir,
+                        cpu_frac=cpu_frac,
+                        mem_frac=mem_frac,
+                        min_mem_per_job=mem_limit,
+                        only_cal=True,
+                    )
+                )
+                dask_client=get_client()
+                os.system(f"rm -rf {dask_dir}")
             tasks = []
             for image in remaining_set:
                 task = delayed(run_pbcor)(
                     image, pbdir, pbcor_dir, apply_parang, jobid=jobid, ncpu=n_threads
                 )
                 tasks.append(task)
-            results = list(dask_client.compute(tasks, sync=True))
+            futures = dask_client.compute(tasks)
+            dask_client.wait_for_workers(1)
+            results = list(dask_client.gather(futures))
             dask_client.close()
-            dask_cluster.close()
+            if dask_env is not True:
+                dask_cluster.close()
+                os.system(f"rm -rf {dask_dir}")
             for r in results:
                 if r == 0:
                     successful_pbcor += 1
@@ -270,6 +337,7 @@ def main(
     logfile=None,
     jobid=0,
     start_remote_log=False,
+    dask_env=False,
 ):
     """
     Primary beam correction of MeerKAT for a sets of images in a directory
@@ -296,6 +364,8 @@ def main(
         Job ID
     start_remote_log : bool, optional
         Start remote logger
+    dask_env : bool, optional
+        In dask environment or not
 
     Returns
     -------
@@ -339,6 +409,7 @@ def main(
                 jobid=jobid,
                 cpu_frac=cpu_frac,
                 mem_frac=mem_frac,
+                dask_env=daks_env,
             )
         else:
             print("Please provide correct image directory path.")

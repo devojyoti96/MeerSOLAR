@@ -10,6 +10,7 @@ import os
 from casatasks import casalog
 from casatools import msmetadata
 from dask import delayed
+from dask.distributed import get_client
 from meersolar.utils import *
 from meersolar.meerpipeline.do_apply_basiccal import applysol
 
@@ -33,6 +34,7 @@ def run_all_applysol(
     force_apply=False,
     cpu_frac=0.8,
     mem_frac=0.8,
+    dask_env=False,
 ):
     """
     Apply self-calibrator solutions on all target scans
@@ -55,6 +57,8 @@ def run_all_applysol(
         CPU fraction to use
     mem_frac : float, optional
         Memory fraction to use
+    dask_env : bool, optional
+        In dask environment or not
 
     Returns
     --------
@@ -102,13 +106,29 @@ def run_all_applysol(
         mem_limit = run_limited_memory_task(task, dask_dir=workdir)
         ms_size_list = [get_column_size(ms) + mem_limit for ms in mslist]
         mem_limit = max(ms_size_list)
-        dask_client, dask_cluster, n_jobs, n_threads, mem_limit = get_dask_client(
-            len(mslist),
-            dask_dir=workdir,
-            cpu_frac=cpu_frac,
-            mem_frac=mem_frac,
-            min_mem_per_job=mem_limit / 0.6,
-        )
+        if dask_env is not True:
+            dask_client, dask_cluster, n_jobs, n_threads, mem_limit, dask_dir = (
+                get_dask_client(
+                    len(mslist),
+                    dask_dir=workdir,
+                    cpu_frac=cpu_frac,
+                    mem_frac=mem_frac,
+                    min_mem_per_job=mem_limit,
+                )
+            )
+        else:
+            _, _, n_jobs, n_threads, mem_limit, dask_dir = (
+                get_dask_client(
+                    len(mslist),
+                    dask_dir=workdir,
+                    cpu_frac=cpu_frac,
+                    mem_frac=mem_frac,
+                    min_mem_per_job=mem_limit,
+                    only_cal=True,
+                )
+            )
+            os.system(f"rm -rf {dask_dir}")
+            dask_client = get_client()
         tasks = []
         msmd = msmetadata()
         for ms in mslist:
@@ -135,9 +155,13 @@ def run_all_applysol(
                     soltype="selfcal",
                 )
             )
-        results = list(dask_client.compute(tasks, sync=True))
+        futures = dask_client.compute(tasks)
+        dask_client.wait_for_workers(1)
+        results = list(dask_client.gather(futures))
         dask_client.close()
-        dask_cluster.close()
+        if dask_env is not True:
+            dask_cluster.close()
+            os.system(f"rm -rf {dask_dir}")
         if np.nansum(results) == 0:
             print("##################")
             print(
@@ -178,6 +202,7 @@ def main(
     mem_frac=0.8,
     logfile=None,
     jobid=0,
+    dask_env=False,
 ):
     """
     Apply calibration solutions to a list of measurement sets.
@@ -206,6 +231,8 @@ def main(
         Path to the logfile for saving logs. If None, logging to file is disabled. Default is None.
     jobid : int, optional
         Job ID for PID tracking and logging. Default is 0.
+    dask_env : bool, optional
+        In dask environment or not
 
     Returns
     -------
@@ -260,6 +287,7 @@ def main(
                 force_apply=force_apply,
                 cpu_frac=cpu_frac,
                 mem_frac=mem_frac,
+                dask_env=dask_env,
             )
     except Exception:
         traceback.print_exc()

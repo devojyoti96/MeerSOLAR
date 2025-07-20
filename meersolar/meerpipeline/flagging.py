@@ -11,6 +11,7 @@ import os
 from casatasks import casalog
 from casatools import msmetadata
 from dask import delayed
+from dask.distributed import get_client
 from meersolar.utils import *
 
 logging.getLogger("distributed").setLevel(logging.WARNING)
@@ -301,6 +302,7 @@ def do_flagging(
     flag_backup=True,
     cpu_frac=0.8,
     mem_frac=0.8,
+    dask_env=False,
 ):
     """
     Function to perform initial flagging
@@ -331,6 +333,8 @@ def do_flagging(
         CPU fraction to use
     mem_frac : float, optional
         Memory fraction to use
+    dask_env : bool, optional
+        In dask enviornmnent or not
 
     Returns
     -------
@@ -374,15 +378,29 @@ def do_flagging(
                 os.system(f"rm -rf {subms}/.flagversions")
         else:
             subms_list = [msname]
-        task = delayed(single_ms_flag)(dry_run=True)
-        mem_limit = run_limited_memory_task(task, dask_dir=workdir)
-        dask_client, dask_cluster, n_jobs, n_threads, mem_limit = get_dask_client(
-            len(subms_list),
-            dask_dir=workdir,
-            cpu_frac=cpu_frac,
-            mem_frac=mem_frac,
-            min_mem_per_job=mem_limit / 0.6,
-        )
+        ms_size_list = [get_column_size(ms) for ms in subms_list]
+        mem_limit = max(ms_size_list)
+        if dask_env is not True:
+            dask_client, dask_cluster, n_jobs, n_threads, mem_limit, dask_dir = (
+                get_dask_client(
+                    len(subms_list),
+                    dask_dir=workdir,
+                    cpu_frac=cpu_frac,
+                    mem_frac=mem_frac,
+                    min_mem_per_job=mem_limit,
+                )
+            )
+        else:
+            _, _, n_jobs, n_threads, mem_limit, dask_dir = get_dask_client(
+                len(subms_list),
+                dask_dir=workdir,
+                cpu_frac=cpu_frac,
+                mem_frac=mem_frac,
+                min_mem_per_job=mem_limit,
+                only_cal=True,
+            )
+            os.system(f"rm -rf {dask_dir}")
+            dask_client = get_client()
         if flag_backup:
             do_flag_backup(msname, flagtype="flagdata")
         tasks = [
@@ -400,9 +418,13 @@ def do_flagging(
             )
             for ms in subms_list
         ]
-        results = list(dask_client.compute(tasks, sync=True))
+        futures = dask_client.compute(tasks)
+        dask_client.wait_for_workers(1)
+        results = list(dask_client.gather(futures))
         dask_client.close()
-        dask_cluster.close()
+        if dask_env is not True:
+            dask_cluster.close()
+            os.system(f"rm -rf {dask_dir}")
         print("##################")
         print("Total time taken : ", time.time() - start_time)
         print("##################\n")
@@ -431,6 +453,7 @@ def main(
     logfile=None,
     jobid=0,
     start_remote_log=False,
+    dask_env=False,
 ):
     """
     Run the flagging pipeline for a measurement set.
@@ -468,6 +491,8 @@ def main(
         Numeric job ID used for PID tracking. Default is 0.
     start_remote_log : bool, optional
         Whether to enable remote logging using credentials in the workdir. Default is False.
+    dask_env : bool, optional
+        In dask worker environment
 
     Returns
     -------
@@ -518,6 +543,7 @@ def main(
                 flag_backup=flagbackup,
                 cpu_frac=cpu_frac,
                 mem_frac=mem_frac,
+                dask_env=dask_env,
             )
         else:
             print("Please provide correct measurement set.\n")

@@ -8,6 +8,7 @@ import sys
 import os
 from casatasks import casalog
 from dask import delayed
+from dask_distributed import get_client
 from meersolar.utils import *
 
 logging.getLogger("distributed").setLevel(logging.WARNING)
@@ -23,7 +24,7 @@ datadir = get_datadir()
 
 
 def cor_sidereal_motion(
-    mslist, workdir, cpu_frac=0.8, mem_frac=0.8, max_cpu_frac=0.8, max_mem_frac=0.8
+    mslist, workdir, cpu_frac=0.8, mem_frac=0.8, max_cpu_frac=0.8, max_mem_frac=0.8, dask_env=False,
 ):
     """
     Perform sidereal motion correction
@@ -42,6 +43,8 @@ def cor_sidereal_motion(
         Maximum CPU fraction to use
     max_mem_frac : float, optional
         Maximum memory fraction to use
+    dask_env : bool, optional
+        In dask environment or not
 
     Returns
     -------
@@ -69,20 +72,38 @@ def cor_sidereal_motion(
         #############################################
         tasks = []
         for ms in mslist:
-            tasks.append(
-                delayed(correct_solar_sidereal_motion)(ms)
-            )
+            tasks.append(delayed(correct_solar_sidereal_motion)(ms))
         total_chunks = len(tasks)
-        dask_client, dask_cluster, n_jobs, n_threads, mem_limit = get_dask_client(
-            total_chunks,
-            dask_dir=workdir,
-            cpu_frac=cpu_frac,
-            mem_frac=mem_frac,
-            min_mem_per_job=mem_limit / 0.6,
-        )
-        results = list(dask_client.compute(tasks, sync=True))
+        if dask_env is not True:
+            dask_client, dask_cluster, n_jobs, n_threads, mem_limit, dask_dir = (
+                get_dask_client(
+                    total_chunks,
+                    dask_dir=workdir,
+                    cpu_frac=cpu_frac,
+                    mem_frac=mem_frac,
+                    min_mem_per_job=mem_limit,
+                )
+            )
+        else:
+            _, _, n_jobs, n_threads, mem_limit, dask_dir = (
+                get_dask_client(
+                    total_chunks,
+                    dask_dir=workdir,
+                    cpu_frac=cpu_frac,
+                    mem_frac=mem_frac,
+                    min_mem_per_job=mem_limit,
+                    only_cal=True,
+                )
+            )
+            dask_client=get_clinet()
+            os.system(f"rm -rf {daks_dir}")
+        futures = dask_client.compute(tasks)
+        dask_client.wait_for_workers(1)
+        results = list(dask_client.gather(futures))
         dask_client.close()
-        dask_cluster.close()
+        if dask_env is not True:
+            dask_cluster.close()
+            os.system(f"rm -rf {dask_dir}")
         splited_ms_list_phaserotated = []
         for i in range(len(results)):
             msg = results[i]
@@ -123,6 +144,7 @@ def main(
     logfile=None,
     jobid=0,
     start_remote_log=False,
+    dask_env=False,
 ):
     """
     Run a parallel processing pipeline for solar sidereal motion correction
@@ -149,6 +171,8 @@ def main(
         Unique job identifier used for PID tracking and task differentiation. Default is 0.
     start_remote_log : bool, optional
         Whether to enable remote logging based on credentials stored in the workdir. Default is False.
+    dask_env : bool, optional
+        In dask environment or not
 
     Returns
     -------
@@ -197,6 +221,7 @@ def main(
                 mem_frac=float(mem_frac),
                 max_cpu_frac=float(max_cpu_frac),
                 max_mem_frac=float(max_mem_frac),
+                dask_env=dask_env,
             )
     except Exception as e:
         traceback.print_exc()

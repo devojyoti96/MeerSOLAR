@@ -12,6 +12,7 @@ import copy
 from casatasks import casalog
 from casatools import msmetadata, table
 from dask import delayed
+from dask.distributed import get_client
 from functools import partial
 from meersolar.utils import *
 
@@ -565,6 +566,7 @@ def main(
     mem_frac=0.8,
     jobid=0,
     start_remote_log=False,
+    dask_env=False,
 ):
     """
     Perform iterative self-calibration on a list of measurement sets.
@@ -617,6 +619,8 @@ def main(
         Identifier for job tracking and logging. Default is 0.
     start_remote_log : bool, optional
         Whether to initiate remote logging via job credentials. Default is False.
+    dask_env : bool, optional
+        In dask environment or not
 
     Returns
     -------
@@ -726,10 +730,10 @@ def main(
                     chanlist.append(channame)
 
             available_mem = psutil.virtual_memory().available / 1024**3
-            if (mem_limit / 0.6) < 4 and available_mem > 4:
+            if mem_limit < 4 and available_mem > 4:
                 min_mem_per_job = 4
             else:
-                min_mem_per_job = mem_limit / 0.6
+                min_mem_per_job = mem_limit
 
             ######################################
             # Resetting maximum file limit
@@ -765,16 +769,31 @@ def main(
                 total_fd = max(num_fd_list) * len(mslist)
                 n_jobs = max(1, int(new_soft_limit / total_fd))
                 n_jobs = min(len(mslist), n_jobs)
-                dask_client, dask_cluster, n_jobs, n_threads, mem_limit = (
-                    get_dask_client(
-                        n_jobs,
-                        dask_dir=workdir,
-                        cpu_frac=float(cpu_frac),
-                        mem_frac=float(mem_frac),
-                        min_cpu_per_job=3,
-                        min_mem_per_job=min_mem_per_job,
+                if dask_env is not True:
+                    dask_client, dask_cluster, n_jobs, n_threads, mem_limit, dask_dir = (
+                        get_dask_client(
+                            n_jobs,
+                            dask_dir=workdir,
+                            cpu_frac=float(cpu_frac),
+                            mem_frac=float(mem_frac),
+                            min_cpu_per_job=3,
+                            min_mem_per_job=min_mem_per_job,
+                        )
                     )
-                )
+                else:
+                    _, _, n_jobs, n_threads, mem_limit, dask_dir = (
+                        get_dask_client(
+                            n_jobs,
+                            dask_dir=workdir,
+                            cpu_frac=float(cpu_frac),
+                            mem_frac=float(mem_frac),
+                            min_cpu_per_job=3,
+                            min_mem_per_job=min_mem_per_job,
+                            only_cal=True,
+                        )
+                    )
+                    dask_client=get_client()
+                    os.system(f"rm -rf {dask_dir}")
                 tasks = []
                 for ms in mslist:
                     logfile = (
@@ -797,9 +816,13 @@ def main(
                             logfile=logfile,
                         )
                     )
-                results = list(dask_client.compute(tasks, sync=True))
+                futures = dask_client.compute(tasks)
+                dask_client.wait_for_workers(1)
+                results = list(dask_client.gather(futures))
                 dask_client.close()
-                dask_cluster.close()
+                if dask_env is not True:
+                    dask_cluster.close()
+                    os.system(f"rm -rf {dask_dir}")
                 gcal_list = []
                 for i in range(len(results)):
                     r = results[i]

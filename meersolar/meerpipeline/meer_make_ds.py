@@ -11,6 +11,7 @@ import os
 from casatasks import casalog
 from casatools import msmetadata, ms as casamstool
 from dask import delayed
+from dask.distributed import get_client
 from meersolar.utils import *
 
 logging.getLogger("distributed").setLevel(logging.WARNING)
@@ -35,6 +36,7 @@ def make_solar_DS(
     showgui=False,
     cpu_frac=0.8,
     mem_frac=0.8,
+    dask_env=False,
 ):
     """
     Make solar dynamic spectrum and plots
@@ -61,6 +63,8 @@ def make_solar_DS(
         CPU fraction to use
     mem_frac : float, optional
         Memory fraction to use
+    dask_env : bool, optional
+        In dask environment or not
     """
     warnings.filterwarnings("ignore", category=RuntimeWarning)
     os.makedirs(f"{workdir}/dynamic_spectra", exist_ok=True)
@@ -116,13 +120,25 @@ def make_solar_DS(
         datacolumn = "DATA"
     mspath = os.path.dirname(msname)
     mem_limit = max(scan_size_list)
-    dask_client, dask_cluster, n_jobs, n_threads, mem_limit = get_dask_client(
-        len(scans),
-        dask_dir=workdir,
-        cpu_frac=cpu_frac,
-        mem_frac=mem_frac,
-        min_mem_per_job=mem_limit / 0.6,
-    )
+    if dask_env is not True:
+        dask_client, dask_cluster, n_jobs, n_threads, mem_limit, dask_dir = get_dask_client(
+            len(scans),
+            dask_dir=workdir,
+            cpu_frac=cpu_frac,
+            mem_frac=mem_frac,
+            min_mem_per_job=mem_limit,
+        )
+    else:
+        _, _, n_jobs, n_threads, mem_limit, dask_dir = get_dask_client(
+            len(scans),
+            dask_dir=workdir,
+            cpu_frac=cpu_frac,
+            mem_frac=mem_frac,
+            min_mem_per_job=mem_limit,
+            only_cal=True,
+        )
+        dask_client=get_client()
+        os.system(f"rm -rf {dask_dir}")
     tasks = []
     for scan in scans:
         tasks.append(
@@ -133,9 +149,13 @@ def make_solar_DS(
                 datacolumn,
             )
         )
-    dask_client.compute(tasks, sync=True)
+    futures = dask_client.compute(tasks)
+    dask_client.wait_for_workers(1)
+    results = list(dask_client.gather(futures))
     dask_client.close()
-    dask_cluster.close()
+    if dask_env is not True:
+        dask_cluster.close()
+        os.system(f"rm -rf {dask_dir}")
     ds_files = [
         f"{workdir}/dynamic_spectra/{ds_file_name}_scan_{scan}.npy" for scan in scans
     ]
@@ -158,7 +178,6 @@ def make_solar_DS(
     goes_files = glob.glob(f"{workdir}/dynamic_spectra/sci*.nc")
     for f in goes_files:
         os.system(f"rm -rf {f}")
-    os.system(f"rm -rf {workdir}/dask-scratch-space {workdir}/tmp")
     return
 
 
@@ -172,6 +191,7 @@ def make_dsfiles(
     seperate_scans=True,
     cpu_frac=0.8,
     mem_frac=0.8,
+    dask_env=False,
 ):
     """
     Make all dynamic spectra of the solar scans
@@ -196,6 +216,8 @@ def make_dsfiles(
         CPU fraction to use
     mem_frac : float, optional
         Memory fraction to use
+    dask_env : bool, optional
+        In dask environment or not
 
     Returns
     -------
@@ -216,6 +238,7 @@ def make_dsfiles(
                 merge_scan=False,
                 cpu_frac=cpu_frac,
                 mem_frac=mem_frac,
+                dask_env=dask_env,
             )
         if merge_scans:
             make_solar_DS(
@@ -226,6 +249,7 @@ def make_dsfiles(
                 merge_scan=True,
                 cpu_frac=cpu_frac,
                 mem_frac=mem_frac,
+                dask_env=dask_env,
             )
         if os.path.samefile(outdir, workdir) == False:
             os.system(f"mv {workdir}/dynamic_spectra {outdir}")
@@ -254,6 +278,7 @@ def main(
     logfile=None,
     jobid="0",
     start_remote_log=False,
+    dask_env=False,
 ):
     """
     Make dynamic spectra
@@ -284,6 +309,8 @@ def main(
         Job ID
     start_remote_log : bool, optional
         Start remote log
+    dask_env : bool, optional
+        In dask environment or not
 
     Returns
     -------
@@ -329,6 +356,7 @@ def main(
                 seperate_scans=seperate,
                 cpu_frac=float(cpu_frac),
                 mem_frac=float(mem_frac),
+                dask_env=dask_env,
             )
             msg = 0
         else:

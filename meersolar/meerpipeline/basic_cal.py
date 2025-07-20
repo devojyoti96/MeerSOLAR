@@ -11,6 +11,7 @@ import os
 from casatasks import casalog
 from casatools import msmetadata, table
 from dask import delayed
+from dask.distributed import get_client
 from meersolar.utils import *
 from meersolar.meerpipeline.flagging import single_ms_flag
 from meersolar.meerpipeline.import_model import import_fluxcal_models
@@ -469,6 +470,7 @@ def single_round_cal_and_flag(
     do_postcal_flag=True,
     cpu_frac=0.8,
     mem_frac=0.8,
+    dask_env=False,
 ):
     """
     Single round calibration and post-calibration flagging
@@ -512,6 +514,8 @@ def single_round_cal_and_flag(
         CPU fraction to use
     mem_frac : float, optional
         Memory fraction to use
+    dask_env : bool, optional
+        In dask environment or not
 
     Returns
     -------
@@ -614,13 +618,27 @@ def single_round_cal_and_flag(
             mem_limit = run_limited_memory_task(task, dask_dir=workdir)
             ms_size_list = [get_column_size(ms) + mem_limit for ms in fluxcal_mslist]
             mem_limit = max(ms_size_list)
-            dask_client, dask_cluster, n_jobs, n_threads, mem_limit = get_dask_client(
-                len(delaycal_mslist),
-                dask_dir=workdir,
-                cpu_frac=cpu_frac,
-                mem_frac=mem_frac,
-                min_mem_per_job=mem_limit / 0.6,
-            )
+            if dask_env is not True:
+                dask_client, dask_cluster, n_jobs, n_threads, mem_limit, dask_dir = (
+                    get_dask_client(
+                        len(delaycal_mslist),
+                        dask_dir=workdir,
+                        cpu_frac=cpu_frac,
+                        mem_frac=mem_frac,
+                        min_mem_per_job=mem_limit,
+                    )
+                )
+            else:
+                _, _, n_jobs, n_threads, mem_limit, dask_dir = get_dask_client(
+                    len(delaycal_mslist),
+                    dask_dir=workdir,
+                    cpu_frac=cpu_frac,
+                    mem_frac=mem_frac,
+                    min_mem_per_job=mem_limit,
+                    only_cal=True,
+                )
+                os.system(f"rm -rf {dask_dir}")
+                dask_client = get_client()
             tasks = [
                 delayed(run_delaycal)(
                     sub_msname,
@@ -631,9 +649,13 @@ def single_round_cal_and_flag(
                 )
                 for sub_msname in delaycal_mslist
             ]
-            delaycal_tables = list(dask_client.compute(tasks, sync=True))
+            futures = dask_client.compute(tasks)
+            dask_client.wait_for_workers(1)
+            delaycal_tables = list(dask_client.gather(futures))
             dask_client.close()
-            dask_cluster.close()
+            if dask_env is not True:
+                dask_cluster.close()
+                os.system(f"rm -rf {dask_dir}")
             delay_caltable = merge_caltables(
                 delaycal_tables, delay_caltable, keepcopy=False
             )
@@ -657,13 +679,27 @@ def single_round_cal_and_flag(
             mem_limit = run_limited_memory_task(task, dask_dir=workdir)
             ms_size_list = [get_column_size(ms) + mem_limit for ms in fluxcal_mslist]
             mem_limit = max(ms_size_list)
-            dask_client, dask_cluster, n_jobs, n_threads, mem_limit = get_dask_client(
-                len(fluxcal_mslist),
-                dask_dir=workdir,
-                cpu_frac=cpu_frac,
-                mem_frac=mem_frac,
-                min_mem_per_job=mem_limit / 0.6,
-            )
+            if dask_env is not True:
+                dask_client, dask_cluster, n_jobs, n_threads, mem_limit, dask_dir = (
+                    get_dask_client(
+                        len(fluxcal_mslist),
+                        dask_dir=workdir,
+                        cpu_frac=cpu_frac,
+                        mem_frac=mem_frac,
+                        min_mem_per_job=mem_limit,
+                    )
+                )
+            else:
+                _, _, n_jobs, n_threads, mem_limit, dask_dir = get_dask_client(
+                    len(fluxcal_mslist),
+                    dask_dir=workdir,
+                    cpu_frac=cpu_frac,
+                    mem_frac=mem_frac,
+                    min_mem_per_job=mem_limit,
+                    only_cal=True,
+                )
+                os.system(f"rm -rf {dask_dir}")
+                dask_client = get_client()
             tasks = [
                 delayed(run_bandpass)(
                     sub_msname,
@@ -676,9 +712,13 @@ def single_round_cal_and_flag(
                 )
                 for sub_msname in fluxcal_mslist
             ]
-            bandpass_tables = list(dask_client.compute(tasks, sync=True))
+            futures = dask_client.compute(tasks)
+            dask_client.wait_for_workers(1)
+            bandpass_tables = list(dask_client.gather(futures))
             dask_client.close()
-            dask_cluster.close()
+            if dask_env is not True:
+                dask_cluster.close()
+                os.system(f"rm -rf {dask_dir}")
             bpass_caltable = merge_caltables(
                 bandpass_tables, bpass_caltable, keepcopy=False
             )
@@ -704,13 +744,27 @@ def single_round_cal_and_flag(
             mem_limit = run_limited_memory_task(task, dask_dir=workdir)
             ms_size_list = [get_column_size(ms) + mem_limit for ms in gaincal_mslist]
             mem_limit = max(ms_size_list)
-            dask_client, dask_cluster, n_jobs, n_threads, mem_limit = get_dask_client(
-                len(gaincal_mslist),
-                dask_dir=workdir,
-                cpu_frac=cpu_frac,
-                mem_frac=mem_frac,
-                min_mem_per_job=mem_limit / 0.6,
-            )
+            if dask_env is not True:
+                dask_client, dask_cluster, n_jobs, n_threads, mem_limit, dask_dir = (
+                    get_dask_client(
+                        len(gaincal_mslist),
+                        dask_dir=workdir,
+                        cpu_frac=cpu_frac,
+                        mem_frac=mem_frac,
+                        min_mem_per_job=mem_limit,
+                    )
+                )
+            else:
+                _, _, n_jobs, n_threads, mem_limit, dask_dir = get_dask_client(
+                    len(gaincal_mslist),
+                    dask_dir=workdir,
+                    cpu_frac=cpu_frac,
+                    mem_frac=mem_frac,
+                    min_mem_per_job=mem_limit,
+                    only_cal=True,
+                )
+                os.system(f"rm -rf {dask_dir}")
+                dask_client = get_client()
             tasks = [
                 delayed(run_gaincal)(
                     sub_msname,
@@ -725,9 +779,13 @@ def single_round_cal_and_flag(
                 )
                 for sub_msname in gaincal_mslist
             ]
-            gain_tables = list(dask_client.compute(tasks, sync=True))
+            futures = dask_client.compute(tasks)
+            dask_client.wait_for_workers(1)
+            gain_tables = list(dask_client.gather(futures))
             dask_client.close()
-            dask_cluster.close()
+            if dask_env is not True:
+                dask_cluster.close()
+                os.system(f"rm -rf {dask_dir}")
             gain_caltable = merge_caltables(gain_tables, gain_caltable, keepcopy=False)
 
         ######################################
@@ -759,15 +817,32 @@ def single_round_cal_and_flag(
                     get_column_size(ms) + mem_limit for ms in phasecal_mslist
                 ]
                 mem_limit = max(ms_size_list)
-                dask_client, dask_cluster, n_jobs, n_threads, mem_limit = (
-                    get_dask_client(
+                if dask_env is not True:
+                    (
+                        dask_client,
+                        dask_cluster,
+                        n_jobs,
+                        n_threads,
+                        mem_limit,
+                        dask_dir,
+                    ) = get_dask_client(
                         len(phasecal_mslist),
                         dask_dir=workdir,
                         cpu_frac=cpu_frac,
                         mem_frac=mem_frac,
-                        min_mem_per_job=mem_limit / 0.6,
+                        min_mem_per_job=mem_limit,
                     )
-                )
+                else:
+                    _, _, n_jobs, n_threads, mem_limit, dask_dir = get_dask_client(
+                        len(phasecal_mslist),
+                        dask_dir=workdir,
+                        cpu_frac=cpu_frac,
+                        mem_frac=mem_frac,
+                        min_mem_per_job=mem_limit,
+                        only_cal=True,
+                    )
+                    os.system(f"rm -rf {dask_dir}")
+                    dask_client = get_client()
                 tasks = [
                     delayed(run_gaincal)(
                         sub_msname,
@@ -783,9 +858,13 @@ def single_round_cal_and_flag(
                     )
                     for sub_msname in phasecal_mslist
                 ]
-                gain_tables = list(dask_client.compute(tasks, sync=True))
+                futures = dask_client.compute(tasks)
+                dask_client.wait_for_workers(1)
+                gain_tables = list(dask_client.gather(futures))
                 dask_client.close()
-                dask_cluster.close()
+                if dask_env is not True:
+                    dask_cluster.close()
+                    os.system(f"rm -rf {dask_dir}")
                 gain_caltable = merge_caltables(
                     gain_tables, gain_caltable, append=True, keepcopy=False
                 )
@@ -851,15 +930,32 @@ def single_round_cal_and_flag(
                     get_column_size(ms) + mem_limit for ms in fluxcal_mslist
                 ]
                 mem_limit = max(ms_size_list)
-                dask_client, dask_cluster, n_jobs, n_threads, mem_limit = (
-                    get_dask_client(
+                if dask_env is not True:
+                    (
+                        dask_client,
+                        dask_cluster,
+                        n_jobs,
+                        n_threads,
+                        mem_limit,
+                        dask_dir,
+                    ) = get_dask_client(
                         len(fluxcal_mslist),
                         dask_dir=workdir,
                         cpu_frac=cpu_frac,
                         mem_frac=mem_frac,
-                        min_mem_per_job=mem_limit / 0.6,
+                        min_mem_per_job=mem_limit,
                     )
-                )
+                else:
+                    _, _, n_jobs, n_threads, mem_limit, dask_dir = get_dask_client(
+                        len(fluxcal_mslist),
+                        dask_dir=workdir,
+                        cpu_frac=cpu_frac,
+                        mem_frac=mem_frac,
+                        min_mem_per_job=mem_limit,
+                        only_cal=True,
+                    )
+                    os.system(f"rm -rf {dask_dir}")
+                    dask_client = get_client()
                 tasks = [
                     delayed(run_leakagecal)(
                         sub_msname,
@@ -872,9 +968,13 @@ def single_round_cal_and_flag(
                     )
                     for sub_msname in fluxcal_mslist
                 ]
-                leakage_tables = list(dask_client.compute(tasks, sync=True))
+                futures = dask_client.compute(tasks)
+                dask_client.wait_for_workers(1)
+                leakage_tables = list(dask_client.gather(futures))
                 dask_client.close()
-                dask_cluster.close()
+                if dask_env is not True:
+                    dask_cluster.close()
+                    os.system(f"rm -rf {dask_dir}")
                 leakage_caltable = merge_caltables(
                     leakage_tables, leakage_caltable, keepcopy=False
                 )
@@ -900,15 +1000,32 @@ def single_round_cal_and_flag(
                 mem_limit = run_limited_memory_task(task, dask_dir=workdir)
                 ms_size_list = [get_column_size(ms) + mem_limit for ms in polcal_mslist]
                 mem_limit = max(ms_size_list)
-                dask_client, dask_cluster, n_jobs, n_threads, mem_limit = (
-                    get_dask_client(
+                if dask_env is not True:
+                    (
+                        dask_client,
+                        dask_cluster,
+                        n_jobs,
+                        n_threads,
+                        mem_limit,
+                        dask_dir,
+                    ) = get_dask_client(
                         len(polcal_mslist),
                         dask_dir=workdir,
                         cpu_frac=cpu_frac,
                         mem_frac=mem_frac,
-                        min_mem_per_job=mem_limit / 0.6,
+                        min_mem_per_job=mem_limit,
                     )
-                )
+                else:
+                    _, _, n_jobs, n_threads, mem_limit, dask_dir = get_dask_client(
+                        len(polcal_mslist),
+                        dask_dir=workdir,
+                        cpu_frac=cpu_frac,
+                        mem_frac=mem_frac,
+                        min_mem_per_job=mem_limit,
+                        only_cal=True,
+                    )
+                    os.system(f"rm -rf {dask_dir}")
+                    dask_client = get_client()
                 tasks = [
                     delayed(run_polcal)(
                         sub_msname,
@@ -927,9 +1044,13 @@ def single_round_cal_and_flag(
                     )
                     for sub_msname in polcal_mslist
                 ]
-                results = list(dask_client.compute(tasks, sync=True))
+                futures = dask_client.compute(tasks)
+                dask_client.wait_for_workers(1)
+                results = list(dask_client.gather(futures))
                 dask_client.close()
-                dask_cluster.close()
+                if dask_env is not True:
+                    dask_cluster.close()
+                    os.system(f"rm -rf {dask_dir}")
                 kcross_tables = []
                 crossphase_tables = []
                 pangle_tables = []
@@ -994,13 +1115,27 @@ def single_round_cal_and_flag(
             mem_limit = run_limited_memory_task(task, dask_dir=workdir)
             ms_size_list = [get_column_size(ms) + mem_limit for ms in all_mslist]
             mem_limit = max(ms_size_list)
-            dask_client, dask_cluster, n_jobs, n_threads, mem_limit = get_dask_client(
-                len(all_mslist),
-                dask_dir=workdir,
-                cpu_frac=cpu_frac,
-                mem_frac=mem_frac,
-                min_mem_per_job=mem_limit / 0.6,
-            )
+            if dask_env is not True:
+                dask_client, dask_cluster, n_jobs, n_threads, mem_limit, dask_dir = (
+                    get_dask_client(
+                        len(all_mslist),
+                        dask_dir=workdir,
+                        cpu_frac=cpu_frac,
+                        mem_frac=mem_frac,
+                        min_mem_per_job=mem_limit,
+                    )
+                )
+            else:
+                _, _, n_jobs, n_threads, mem_limit, dask_dir = get_dask_client(
+                    len(all_mslist),
+                    dask_dir=workdir,
+                    cpu_frac=cpu_frac,
+                    mem_frac=mem_frac,
+                    min_mem_per_job=mem_limit,
+                    only_cal=True,
+                )
+                os.system(f"rm -rf {dask_dir}")
+                dask_client = get_client()
             tasks = [
                 delayed(run_applycal)(
                     sub_msname,
@@ -1014,9 +1149,13 @@ def single_round_cal_and_flag(
                 )
                 for sub_msname in all_mslist
             ]
-            results = list(dask_client.compute(tasks, sync=True))
+            futures = dask_client.compute(tasks)
+            dask_client.wait_for_workers(1)
+            results = list(dask_client.gather(futures))
             dask_client.close()
-            dask_cluster.close()
+            if dask_env is not True:
+                dask_cluster.close()
+                os.system(f"rm -rf {dask_dir}")
 
         ##############################
         # Post calibration flagging
@@ -1027,13 +1166,27 @@ def single_round_cal_and_flag(
             mem_limit = run_limited_memory_task(task, dask_dir=workdir)
             ms_size_list = [get_column_size(ms) + mem_limit for ms in all_mslist]
             mem_limit = max(ms_size_list)
-            dask_client, dask_cluster, n_jobs, n_threads, mem_limit = get_dask_client(
-                len(all_mslist),
-                dask_dir=workdir,
-                cpu_frac=cpu_frac,
-                mem_frac=mem_frac,
-                min_mem_per_job=mem_limit / 0.6,
-            )
+            if dask - env is not True:
+                dask_client, dask_cluster, n_jobs, n_threads, mem_limit, dask_dir = (
+                    get_dask_client(
+                        len(all_mslist),
+                        dask_dir=workdir,
+                        cpu_frac=cpu_frac,
+                        mem_frac=mem_frac,
+                        min_mem_per_job=mem_limit,
+                    )
+                )
+            else:
+                _, _, n_jobs, n_threads, mem_limit, dask_dir = get_dask_client(
+                    len(all_mslist),
+                    dask_dir=workdir,
+                    cpu_frac=cpu_frac,
+                    mem_frac=mem_frac,
+                    min_mem_per_job=mem_limit,
+                    only_cal=True,
+                )
+                os.system(f"rm -rf {dask_dir}")
+                dask_client = get_client()
             tasks = []
             if len(all_mslist) > 0:
                 tasks = []
@@ -1052,9 +1205,13 @@ def single_round_cal_and_flag(
                             memory_limit=mem_limit,
                         )
                     )
-            results = list(dask_client.compute(tasks, sync=True))
+            futures = dask_client.compute(tasks)
+            dask_client.wait_for_workers(1)
+            results = list(dask_client.gather(futures))
             dask_client.close()
-            dask_cluster.close()
+            if dask_env is not True:
+                dask_cluster.close()
+                os.system(f"rm -rf {dask_dir}")
 
         ###############################
         # Finished calibration round
@@ -1117,6 +1274,7 @@ def run_basic_cal_rounds(
     perform_polcal=False,
     cpu_frac=0.8,
     mem_frac=0.8,
+    dask_env=False,
 ):
     """
     Perform basic calibration rounds
@@ -1139,6 +1297,8 @@ def run_basic_cal_rounds(
         CPU fraction to use
     mem_frac : float, optional
         Memory fraction to use
+    dask_env : bool, optional
+        In dask environment or not
 
     Returns
     -------
@@ -1228,6 +1388,7 @@ def run_basic_cal_rounds(
                 do_postcal_flag=do_postcal_flag,
                 cpu_frac=cpu_frac,
                 mem_frac=mem_frac,
+                dask_env=dask_env,
             )
             if keep_backup:
                 print(f"Backup directory: {workdir}/backup")
@@ -1276,6 +1437,7 @@ def main(
     mem_frac=0.8,
     logfile=None,
     jobid=0,
+    dask_env=False,
 ):
     """
     Main function to perform basic calibration
@@ -1306,6 +1468,8 @@ def main(
         Log file name
     jobid : str, optional
         Pipeline Job ID
+    dask_env : bool, optional
+        In dask environment or not
 
     Returns
     -------
@@ -1358,6 +1522,7 @@ def main(
                 keep_backup=keep_backup,
                 cpu_frac=float(cpu_frac),
                 mem_frac=float(mem_frac),
+                dask_env=dask_env,
             )
 
             for caltable in caltables:

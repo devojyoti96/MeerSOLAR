@@ -244,7 +244,7 @@ class LogViewer(QWidget):
                 border-bottom-left-radius: 12px;
                 border-bottom-right-radius: 12px;
             }
-        """
+            """
         )
 
         outer_layout.addWidget(inner_container, 0, 0)
