@@ -10,7 +10,7 @@ import os
 from casatasks import casalog
 from casatools import msmetadata
 from dask import delayed
-from dask.distributed import get_client
+from dask.distributed import Client
 from meersolar.utils import *
 
 logging.getLogger("distributed").setLevel(logging.WARNING)
@@ -35,7 +35,7 @@ def partion_ms(
     datacolumn="DATA",
     cpu_frac=0.8,
     mem_frac=0.8,
-    dask_env=False,
+    dask_addr=None,
 ):
     """
     Perform mstransform of a single scan
@@ -60,8 +60,8 @@ def partion_ms(
         Data column to split
     ncpu : int, optional
         Number of CPU threads to use
-    dask_env : bool, optional
-        In dask worker environment
+    dask_addr : str, optional
+        Dask scheduler address
 
     Returns
     -------
@@ -129,7 +129,7 @@ def partion_ms(
         scan_sizes.append(get_ms_scan_size(msname, int(scan)))
     total_required_size = round(2 * np.nansum(scan_sizes), 2)
     mem_limit = total_required_size / len(scan_list)
-    if dask_env is not True:
+    if dask_addr is None:
         dask_client, dask_cluster, n_jobs, n_threads, mem_limit, dask_dir = (
             get_dask_client(
                 len(scan_list),
@@ -150,7 +150,7 @@ def partion_ms(
             only_cal=True,
         )
         os.system(f"rm -rf {dask_dir}")
-        dask_client = get_client()
+        dask_client = Client(address=dask_addr)
     tasks = []
     for i in range(len(scan_list)):
         scan = scan_list[i]
@@ -170,7 +170,7 @@ def partion_ms(
     dask_client.wait_for_workers(1)
     splited_ms_list = list(dask_client.gather(futures))
     dask_client.close()
-    if dask_env is not True:
+    if dask_addr is None:
         dask_cluster.close()
         os.system(f"rm -rf {dask_dir}")
     splited_ms_list_copy = copy.deepcopy(splited_ms_list)
@@ -213,7 +213,7 @@ def main(
     logfile=None,
     jobid="0",
     start_remote_log=False,
-    dask_env=False,
+    dask_addr=None,
 ):
     """
     Partition a measurement set using field, scan, channel, and time selection in subms.
@@ -246,8 +246,8 @@ def main(
         Unique job identifier used for PID tracking. Default is "0".
     start_remote_log : bool, optional
         If True, enables remote logging using credentials in `workdir`. Default is False.
-    dask_env : bool, optional
-        In dask environment
+    dask_addr : str, optional
+        Dask scheduler address
 
     Returns
     -------
@@ -296,7 +296,7 @@ def main(
                 datacolumn=datacolumn,
                 cpu_frac=cpu_frac,
                 mem_frac=mem_frac,
-                dask_env=dask_env,
+                dask_addr=dask_addr,
             )
             if outputms is None or not os.path.exists(outputms):
                 print("Error in partitioning measurement set.")

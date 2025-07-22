@@ -9,7 +9,7 @@ import os
 import logging
 from casatasks import casalog
 from dask import delayed
-from dask.distributed import get_client
+from dask.distributed import Client
 from meersolar.utils import *
 
 logging.getLogger("distributed").setLevel(logging.WARNING)
@@ -225,7 +225,7 @@ def import_phasecal_models(
     workdir,
     cpu_frac=0.8,
     mem_frac=0.8,
-    dask_env=False,
+    dask_addr=None,
 ):
     """
     Import model visibilities for phasecal
@@ -244,8 +244,8 @@ def import_phasecal_models(
         CPU fraction to use
     mem_frac : float, optional
         Memory fraction to use
-    dask_env : bool, optional
-        In dask environment or not
+    dask_addr : str, optional
+        Dask scheduler address
 
     Returns
     -------
@@ -261,9 +261,8 @@ def import_phasecal_models(
             ms_scans = get_ms_scans(ms)
             for s in ms_scans:
                 scans.append(s)
-        task = delayed(do_selfcal)(dry_run=True)
-        mem_limit = run_limited_memory_task(phasecal_setjy, dask_dir=workdir)
-        if dask_env is not True:
+        mem_limit = phasecal_setjy(dry_run=True)
+        if dask_addr is None:
             dask_client, dask_cluster, n_jobs, n_threads, mem_limit, dask_dir = (
                 get_dask_client(
                     len(mslist),
@@ -283,7 +282,7 @@ def import_phasecal_models(
                 only_cal=True,
             )
             os.system(f"rm -rf {dask_dir}")
-            dask_client = get_client()
+            dask_client = Client(address=dask_addr)
         tasks = []
         for phasecal in phasecal_fields:
             ph_scan = phasecal_scans[phasecal]
@@ -303,7 +302,7 @@ def import_phasecal_models(
         dask_client.wait_for_workers(1)
         results = list(dask_client.gather(futures))
         dask_client.close()
-        if dask_env is not True:
+        if dask_addr is None:
             dask_cluster.close()
             os.system(f"rm -rf {dask_dir}")
         print("Phasecal models are initiated.\n")
@@ -321,7 +320,7 @@ def import_polcal_models(
     workdir,
     cpu_frac=0.8,
     mem_frac=0.8,
-    dask_env=False,
+    dask_addr=None,
 ):
     """
     Import model for polarization calibrators (3C286 or 3C138)
@@ -338,8 +337,8 @@ def import_polcal_models(
         Work directory
     n_threads : int, optional
         Number of OpenMP threads
-    dask_env : bool, optional
-        In dask environment or not
+    dask_addr : str, optional
+        Dask scheduler address
 
     Returns
     -------
@@ -355,9 +354,8 @@ def import_polcal_models(
             ms_scans = get_ms_scans(ms)
             for s in ms_scans:
                 scans.append(s)
-        task = delayed(do_selfcal)(dry_run=True)
-        mem_limit = run_limited_memory_task(polcal_setjy, dask_dir=workdir)
-        if dask_env is not True:
+        mem_limit = polcal_setjy(dry_run=True)
+        if dask_addr is None:
             dask_client, dask_cluster, n_jobs, n_threads, mem_limit, dask_dir = (
                 get_dask_client(
                     len(polcal_scans),
@@ -377,7 +375,7 @@ def import_polcal_models(
                 only_cal=True,
             )
             os.system(f"rm -rf {dask_dir}")
-            dask_client = get_client()
+            dask_client = Client(address=dask_addr)
         tasks = []
         for polcal_field in polcal_fields:
             p_scan = polcal_scans[polcal_field]
@@ -394,7 +392,7 @@ def import_polcal_models(
         dask_client.wait_for_workers(1)
         results = list(dask_client.gather(futures))
         dask_client.close()
-        if dask_env is not True:
+        if dask_addr is None:
             dask_cluster.close()
             os.system(f"rm -rf {dask_dir}")
         return 0
@@ -403,7 +401,7 @@ def import_polcal_models(
         return 1
 
 
-def import_all_models(msname, workdir, cpu_frac=0.8, mem_frac=0.8, dask_env=False):
+def import_all_models(msname, workdir, cpu_frac=0.8, mem_frac=0.8, dask_addr=None):
     """
     Import all calibrator models
 
@@ -417,8 +415,8 @@ def import_all_models(msname, workdir, cpu_frac=0.8, mem_frac=0.8, dask_env=Fals
         CPU fraction to use
     mem_frac : float, optional
         Memory fraction to use
-    dask_env : bool, optional
-        In dask environemnt or not
+    dask_addr : str, optional
+        Dask scheduler address
 
     Returns
     -------
@@ -458,7 +456,7 @@ def import_all_models(msname, workdir, cpu_frac=0.8, mem_frac=0.8, dask_env=Fals
             workdir,
             cpu_frac=cpu_frac,
             mem_frac=mem_frac,
-            dask_env=dask_env,
+            dask_addr=dask_addr,
         )
         polcal_result = import_polcal_models(
             mslist,
@@ -467,7 +465,7 @@ def import_all_models(msname, workdir, cpu_frac=0.8, mem_frac=0.8, dask_env=Fals
             workdir,
             cpu_frac=cpu_frac,
             mem_frac=mem_frac,
-            dask_env=dask_env,
+            dask_addr=dask_addr,
         )
         if phasecal_result != 0:
             print(
@@ -497,7 +495,7 @@ def main(
     logfile=None,
     jobid=0,
     start_remote_log=False,
-    dask_env=False,
+    dask_addr=None,
 ):
     """
     Run the calibrator model import pipeline.
@@ -520,8 +518,8 @@ def main(
     start_remote_log : bool, optional
         If True, enables remote logging based on credentials stored in the
         working directory. Default is False.
-    dask_env : bool, optional
-        In dask environment or not
+    dask_addr : str, optional
+        Dask scheduler address
 
     Returns
     -------
@@ -562,7 +560,7 @@ def main(
                 workdir,
                 cpu_frac=cpu_frac,
                 mem_frac=mem_frac,
-                dask_env=dask_env,
+                dask_addr=dask_addr,
             )
             os.system("touch " + workdir + "/.fluxcal_" + str(fluxcal_result))
             os.system("touch " + workdir + "/.phasecal_" + str(phasecal_result))

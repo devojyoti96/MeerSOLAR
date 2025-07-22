@@ -418,7 +418,6 @@ def get_dask_client(
     min_mem_per_job=-1,
     min_cpu_per_job=1,
     only_cal=False,
-    process=True,
     verbose=True,
 ):
     """
@@ -447,8 +446,6 @@ def get_dask_client(
         Minimum CPU threads per job
     only_cal : bool, optional
         Only calculate number of workers
-    process : bool, optional
-        Process based or thread based
     verbose : bool, optional
         Verbose (details of cluster)
 
@@ -468,7 +465,8 @@ def get_dask_client(
     logging.getLogger("distributed").setLevel(logging.ERROR)
     # Create the Dask temporary working directory if it does not already exist
     dask_dir=dask_dir.rstrip("/")
-    dask_dir = tempfile.mkdtemp(prefix=f"{dask_dir}_")
+    os.makedirs(dask_dir,exist_ok=True)
+    dask_dir = tempfile.mkdtemp(prefix=f"{dask_dir}/dask_")
     os.makedirs(dask_dir, exist_ok=True)
     dask_dir_tmp = dask_dir + "/tmp"
     os.makedirs(dask_dir_tmp, exist_ok=True)
@@ -608,7 +606,7 @@ def get_dask_client(
         # one python-thread per worker, in workers OpenMP threads can be used
         memory_limit=f"{round(mem_per_worker/(1024.0**3),2)}GB",
         local_directory=dask_dir,
-        processes=process,  # one process per worker
+        processes=True,  # one process per worker
         dashboard_address=":0",
         env={
             "TMPDIR": dask_dir_tmp,

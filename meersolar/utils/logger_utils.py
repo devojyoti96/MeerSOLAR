@@ -257,7 +257,7 @@ def get_logid(logfile):
 
 def init_logger(logname, logfile, jobname="", password=""):
     """
-    Initialize a local + optional remote logger with watchdog-based tailing.
+    Initialize a remote logger with watchdog-based tailing.
 
     Parameters
     ----------
@@ -272,8 +272,8 @@ def init_logger(logname, logfile, jobname="", password=""):
 
     Returns
     -------
-    logger : logging.Logger
-        Configured logger instance.
+    observer 
+        Observer object
     """
     timeout = 30
     waited = 0

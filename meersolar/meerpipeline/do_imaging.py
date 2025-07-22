@@ -13,7 +13,7 @@ import os
 from casatasks import casalog
 from casatools import msmetadata
 from dask import delayed
-from dask.distributed import get_client
+from dask.distributed import Client
 from meersolar.utils import *
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
@@ -539,7 +539,7 @@ def run_all_imaging(
     cpu_frac=0.8,
     mem_frac=0.8,
     logfile="imaging.log",
-    dask_env=False,
+    dask_addr=None,
 ):
     """
     Run spectropolarimetric snapshot imaging on a list of measurement sets
@@ -596,8 +596,8 @@ def run_all_imaging(
         CPU fraction to use
     mem_frac : float, optional
         Memory fraction to use
-    dask_env : bool, optional
-        In dask environment or not
+    dask_addr : str, optional
+        Dask scheduler address
 
     Returns
     -------
@@ -727,9 +727,8 @@ def run_all_imaging(
         #################################
         # Dask client setup
         #################################
-        task = delayed(perform_imaging)(dry_run=True)
-        mem_limit = run_limited_memory_task(task, dask_dir=workdir)
-        if dask_env is not True:
+        mem_limit = perform_imaging(dry_run=True)
+        if dask_addr is None:
             dask_client, dask_cluster, n_jobs, n_threads, mem_limit, dask_dir = (
                 get_dask_client(
                     n_jobs,
@@ -752,7 +751,7 @@ def run_all_imaging(
                     only_cal=True,
                 )
             )
-            dask_client=get_clinet()
+            dask_client=Client(address=dask_addr)
             os.system(f"rm -rf {dask_dir}")
         tasks = []
         for i in range(len(mslist)):
@@ -829,7 +828,7 @@ def run_all_imaging(
         dask_client.wait_for_workers(1)
         results = list(dask_client.gather(futures))
         dask_client.close()
-        if dask_env is not True:
+        if dask_addr is None:
             dask_cluster.close()
             os.system(f"rm -rf {dask_dir}")
         all_image_list = []
@@ -899,7 +898,7 @@ def main(
     cpu_frac=0.8,
     mem_frac=0.8,
     jobid=0,
-    dask_env=False,
+    dask_addr=None,
 ):
     """
     Perform distributed spectropolarimetric snapshot imaging on multiple measurement sets.
@@ -956,8 +955,8 @@ def main(
         Fraction of total system memory to use per task. Default is 0.8.
     jobid : int, optional
         Unique job identifier for logging and PID tracking. Default is 0.
-    dask_env : bool, optional
-        In dask environment or not
+    dask_addr : str, optional
+        Dask scheduler address
 
     Returns
     -------
@@ -1039,7 +1038,7 @@ def main(
                 saveres=saveres,
                 cpu_frac=cpu_frac,
                 mem_frac=mem_frac,
-                dask_env=dask_env,
+                dask_addr=dask_addr,
             )
     except Exception:
         traceback.print_exc()
@@ -1261,7 +1260,7 @@ def cli():
 
 
 if __name__ == "__main__":
-    result = main()
+    result = cli()
     if result > 0:
         result = 1
     print("\n###################\nImaging is done.\n###################\n")

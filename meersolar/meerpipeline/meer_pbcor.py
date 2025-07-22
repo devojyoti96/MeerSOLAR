@@ -13,7 +13,7 @@ from astropy.io import fits
 from astropy.wcs import FITSFixedWarning
 from casatasks import casalog
 from dask import delayed
-from dask.distributed import get_client
+from dask.distributed import Client
 from meersolar.meerpipeline.single_image_meerpbcor import get_pbcor_image
 from meersolar.utils import *
 
@@ -113,7 +113,7 @@ def pbcor_all_images(
     jobid=0,
     cpu_frac=0.8,
     mem_frac=0.8,
-    dask_env=False,
+    dask_addr=None,
 ):
     """
     Correct primary beam of MeerKAT for images in a directory
@@ -134,6 +134,8 @@ def pbcor_all_images(
         CPU fraction to use
     mem_frac : float, optional
         Memory fraction to use
+    dask_addr : str, optional
+        Dask scheduler address
 
     Returns
     -------
@@ -167,7 +169,7 @@ def pbcor_all_images(
             16 * max([os.path.getsize(image) for image in images]) / 1024**3
         )  # In GB
         if len(first_set) > 0:
-            if dask_env is not True:
+            if dask_addr is None:
                 dask_client, dask_cluster, n_jobs, n_threads, mem_limit, dask_dir = (
                     get_dask_client(
                         len(first_set),
@@ -188,7 +190,7 @@ def pbcor_all_images(
                         only_cal=True,
                     )
                 )
-                dask_client=get_client()
+                dask_client=Client(address=dask_addr)
                 os.system(f"rm -rf {dask_dir}")
             tasks = []
             for image in first_set:
@@ -200,7 +202,7 @@ def pbcor_all_images(
             dask_client.wait_for_workers(1)
             results = list(dask_client.gather(futures))
             dask_client.close()
-            if dask_env is not True:
+            if dask_addr is None:
                 dask_cluster.close()
                 os.system(f"rm -rf {dask_dir}")
             successful_pbcor = 0
@@ -209,7 +211,7 @@ def pbcor_all_images(
                     successful_pbcor += 1
         if len(remaining_set) > 0:
             print(f"Correcting remaining images of different timestamps.")
-            if dask_env is not True:
+            if dask_addr is None:
                 dask_client, dask_cluster, n_jobs, n_threads, mem_limit, dask_dir = (
                     get_dask_client(
                         len(remaining_set),
@@ -230,7 +232,7 @@ def pbcor_all_images(
                         only_cal=True,
                     )
                 )
-                dask_client=get_client()
+                dask_client=Client(address=dask_addr)
                 os.system(f"rm -rf {dask_dir}")
             tasks = []
             for image in remaining_set:
@@ -242,7 +244,7 @@ def pbcor_all_images(
             dask_client.wait_for_workers(1)
             results = list(dask_client.gather(futures))
             dask_client.close()
-            if dask_env is not True:
+            if dask_addr is None:
                 dask_cluster.close()
                 os.system(f"rm -rf {dask_dir}")
             for r in results:
@@ -337,7 +339,7 @@ def main(
     logfile=None,
     jobid=0,
     start_remote_log=False,
-    dask_env=False,
+    dask_addr=None,
 ):
     """
     Primary beam correction of MeerKAT for a sets of images in a directory
@@ -364,8 +366,8 @@ def main(
         Job ID
     start_remote_log : bool, optional
         Start remote logger
-    dask_env : bool, optional
-        In dask environment or not
+    dask_addr : str, optional
+        Dask scheduler address
 
     Returns
     -------
@@ -409,7 +411,7 @@ def main(
                 jobid=jobid,
                 cpu_frac=cpu_frac,
                 mem_frac=mem_frac,
-                dask_env=daks_env,
+                dask_addr=dask_addr,
             )
         else:
             print("Please provide correct image directory path.")

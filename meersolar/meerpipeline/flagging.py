@@ -11,7 +11,7 @@ import os
 from casatasks import casalog
 from casatools import msmetadata
 from dask import delayed
-from dask.distributed import get_client
+from dask.distributed import Client
 from meersolar.utils import *
 
 logging.getLogger("distributed").setLevel(logging.WARNING)
@@ -302,7 +302,7 @@ def do_flagging(
     flag_backup=True,
     cpu_frac=0.8,
     mem_frac=0.8,
-    dask_env=False,
+    dask_addr=None,
 ):
     """
     Function to perform initial flagging
@@ -333,8 +333,8 @@ def do_flagging(
         CPU fraction to use
     mem_frac : float, optional
         Memory fraction to use
-    dask_env : bool, optional
-        In dask enviornmnent or not
+    dask_addr : str, optional
+        Dask scheduler address
 
     Returns
     -------
@@ -380,7 +380,7 @@ def do_flagging(
             subms_list = [msname]
         ms_size_list = [get_column_size(ms) for ms in subms_list]
         mem_limit = max(ms_size_list)
-        if dask_env is not True:
+        if dask_addr is None:
             dask_client, dask_cluster, n_jobs, n_threads, mem_limit, dask_dir = (
                 get_dask_client(
                     len(subms_list),
@@ -400,7 +400,7 @@ def do_flagging(
                 only_cal=True,
             )
             os.system(f"rm -rf {dask_dir}")
-            dask_client = get_client()
+            dask_client = Client(address=dask_addr)
         if flag_backup:
             do_flag_backup(msname, flagtype="flagdata")
         tasks = [
@@ -422,7 +422,7 @@ def do_flagging(
         dask_client.wait_for_workers(1)
         results = list(dask_client.gather(futures))
         dask_client.close()
-        if dask_env is not True:
+        if dask_addr is None:
             dask_cluster.close()
             os.system(f"rm -rf {dask_dir}")
         print("##################")
@@ -453,7 +453,7 @@ def main(
     logfile=None,
     jobid=0,
     start_remote_log=False,
-    dask_env=False,
+    dask_addr=None,
 ):
     """
     Run the flagging pipeline for a measurement set.
@@ -491,8 +491,8 @@ def main(
         Numeric job ID used for PID tracking. Default is 0.
     start_remote_log : bool, optional
         Whether to enable remote logging using credentials in the workdir. Default is False.
-    dask_env : bool, optional
-        In dask worker environment
+    dask_addr : str, optional
+        Dask scheduler address
 
     Returns
     -------
@@ -543,7 +543,7 @@ def main(
                 flag_backup=flagbackup,
                 cpu_frac=cpu_frac,
                 mem_frac=mem_frac,
-                dask_env=dask_env,
+                dask_addr=dask_addr,
             )
         else:
             print("Please provide correct measurement set.\n")

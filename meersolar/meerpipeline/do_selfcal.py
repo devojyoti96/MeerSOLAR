@@ -12,7 +12,7 @@ import copy
 from casatasks import casalog
 from casatools import msmetadata, table
 from dask import delayed
-from dask.distributed import get_client
+from dask.distributed import Client
 from functools import partial
 from meersolar.utils import *
 
@@ -566,7 +566,7 @@ def main(
     mem_frac=0.8,
     jobid=0,
     start_remote_log=False,
-    dask_env=False,
+    dask_addr=None,
 ):
     """
     Perform iterative self-calibration on a list of measurement sets.
@@ -619,8 +619,8 @@ def main(
         Identifier for job tracking and logging. Default is 0.
     start_remote_log : bool, optional
         Whether to initiate remote logging via job credentials. Default is False.
-    dask_env : bool, optional
-        In dask environment or not
+    dask_addr : str, optional
+        Dask scheduler address
 
     Returns
     -------
@@ -684,8 +684,7 @@ def main(
             mainlogger.info("Please provide at-least one measurement set.")
             msg = 1
         else:
-            task = delayed(do_selfcal)(dry_run=True)
-            mem_limit = run_limited_memory_task(task, dask_dir=workdir)
+            mem_limit = do_selfcal(dry_run=True)
             partial_do_selfcal = partial(
                 do_selfcal,
                 start_threshold=float(start_thresh),
@@ -769,7 +768,7 @@ def main(
                 total_fd = max(num_fd_list) * len(mslist)
                 n_jobs = max(1, int(new_soft_limit / total_fd))
                 n_jobs = min(len(mslist), n_jobs)
-                if dask_env is not True:
+                if dask_addr is None:
                     dask_client, dask_cluster, n_jobs, n_threads, mem_limit, dask_dir = (
                         get_dask_client(
                             n_jobs,
@@ -792,7 +791,7 @@ def main(
                             only_cal=True,
                         )
                     )
-                    dask_client=get_client()
+                    dask_client=Client(address=dask_addr)
                     os.system(f"rm -rf {dask_dir}")
                 tasks = []
                 for ms in mslist:
@@ -820,7 +819,7 @@ def main(
                 dask_client.wait_for_workers(1)
                 results = list(dask_client.gather(futures))
                 dask_client.close()
-                if dask_env is not True:
+                if dask_addr is None:
                     dask_cluster.close()
                     os.system(f"rm -rf {dask_dir}")
                 gcal_list = []

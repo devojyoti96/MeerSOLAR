@@ -11,7 +11,7 @@ import os
 from casatasks import casalog
 from casatools import msmetadata, ms as casamstool
 from dask import delayed
-from dask.distributed import get_client
+from dask.distributed import Client
 from meersolar.utils import *
 
 logging.getLogger("distributed").setLevel(logging.WARNING)
@@ -36,7 +36,7 @@ def make_solar_DS(
     showgui=False,
     cpu_frac=0.8,
     mem_frac=0.8,
-    dask_env=False,
+    dask_addr=None,
 ):
     """
     Make solar dynamic spectrum and plots
@@ -63,8 +63,8 @@ def make_solar_DS(
         CPU fraction to use
     mem_frac : float, optional
         Memory fraction to use
-    dask_env : bool, optional
-        In dask environment or not
+    dask_addr : str, optional
+        Dask scheduler address
     """
     warnings.filterwarnings("ignore", category=RuntimeWarning)
     os.makedirs(f"{workdir}/dynamic_spectra", exist_ok=True)
@@ -120,7 +120,7 @@ def make_solar_DS(
         datacolumn = "DATA"
     mspath = os.path.dirname(msname)
     mem_limit = max(scan_size_list)
-    if dask_env is not True:
+    if dask_addr is None:
         dask_client, dask_cluster, n_jobs, n_threads, mem_limit, dask_dir = get_dask_client(
             len(scans),
             dask_dir=workdir,
@@ -137,7 +137,7 @@ def make_solar_DS(
             min_mem_per_job=mem_limit,
             only_cal=True,
         )
-        dask_client=get_client()
+        dask_client=Client(address=dask_addr)
         os.system(f"rm -rf {dask_dir}")
     tasks = []
     for scan in scans:
@@ -153,7 +153,7 @@ def make_solar_DS(
     dask_client.wait_for_workers(1)
     results = list(dask_client.gather(futures))
     dask_client.close()
-    if dask_env is not True:
+    if dask_addr is None:
         dask_cluster.close()
         os.system(f"rm -rf {dask_dir}")
     ds_files = [
@@ -191,7 +191,7 @@ def make_dsfiles(
     seperate_scans=True,
     cpu_frac=0.8,
     mem_frac=0.8,
-    dask_env=False,
+    dask_addr=None,
 ):
     """
     Make all dynamic spectra of the solar scans
@@ -216,8 +216,8 @@ def make_dsfiles(
         CPU fraction to use
     mem_frac : float, optional
         Memory fraction to use
-    dask_env : bool, optional
-        In dask environment or not
+    dask_addr : str, optional
+        Dask scheduler address
 
     Returns
     -------
@@ -238,7 +238,7 @@ def make_dsfiles(
                 merge_scan=False,
                 cpu_frac=cpu_frac,
                 mem_frac=mem_frac,
-                dask_env=dask_env,
+                dask_addr=dask_addr,
             )
         if merge_scans:
             make_solar_DS(
@@ -249,10 +249,12 @@ def make_dsfiles(
                 merge_scan=True,
                 cpu_frac=cpu_frac,
                 mem_frac=mem_frac,
-                dask_env=dask_env,
+                dask_addr=dask_addr,
             )
         if os.path.samefile(outdir, workdir) == False:
-            os.system(f"mv {workdir}/dynamic_spectra {outdir}")
+            os.makedirs(f" {outdir}/dynamic_spectra",exist_ok=True)
+            os.system(f"mv {workdir}/dynamic_spectra/* {outdir}/dynamic_spectra/")
+            os.system(f"rm -rf {workdir}/dynamic_spectra")
         ds_file_name = os.path.basename(msname).split(".ms")[0] + "_DS"
         ds_files = glob.glob(f"{outdir}/dynamic_spectra/{ds_file_name}*.{extension}")
         return ds_files
@@ -278,7 +280,7 @@ def main(
     logfile=None,
     jobid="0",
     start_remote_log=False,
-    dask_env=False,
+    dask_addr=None,
 ):
     """
     Make dynamic spectra
@@ -309,8 +311,8 @@ def main(
         Job ID
     start_remote_log : bool, optional
         Start remote log
-    dask_env : bool, optional
-        In dask environment or not
+    dask_addr: str, optional
+        Dask scheduler address
 
     Returns
     -------
@@ -356,7 +358,7 @@ def main(
                 seperate_scans=seperate,
                 cpu_frac=float(cpu_frac),
                 mem_frac=float(mem_frac),
-                dask_env=dask_env,
+                dask_addr=dask_addr,
             )
             msg = 0
         else:

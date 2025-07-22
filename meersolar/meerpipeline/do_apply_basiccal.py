@@ -13,7 +13,7 @@ import os
 from casatasks import casalog
 from casatools import table
 from dask import delayed
-from dask.distributed import get_client
+from dask.distributed import Client
 from scipy.interpolate import CubicSpline
 from scipy.ndimage import gaussian_filter1d
 from scipy.interpolate import interp1d
@@ -293,7 +293,7 @@ def run_all_applysol(
     do_post_flag=False,
     cpu_frac=0.8,
     mem_frac=0.8,
-    dask_env=False,
+    dask_addr=None,
 ):
     """
     Apply basic-calibration solutions on all target scans
@@ -320,8 +320,8 @@ def run_all_applysol(
         CPU fraction to use
     mem_frac : float, optional
         Memory fraction to use
-    dask_env : bool, optional
-        In dask environment or not
+    dask_addr : str, optional
+        Dask scheduler address
 
     Returns
     --------
@@ -413,11 +413,9 @@ def run_all_applysol(
         # Applycal jobs
         ####################################
         print(f"Total ms list: {len(mslist)}")
-        task = delayed(applysol)(dry_run=True)
-        mem_limit = run_limited_memory_task(task, dask_dir=workdir)
-        ms_size_list = [get_column_size(ms) + mem_limit for ms in mslist]
+        ms_size_list = [get_column_size(ms) for ms in mslist]
         mem_limit = max(ms_size_list)
-        if dask_env is not True:
+        if dask_addr is None:
             dask_client, dask_cluster, n_jobs, n_threads, mem_limit, dask_dir = (
                 get_dask_client(
                     len(mslist),
@@ -437,7 +435,7 @@ def run_all_applysol(
                 only_cal=True,
             )
             os.system(f"rm -rf {dask_dir}")
-            dask_client = get_client()
+            dask_client = Client(address=dask_addr)
         tasks = []
         if scaled_bandpass_table != "" and os.path.exists(scaled_bandpass_table):
             bpass_table = scaled_bandpass_table
@@ -478,7 +476,7 @@ def run_all_applysol(
         dask_client.wait_for_workers(1)
         results = list(dask_client.gather(futures))
         dask_client.close()
-        if dask_env is not True:
+        if dask_addr is None:
             dask_cluster.close()
             os.system(f"rm -rf {dask_dir}")
         if np.nansum(results) == 0:
@@ -523,7 +521,7 @@ def main(
     mem_frac=0.8,
     logfile=None,
     jobid=0,
-    dask_env=False,
+    dask_addr=None,
 ):
     """
     Apply calibration solutions to a list of measurement sets with optional post-flagging.
@@ -556,8 +554,8 @@ def main(
         Path to the logfile. If None, logging to file is disabled. Default is None.
     jobid : int, optional
         Identifier for tracking the job and saving PID. Default is 0.
-    dask_env : bool, optional
-        In dask environment or not
+    dask_addr : str, optional
+        Dask scheduler address
 
     Returns
     -------
@@ -614,7 +612,7 @@ def main(
                 force_apply=force_apply,
                 cpu_frac=cpu_frac,
                 mem_frac=mem_frac,
-                dask_env=dask_env,
+                dask_addr=dask_addr,
             )
     except Exception:
         traceback.print_exc()

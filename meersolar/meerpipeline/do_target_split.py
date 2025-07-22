@@ -10,7 +10,7 @@ import os
 from casatasks import casalog
 from casatools import msmetadata
 from dask import delayed
-from dask.distributed import get_client
+from dask.distributed import Client
 from meersolar.utils import *
 
 logging.getLogger("distributed").setLevel(logging.WARNING)
@@ -62,7 +62,7 @@ def split_target_scans(
     mem_frac=0.8,
     max_cpu_frac=0.8,
     max_mem_frac=0.8,
-    dask_env=False,
+    dask_addr=None,
 ):
     """
     Split target scans
@@ -105,8 +105,8 @@ def split_target_scans(
         Maximum CPU fraction to use
     max_mem_frac : float, optional
         Maximum memory fraction to use
-    dask_env : bool, optional
-        In dask environment or not
+    dask_addr : str, optional
+        Dask scheduler address
 
     Returns
     -------
@@ -232,8 +232,7 @@ def split_target_scans(
         #############################################
         # Memory limit
         #############################################
-        task = delayed(single_mstransform)(dry_run=True)
-        mem_limit = run_limited_memory_task(task, dask_dir=workdir)
+        mem_limit = single_mstransform(dry_run=True)
         #######################
         _, _, max_n_jobs, n_threads, mem_limit, dask_dir = (
             get_dask_client(
@@ -289,7 +288,7 @@ def split_target_scans(
         if cpu_frac == max_cpu_frac and mem_frac == max_mem_frac:
             total_chunks = len(tasks)
             if total_chunks > 0:
-                if dask_env is not True:
+                if dask_addr is None:
                     dask_client, dask_cluster, n_jobs, n_threads, mem_limit, dask_dir = (
                         get_dask_client(
                             total_chunks,
@@ -310,13 +309,13 @@ def split_target_scans(
                             only_cal=True,
                         )
                     )
-                    dask_client=get_client()
+                    dask_client=Client(address=dask_addr)
                     os.system(f"rm -rf {dask_dir}")
                 futures = dask_client.compute(tasks)
                 dask_client.wait_for_workers(1)
                 results = list(dask_client.gather(futures))
                 dask_client.close()
-                if dask_env is not True:
+                if dask_addr is None:
                     dask_cluster.close()
                     os.system(f"rm -rf {dask_dir}")
                 for r in results:
@@ -327,7 +326,7 @@ def split_target_scans(
                 if total_chunks == 0:
                     break
                 else:
-                    if dask_env is not True:
+                    if dask_addr is None:
                         (
                             dask_client,
                             dask_cluster,
@@ -358,7 +357,7 @@ def split_target_scans(
                             min_mem_per_job=mem_limit,
                             only_cal=True,
                         )
-                        dask_client=get_client()
+                        dask_client=Client(address=dask_addr)
                         os.system(f"rm -rf {dask_dir}")
                     chunk_tasks = tasks[0 : min(n_jobs, max_n_jobs)]
                     for ctask in chunk_tasks:
@@ -367,7 +366,7 @@ def split_target_scans(
                     dask_client.wait_for_workers(1)
                     results = list(dask_client.gather(futures))
                     dask_client.close()
-                    if dask_env is not True:
+                    if dask_addr is None:
                         dask_cluster.close()
                         os.system(f"rm -rf {dask_dir}")
                     for r in results:
@@ -427,7 +426,7 @@ def main(
     logfile=None,
     jobid=0,
     start_remote_log=False,
-    dask_env=False,
+    dask_addr=None,
 ):
     """
     Split target scans from a measurement set into smaller chunks for parallel processing.
@@ -476,8 +475,8 @@ def main(
         Job identifier for tracking and PID storage. Default is 0.
     start_remote_log : bool, optional
         If True, enables remote logging using credentials stored in workdir. Default is False.
-    dask_env : bool, optional
-        In dask environment or not
+    dask_addr : str, optional
+        Dask scheduler address
 
     Returns
     -------
@@ -538,7 +537,7 @@ def main(
                 mem_frac=float(mem_frac),
                 max_cpu_frac=float(max_cpu_frac),
                 max_mem_frac=float(max_mem_frac),
-                dask_env=dask_env,
+                dask_addr=dask_addr,
             )
         else:
             print("Please provide correct measurement set.\n")

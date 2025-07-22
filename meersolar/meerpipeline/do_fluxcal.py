@@ -11,7 +11,7 @@ import os
 from casatasks import casalog
 from casatools import msmetadata, ms as casamstool, table
 from dask import delayed
-from dask.distributed import get_client
+from dask.distributed import Client
 from meersolar.utils import *
 from meersolar.meerpipeline.flagging import single_ms_flag
 from meersolar.meerpipeline.import_model import import_fluxcal_models
@@ -51,7 +51,7 @@ def split_casatask(
 
 
 def split_autocorr(
-    msname, workdir, scan_list, time_window=-1, cpu_frac=0.8, mem_frac=0.8, dask_env=False,
+    msname, workdir, scan_list, time_window=-1, cpu_frac=0.8, mem_frac=0.8, dask_addr=None,
 ):
     """
     Split auto-correlations
@@ -70,8 +70,8 @@ def split_autocorr(
         CPU fraction to use
     mem_frac : float, optional
         Memory fraction to use
-    dask_env : bool, optional
-        In dask environment or not
+    dask_addr : str, optional
+        Dask scheduler address
 
     Returns
     -------
@@ -79,9 +79,9 @@ def split_autocorr(
         Splited ms list
     """
     msname = msname.rstrip("/")
-    task = delayed(split_casatask)(dry_run=True)
-    mem_limit = run_limited_memory_task(task, dask_dir=workdir)
-    if dask_env is not True:
+    scan_size_list=[get_ms_scan_size(msname,scan,only_autocorr=True) for scan in scan_list]
+    mem_limit=max(scan_size_list)
+    if dask_addr is None:
         dask_client, dask_cluster, n_jobs, n_threads, mem_limit, dask_dir = get_dask_client(
             len(scan_list),
             dask_dir=workdir,
@@ -98,7 +98,7 @@ def split_autocorr(
             min_mem_per_job=mem_limit,
             only_cal=True,
         )
-        dask_client=get_client()
+        dask_client=Client(address=dask_addr)
         os.system(f"rm -rf {dask_dir}")
     tasks = []
     for scan in scan_list:
@@ -137,7 +137,7 @@ def split_autocorr(
     else:
         autocorr_mslist = []
     dask_client.close()
-    if dask_env is not True:
+    if dask_addr is None:
         dask_cluster.close()
         os.system(f"rm -rf {dask_dir}")
     return autocorr_mslist
@@ -363,7 +363,7 @@ def estimate_att(
     time_window=900,
     cpu_frac=0.8,
     mem_frac=0.8,
-    dask_env=False,
+    dask_addr=None,
 ):
     """
     Estimate attenaution scaling
@@ -388,8 +388,8 @@ def estimate_att(
         CPU fraction to use
     mem_frac : float, optional
         Memory fraction to use
-    dask_env : bool, optional
-        In dask environment or not
+    dask_addr : str, optional
+        Dask scheduler address
 
     Returns
     -------
@@ -417,7 +417,7 @@ def estimate_att(
             time_window=time_window,
             cpu_frac=cpu_frac,
             mem_frac=mem_frac,
-            dask_env=dask_env,
+            dask_addr=dask_addr,
         )
         if len(autocorr_mslist) == 0:
             print("No scans splited.")
@@ -431,7 +431,7 @@ def estimate_att(
         bad_ants, bad_ants_str = get_bad_ants(msname, fieldnames=fluxcal_fields)
         print("Flagging auto-correlation measurement sets ...")
         mem_limit = max(scan_sizes)
-        if dask_env is not True:
+        if dask_addr is None:
             dask_client, dask_cluster, n_jobs, n_threads, mem_limit, dask_dir = (
                 get_dask_client(
                     len(autocorr_mslist),
@@ -452,7 +452,7 @@ def estimate_att(
                     only_cal=True
                 )
             )
-            dask_client=get_client()
+            dask_client=Client(address=dask_addr)
             os.system(f"rm -rf {dask_dir}")
         tasks = []
         for autocorr_msname in autocorr_mslist:
@@ -474,7 +474,7 @@ def estimate_att(
         dask_client.wait_for_workers(1)
         results = list(dask_client.gather(futures))
         dask_client.close()
-        if dask_env is not True:
+        if dask_addr is None:
             dask_cluster.close()
             os.system(f"rm -rf {dask_dir}")
         for autocorr_msname in autocorr_mslist:
@@ -484,9 +484,9 @@ def estimate_att(
         # Calculating per scan level
         ########################################
         print("Calculating noise-diode power difference ...")
-        scan_sizes=[get_ms_scan_size(ms,scan) for scan in valid_target_scans]
+        scan_sizes=[get_column_size(ms) for ms in autocorr_mslist]
         mem_limit=max(scan_sizes)
-        if dask_env is not true:
+        if dask_addr is None:
             dask_client, dask_cluster, n_jobs, n_threads, mem_limit, dask_dir = (
                 get_dask_client(
                     len(valid_target_scans),
@@ -504,9 +504,10 @@ def estimate_att(
                     cpu_frac=cpu_frac,
                     mem_frac=mem_frac,
                     min_mem_per_job=mem_limit,
+                    only_cal=True,
                 )
             )
-            dask_client=get_client()
+            dask_client=Client(address=dask_addr)
             os.system(f"rm -rf {dask_dir}")
         all_scaling_files = []
         filtered_scans = []
@@ -530,7 +531,7 @@ def estimate_att(
         dask_client.wait_for_workers(1)
         results = list(dask_client.gather(futures))
         dask_client.close()
-        if dask_env is not True:
+        if dask_addr is None:
             dask_cluster.close()
             os.system(f"rm -rf {dask_dir}")
         ##########################################
@@ -595,7 +596,7 @@ def run_noise_cal(
     keep_backup=False,
     cpu_frac=0.8,
     mem_frac=0.8,
-    dask_env=False,
+    dask_addr=None,
 ):
     """
     Perform flux calibration using noise diode
@@ -612,8 +613,8 @@ def run_noise_cal(
         CPU fraction to use
     mem_frac : float, optional
         Memory fraction to use
-    dask_env : bool, optional
-        In dask environment or not
+    dask_addr : str, optional
+        Dask scheduler address
 
     Returns
     -------
@@ -774,11 +775,12 @@ def run_noise_cal(
             time_window=900,
             cpu_frac=cpu_frac,
             mem_frac=mem_frac,
-            dask_env=dask_env,
+            dask_addr=dask_addr,
         )
         if keep_backup:
             print("Backup directory: " + workdir + "/backup")
             os.makedirs(workdir + "/backup", exist_ok=True)
+            os.system(f"rm -rf {workdir}/backup/autocorr_scan_*.ms*")
             os.system(
                 "mv "
                 + noisecal_ms
@@ -826,7 +828,7 @@ def main(
     mem_frac=0.8,
     logfile=None,
     jobid=0,
-    dask_env=False,
+    dask_addr=None,
 ):
     """
     Apply calibration solutions to a measurement set.
@@ -851,8 +853,8 @@ def main(
         Path to the log file. If None, disables file logging. Default is None.
     jobid : int, optional
         Identifier for tracking the job and saving PID. Default is 0.
-    dask_env : bool, optional
-        In dask environment or not
+    dask_addr : str, optional
+        Dask scheduler address
 
     Returns
     -------
@@ -904,11 +906,12 @@ def main(
                 keep_backup=keep_backup,
                 cpu_frac=cpu_frac,
                 mem_frac=mem_frac,
-                dask_env=dask_env,
+                dask_addr=dask_addr,
             )
 
             if msg == 0 and all_scaling_files is not None:
                 for att_file in all_scaling_files:
+                    os.system(f"rm -rf {caldir}/{os.path.basename(att_file)}")
                     os.system("mv " + att_file + " " + caldir)
         else:
             print("Please provide a valid measurement set.")
