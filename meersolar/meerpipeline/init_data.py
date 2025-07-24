@@ -14,6 +14,8 @@ from meersolar.utils import (
     init_udocker,
     initialize_wsclean_container,
     SmartDefaultsHelpFormatter,
+    start_server
+    
 )
 
 logging.getLogger("distributed").setLevel(logging.WARNING)
@@ -108,6 +110,7 @@ def init_meersolar_data(update=False, remote_link=None, emails=None):
 
 def main(
     init=False,
+    prefect_server=True,
     datadir="",
     update=False,
     link=None,
@@ -120,6 +123,8 @@ def main(
     ----------
     init : bool, optional
         Initiate setup
+    prefect_server : bool, optional
+        Initiate prefect server
     datadir : str, optional
         User provided custom data directory
     update : bool, optional
@@ -138,6 +143,8 @@ def main(
         init_udocker()
         initialize_wsclean_container()
         print("uDOCKER inititalized")
+        if prefect_server:
+            start_server()
         return 0
     else:
         return 1
@@ -151,6 +158,9 @@ def cli():
     parser.add_argument("--init", action="store_true", help="Initiate data")
     parser.add_argument(
         "--datadir", type=str, default="", help="User provided data directory"
+    )
+    parser.add_argument(
+        "--no_prefect_server", action="store_false", dest="init_prefect_server", help="Do not inititate prefect server"
     )
     parser.add_argument("--update", action="store_true", help="Update existing data")
     parser.add_argument(
@@ -171,6 +181,7 @@ def cli():
     msg = main(
         init=args.init,
         datadir=args.datadir,
+        prefect_server=args.init_prefect_server,
         update=args.update,
         link=args.link,
         emails=args.emails,

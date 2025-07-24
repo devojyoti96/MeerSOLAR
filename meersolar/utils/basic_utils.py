@@ -8,14 +8,6 @@ from astropy.time import Time
 from astropy.coordinates import Angle
 from datetime import datetime as dt
 from contextlib import contextmanager
-from casatasks import casalog
-
-try:
-    logfile = casalog.logfile()
-    os.system("rm -rf " + logfile)
-except BaseException:
-    pass
-
 
 ##########################
 # Basic utility funactions

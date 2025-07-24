@@ -406,7 +406,28 @@ def generate_activate_env(outfile="activate_env.sh"):
     print(f"Created activation script at: {outfile}")
     return outfile
 
-
+def wait_for_dask_workers(client, min_worker=1, timeout=60):
+    """
+    Wait for dask worker
+    
+    Parameters
+    ----------
+    client : dask.client
+        Dask client
+    min_worker : int, optional
+        Minimum number of workers
+    timeout : float, optional
+        Timeout in seconds
+    """
+    start = time.time()
+    while True:
+        if len(client.scheduler_info()["workers"]) >= min_worker:
+            break
+        if time.time() - start > timeout:
+            raise TimeoutError("No Dask workers connected within timeout.")
+        time.sleep(2)
+        
+        
 def get_dask_client(
     n_jobs,
     dask_dir,

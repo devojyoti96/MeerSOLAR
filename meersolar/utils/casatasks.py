@@ -4,17 +4,9 @@ import numpy as np
 import glob
 import os
 import traceback
-from casatasks import casalog
 from casatools import msmetadata, ms as casamstool, table
 from .basic_utils import *
 from .resource_utils import *
-
-try:
-    logfile = casalog.logfile()
-    os.system("rm -rf " + logfile)
-except BaseException:
-    pass
-
 
 #############################
 # General CASA tasks

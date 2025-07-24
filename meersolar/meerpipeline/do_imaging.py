@@ -15,8 +15,6 @@ from casatools import msmetadata
 from dask import delayed
 from dask.distributed import Client
 from meersolar.utils import *
-from concurrent.futures import ThreadPoolExecutor, as_completed
-
 
 logging.getLogger("distributed").setLevel(logging.WARNING)
 
@@ -753,6 +751,7 @@ def run_all_imaging(
             )
             dask_client=Client(address=dask_addr)
             os.system(f"rm -rf {dask_dir}")
+        wait_for_dask_workers(dask_client,min_worker=1,timeout=60)
         tasks = []
         for i in range(len(mslist)):
             ms = mslist[i]
@@ -825,7 +824,6 @@ def run_all_imaging(
                 )
             )
         futures = dask_client.compute(tasks)
-        dask_client.wait_for_workers(1)
         results = list(dask_client.gather(futures))
         dask_client.close()
         if dask_addr is None:

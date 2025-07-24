@@ -5,17 +5,10 @@ import traceback
 import warnings
 import glob
 import os
-from casatasks import casalog
 from casatools import msmetadata, ms as casamstool, table
 from .basic_utils import *
 from .ms_metadata import *
 from .imaging import *
-
-try:
-    logfile = casalog.logfile()
-    os.system("rm -rf " + logfile)
-except BaseException:
-    pass
 
 #####################################
 # Calibration related

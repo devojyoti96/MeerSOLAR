@@ -14,7 +14,6 @@ from astropy.wcs import FITSFixedWarning
 from astropy.io import fits
 from astropy.time import Time
 from astropy.coordinates import SkyCoord
-from casatasks import casalog
 from casatools import msmetadata, ms as casamstool, table
 from datetime import datetime as dt, timedelta
 from .basic_utils import *
@@ -24,12 +23,6 @@ from .ms_metadata import *
 from .image_utils import *
 
 warnings.simplefilter("ignore", category=FITSFixedWarning)
-
-try:
-    logfile = casalog.logfile()
-    os.system("rm -rf " + logfile)
-except BaseException:
-    pass
 
 
 #######################

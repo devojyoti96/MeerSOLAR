@@ -139,6 +139,7 @@ def make_solar_DS(
         )
         dask_client=Client(address=dask_addr)
         os.system(f"rm -rf {dask_dir}")
+    wait_for_dask_workers(dask_client,min_worker=1,timeout=60)
     tasks = []
     for scan in scans:
         tasks.append(
@@ -150,7 +151,6 @@ def make_solar_DS(
             )
         )
     futures = dask_client.compute(tasks)
-    dask_client.wait_for_workers(1)
     results = list(dask_client.gather(futures))
     dask_client.close()
     if dask_addr is None:
@@ -252,7 +252,7 @@ def make_dsfiles(
                 dask_addr=dask_addr,
             )
         if os.path.samefile(outdir, workdir) == False:
-            os.makedirs(f" {outdir}/dynamic_spectra",exist_ok=True)
+            os.makedirs(f"{outdir}/dynamic_spectra",exist_ok=True)
             os.system(f"mv {workdir}/dynamic_spectra/* {outdir}/dynamic_spectra/")
             os.system(f"rm -rf {workdir}/dynamic_spectra")
         ds_file_name = os.path.basename(msname).split(".ms")[0] + "_DS"

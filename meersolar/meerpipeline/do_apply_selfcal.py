@@ -127,6 +127,7 @@ def run_all_applysol(
             )
             os.system(f"rm -rf {dask_dir}")
             dask_client = Client(address=dask_addr)
+        wait_for_dask_workers(dask_client,min_worker=1,timeout=60)
         tasks = []
         msmd = msmetadata()
         for ms in mslist:
@@ -154,7 +155,6 @@ def run_all_applysol(
                 )
             )
         futures = dask_client.compute(tasks)
-        dask_client.wait_for_workers(1)
         results = list(dask_client.gather(futures))
         dask_client.close()
         if dask_addr is None:

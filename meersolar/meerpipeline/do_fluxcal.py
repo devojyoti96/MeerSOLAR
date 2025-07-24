@@ -100,6 +100,7 @@ def split_autocorr(
         )
         dask_client=Client(address=dask_addr)
         os.system(f"rm -rf {dask_dir}")
+    wait_for_dask_workers(dask_client,min_worker=1,timeout=60)
     tasks = []
     for scan in scan_list:
         if time_window > 0:
@@ -132,7 +133,6 @@ def split_autocorr(
         )
     if len(tasks) > 0:
         futures = dask_client.compute(tasks)
-        dask_client.wait_for_workers(1)
         autocorr_mslist = list(dask_client.gather(futures))
     else:
         autocorr_mslist = []
@@ -454,6 +454,7 @@ def estimate_att(
             )
             dask_client=Client(address=dask_addr)
             os.system(f"rm -rf {dask_dir}")
+        wait_for_dask_workers(dask_client,min_worker=1,timeout=60)
         tasks = []
         for autocorr_msname in autocorr_mslist:
             tasks.append(
@@ -471,7 +472,6 @@ def estimate_att(
                 )
             )
         futures = dask_client.compute(tasks)
-        dask_client.wait_for_workers(1)
         results = list(dask_client.gather(futures))
         dask_client.close()
         if dask_addr is None:
@@ -509,6 +509,7 @@ def estimate_att(
             )
             dask_client=Client(address=dask_addr)
             os.system(f"rm -rf {dask_dir}")
+        wait_for_dask_workers(dask_client,min_worker=1,timeout=60)
         all_scaling_files = []
         filtered_scans = []
         tasks = []
@@ -528,7 +529,6 @@ def estimate_att(
             )
             filtered_scans.append(scan)
         futures = dask_client.compute(tasks)
-        dask_client.wait_for_workers(1)
         results = list(dask_client.gather(futures))
         dask_client.close()
         if dask_addr is None:

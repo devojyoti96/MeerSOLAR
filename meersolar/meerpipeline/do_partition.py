@@ -151,6 +151,7 @@ def partion_ms(
         )
         os.system(f"rm -rf {dask_dir}")
         dask_client = Client(address=dask_addr)
+    wait_for_dask_workers(dask_client,min_worker=1,timeout=60)
     tasks = []
     for i in range(len(scan_list)):
         scan = scan_list[i]
@@ -167,7 +168,6 @@ def partion_ms(
         )
         tasks.append(task)
     futures = dask_client.compute(tasks)
-    dask_client.wait_for_workers(1)
     splited_ms_list = list(dask_client.gather(futures))
     dask_client.close()
     if dask_addr is None:

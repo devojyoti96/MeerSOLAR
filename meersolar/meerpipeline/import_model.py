@@ -283,6 +283,7 @@ def import_phasecal_models(
             )
             os.system(f"rm -rf {dask_dir}")
             dask_client = Client(address=dask_addr)
+        wait_for_dask_workers(dask_client,min_worker=1,timeout=60)
         tasks = []
         for phasecal in phasecal_fields:
             ph_scan = phasecal_scans[phasecal]
@@ -299,7 +300,6 @@ def import_phasecal_models(
                         )
                     )
         futures = dask_client.compute(tasks)
-        dask_client.wait_for_workers(1)
         results = list(dask_client.gather(futures))
         dask_client.close()
         if dask_addr is None:
@@ -376,6 +376,7 @@ def import_polcal_models(
             )
             os.system(f"rm -rf {dask_dir}")
             dask_client = Client(address=dask_addr)
+        wait_for_dask_workers(dask_client,min_worker=1,timeout=60)
         tasks = []
         for polcal_field in polcal_fields:
             p_scan = polcal_scans[polcal_field]
@@ -389,7 +390,6 @@ def import_polcal_models(
                         )
                     )
         futures = dask_client.compute(tasks)
-        dask_client.wait_for_workers(1)
         results = list(dask_client.gather(futures))
         dask_client.close()
         if dask_addr is None:

@@ -5,19 +5,10 @@ import os
 from astroquery.jplhorizons import Horizons
 from astropy.time import Time
 from astropy.coordinates import EarthLocation, SkyCoord, AltAz
-from casatasks import casalog
 from casatools import msmetadata
 from .basic_utils import *
 from .udocker_utils import *
 from .ms_metadata import *
-
-
-try:
-    logfile = casalog.logfile()
-    os.system("rm -rf " + logfile)
-except BaseException:
-    pass
-
 
 #####################################
 # Sun position related

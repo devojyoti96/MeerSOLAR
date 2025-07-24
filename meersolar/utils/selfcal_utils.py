@@ -4,7 +4,6 @@ import traceback
 import copy
 import glob
 import os
-from casatasks import casalog
 from casatools import msmetadata, table
 from .basic_utils import *
 from .resource_utils import *
@@ -16,13 +15,6 @@ from .calibration import *
 from .imaging import *
 from .image_utils import *
 from .udocker_utils import *
-
-try:
-    logfile = casalog.logfile()
-    os.system("rm -rf " + logfile)
-except BaseException:
-    pass
-
 
 def intensity_selfcal(
     msname,

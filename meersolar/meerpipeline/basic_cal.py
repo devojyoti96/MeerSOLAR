@@ -637,6 +637,7 @@ def single_round_cal_and_flag(
                 )
                 os.system(f"rm -rf {dask_dir}")
                 dask_client = Client(address=dask_addr)
+            wait_for_dask_workers(dask_client,min_worker=1,timeout=60)
             tasks = [
                 delayed(run_delaycal)(
                     sub_msname,
@@ -648,7 +649,6 @@ def single_round_cal_and_flag(
                 for sub_msname in delaycal_mslist
             ]
             futures = dask_client.compute(tasks)
-            dask_client.wait_for_workers(1)
             delaycal_tables = list(dask_client.gather(futures))
             dask_client.close()
             if dask_addr is None:
@@ -696,6 +696,7 @@ def single_round_cal_and_flag(
                 )
                 os.system(f"rm -rf {dask_dir}")
                 dask_client = Client(address=dask_addr)
+            wait_for_dask_workers(dask_client,min_worker=1,timeout=60)
             tasks = [
                 delayed(run_bandpass)(
                     sub_msname,
@@ -709,7 +710,6 @@ def single_round_cal_and_flag(
                 for sub_msname in fluxcal_mslist
             ]
             futures = dask_client.compute(tasks)
-            dask_client.wait_for_workers(1)
             bandpass_tables = list(dask_client.gather(futures))
             dask_client.close()
             if dask_addr is None:
@@ -759,6 +759,7 @@ def single_round_cal_and_flag(
                 )
                 os.system(f"rm -rf {dask_dir}")
                 dask_client = Client(address=dask_addr)
+            wait_for_dask_workers(dask_client,min_worker=1,timeout=60)
             tasks = [
                 delayed(run_gaincal)(
                     sub_msname,
@@ -774,7 +775,6 @@ def single_round_cal_and_flag(
                 for sub_msname in gaincal_mslist
             ]
             futures = dask_client.compute(tasks)
-            dask_client.wait_for_workers(1)
             gain_tables = list(dask_client.gather(futures))
             dask_client.close()
             if dask_addr is None:
@@ -835,6 +835,7 @@ def single_round_cal_and_flag(
                     )
                     os.system(f"rm -rf {dask_dir}")
                     dask_client = Client(address=dask_addr)
+                wait_for_dask_workers(dask_client,min_worker=1,timeout=60)
                 tasks = [
                     delayed(run_gaincal)(
                         sub_msname,
@@ -851,7 +852,6 @@ def single_round_cal_and_flag(
                     for sub_msname in phasecal_mslist
                 ]
                 futures = dask_client.compute(tasks)
-                dask_client.wait_for_workers(1)
                 gain_tables = list(dask_client.gather(futures))
                 dask_client.close()
                 if dask_addr is None:
@@ -946,6 +946,7 @@ def single_round_cal_and_flag(
                     )
                     os.system(f"rm -rf {dask_dir}")
                     dask_client = Client(address=dask_addr)
+                wait_for_dask_workers(dask_client,min_worker=1,timeout=60)
                 tasks = [
                     delayed(run_leakagecal)(
                         sub_msname,
@@ -959,7 +960,6 @@ def single_round_cal_and_flag(
                     for sub_msname in fluxcal_mslist
                 ]
                 futures = dask_client.compute(tasks)
-                dask_client.wait_for_workers(1)
                 leakage_tables = list(dask_client.gather(futures))
                 dask_client.close()
                 if dask_addr is None:
@@ -1014,6 +1014,7 @@ def single_round_cal_and_flag(
                     )
                     os.system(f"rm -rf {dask_dir}")
                     dask_client = Client(address=dask_addr)
+                wait_for_dask_workers(dask_client,min_worker=1,timeout=60)
                 tasks = [
                     delayed(run_polcal)(
                         sub_msname,
@@ -1033,7 +1034,6 @@ def single_round_cal_and_flag(
                     for sub_msname in polcal_mslist
                 ]
                 futures = dask_client.compute(tasks)
-                dask_client.wait_for_workers(1)
                 results = list(dask_client.gather(futures))
                 dask_client.close()
                 if dask_addr is None:
@@ -1122,6 +1122,7 @@ def single_round_cal_and_flag(
                 )
                 os.system(f"rm -rf {dask_dir}")
                 dask_client = Client(address=dask_addr)
+            wait_for_dask_workers(dask_client,min_worker=1,timeout=60)
             tasks = [
                 delayed(run_applycal)(
                     sub_msname,
@@ -1136,7 +1137,6 @@ def single_round_cal_and_flag(
                 for sub_msname in all_mslist
             ]
             futures = dask_client.compute(tasks)
-            dask_client.wait_for_workers(1)
             results = list(dask_client.gather(futures))
             dask_client.close()
             if dask_addr is None:
@@ -1171,6 +1171,7 @@ def single_round_cal_and_flag(
                 )
                 os.system(f"rm -rf {dask_dir}")
                 dask_client = Client(address=dask_addr)
+            wait_for_dask_workers(dask_client,min_worker=1,timeout=60)
             tasks = []
             if len(all_mslist) > 0:
                 tasks = []
@@ -1190,7 +1191,6 @@ def single_round_cal_and_flag(
                         )
                     )
             futures = dask_client.compute(tasks)
-            dask_client.wait_for_workers(1)
             results = list(dask_client.gather(futures))
             dask_client.close()
             if dask_addr is None:

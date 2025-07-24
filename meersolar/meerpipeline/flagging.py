@@ -401,6 +401,7 @@ def do_flagging(
             )
             os.system(f"rm -rf {dask_dir}")
             dask_client = Client(address=dask_addr)
+        wait_for_dask_workers(dask_client,min_worker=1,timeout=60)
         if flag_backup:
             do_flag_backup(msname, flagtype="flagdata")
         tasks = [
@@ -419,7 +420,6 @@ def do_flagging(
             for ms in subms_list
         ]
         futures = dask_client.compute(tasks)
-        dask_client.wait_for_workers(1)
         results = list(dask_client.gather(futures))
         dask_client.close()
         if dask_addr is None:

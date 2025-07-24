@@ -19,7 +19,6 @@ from astropy.io import fits
 from astropy.time import Time
 from astropy.coordinates import EarthLocation, SkyCoord
 from astropy.wcs import FITSFixedWarning
-from casatasks import casalog
 from casatools import msmetadata, ms as casamstool
 from datetime import datetime as dt, timedelta
 from .basic_utils import *
@@ -28,12 +27,6 @@ from .ms_metadata import *
 from .meer_utils import *
 
 warnings.simplefilter("ignore", category=FITSFixedWarning)
-
-try:
-    logfile = casalog.logfile()
-    os.system("rm -rf " + logfile)
-except BaseException:
-    pass
 
 
 #################################

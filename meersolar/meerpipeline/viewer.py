@@ -5,6 +5,7 @@ import sys
 import numpy as np
 import traceback
 import argparse
+import webbrowser
 from collections import deque
 from threading import Thread
 from PyQt5.QtWidgets import (
@@ -120,6 +121,7 @@ def get_logid(logfile):
         "noise_cal.log": "Flux calibration using noise-diode",
         "partition_cal.log": "Partioning for basic calibration",
         "ds_targets.log": "Making dynamic spectra",
+        "main.log","Main pipeline logs",
     }
 
     if name in logmap:
@@ -335,13 +337,26 @@ def cli():
         default=None,
         help="Name of log directory",
     )
+    parser.add_argument(
+        "--no-prefect",
+        action="store_false",
+        dest="prefect",
+        help="Name of log directory",
+    )
     args = parser.parse_args()
 
-    if args.jobid is None and args.logdir is None:
-        print("Please provide either job ID or log directory.")
-        sys.exit(1)
-    else:
+    if args.prefect:
         cachedir = get_cachedir()
+        if os.path.exists(f"{cachedir}/prefect.dashboard"):
+            with open(f"{cachedir}/prefect.dashboard","r") as f:
+                SERVER_DASHBOARD=f.read()
+            webbrowser.open(SERVER_DASHBOARD)
+            sys.exit(0)
+        else:
+            if args.jobid is None and args.logdir is None:
+                print("Please provide either job ID or log directory.")
+                sys.exit(1)
+    else:
         if args.jobid is not None:
             jobfile_name = f"{cachedir}/main_pids_{args.jobid}.txt"
             if not os.path.exists(jobfile_name):
@@ -356,7 +371,7 @@ def cli():
                     print(f"Work directory : {workdir} is not present.")
                     sys.exit(1)
                 LOG_DIR = workdir.rstrip("/") + "/logs"
-        else:
+        else:                       
             if not os.path.exists(args.logdir):
                 print(
                     f"Log directory: {args.logdir} is not present. Please provide a valid log directory."
