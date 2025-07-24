@@ -109,258 +109,7 @@ def run_ds_jobs(
         raise RuntimeError("Dynamic spectrum making is failed.")
     else:
         return msg
-    
-@task(name="flagging",retries=2,retry_delay_seconds=10,log_prints=True)
-def run_flag(
-    msname,
-    workdir,
-    flag_calibrators=True,
-    jobid=0,
-    cpu_frac=0.8,
-    mem_frac=0.8,
-    remote_log=False,
-    dask_addr=None,
-):
-    """
-    Run flagging jobs
 
-    Parameters
-    ----------
-    msname: str
-        Name of the measurement set
-    workdir : str
-        Working directory
-    flag_calibrators : bool, optional
-        Flag calibrator fields
-    jobid : int, optional
-        Job ID
-    cpu_frac : float, optional
-        CPU fraction to use
-    mem_frac : float, optional
-        Memory fraction to use
-    remote_log: bool, optional
-        Start remote logger
-    dask_addr : str, optional
-        Dask scheduler address
-
-    Returns
-    -------
-    int
-        Success message
-    """
-    msname = msname.rstrip("/")
-    if flag_calibrators:
-        flagdimension = "freqtime"
-        flagfield_type = "cal"
-    else:
-        flagdimension = "freq"
-        flagfield_type = "target"
-    flag_basename = (
-        f"flagging_{flagfield_type}_" + os.path.basename(msname).split(".ms")[0]
-    )
-    logdir = f"{workdir}/logs"
-    os.makedirs(logdir, exist_ok=True)
-    logfile = f"{logdir}/{flag_basename}.log"
-    if os.path.exists(logfile):
-        os.remove(logfile)
-    ctx = get_run_context()
-    task_id=str(ctx.task_run.id)
-    task_name = ctx.task_run.name
-    stop_event = Event()
-    log_thread = start_log_saver(task_id, task_name, logfile, poll_interval=3, stop_event=stop_event)
-    try:
-        ##############
-        print("###########################")
-        print("Flagging ....")
-        print("###########################")
-        ########################
-        # Calibrator ms flagging
-        ########################
-        from meersolar.meerpipeline import flagging
-        msg = flagging.main(
-            msname,
-            workdir=workdir,
-            datacolumn="DATA",
-            flag_bad_ants=True,
-            flag_bad_spw=True,
-            use_tfcrop=True,
-            use_rflag=False,
-            flag_autocorr=True,
-            flagbackup=True,
-            flagdimension=flagdimension,
-            cpu_frac=float(cpu_frac),
-            mem_frac=float(cpu_frac),
-            logfile=logfile,
-            jobid=jobid,
-            start_remote_log=remote_log,
-            dask_addr=dask_addr,
-        )
-    finally:
-        stop_event.set()
-        log_thread.join(timeout=5)
-    if msg!=0:
-        raise RuntimeError("Calibrator flagging is failed.")
-    else:
-        return msg
-
-
-@task(name="importing_model_visibilities",retries=2,retry_delay_seconds=10,log_prints=True)
-def run_import_model(
-    msname,
-    workdir,
-    jobid=0,
-    cpu_frac=0.8,
-    mem_frac=0.8,
-    remote_log=False,
-    dask_addr=None,
-):
-    """
-    Importing calibrator models
-
-    Parameters
-    ----------
-    msname: str
-        Name of the measurement set
-    workdir : str
-        Working directory
-    cpu_frac : float, optional
-        CPU fraction to use
-    mem_frac : float, optional
-        Memory fraction to use
-    remote_log: bool, optional
-        Start remote logger
-    dask_addr : str, optional
-        Dask scheduler address
-
-    Returns
-    -------
-    int
-        Success message
-    """
-    msname = msname.rstrip("/")
-    model_basename = "modeling_" + os.path.basename(msname).split(".ms")[0]
-    logdir = f"{workdir}/logs"
-    os.makedirs(logdir, exist_ok=True)
-    logfile = f"{logdir}/{model_basename}.log"
-    if os.path.exists(logfile):
-        os.remove(logfile)
-    ctx = get_run_context()
-    task_id=str(ctx.task_run.id)
-    task_name = ctx.task_run.name
-    stop_event = Event()
-    log_thread = start_log_saver(task_id, task_name, logfile, poll_interval=3, stop_event=stop_event)
-    try:
-        ##############
-        print("###########################")
-        print("Importing model visibilities ....")
-        print("###########################")
-        ########################
-        # Calibrator ms flagging
-        ########################
-        from meersolar.meerpipeline import import_model
-        msg = import_model.main(
-            msname,
-            workdir=workdir,
-            cpu_frac=float(cpu_frac),
-            mem_frac=float(mem_frac),
-            logfile=logfile,
-            jobid=jobid,
-            start_remote_log=remote_log,
-            dask_addr=dask_addr,
-        )
-    finally:
-        stop_event.set()
-        log_thread.join(timeout=5)
-    if msg!=0:
-        raise RuntimeError("Importing calibrator model is failed.")
-    else:
-        return msg
-    
-    
-@task(name="basic_calibration",retries=2,retry_delay_seconds=10,log_prints=True)
-def run_basic_cal_jobs(
-    msname,
-    workdir,
-    caldir,
-    perform_polcal=False,
-    jobid=0,
-    cpu_frac=0.8,
-    mem_frac=0.8,
-    keep_backup=False,
-    remote_log=False,
-    dask_addr=None,
-):
-    """
-    Perform basic calibration
-
-    Parameters
-    ----------
-    msname: str
-        Name of the measurement set
-    workdir : str
-        Working directory
-    caldir : str
-        Caltable directory
-    perform_polcal : bool, optional
-        Perform full polarization calibration
-    cpu_frac : float, optional
-        CPU fraction to use
-    mem_frac : float, optional
-        Memory fraction to use
-    keep_backup : bool, optional
-        Keep backups
-    remote_log: bool, optional
-        Start remote logger
-    dask_addr : str, optional
-        Dask scheduler address
-
-    Returns
-    -------
-    int
-        Success message for basic calibration
-    """
-    msname = msname.rstrip("/")
-    cal_basename = "basic_cal"
-    logdir = f"{workdir}/logs"
-    os.makedirs(logdir, exist_ok=True)
-    logfile = f"{logdir}/{cal_basename}.log"
-    if os.path.exists(logfile):
-        os.remove(logfile)
-    ctx = get_run_context()
-    task_id=str(ctx.task_run.id)
-    task_name = ctx.task_run.name
-    stop_event = Event()
-    log_thread = start_log_saver(task_id, task_name, logfile, poll_interval=3, stop_event=stop_event)
-    try:
-        ##############
-        print("###########################")
-        print("Performing basic calibration .....")
-        print("###########################")
-        ########################
-        # Basic calibration
-        ########################
-        from meersolar.meerpipeline import basic_cal
-        msg = basic_cal.main(
-            msname,
-            workdir,
-            caldir,
-            perform_polcal=perform_polcal,
-            keep_backup=keep_backup,
-            start_remote_log=remote_log,
-            cpu_frac=float(cpu_frac),
-            mem_frac=float(mem_frac),
-            logfile=logfile,
-            jobid=jobid,
-            dask_addr=dask_addr,
-        )
-    finally:
-        stop_event.set()
-        log_thread.join(timeout=5)
-    if msg!=0:
-        raise RuntimeError("Basic calibration is failed.")
-    else:
-        return msg
-    
 
 @task(name="attenuation_calibration",retries=2,retry_delay_seconds=10,log_prints=True)
 def run_noise_diode_cal(
@@ -671,6 +420,258 @@ def run_target_split_jobs(
     else:
         return msg
 
+    
+@task(name="flagging",retries=2,retry_delay_seconds=10,log_prints=True)
+def run_flag(
+    msname,
+    workdir,
+    flag_calibrators=True,
+    jobid=0,
+    cpu_frac=0.8,
+    mem_frac=0.8,
+    remote_log=False,
+    dask_addr=None,
+):
+    """
+    Run flagging jobs
+
+    Parameters
+    ----------
+    msname: str
+        Name of the measurement set
+    workdir : str
+        Working directory
+    flag_calibrators : bool, optional
+        Flag calibrator fields
+    jobid : int, optional
+        Job ID
+    cpu_frac : float, optional
+        CPU fraction to use
+    mem_frac : float, optional
+        Memory fraction to use
+    remote_log: bool, optional
+        Start remote logger
+    dask_addr : str, optional
+        Dask scheduler address
+
+    Returns
+    -------
+    int
+        Success message
+    """
+    msname = msname.rstrip("/")
+    if flag_calibrators:
+        flagdimension = "freqtime"
+        flagfield_type = "cal"
+    else:
+        flagdimension = "freq"
+        flagfield_type = "target"
+    flag_basename = (
+        f"flagging_{flagfield_type}_" + os.path.basename(msname).split(".ms")[0]
+    )
+    logdir = f"{workdir}/logs"
+    os.makedirs(logdir, exist_ok=True)
+    logfile = f"{logdir}/{flag_basename}.log"
+    if os.path.exists(logfile):
+        os.remove(logfile)
+    ctx = get_run_context()
+    task_id=str(ctx.task_run.id)
+    task_name = ctx.task_run.name
+    stop_event = Event()
+    log_thread = start_log_saver(task_id, task_name, logfile, poll_interval=3, stop_event=stop_event)
+    try:
+        ##############
+        print("###########################")
+        print("Flagging ....")
+        print("###########################")
+        ########################
+        # Calibrator ms flagging
+        ########################
+        from meersolar.meerpipeline import flagging
+        msg = flagging.main(
+            msname,
+            workdir=workdir,
+            datacolumn="DATA",
+            flag_bad_ants=True,
+            flag_bad_spw=True,
+            use_tfcrop=True,
+            use_rflag=False,
+            flag_autocorr=True,
+            flagbackup=True,
+            flagdimension=flagdimension,
+            cpu_frac=float(cpu_frac),
+            mem_frac=float(cpu_frac),
+            logfile=logfile,
+            jobid=jobid,
+            start_remote_log=remote_log,
+            dask_addr=dask_addr,
+        )
+    finally:
+        stop_event.set()
+        log_thread.join(timeout=5)
+    if msg!=0:
+        raise RuntimeError("Calibrator flagging is failed.")
+    else:
+        return msg
+
+
+@task(name="importing_model_visibilities",retries=2,retry_delay_seconds=10,log_prints=True)
+def run_import_model(
+    msname,
+    workdir,
+    jobid=0,
+    cpu_frac=0.8,
+    mem_frac=0.8,
+    remote_log=False,
+    dask_addr=None,
+):
+    """
+    Importing calibrator models
+
+    Parameters
+    ----------
+    msname: str
+        Name of the measurement set
+    workdir : str
+        Working directory
+    cpu_frac : float, optional
+        CPU fraction to use
+    mem_frac : float, optional
+        Memory fraction to use
+    remote_log: bool, optional
+        Start remote logger
+    dask_addr : str, optional
+        Dask scheduler address
+
+    Returns
+    -------
+    int
+        Success message
+    """
+    msname = msname.rstrip("/")
+    model_basename = "modeling_" + os.path.basename(msname).split(".ms")[0]
+    logdir = f"{workdir}/logs"
+    os.makedirs(logdir, exist_ok=True)
+    logfile = f"{logdir}/{model_basename}.log"
+    if os.path.exists(logfile):
+        os.remove(logfile)
+    ctx = get_run_context()
+    task_id=str(ctx.task_run.id)
+    task_name = ctx.task_run.name
+    stop_event = Event()
+    log_thread = start_log_saver(task_id, task_name, logfile, poll_interval=3, stop_event=stop_event)
+    try:
+        ##############
+        print("###########################")
+        print("Importing model visibilities ....")
+        print("###########################")
+        ########################
+        # Calibrator ms flagging
+        ########################
+        from meersolar.meerpipeline import import_model
+        msg = import_model.main(
+            msname,
+            workdir=workdir,
+            cpu_frac=float(cpu_frac),
+            mem_frac=float(mem_frac),
+            logfile=logfile,
+            jobid=jobid,
+            start_remote_log=remote_log,
+            dask_addr=dask_addr,
+        )
+    finally:
+        stop_event.set()
+        log_thread.join(timeout=5)
+    if msg!=0:
+        raise RuntimeError("Importing calibrator model is failed.")
+    else:
+        return msg
+    
+    
+@task(name="basic_calibration",retries=2,retry_delay_seconds=10,log_prints=True)
+def run_basic_cal_jobs(
+    msname,
+    workdir,
+    caldir,
+    perform_polcal=False,
+    jobid=0,
+    cpu_frac=0.8,
+    mem_frac=0.8,
+    keep_backup=False,
+    remote_log=False,
+    dask_addr=None,
+):
+    """
+    Perform basic calibration
+
+    Parameters
+    ----------
+    msname: str
+        Name of the measurement set
+    workdir : str
+        Working directory
+    caldir : str
+        Caltable directory
+    perform_polcal : bool, optional
+        Perform full polarization calibration
+    cpu_frac : float, optional
+        CPU fraction to use
+    mem_frac : float, optional
+        Memory fraction to use
+    keep_backup : bool, optional
+        Keep backups
+    remote_log: bool, optional
+        Start remote logger
+    dask_addr : str, optional
+        Dask scheduler address
+
+    Returns
+    -------
+    int
+        Success message for basic calibration
+    """
+    msname = msname.rstrip("/")
+    cal_basename = "basic_cal"
+    logdir = f"{workdir}/logs"
+    os.makedirs(logdir, exist_ok=True)
+    logfile = f"{logdir}/{cal_basename}.log"
+    if os.path.exists(logfile):
+        os.remove(logfile)
+    ctx = get_run_context()
+    task_id=str(ctx.task_run.id)
+    task_name = ctx.task_run.name
+    stop_event = Event()
+    log_thread = start_log_saver(task_id, task_name, logfile, poll_interval=3, stop_event=stop_event)
+    try:
+        ##############
+        print("###########################")
+        print("Performing basic calibration .....")
+        print("###########################")
+        ########################
+        # Basic calibration
+        ########################
+        from meersolar.meerpipeline import basic_cal
+        msg = basic_cal.main(
+            msname,
+            workdir,
+            caldir,
+            perform_polcal=perform_polcal,
+            keep_backup=keep_backup,
+            start_remote_log=remote_log,
+            cpu_frac=float(cpu_frac),
+            mem_frac=float(mem_frac),
+            logfile=logfile,
+            jobid=jobid,
+            dask_addr=dask_addr,
+        )
+    finally:
+        stop_event.set()
+        log_thread.join(timeout=5)
+    if msg!=0:
+        raise RuntimeError("Basic calibration is failed.")
+    else:
+        return msg
+    
 
 @task(name="applying_basic_calibration",retries=2,retry_delay_seconds=10,log_prints=True)
 def run_apply_basiccal_sol(
@@ -1478,7 +1479,7 @@ def master_control(
     flow_id=str(ctx.flow_run.id)
     flow_name = ctx.flow_run.name
     stop_event = Event()
-    log_thread = start_flow_log_saver(task_id, task_name, logfile, poll_interval=3, stop_event=stop_event)
+    log_thread = start_flow_log_saver(flow_id, flow_name, logfile, poll_interval=3, stop_event=stop_event)
     
     #####################################
     # Initiating meersolar data
