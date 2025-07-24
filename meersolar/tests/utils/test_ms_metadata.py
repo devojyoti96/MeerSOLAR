@@ -12,13 +12,13 @@ def test_get_phasecenter(dummy_msname):
 
 def test_get_observatory_name(dummy_msname):
     assert get_observatory_name(dummy_msname) == "MEERKAT"
-    
+
 
 def test_get_observatory_name(dummy_msname):
-    lat, lon, height = get_observatory_coord(dummy_msname) 
-    assert lat==-30.713
-    assert lon==21.444
-    assert height==1050.0
+    lat, lon, height = get_observatory_coord(dummy_msname)
+    assert lat == -30.713
+    assert lon == 21.444
+    assert height == 1050.0
 
 
 def test_get_timeranges_for_scan(dummy_msname):

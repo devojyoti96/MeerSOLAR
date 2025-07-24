@@ -528,7 +528,7 @@ def get_refant(msname="", field="", n_threads=-1, dry_run=False):
         Reference antenna
     """
     limit_threads(n_threads=n_threads)
-    from casatasks import visstat
+    from casatasks import visstat, casalog
 
     if dry_run:
         process = psutil.Process(os.getpid())

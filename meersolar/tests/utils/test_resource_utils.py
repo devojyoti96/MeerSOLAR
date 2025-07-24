@@ -43,17 +43,17 @@ def test_has_space():
 @patch("meersolar.utils.resource_utils.os.getcwd", return_value="/fallback")
 def test_shm_or_tmp(mock_getcwd, mock_rmtree, mock_mkdtemp, mock_has_space):
     mock_has_space.side_effect = lambda path, gb: path == "/dev/shm"
-    mock_mkdtemp.return_value = "/dev/shm/meersolar_temp123"
+    mock_mkdtemp.return_value = "/dev/shm/solar_temp123"
     original_tmpdir = os.environ.get("TMPDIR")
     with shm_or_tmp(required_gb=1.0, workdir="/fallback") as tempdir:
-        assert tempdir == "/dev/shm/meersolar_temp123"
+        assert tempdir == "/dev/shm/solar_temp123"
         assert os.environ["TMPDIR"] == tempdir
-        mock_mkdtemp.assert_called_once_with(dir="/dev/shm", prefix="meersolar_")
+        mock_mkdtemp.assert_called_once_with(dir="/dev/shm", prefix="solar_")
     if original_tmpdir is not None:
         assert os.environ["TMPDIR"] == original_tmpdir
     else:
         assert "TMPDIR" not in os.environ
-    mock_rmtree.assert_called_once_with("/dev/shm/meersolar_temp123")
+    mock_rmtree.assert_called_once_with("/dev/shm/solar_temp123")
 
 
 @pytest.mark.parametrize(

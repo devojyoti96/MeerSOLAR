@@ -291,9 +291,7 @@ def init_logger(logname, logfile, jobname="", password=""):
     logger.propagate = False
     if logger.hasHandlers():
         logger.handlers.clear()
-    formatter = logging.Formatter(
-        "%(asctime)s %(levelname)s-%(message)s", "%Y-%m-%dT%H:%M:%S"
-    )
+    formatter = logging.Formatter("%(message)s")
     remote_link = get_remote_logger_link()
     if remote_link != "":
         if jobname:

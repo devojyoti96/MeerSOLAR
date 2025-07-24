@@ -6,9 +6,9 @@ from meersolar.utils.sunpos_utils import *
 
 
 def test_get_solar_elevation():
-    result = get_solar_elevation(-30,21,1050,"2024-06-10T09:30:00")
+    result = get_solar_elevation(-30, 21, 1050, "2024-06-10T09:30:00")
     assert isinstance(result, float)
-    assert result==34.651
+    assert result == 34.651
 
 
 def test_radec_sun(dummy_msname):
@@ -33,7 +33,7 @@ def test_move_to_sun(mock_radec_sun, mock_run_chgcenter):
     # Check that mocked functions were called
     mock_radec_sun.assert_called_once_with(msname)
     mock_run_chgcenter.assert_called_once_with(
-        msname, "12h00m00s", "-20d00m00s", only_uvw=True, container_name="meerwsclean"
+        msname, "12h00m00s", "-20d00m00s", only_uvw=True, container_name="solarwsclean"
     )
 
     assert result == 0
@@ -47,7 +47,7 @@ def test_correct_solar_sidereal_motion(mock_exists, mock_system, mock_run):
     result = correct_solar_sidereal_motion(msname, verbose=True)
     mock_exists.assert_called_once_with("mock.ms/.sidereal_cor")
     mock_run.assert_called_once_with(
-        msname="mock.ms", container_name="meerwsclean", verbose=True
+        msname="mock.ms", container_name="solarwsclean", verbose=True
     )
     mock_system.assert_called_once_with("touch mock.ms/.sidereal_cor")
     assert result == 0

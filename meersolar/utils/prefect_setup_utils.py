@@ -30,6 +30,9 @@ logging_path=os.path.join(PREFECT_HOME,"logging.yml")
 
 
 def write_prefect_profile():
+    """
+    Save prefect profile
+    """
     # Load existing TOML config or start new
     if os.path.exists(profile_path):
         data = toml.load(profile_path)
@@ -48,16 +51,23 @@ def write_prefect_profile():
     with open(profile_path, "w") as f:
         toml.dump(data, f)
     print(f"✅ Prefect profile '{profile_name}' written to {profile_path}")
+    
 
-def prefect_server_status(host=SERVER_HOST, port=SERVER_PORT):
+def prefect_server_status():
+    """
+    Get prefect server status
+    """
     try:
-        with socket.create_connection((host, port), timeout=2):
+        with socket.create_connection((SERVER_HOST, SERVER_PORT), timeout=2):
             return True
     except OSError:
         return False
 
 
 def get_prefect_env():
+    """
+    Get environment variables of prefect 
+    """
     env = os.environ.copy()
     env["PREFECT_HOME"] = PREFECT_HOME
     env["PREFECT_API_MODE"] = "server"
@@ -95,6 +105,9 @@ def save_prefect_env_to_file():
 
 
 def start_server(show_config=False):
+    """
+    Start prefect server if it is not running
+    """
     if prefect_server_status():
         print(f"🟢 Prefect server is already running at {SERVER_DASHBOARD}")
         if os.path.exists(f"{cachedir}/prefect.dashboard") is not True:
@@ -139,6 +152,11 @@ def start_server(show_config=False):
 
 
 def stop_prefect_server():
+    """
+    Stop prefect server running in the current installation
+    Note: it will only stop prefect server which is running from the current installation
+    For this pipeline, default port (4250) is kept seperate from default prefect port 4200.
+    """
     if not os.path.exists(pid_file):
         print("⚠️ No PID file found. Cannot stop Prefect server.")
         return
