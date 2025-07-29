@@ -14,8 +14,10 @@ from meersolar.meerpipeline.do_partition import *
 @patch("meersolar.meerpipeline.do_partition.os")
 @patch("meersolar.meerpipeline.do_partition.time.sleep")
 @patch("meersolar.meerpipeline.do_partition.drop_cache")
+@patch("meersolar.meerpipeline.do_partition.wait_for_dask_workers",return_value=True)
 @patch("casatasks.virtualconcat")
 def test_partion_ms(
+    mock_wait,
     mock_virtualconcat,
     mock_drop_cache,
     mock_sleep,
@@ -37,8 +39,9 @@ def test_partion_ms(
     mock_msmetadata.return_value = mock_msmd
     mock_dask_client = MagicMock()
     mock_dask_cluster = MagicMock()
-    mock_get_dask_client.return_value = (mock_dask_client, mock_dask_cluster, 2, 2, 1.0)
-    mock_dask_client.compute.return_value = ["mock.ms", "mock.ms2"]
+    mock_get_dask_client.return_value = (mock_dask_client, mock_dask_cluster, 2, 2, 1.0, "/mock/dask_dir")
+    mock_dask_client.compute.return_value = [MagicMock(),MagicMock()]
+    mock_dask_client.gather.return_value = ["mock.ms", "mock.ms2"]
     result = partion_ms(
         msname="mock.ms",
         outputms="final.ms",
@@ -50,6 +53,7 @@ def test_partion_ms(
         datacolumn="DATA",
         cpu_frac=0.5,
         mem_frac=0.5,
+        dask_addr=None,
     )
     mock_get_dask_client.assert_called_once()
     mock_dask_client.compute.assert_called()
@@ -126,6 +130,7 @@ def test_main_partition(
         logfile=None,
         jobid="42",
         start_remote_log=False,
+        dask_addr=None,
     )
 
     assert msg == expected_msg

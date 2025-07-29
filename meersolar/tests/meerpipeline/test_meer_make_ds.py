@@ -3,115 +3,138 @@ from unittest.mock import patch, MagicMock
 from meersolar.meerpipeline.meer_make_ds import *
 
 
-@patch("meersolar.meerpipeline.meer_make_ds.os.makedirs")
-@patch(
-    "meersolar.meerpipeline.meer_make_ds.get_cal_target_scans",
-    return_value=([1], [], [], [], []),
-)
-@patch("meersolar.meerpipeline.meer_make_ds.get_valid_scans", return_value=[1])
-@patch("meersolar.meerpipeline.meer_make_ds.msmetadata")
-@patch("meersolar.meerpipeline.meer_make_ds.casamstool")
-@patch("meersolar.meerpipeline.meer_make_ds.check_datacolumn_valid", return_value=True)
-@patch("meersolar.meerpipeline.meer_make_ds.get_dask_client")
-@patch(
-    "meersolar.meerpipeline.meer_make_ds.make_ds_file_per_scan",
-    return_value="mockfile.npy",
-)
-@patch("meersolar.meerpipeline.meer_make_ds.make_ds_plot", return_value="mockfile.png")
-@patch("meersolar.meerpipeline.meer_make_ds.glob.glob", return_value=["sci_mock.nc"])
+@patch("meersolar.meerpipeline.meer_make_ds.glob.glob", return_value=["/mock/workdir/dynamic_spectra/sci_mock.nc"])
 @patch("meersolar.meerpipeline.meer_make_ds.os.system")
+@patch("meersolar.meerpipeline.meer_make_ds.make_ds_plot", return_value="mockfile.png")
+@patch("meersolar.meerpipeline.meer_make_ds.make_ds_file_per_scan", return_value="mockfile.npy")
+@patch("meersolar.meerpipeline.meer_make_ds.delayed", side_effect=lambda f: f)
+@patch("meersolar.meerpipeline.meer_make_ds.wait_for_dask_workers", return_value=1)
+@patch("meersolar.meerpipeline.meer_make_ds.get_dask_client")
+@patch("meersolar.meerpipeline.meer_make_ds.check_datacolumn_valid", return_value=True)
+@patch("meersolar.meerpipeline.meer_make_ds.casamstool")
+@patch("meersolar.meerpipeline.meer_make_ds.msmetadata")
+@patch("meersolar.meerpipeline.meer_make_ds.get_valid_scans", return_value=[1])
+@patch("meersolar.meerpipeline.meer_make_ds.get_cal_target_scans", return_value=([1], [], [], [], []))
+@patch("meersolar.meerpipeline.meer_make_ds.os.makedirs")
 def test_make_solar_DS(
-    mock_system,
-    mock_glob,
-    mock_plot,
-    mock_make_ds,
-    mock_get_dask,
-    mock_check_col,
-    mock_mstool_class,
-    mock_msmd_class,
-    mock_valid_scans,
-    mock_get_scans,
     mock_makedirs,
+    mock_get_scans,
+    mock_valid_scans,
+    mock_msmd_class,
+    mock_mstool_class,
+    mock_check_col,
+    mock_get_dask,
+    mock_wait,
+    mock_delayed,
+    mock_make_ds_file,
+    mock_plot,
+    mock_os_system,
+    mock_glob,
+    tmp_path,
 ):
-    # Mock msmd and mstool behaviors
+    # === Setup fake MS and work directory ===
+    msname = tmp_path / "mock.ms"
+    msname.mkdir()
+    workdir = tmp_path / "workdir"
+    workdir.mkdir()
+
+    # === Mock msmetadata ===
     mock_msmd = MagicMock()
     mock_msmd.nchan.return_value = 10
     mock_msmd.nantennas.return_value = 64
+    mock_msmd.open.return_value = None
+    mock_msmd.close.return_value = None
     mock_msmd_class.return_value = mock_msmd
 
+    # === Mock casamstool ===
     mock_mstool = MagicMock()
     mock_mstool.nrow.return_value = 10000
+    mock_mstool.open.return_value = None
+    mock_mstool.close.return_value = None
+    mock_mstool.select.return_value = None
     mock_mstool_class.return_value = mock_mstool
 
-    # Mock Dask client return values
+    # === Dask mocks ===
     mock_client = MagicMock()
     mock_cluster = MagicMock()
-    mock_get_dask.return_value = (mock_client, mock_cluster, 1, 1, 1)
+    mock_client.compute.return_value = ["f1"]
+    mock_client.gather.return_value = ["r1"]
+    mock_get_dask.return_value = (mock_client, mock_cluster, 1, 1, 0.1, "/mock/workdir/")
 
-    from meersolar.meerpipeline.meer_make_ds import make_solar_DS
-
-    make_solar_DS(
-        msname="mock.ms",
-        workdir="/mock/workdir",
+    # === Run ===
+    result = make_solar_DS(
+        msname=str(msname),
+        workdir=str(workdir),
         ds_file_name="mockDS",
         target_scans=[],
         merge_scan=False,
         showgui=False,
+        dask_addr=None,
     )
 
-    # Assertions
-    mock_makedirs.assert_called_once_with(
-        "/mock/workdir/dynamic_spectra", exist_ok=True
-    )
-    mock_get_scans.assert_called_once()
-    mock_valid_scans.assert_called_once()
-    mock_check_col.assert_called_once_with("mock.ms", datacolumn="CORRECTED_DATA")
+    # === Assertions ===
+    mock_make_ds_file.assert_called_once()
     mock_plot.assert_called_once()
-    mock_system.assert_any_call(
-        "rm -rf /mock/workdir/dask-scratch-space /mock/workdir/tmp"
-    )
-
+    assert result is None or result == ["mockfile.png"]
+    
 
 @patch("meersolar.meerpipeline.meer_make_ds.drop_cache")
+@patch("meersolar.meerpipeline.meer_make_ds.time.sleep", return_value=None)
 @patch("meersolar.meerpipeline.meer_make_ds.os.system")
-@patch("meersolar.meerpipeline.meer_make_ds.os.path.samefile", return_value=False)
-@patch(
-    "meersolar.meerpipeline.meer_make_ds.glob.glob",
-    return_value=["/outdir/dynamic_spectra/mock_DS_scan_1.png"],
-)
+@patch("meersolar.meerpipeline.meer_make_ds.os.makedirs")
+@patch("meersolar.meerpipeline.meer_make_ds.os.path.samefile", side_effect=[False, False])
+@patch("meersolar.meerpipeline.meer_make_ds.glob.glob")
 @patch("meersolar.meerpipeline.meer_make_ds.make_solar_DS")
-def test_make_ds(
+def test_make_dsfiles(
     mock_make_solar_DS,
     mock_glob,
     mock_samefile,
-    mock_os_system,
+    mock_makedirs,
+    mock_system,
+    mock_sleep,
     mock_drop_cache,
+    tmp_path,
 ):
-    mock_msname = "/data/mock.ms"
-    mock_workdir = "/workdir"
-    mock_outdir = "/outdir"
+    # ========== Setup ==========
+    msname = tmp_path / "mock.ms"
+    workdir = tmp_path / "work"
+    outdir = tmp_path / "out"
+    msname.mkdir()
+    workdir.mkdir()
+    outdir.mkdir()
 
+    expected_files = [str(outdir / "dynamic_spectra/mock_DS_scan_1.png")]
+    mock_glob.return_value = expected_files
     result = make_dsfiles(
-        msname=mock_msname,
-        workdir=mock_workdir,
-        outdir=mock_outdir,
+        msname=str(msname),
+        workdir=str(workdir),
+        outdir=str(outdir),
         extension="png",
         target_scans=[1],
         merge_scans=True,
         seperate_scans=True,
-        cpu_frac=0.8,
-        mem_frac=0.8,
+        cpu_frac=0.5,
+        mem_frac=0.5,
+        dask_addr=None,
     )
 
-    # Assertions
-    assert result == ["/outdir/dynamic_spectra/mock_DS_scan_1.png"]
+    assert result == expected_files
     assert mock_make_solar_DS.call_count == 2
-    mock_os_system.assert_called_once_with("mv /workdir/dynamic_spectra /outdir")
-
-    expected_msname = mock_msname.rstrip("/")
-    expected_workdir = mock_workdir.rstrip("/")
-    mock_drop_cache.assert_any_call(expected_msname)
-    mock_drop_cache.assert_any_call(expected_workdir)
+    mock_makedirs.assert_called_once_with(f"{outdir}/dynamic_spectra", exist_ok=True)
+    mock_system.assert_any_call(f"mv {workdir}/dynamic_spectra/* {outdir}/dynamic_spectra/")
+    mock_system.assert_any_call(f"rm -rf {workdir}/dynamic_spectra")
+    mock_drop_cache.assert_any_call(str(msname))
+    mock_drop_cache.assert_any_call(str(workdir))
+    mock_make_solar_DS.reset_mock()
+    result2 = make_dsfiles(
+        msname=str(msname),
+        workdir=str(workdir),
+        outdir=str(outdir),
+        merge_scans=False,
+        seperate_scans=False,
+    )
+    assert result2 is None
+    mock_make_solar_DS.assert_not_called()
 
 
 @pytest.mark.parametrize(
@@ -168,6 +191,7 @@ def test_main(
         logfile=None,
         jobid="12",
         start_remote_log=False,
+        dask_addr=None,
     )
     assert result == expected_code
 

@@ -186,7 +186,7 @@ def test_import_phasecal_models(dummy_submsname):
     workdir = os.getcwd()
     phasecal_fields, phasecal_scans, phasecal_flux_list = get_phasecals(dummy_submsname)
     result = import_phasecal_models(
-        mslist, phasecal_fields, phasecal_scans, workdir, cpu_frac=0.8, mem_frac=0.8
+        mslist, phasecal_fields, phasecal_scans, workdir, cpu_frac=0.8, mem_frac=0.8, dask_addr=None,
     )
     assert result == 0
 
@@ -199,7 +199,7 @@ def test_import_polcal_models(dummy_submsname):
     workdir = os.getcwd()
     polcal_fields, polcal_scans = get_polcals(dummy_submsname)
     result = import_polcal_models(
-        mslist, polcal_fields, polcal_scans, workdir, cpu_frac=0.8, mem_frac=0.8
+        mslist, polcal_fields, polcal_scans, workdir, cpu_frac=0.8, mem_frac=0.8, dask_addr=None,
     )
     assert result == 1
 
@@ -300,6 +300,7 @@ def test_main_function(
         logfile=None,
         jobid=101,
         start_remote_log=False,
+        dask_addr=None,
     )
     assert msg == expected_msg
 

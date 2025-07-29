@@ -147,6 +147,7 @@ def pbcor_all_images(
     pbcor_dir = f"{os.path.dirname(imagedir)}/pbcor_images"
     os.makedirs(pbdir, exist_ok=True)
     os.makedirs(pbcor_dir, exist_ok=True)
+    successful_pbcor = 0
     try:
         images = glob.glob(f"{imagedir}/*.fits")
         if make_TB:
@@ -205,7 +206,6 @@ def pbcor_all_images(
             if dask_addr is None:
                 dask_cluster.close()
                 os.system(f"rm -rf {dask_dir}")
-            successful_pbcor = 0
             for r in results:
                 if r == 0:
                     successful_pbcor += 1
@@ -316,9 +316,12 @@ def pbcor_all_images(
         # Final calculations
         #########################################
         print(f"Total input images: {len(images)}")
-        print(f"Total corrected images: {len(pbcor_images)}")
-        if make_TB:
-            print(f"Total brightness temperatures maps: {len(tb_images)}")
+        if successful_pbcor > 0:
+            print(f"Total corrected images: {len(pbcor_images)}")
+            if make_TB:
+                print(f"Total brightness temperatures maps: {len(tb_images)}")
+        else:
+            print(f"Total corrected images: 0")
         os.system(f"rm -rf {pbdir}/dask-scratch-space")
         return 0
     except Exception as e:

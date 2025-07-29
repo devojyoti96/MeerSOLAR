@@ -45,7 +45,9 @@ from meersolar.meerpipeline.do_sidereal_cor import *
 )
 @patch("meersolar.meerpipeline.do_sidereal_cor.check_udocker_container")
 @patch("meersolar.meerpipeline.do_sidereal_cor.os.path.exists")
+@patch("meersolar.meerpipeline.do_sidereal_cor.wait_for_dask_workers",return_value=True)
 def test_cor_sidereal_motion(
+    mock_wait,
     mock_exists,
     mock_check_container,
     mock_init_container,
@@ -76,10 +78,11 @@ def test_cor_sidereal_motion(
     # Dask client mock
     mock_client = MagicMock()
     mock_cluster = MagicMock()
-    mock_get_dask.return_value = (mock_client, mock_cluster, 2, 2, 4.0)
+    mock_get_dask.return_value = (mock_client, mock_cluster, 2, 2, 4.0, "/mock/dask_dir")
 
     # Compute mock return
-    mock_client.compute.return_value = compute_result
+    mock_client.compute.return_value = [MagicMock()]*len(compute_result)
+    mock_client.gather.return_value = compute_result
 
     # Mock existence of .sidereal_cor
     def exists_side_effect(path):
@@ -152,6 +155,7 @@ def test_main_sidereal(
         logfile=None,
         jobid=5,
         start_remote_log=False,
+        dask_addr=None,
     )
     assert result == expected_msg
 

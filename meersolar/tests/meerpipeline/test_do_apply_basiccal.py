@@ -158,7 +158,9 @@ def mock_glob_pattern(pattern):
     "meersolar.meerpipeline.do_apply_basiccal.scale_bandpass",
     return_value="scaled.bcal",
 )
+@patch("meersolar.meerpipeline.do_apply_basiccal.wait_for_dask_workers",return_value=True)
 def test_run_all_applysol(
+    mock_wait,
     mock_scale,
     mock_applysol,
     mock_delayed,
@@ -174,7 +176,7 @@ def test_run_all_applysol(
     mock_sleep,
     mock_drop,
 ):
-    mock_dask.return_value = (MagicMock(), MagicMock(), 1, 1, 1.0)
+    mock_dask.return_value = (MagicMock(), MagicMock(), 1, 1, 1.0, "/mock/dask_dir")
     mock_glob.side_effect = mock_glob_pattern
     result = run_all_applysol(
         mslist="test1.ms,test2.ms",
@@ -187,6 +189,7 @@ def test_run_all_applysol(
         do_post_flag=True,
         cpu_frac=0.8,
         mem_frac=0.8,
+        dask_addr=None,
     )
     assert result == 0
 

@@ -171,7 +171,10 @@ def test_do_selfcal(
 @patch("meersolar.meerpipeline.do_selfcal.run_limited_memory_task", return_value=4)
 @patch("meersolar.meerpipeline.do_selfcal.check_datacolumn_valid")
 @patch("meersolar.meerpipeline.do_selfcal.get_dask_client")
-@patch("meersolar.meerpipeline.do_selfcal.do_selfcal", return_value=(0, "mock.gcal"))
+@patch(
+    "meersolar.meerpipeline.do_selfcal.do_selfcal",
+    side_effect=lambda *args, **kwargs: 1.5 if kwargs.get("dry_run") else (0, "mock.gcal"),
+)
 @patch("meersolar.meerpipeline.do_selfcal.drop_cache")
 @patch("meersolar.meerpipeline.do_selfcal.clean_shutdown")
 @patch("time.sleep", return_value=None)
@@ -182,7 +185,9 @@ def test_do_selfcal(
     "meersolar.meerpipeline.do_selfcal.resource.getrlimit", return_value=(1024, 4096)
 )
 @patch("meersolar.meerpipeline.do_selfcal.resource.setrlimit")
+@patch("meersolar.meerpipeline.do_selfcal.wait_for_dask_workers",return_value=True)
 def test_main_selfcal(
+    mock_wait,
     mock_setrlimit,
     mock_getrlimit,
     mock_virtual_memory,
@@ -260,9 +265,10 @@ def test_main_selfcal(
 
     # Dask client simulate compute success
     dask_client = MagicMock()
-    dask_client.compute.return_value = [(0, "mock.gcal")] * len(mslist)
+    dask_client.compute.return_value = [MagicMock()] * len(mslist)
+    dask_client.gather.return_value = [(0, "mock.gcal")] * len(mslist)
     dask_cluster = MagicMock()
-    mock_get_dask_client.return_value = (dask_client, dask_cluster, len(mslist), 1, 2)
+    mock_get_dask_client.return_value = (dask_client, dask_cluster, len(mslist), 1, 2, "/mock/dask_dir")
 
     # Run main
     msg = main(
@@ -289,6 +295,7 @@ def test_main_selfcal(
         mem_frac=0.6,
         jobid=42,
         start_remote_log=False,
+        dask_addr=None,
     )
 
     assert msg == expected_msg

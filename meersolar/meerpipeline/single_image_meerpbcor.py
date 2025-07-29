@@ -726,7 +726,7 @@ def main(
                     msg = 0
                     print(f"Primary beam corrected image: {pbcor_image}")
         else:
-            print("Please provide correct image name.\n")
+            print("Please provide correct image name.")
             msg = 1
     except Exception as e:
         traceback.print_exc()

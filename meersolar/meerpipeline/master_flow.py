@@ -80,7 +80,7 @@ def run_ds_jobs(
     task_id=str(ctx.task_run.id)
     task_name = ctx.task_run.name
     stop_event = Event()
-    log_thread = start_log_saver(task_id, task_name, logfile, poll_interval=3, stop_event=stop_event)
+    log_thread = start_log_task_saver(task_id, task_name, logfile, poll_interval=3, stop_event=stop_event)
     try:
         ##################
         print("###########################")
@@ -161,7 +161,7 @@ def run_noise_diode_cal(
     task_id=str(ctx.task_run.id)
     task_name = ctx.task_run.name
     stop_event = Event()
-    log_thread = start_log_saver(task_id, task_name, logfile, poll_interval=3, stop_event=stop_event)
+    log_thread = start_log_task_saver(task_id, task_name, logfile, poll_interval=3, stop_event=stop_event)
     try:
         #################
         print("###########################")
@@ -236,7 +236,7 @@ def run_partition(
     task_id=str(ctx.task_run.id)
     task_name = ctx.task_run.name
     stop_event = Event()
-    log_thread = start_log_saver(task_id, task_name, logfile, poll_interval=3, stop_event=stop_event)
+    log_thread = start_log_task_saver(task_id, task_name, logfile, poll_interval=3, stop_event=stop_event)
     try:
         msmd = msmetadata()
         msmd.open(msname)
@@ -378,7 +378,7 @@ def run_target_split_jobs(
     task_id=str(ctx.task_run.id)
     task_name = ctx.task_run.name
     stop_event = Event()
-    log_thread = start_log_saver(task_id, task_name, logfile, poll_interval=3, stop_event=stop_event)
+    log_thread = start_log_task_saver(task_id, task_name, logfile, poll_interval=3, stop_event=stop_event)
     try:
         ############
         print("###########################")
@@ -478,7 +478,7 @@ def run_flag(
     task_id=str(ctx.task_run.id)
     task_name = ctx.task_run.name
     stop_event = Event()
-    log_thread = start_log_saver(task_id, task_name, logfile, poll_interval=3, stop_event=stop_event)
+    log_thread = start_log_task_saver(task_id, task_name, logfile, poll_interval=3, stop_event=stop_event)
     try:
         ##############
         print("###########################")
@@ -559,7 +559,7 @@ def run_import_model(
     task_id=str(ctx.task_run.id)
     task_name = ctx.task_run.name
     stop_event = Event()
-    log_thread = start_log_saver(task_id, task_name, logfile, poll_interval=3, stop_event=stop_event)
+    log_thread = start_log_task_saver(task_id, task_name, logfile, poll_interval=3, stop_event=stop_event)
     try:
         ##############
         print("###########################")
@@ -641,7 +641,7 @@ def run_basic_cal_jobs(
     task_id=str(ctx.task_run.id)
     task_name = ctx.task_run.name
     stop_event = Event()
-    log_thread = start_log_saver(task_id, task_name, logfile, poll_interval=3, stop_event=stop_event)
+    log_thread = start_log_task_saver(task_id, task_name, logfile, poll_interval=3, stop_event=stop_event)
     try:
         ##############
         print("###########################")
@@ -729,7 +729,7 @@ def run_apply_basiccal_sol(
     task_id=str(ctx.task_run.id)
     task_name = ctx.task_run.name
     stop_event = Event()
-    log_thread = start_log_saver(task_id, task_name, logfile, poll_interval=3, stop_event=stop_event)
+    log_thread = start_log_task_saver(task_id, task_name, logfile, poll_interval=3, stop_event=stop_event)
     try:
         ######################
         print("###########################")
@@ -815,7 +815,7 @@ def run_solar_siderealcor_jobs(
     task_id=str(ctx.task_run.id)
     task_name = ctx.task_run.name
     stop_event = Event()
-    log_thread = start_log_saver(task_id, task_name, logfile, poll_interval=3, stop_event=stop_event)
+    log_thread = start_log_task_saver(task_id, task_name, logfile, poll_interval=3, stop_event=stop_event)
     try:
         #######################
         print("###########################")
@@ -939,7 +939,7 @@ def run_selfcal_jobs(
     task_id=str(ctx.task_run.id)
     task_name = ctx.task_run.name
     stop_event = Event()
-    log_thread = start_log_saver(task_id, task_name, logfile, poll_interval=3, stop_event=stop_event)
+    log_thread = start_log_task_saver(task_id, task_name, logfile, poll_interval=3, stop_event=stop_event)
     try:
         ########################
         print("###########################")
@@ -1039,7 +1039,7 @@ def run_apply_selfcal_sol(
     task_id=str(ctx.task_run.id)
     task_name = ctx.task_run.name
     stop_event = Event()
-    log_thread = start_log_saver(task_id, task_name, logfile, poll_interval=3, stop_event=stop_event)
+    log_thread = start_log_task_saver(task_id, task_name, logfile, poll_interval=3, stop_event=stop_event)
     try:
         ##################
         print("###########################")
@@ -1166,7 +1166,7 @@ def run_imaging_jobs(
     task_id=str(ctx.task_run.id)
     task_name = ctx.task_run.name
     stop_event = Event()
-    log_thread = start_log_saver(task_id, task_name, logfile, poll_interval=3, stop_event=stop_event)
+    log_thread = start_log_task_saver(task_id, task_name, logfile, poll_interval=3, stop_event=stop_event)
     try:
         ######################
         print("###########################")
@@ -1257,7 +1257,7 @@ def run_apply_pbcor(
     task_id=str(ctx.task_run.id)
     task_name = ctx.task_run.name
     stop_event = Event()
-    log_thread = start_log_saver(task_id, task_name, logfile, poll_interval=3, stop_event=stop_event)
+    log_thread = start_log_task_saver(task_id, task_name, logfile, poll_interval=3, stop_event=stop_event)
     try:
         ###################
         print("###########################")

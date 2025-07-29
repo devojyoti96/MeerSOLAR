@@ -16,7 +16,11 @@ def test_split_casatask(dummy_msname):
 @patch("meersolar.meerpipeline.do_fluxcal.run_limited_memory_task", return_value=0.5)
 @patch("meersolar.meerpipeline.do_fluxcal.get_dask_client")
 @patch("meersolar.meerpipeline.do_fluxcal.os.path.exists", return_value=False)
+@patch("meersolar.meerpipeline.do_fluxcal.wait_for_dask_workers",return_value=True)
+@patch("meersolar.meerpipeline.do_fluxcal.get_ms_scan_size")
 def test_split_autocorr(
+    mock_get_column_size,
+    mock_wait,
     mock_exists,
     mock_get_dask_client,
     mock_run_limited,
@@ -25,8 +29,10 @@ def test_split_autocorr(
     mock_split_casatask.return_value = "mock.ms"
     dummy_client = MagicMock()
     dummy_cluster = MagicMock()
-    mock_get_dask_client.return_value = (dummy_client, dummy_cluster, 2, 1, 0.5)
-    dummy_client.compute.return_value = ["autocorr_scan_1.ms", "autocorr_scan_2.ms"]
+    mock_get_dask_client.return_value = (dummy_client, dummy_cluster, 2, 1, 0.5, "/mock/dask_dir")
+    dummy_client.compute.return_value = [MagicMock(),MagicMock()]
+    dummy_client.gather.return_value = ["autocorr_scan_1.ms", "autocorr_scan_2.ms"]
+    mock_get_column_size.side_effect = [0.01,0.02] # in GB
     result = split_autocorr(
         msname="mock.ms",
         workdir="/mock/workdir",
@@ -34,6 +40,7 @@ def test_split_autocorr(
         time_window=-1,
         cpu_frac=0.5,
         mem_frac=0.5,
+        dask_addr=None,
     )
     assert isinstance(result, list)
     assert result == ["autocorr_scan_1.ms", "autocorr_scan_2.ms"]
@@ -163,7 +170,11 @@ def test_get_power_diff(
 @patch("meersolar.meerpipeline.do_fluxcal.np.save")
 @patch("meersolar.meerpipeline.do_fluxcal.os.path.exists", return_value=True)
 @patch("meersolar.meerpipeline.do_fluxcal.os.makedirs")
+@patch("meersolar.meerpipeline.do_fluxcal.wait_for_dask_workers",return_value=True)
+@patch("meersolar.meerpipeline.do_fluxcal.get_column_size")
 def test_estimate_att(
+    mock_get_column_size,
+    mock_wait,
     mock_makedirs,
     mock_exists,
     mock_save,
@@ -184,14 +195,13 @@ def test_estimate_att(
     off_cal = "off.cal"
     flux_scan = 5
     target_scans = [10]
-
     mock_get_fluxcals.return_value = (["J0408-6545"], {1: [flux_scan]})
     mock_get_bad_chans.return_value = [1, 2]
     mock_get_bad_ants.return_value = ([0, 1], "0,1")
     mock_run_limited_memory_task.return_value = 0.1
     mock_dask_client = MagicMock()
     mock_dask_cluster = MagicMock()
-    mock_get_dask_client.return_value = (mock_dask_client, mock_dask_cluster, 1, 1, 0.1)
+    mock_get_dask_client.return_value = (mock_dask_client, mock_dask_cluster, 1, 1, 0.1, "/mock/dask_dir")
     mock_split_autocorr.return_value = [
         f"{workdir}/autocorr_scan_{flux_scan}.ms",
         f"{workdir}/autocorr_scan_{target_scans[0]}.ms",
@@ -210,7 +220,9 @@ def test_estimate_att(
             [[0.5, 0.53, 0.51, 0.54], [0.6, 0.63, 0.6, 0.64], [0.7, 0.73, 0.7, 0.74]],
         ]
     )
-    mock_dask_client.compute.side_effect = lambda *args, **kwargs: [
+    mock_get_column_size.side_effect = [0.01]*len(att_array)  # in GB
+    mock_dask_client.compute.side_effect = [MagicMock()]*len(att_array)
+    mock_dask_client.gather.side_effect = lambda *args, **kwargs: [
         [att_array, att_ant_array]
     ]
 
@@ -229,8 +241,10 @@ def test_estimate_att(
         time_window=300,
         cpu_frac=0.5,
         mem_frac=0.5,
+        dask_addr=None,
     )
     mock_dask_client.compute.assert_called()
+    mock_dask_client.gather.assert_called()
     assert status == 0
     assert isinstance(att_level, dict)
     assert isinstance(att_files, list)

@@ -48,6 +48,7 @@ def test_do_flagging(dummy_submsname):
         flag_backup=True,
         cpu_frac=0.8,
         mem_frac=0.8,
+        dask_addr=None,
     )
     assert result == 0
     tb = table()
@@ -120,6 +121,7 @@ def test_main_flagging(
         logfile=None,
         jobid=1,
         start_remote_log=False,
+        dask_addr=None,
     )
     assert msg == expected_msg
 

@@ -130,7 +130,9 @@ def test_perform_imaging(
 @patch("meersolar.meerpipeline.do_imaging.run_limited_memory_task", return_value=4.0)
 @patch("meersolar.meerpipeline.do_imaging.np.load", return_value=["job", "pass"])
 @patch("meersolar.meerpipeline.do_imaging.perform_imaging")
+@patch("meersolar.meerpipeline.do_imaging.wait_for_dask_workers",return_value=True)
 def test_run_all_imaging(
+    mock_wait,
     mock_perform_imaging,
     mock_npload,
     mock_run_limited,
@@ -176,10 +178,11 @@ def test_run_all_imaging(
     # Dask client
     client = MagicMock()
     cluster = MagicMock()
-    mock_get_dask.return_value = (client, cluster, 2, 2, 4.0)
+    mock_get_dask.return_value = (client, cluster, 2, 2, 4.0, "/mock/dask_dir")
 
     # Imaging result
-    client.compute.return_value = [
+    client.compute.return_value = [MagicMock()]
+    client.gather.return_value = [
         (0, {"image": ["img.fits"], "model": ["mod.fits"], "residual": ["res.fits"]})
     ]
 

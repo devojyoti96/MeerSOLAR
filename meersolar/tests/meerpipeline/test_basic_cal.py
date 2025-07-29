@@ -389,7 +389,9 @@ def test_run_postcal_flag(
 @patch("meersolar.meerpipeline.basic_cal.os.system")
 @patch("meersolar.meerpipeline.basic_cal.os.makedirs")
 @patch("meersolar.meerpipeline.basic_cal.table")
+@patch("meersolar.meerpipeline.basic_cal.wait_for_dask_workers",return_value=True)
 def test_single_round_cal_and_flag(
+    mock_wait,
     mock_table,
     mock_makedirs,
     mock_system,
@@ -415,7 +417,7 @@ def test_single_round_cal_and_flag(
     mock_drop,
 ):
     # Setup mocks
-    mock_dask.return_value = (MagicMock(), MagicMock(), 1, 1, 1.0)
+    mock_dask.return_value = (MagicMock(), MagicMock(), 1, 1, 1.0, "/mock/dask_dir")
     mock_getscans.return_value = (["ms1", "ms2"], [1, 2])
     mock_memtask.return_value = 0.1
     # Mock msmetadata
@@ -451,6 +453,7 @@ def test_single_round_cal_and_flag(
         do_postcal_flag=True,
         cpu_frac=0.8,
         mem_frac=0.8,
+        dask_addr=None,
     )
     assert status == 0
     assert len(caltables) == 7
@@ -522,6 +525,7 @@ def test_run_basic_cal_rounds(
         workdir="/tmp",
         keep_backup=False,
         perform_polcal=True,
+        dask_addr=None,
     )
     assert status_fail == 1
     assert caltables_fail == []
@@ -574,6 +578,7 @@ def test_main(
         logfile="/mock/logfile.log",
         jobid="123",
         start_remote_log=True,
+        dask_addr=None,
     )
     assert result == 0
     mock_save_pid.assert_called_once()
@@ -586,6 +591,7 @@ def test_main(
         keep_backup=True,
         cpu_frac=0.5,
         mem_frac=0.5,
+        dask_addr=None,
     )
     for caltable in ["/mock/caltable1", "/mock/caltable2"]:
         mock_system.assert_any_call(

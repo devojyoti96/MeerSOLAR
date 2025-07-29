@@ -9,6 +9,7 @@ from dask import delayed, compute
 from dask.distributed import Client, LocalCluster
 from datetime import datetime as dt
 from unittest.mock import patch, MagicMock, mock_open, call
+from itertools import chain, repeat
 from meersolar.utils.proc_manage_utils import *
 
 
@@ -293,3 +294,30 @@ def test_create_batch_script_slurm(
     # chmod
     mock_chmod.assert_any_call(f"{workdir}/{basename}_cmd.batch", 0o777)
     mock_chmod.assert_any_call(f"{workdir}/{basename}.sbatch", 0o777)
+    
+@pytest.mark.parametrize(
+    "workers_sequence, min_worker, timeout, should_raise",
+    [
+        # ✅ workers appear at second iteration
+        ([{}, {"w1": {}, "w2": {}}], 2, 5, False),
+
+        # ❌ never appears
+        ([{}] * 3, 1, 3, True),
+    ]
+)
+def test_wait_for_dask_workers(workers_sequence, min_worker, timeout, should_raise):
+    mock_client = MagicMock()
+    # Prevent StopIteration by repeating last element
+    safe_side_effect = chain(
+        [{"workers": ws} for ws in workers_sequence],
+        repeat({"workers": workers_sequence[-1] if workers_sequence else {}}),
+    )
+    mock_client.scheduler_info = MagicMock(side_effect=safe_side_effect)
+
+    with patch("time.sleep", return_value=None):
+        if should_raise:
+            with pytest.raises(TimeoutError, match="No Dask workers connected within timeout."):
+                wait_for_dask_workers(mock_client, min_worker=min_worker, timeout=timeout)
+        else:
+            wait_for_dask_workers(mock_client, min_worker=min_worker, timeout=timeout)
+

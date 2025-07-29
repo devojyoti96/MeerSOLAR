@@ -28,36 +28,55 @@ def test_get_fits_freq(
         assert "No frequency axis" in captured.out
 
 
-@patch("meersolar.meerpipeline.meer_pbcor.os.system")
 @pytest.mark.parametrize(
-    "apply_parang, expected_cmd_suffix", [(True, ""), (False, " --no_apply_parang")]
+    "apply_parang, returncode, expected_flag",
+    [
+        (True, 0, []),
+        (False, 0, ["--no_apply_parang"]),
+        (False, 1, ["--no_apply_parang"]),  # Simulate failure
+    ],
 )
-def test_run_pbcor(mock_system, apply_parang, expected_cmd_suffix):
-    # Arrange
-    imagename = "mock.fits"
-    pbdir = "/mock/pb"
-    pbcor_dir = "/mock/pbcor"
+def test_run_pbcor(apply_parang, returncode, expected_flag):
+    imagename = "test.fits"
+    pbdir = "/fake/pb"
+    pbcor_dir = "/fake/pbcor"
     jobid = 42
     ncpu = 4
+    fake_output = "Mocked primary beam correction output."
 
-    expected_cmd = (
-        f"run-meer-singlepbcor {imagename} --pbdir {pbdir} "
-        f"--pbcor_dir {pbcor_dir} --ncpu {ncpu} --jobid {jobid}{expected_cmd_suffix} > {imagename}.tmp"
-    )
+    with patch("meersolar.meerpipeline.meer_pbcor.subprocess.run") as mock_run:
+        mock_proc = MagicMock()
+        mock_proc.returncode = returncode
+        mock_proc.stdout = fake_output
+        mock_run.return_value = mock_proc
 
-    # Mock return for os.system
-    mock_system.return_value = 0
+        result = run_pbcor(
+            imagename,
+            pbdir,
+            pbcor_dir,
+            apply_parang=apply_parang,
+            jobid=jobid,
+            ncpu=ncpu,
+            verbose=True
+        )
 
-    # Act
-    result = run_pbcor(
-        imagename, pbdir, pbcor_dir, apply_parang, jobid=jobid, ncpu=ncpu
-    )
+        # Verify correct result code
+        assert result == returncode
 
-    # Assert
-    assert result == 0
-    assert mock_system.call_count == 2
-    assert mock_system.call_args_list[0][0][0] == expected_cmd
-    assert mock_system.call_args_list[1][0][0] == f"rm -rf {imagename}.tmp"
+        # Ensure correct command construction
+        called_args = mock_run.call_args[0][0]
+        assert imagename in called_args
+        assert "--pbdir" in called_args
+        assert pbdir in called_args
+        assert "--pbcor_dir" in called_args
+        assert pbcor_dir in called_args
+        assert "--ncpu" in called_args
+        assert str(ncpu) in called_args
+        assert "--jobid" in called_args
+        assert str(jobid) in called_args
+
+        for flag in expected_flag:
+            assert flag in called_args
 
 
 @pytest.mark.parametrize(
@@ -77,7 +96,9 @@ def test_run_pbcor(mock_system, apply_parang, expected_cmd_suffix):
 @patch("meersolar.meerpipeline.meer_pbcor.os.path.getsize")
 @patch("meersolar.meerpipeline.meer_pbcor.glob.glob")
 @patch("meersolar.meerpipeline.meer_pbcor.os.makedirs")
+@patch("meersolar.meerpipeline.meer_pbcor.wait_for_dask_workers",return_value=1)
 def test_pbcor_all_images(
+    mock_wait,
     mock_makedirs,
     mock_glob,
     mock_getsize,
@@ -103,9 +124,10 @@ def test_pbcor_all_images(
     mock_getsize.return_value = 1024**3  # 1GB each
     mock_dask_client = MagicMock()
     dask_cluster = MagicMock()
-    mock_get_dask_client.return_value = (mock_dask_client, dask_cluster, 2, 4, 8.0)
+    mock_get_dask_client.return_value = (mock_dask_client, dask_cluster, 2, 4, 8.0, "/mock/dask_dir")
     mock_delayed.side_effect = lambda f: f  # simulate delayed identity
-    mock_dask_client.compute.return_value = [0, 0]  # simulate successful pbcor
+    mock_dask_client.compute.return_value = [MagicMock(), MagicMock()]
+    mock_dask_client.gather.return_value = [0, 0]
     result = pbcor_all_images(
         imagedir="/mock/imagedir",
         make_TB=make_TB,
@@ -114,6 +136,7 @@ def test_pbcor_all_images(
         jobid=99,
         cpu_frac=0.5,
         mem_frac=0.5,
+        dask_addr=None,
     )
     mock_dask_client.compute.assert_called()
     # Check expected cleanup was called
@@ -184,6 +207,7 @@ def test_main_function(
         mem_frac=0.6,
         logfile=None,
         jobid=1,
+        dask_addr=None,
     )
     assert msg == expected_return
 

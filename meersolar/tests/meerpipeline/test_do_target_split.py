@@ -42,7 +42,9 @@ def test_chanlist_to_str():
 @patch("meersolar.meerpipeline.do_target_split.drop_cache")
 @patch("meersolar.meerpipeline.do_target_split.msmetadata")
 @patch("meersolar.meerpipeline.do_target_split.os.chdir")
+@patch("meersolar.meerpipeline.do_target_split.wait_for_dask_workers",return_value=True)
 def test_split_target_scans(
+    mock_wait,
     mock_chdir,
     mock_msmetadata,
     mock_drop_cache,
@@ -60,8 +62,9 @@ def test_split_target_scans(
 ):
     mock_dask_client = MagicMock()
     mock_dask_cluster = MagicMock()
-    mock_get_dask_client.return_value = (mock_dask_client, mock_dask_cluster, 1, 1, 1.0)
-    mock_dask_client.compute.return_value = ["mock.ms"]
+    mock_get_dask_client.return_value = (mock_dask_client, mock_dask_cluster, 1, 1, 1.0, "/mock/dask_dir")
+    mock_dask_client.compute.return_value = [MagicMock()]
+    mock_dask_client.gather.return_value = ["mock.ms"] 
     mock_msmd = MagicMock()
     mock_msmd.chanres.return_value = [0.1]
     mock_msmd.chanfreqs.return_value = [100.0, 200.0, 300.0]
@@ -75,8 +78,10 @@ def test_split_target_scans(
         freqres=1.0,
         datacolumn="DATA",
         scans=[],
+        dask_addr=None,
     )
     mock_dask_client.compute.assert_called()
+    mock_dask_client.gather.assert_called()
     assert msg == 0
     assert result == ["mock.ms"]
 
@@ -152,6 +157,7 @@ def test_main_split_target_scans(
         logfile=None,
         jobid=0,
         start_remote_log=False,
+        dask_addr=None,
     )
     assert msg == expected_msg
 

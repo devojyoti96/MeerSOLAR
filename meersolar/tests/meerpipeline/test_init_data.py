@@ -222,7 +222,6 @@ def test_init_meersolar_data(
 )
 def test_main(init_flag, expected_calls, monkeypatch):
     from meersolar.meerpipeline import init_data
-
     # Create mock functions
     mocks = {name: Mock(name=f"mock_{name}") for name in expected_calls}
 
@@ -240,6 +239,7 @@ def test_main(init_flag, expected_calls, monkeypatch):
         update=True,
         link="http://remote.url",
         emails="test@example.com",
+        prefect_server=False,
     )
 
     # Assert calls based on expectation
@@ -270,7 +270,7 @@ def test_main(init_flag, expected_calls, monkeypatch):
         if expected_calls["initialize_wsclean_container"]
         else mocks["initialize_wsclean_container"].assert_not_called()
     )
-
+    
 
 @pytest.mark.parametrize(
     "argv_args, expect_main_called, expect_exit_called, expected_args",
@@ -298,6 +298,7 @@ def test_main(init_flag, expected_calls, monkeypatch):
                 "update": True,
                 "link": "http://example.com",
                 "emails": "a@b.com",
+                "prefect_server":True,
             },
         ),
     ],

@@ -24,7 +24,9 @@ from meersolar.meerpipeline.do_apply_selfcal import *
     "meersolar.meerpipeline.do_apply_selfcal.os.path.basename",
     side_effect=lambda x: x.split("/")[-1],
 )
+@patch("meersolar.meerpipeline.do_apply_selfcal.wait_for_dask_workers",return_value=True)
 def test_run_all_applysol(
+    mock_wait,
     mock_basename,
     mock_glob,
     mock_delayed,
@@ -47,7 +49,7 @@ def test_run_all_applysol(
 
     mock_dask_client = MagicMock()
     mock_dask_cluster = MagicMock()
-    mock_get_dask_client.return_value = (mock_dask_client, mock_dask_cluster, 1, 1, 4.0)
+    mock_get_dask_client.return_value = (mock_dask_client, mock_dask_cluster, 1, 1, 4.0, "/mock/dask_dir")
 
     result = run_all_applysol(
         mslist=["mock.ms"],
@@ -58,6 +60,7 @@ def test_run_all_applysol(
         force_apply=True,
         cpu_frac=0.8,
         mem_frac=0.8,
+        dask_addr=None,
     )
 
     assert result == 0
@@ -127,6 +130,7 @@ def test_main_applysol(
         mem_frac=0.5,
         logfile=None,
         jobid=42,
+        dask_addr=None,
     )
 
     assert msg == expected_msg

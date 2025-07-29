@@ -406,6 +406,7 @@ def generate_activate_env(outfile="activate_env.sh"):
     print(f"Created activation script at: {outfile}")
     return outfile
 
+
 def wait_for_dask_workers(client, min_worker=1, timeout=60):
     """
     Wait for dask worker
