@@ -46,13 +46,13 @@ MeerSOLAR documentation is available at: [meersolar.readthedocs.io]
 3. Initiate necessary metadata
 
     ```text
-    init_meersolar_data --init
+    init-meersolar-setup --init
     ```
     
 4. Run MeerSOLAR pipeline
 
     ```text
-    run_meersolar <path of measurement set> --workdir <path of work directory> --outdir <path of output products directory>
+    run-meer-meersolar <path of measurement set> --workdir <path of work directory> --outdir <path of output products directory>
     ```    
 
 That's all. You started MeerSOLAR pipeline for analysing your MeerKAT solar observation 🎉.
@@ -60,13 +60,19 @@ That's all. You started MeerSOLAR pipeline for analysing your MeerKAT solar obse
 5. To see all running MeerSOLAR jobs
 
     ```text
-    show_meersolar_status --show
+    show-meersolar-status --show
     ```
-       
-6. To see local log of any job using the <jobid>
+    
+6. To see prefect dashboard
 
    ```text
-   run_meersolar_log --jobid <jobid>
+   run-meer-meerlogger
+   ```
+      
+7. To see local log of any job using the <jobid>
+
+   ```text
+   run-meer-meerlogger --jobid <jobid>
    ```
    
 7. Output products will be saved in : `<path of output products directory>`
