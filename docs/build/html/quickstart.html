@@ -302,8 +302,8 @@ conda<span class="w"> </span>activate<span class="w"> </span>meersolar_env
 </pre></div>
 </div>
 </li>
-<li><p>Initiate necessary metadata</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>init-meersolar-data<span class="w"> </span>--init
+<li><p>Initiate necessary post-installation setup for metadata and <code class="docutils literal notranslate"><span class="pre">prefect</span></code> server</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>init-meersolar-setup<span class="w"> </span>--init
 </pre></div>
 </div>
 </li>
@@ -313,14 +313,19 @@ conda<span class="w"> </span>activate<span class="w"> </span>meersolar_env
 </div>
 </li>
 </ol>
-<p>That’s all. You started MeerSOLAR pipeline for analysing your MeerKAT solar observation 🎉.</p>
+<p>That’s all. You started MeerSOLAR pipeline for analysing your MeerKAT solar observation 🎉. Read the <code class="docutils literal notranslate"><span class="pre">Directory</span> <span class="pre">Structure</span> <span class="pre">and</span> <span class="pre">Data</span> <span class="pre">Products</span></code> section to understand how to find final images.</p>
 <ol class="arabic" start="5">
 <li><p>To see all running MeerSOLAR jobs</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>show-meersolar-status<span class="w"> </span>--show
 </pre></div>
 </div>
 </li>
-<li><p>To see local log of any job using the &lt;jobid&gt;</p>
+<li><p>To see <code class="docutils literal notranslate"><span class="pre">prefect</span></code> dashboard:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>run-meer-meerlogger
+</pre></div>
+</div>
+</li>
+<li><p>If <code class="docutils literal notranslate"><span class="pre">prefect</span></code> dashboard is not showing logs, use local log of any job using the &lt;jobid&gt;:</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>run-meer-meerlogger<span class="w"> </span>--jobid<span class="w"> </span>&lt;jobid&gt;
 </pre></div>
 </div>

@@ -1,28 +1,35 @@
 Initial Setup
 =============
 
-After installation of **MeerSOLAR**, before running the pipeline, some initial setup is needed. These include downloading some required metadata for the pipeline and setup of remote logger.
+After installation of **MeerSOLAR**, before running the pipeline, some initial setup is needed. These include downloading some required metadata for the pipeline, setup ``prefect`` server and setup of remote logger.
 
 
-Download MeerSOLAR metadata
----------------------------
-1. To download and save the required MeerSOLAR metadata in appropriate directory, run from command line:
+Download MeerSOLAR metadata and ``prefect`` server setup
+---------------------------------------------------------
+1. To download and save the required MeerSOLAR metadata in appropriate directory, and starting ``prefect`` server, run from command line:
 
 .. code-block :: bash
     
-    init-meersolar-data --init
+    init-meersolar-setup --init
     
 .. admonition:: Click here to see parameters
    :class: dropdown
 
-    .. program-output:: init-meersolar-data -h
+    .. program-output:: init-meersolar-setup -h
    
     
 2. If data files are present, but needs to updated, run:
 
 .. code-block :: bash
 
-    init-meersolar-data --init --update
+    init-meersolar-setup --init --update
+    
+3. If user does not want ``prefect`` server (so called ephemeral mode in ``prefect``), run:
+
+.. code-block :: bash
+    
+    init-meersolar-setup --init --no_prefect_server
+
     
 Custom data directory
 ----------------------
@@ -30,7 +37,7 @@ By default, data directory will be at "~/.solarpipe/solarpipe_data". It requires
 
 .. code-block :: bash
 
-    init-meersolar-data --init --datadir </path/to/custom/datadir>
+    init-meersolar-setup --init --datadir </path/to/custom/datadir>
     
 Setup e-mail ids
 ----------------
@@ -38,7 +45,7 @@ To receive remote logger Job ID and password, use can setup their e-mail id(s) i
 
 .. code-block :: bash
 
-    init-meersolar-data --init --emails <youremail1@email1.id1>,<youremail2@email2.id2> 
+    init-meersolar-setup --init --emails <youremail1@email1.id1>,<youremail2@email2.id2> 
     
 If you setup a remote logger as described below, you will receive a Job ID and auto-generated six-character password to access logs of a particular pipeline run from the remote logger. Without this password, one can not access logs of that particular pipeline run. This added security as well as privacy when multiple user uses the same remote logger link, for example, an institute based remote logger link.   
     
@@ -48,7 +55,7 @@ If remote logger is intended to be used, setup the remote link in MeerSOLAR meta
 
 .. code-block :: bash
     
-    init-meersolar-data --init --remotelink https://<remote-logger-name>.onrender.com
+    init-meersolar-setup --init --remotelink https://<remote-logger-name>.onrender.com
     
 Before doing this, create your own remote logger on free-tier cloud platform, https://render.com. One can use, same **remotelink** in multiple machines and users. However, free-tier link has some limitations on bandwidth. If you want to use **remotelink** for your institution, we suggest to purchase suitable paid version or setup seperate **remotelink** for different users.
 
@@ -58,7 +65,7 @@ If user wants to update the already provided remote logger link or e-mail id(s),
 
 Tutorial to setup remote lor link
 ---------------------------------
-1. Go to https://dashboard.render.com/. It will take you to the login page. If you do not have an ccount on https://render.com, create an account and login.
+1. Go to https://dashboard.render.com/. It will take you to the login page. If you do not have an account on https://render.com, create an account and login.
 
 2. After login, you will land up in the following page. Click on **Add new** and then **Web Service**.
 
@@ -80,11 +87,11 @@ Tutorial to setup remote lor link
 
 .. image :: _static/ss4.png
 
-7. In the next page, you will see web-service is being started. Once you see, **==> Your service is live 🎉** as shown in the image below, you remote logger is ready to use. You remote logger link is also shown just above the black window, and it will be **https://<remote-logger-name>.onrender.com**.
+7. In the next page, you will see web-service is being started. Once you see, **==> Your service is live 🎉** as shown in the image below, your remote logger is ready to use. Your remote logger link is also shown just above the black window, and it will be **https://<remote-logger-name>.onrender.com**.
 
 .. image :: _static/ss6.png
 
-8. Now use this link to setup as remote logger link as described above. This link is persistent and can be used in multiple machines. You MeerSOLAR job logs will appear in **https://<remote-logger-name>.onrender.com**. How to access 
+8. Now use this link to setup as remote logger link as described above. This link is persistent and can be used in multiple machines. Your MeerSOLAR job logs will appear in **https://<remote-logger-name>.onrender.com**. How to access 
 
 
 

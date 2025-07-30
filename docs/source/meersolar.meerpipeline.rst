@@ -115,6 +115,14 @@ meersolar.meerpipeline.master\_controller module
    :undoc-members:
    :show-inheritance:
 
+meersolar.meerpipeline.master\_flow module
+------------------------------------------
+
+.. automodule:: meersolar.meerpipeline.master_flow
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 meersolar.meerpipeline.meer\_make\_ds module
 --------------------------------------------
 
@@ -127,6 +135,14 @@ meersolar.meerpipeline.meer\_pbcor module
 -----------------------------------------
 
 .. automodule:: meersolar.meerpipeline.meer_pbcor
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+meersolar.meerpipeline.prefect\_server module
+---------------------------------------------
+
+.. automodule:: meersolar.meerpipeline.prefect_server
    :members:
    :undoc-members:
    :show-inheritance:
@@ -163,10 +179,3 @@ meersolar.meerpipeline.viewer module
    :undoc-members:
    :show-inheritance:
 
-Module contents
----------------
-
-.. automodule:: meersolar.meerpipeline
-   :members:
-   :undoc-members:
-   :show-inheritance:

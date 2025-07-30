@@ -360,7 +360,7 @@
 <div class="viewcode-block" id="shm_or_tmp">
 <a class="viewcode-back" href="../../../meersolar.utils.html#meersolar.utils.resource_utils.shm_or_tmp">[docs]</a>
 <span class="nd">@contextmanager</span>
-<span class="k">def</span> <span class="nf">shm_or_tmp</span><span class="p">(</span><span class="n">required_gb</span><span class="p">,</span> <span class="n">workdir</span><span class="p">,</span> <span class="n">prefix</span><span class="o">=</span><span class="s2">&quot;meersolar_&quot;</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<span class="k">def</span> <span class="nf">shm_or_tmp</span><span class="p">(</span><span class="n">required_gb</span><span class="p">,</span> <span class="n">workdir</span><span class="p">,</span> <span class="n">prefix</span><span class="o">=</span><span class="s2">&quot;solar_&quot;</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Create a temporary working directory:</span>
 <span class="sd">    1. Try /dev/shm if it has required space</span>
@@ -427,7 +427,7 @@
 <div class="viewcode-block" id="tmp_with_cache_rel">
 <a class="viewcode-back" href="../../../meersolar.utils.html#meersolar.utils.resource_utils.tmp_with_cache_rel">[docs]</a>
 <span class="nd">@contextmanager</span>
-<span class="k">def</span> <span class="nf">tmp_with_cache_rel</span><span class="p">(</span><span class="n">required_gb</span><span class="p">,</span> <span class="n">workdir</span><span class="p">,</span> <span class="n">prefix</span><span class="o">=</span><span class="s2">&quot;meersolar_&quot;</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<span class="k">def</span> <span class="nf">tmp_with_cache_rel</span><span class="p">(</span><span class="n">required_gb</span><span class="p">,</span> <span class="n">workdir</span><span class="p">,</span> <span class="n">prefix</span><span class="o">=</span><span class="s2">&quot;solar_&quot;</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Combined context manager:</span>
 <span class="sd">    - Uses shm_or_tmp() for workspace</span>

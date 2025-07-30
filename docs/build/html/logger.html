@@ -288,8 +288,25 @@
         <article role="main" id="furo-main-content">
           <section id="monitoring-meersolar-pipeline-jobs">
 <h1>Monitoring MeerSOLAR Pipeline Jobs<a class="headerlink" href="#monitoring-meersolar-pipeline-jobs" title="Link to this heading">¶</a></h1>
-<p>MeerSOLAR pipeline jobs are run in background and in parallel. Hence, it will not pring directly on terminal the outputs. Instead user needs to use MeerSOLAR logger to monitor the logs of the MeerSOLAR jobs.</p>
-<p>MeerSOLAR provide a local logger GUI as well as a remote logger.</p>
+<p>MeerSOLAR pipeline jobs are run in background and in parallel as <code class="docutils literal notranslate"><span class="pre">prefect</span></code> tasks managed by the <code class="docutils literal notranslate"><span class="pre">prefect</span></code> workflow. Progress of the pipeline can be monitored from <code class="docutils literal notranslate"><span class="pre">prefect</span></code> dashboard, in <code class="docutils literal notranslate"><span class="pre">prefect</span></code> server is being used. If <code class="docutils literal notranslate"><span class="pre">prefect</span></code> is running in ephmeral mode, no <code class="docutils literal notranslate"><span class="pre">prefect</span></code> dashboard will be available. In that case, a MeerSOLAR custom logger will show the task logs.</p>
+<div class="tip admonition">
+<p class="admonition-title">Advantage</p>
+<p><code class="docutils literal notranslate"><span class="pre">prefect</span></code> server mode keeps backup of all pipeline runs logs in SQL format and provide easy access through a dashboard.</p>
+</div>
+<ol class="arabic simple">
+<li><p>To view local default <code class="docutils literal notranslate"><span class="pre">prefect</span></code> dashboard:</p></li>
+</ol>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>run-meer-meerlogger
+</pre></div>
+</div>
+<ol class="arabic simple" start="2">
+<li><p>If MeerSOLAR is not running with <code class="docutils literal notranslate"><span class="pre">prefect</span></code> server mode, use local logger GUI.</p></li>
+</ol>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="locallogger.html">Local GUI Logger</a></li>
+</ul>
+</div>
 <div class="tip admonition">
 <p class="admonition-title">Recommendation</p>
 <p>We recommend using remote logger.</p>
@@ -300,7 +317,6 @@
 </div>
 <div class="toctree-wrapper compound">
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="locallogger.html">Local GUI Logger</a></li>
 <li class="toctree-l1"><a class="reference internal" href="remotelogger.html">Remote MeerSOLAR Logger</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="remotelogger.html#getting-access-keys">Getting access keys</a></li>
 <li class="toctree-l2"><a class="reference internal" href="remotelogger.html#using-remote-logger">Using remote logger</a></li>

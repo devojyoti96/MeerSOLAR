@@ -297,7 +297,6 @@
 <span class="kn">from</span> <span class="nn">astropy.time</span> <span class="kn">import</span> <span class="n">Time</span>
 <span class="kn">from</span> <span class="nn">astropy.coordinates</span> <span class="kn">import</span> <span class="n">EarthLocation</span><span class="p">,</span> <span class="n">SkyCoord</span>
 <span class="kn">from</span> <span class="nn">astropy.wcs</span> <span class="kn">import</span> <span class="n">FITSFixedWarning</span>
-<span class="kn">from</span> <span class="nn">casatasks</span> <span class="kn">import</span> <span class="n">casalog</span>
 <span class="kn">from</span> <span class="nn">casatools</span> <span class="kn">import</span> <span class="n">msmetadata</span><span class="p">,</span> <span class="n">ms</span> <span class="k">as</span> <span class="n">casamstool</span>
 <span class="kn">from</span> <span class="nn">datetime</span> <span class="kn">import</span> <span class="n">datetime</span> <span class="k">as</span> <span class="n">dt</span><span class="p">,</span> <span class="n">timedelta</span>
 <span class="kn">from</span> <span class="nn">.basic_utils</span> <span class="kn">import</span> <span class="o">*</span>
@@ -306,12 +305,6 @@
 <span class="kn">from</span> <span class="nn">.meer_utils</span> <span class="kn">import</span> <span class="o">*</span>
 
 <span class="n">warnings</span><span class="o">.</span><span class="n">simplefilter</span><span class="p">(</span><span class="s2">&quot;ignore&quot;</span><span class="p">,</span> <span class="n">category</span><span class="o">=</span><span class="n">FITSFixedWarning</span><span class="p">)</span>
-
-<span class="k">try</span><span class="p">:</span>
-    <span class="n">logfile</span> <span class="o">=</span> <span class="n">casalog</span><span class="o">.</span><span class="n">logfile</span><span class="p">()</span>
-    <span class="n">os</span><span class="o">.</span><span class="n">system</span><span class="p">(</span><span class="s2">&quot;rm -rf &quot;</span> <span class="o">+</span> <span class="n">logfile</span><span class="p">)</span>
-<span class="k">except</span> <span class="ne">BaseException</span><span class="p">:</span>
-    <span class="k">pass</span>
 
 
 <span class="c1">#################################</span>
@@ -668,7 +661,10 @@
             <span class="c1"># Draw square box around the ellipse</span>
             <span class="n">box_size</span> <span class="o">=</span> <span class="mi">100</span>  <span class="c1"># slightly bigger than beam</span>
             <span class="n">rect</span> <span class="o">=</span> <span class="n">Rectangle</span><span class="p">(</span>
-                <span class="p">(</span><span class="n">beam_center</span><span class="o">.</span><span class="n">Tx</span><span class="o">.</span><span class="n">value</span> <span class="o">-</span> <span class="n">box_size</span> <span class="o">/</span> <span class="mi">2</span><span class="p">,</span> <span class="n">beam_center</span><span class="o">.</span><span class="n">Ty</span><span class="o">.</span><span class="n">value</span> <span class="o">-</span> <span class="n">box_size</span> <span class="o">/</span> <span class="mi">2</span><span class="p">),</span>
+                <span class="p">(</span>
+                    <span class="n">beam_center</span><span class="o">.</span><span class="n">Tx</span><span class="o">.</span><span class="n">value</span> <span class="o">-</span> <span class="n">box_size</span> <span class="o">/</span> <span class="mi">2</span><span class="p">,</span>
+                    <span class="n">beam_center</span><span class="o">.</span><span class="n">Ty</span><span class="o">.</span><span class="n">value</span> <span class="o">-</span> <span class="n">box_size</span> <span class="o">/</span> <span class="mi">2</span><span class="p">,</span>
+                <span class="p">),</span>
                 <span class="n">width</span><span class="o">=</span><span class="n">box_size</span><span class="p">,</span>
                 <span class="n">height</span><span class="o">=</span><span class="n">box_size</span><span class="p">,</span>
                 <span class="n">edgecolor</span><span class="o">=</span><span class="s2">&quot;white&quot;</span><span class="p">,</span>
@@ -718,7 +714,7 @@
         <span class="n">plt</span><span class="o">.</span><span class="n">close</span><span class="p">(</span><span class="n">fig</span><span class="p">)</span>
     <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
         <span class="n">traceback</span><span class="o">.</span><span class="n">print_exc</span><span class="p">()</span>
-    <span class="k">finally</span><span class="p">:</span>    
+    <span class="k">finally</span><span class="p">:</span>
         <span class="n">plt</span><span class="o">.</span><span class="n">close</span><span class="p">(</span><span class="s2">&quot;all&quot;</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">output_image_list</span><span class="p">,</span> <span class="n">cropped_map</span></div>
 
@@ -1270,14 +1266,18 @@
     <span class="k">try</span><span class="p">:</span>
         <span class="c1"># Create figure and GridSpec layout</span>
         <span class="n">fig</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">18</span><span class="p">,</span> <span class="mi">10</span><span class="p">))</span>
-        <span class="n">gs</span> <span class="o">=</span> <span class="n">GridSpec</span><span class="p">(</span><span class="n">nrows</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">ncols</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">width_ratios</span><span class="o">=</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mf">0.03</span><span class="p">],</span> <span class="n">height_ratios</span><span class="o">=</span><span class="p">[</span><span class="mi">4</span><span class="p">,</span> <span class="mf">1.5</span><span class="p">,</span> <span class="mi">2</span><span class="p">])</span>
+        <span class="n">gs</span> <span class="o">=</span> <span class="n">GridSpec</span><span class="p">(</span>
+            <span class="n">nrows</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">ncols</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">width_ratios</span><span class="o">=</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mf">0.03</span><span class="p">],</span> <span class="n">height_ratios</span><span class="o">=</span><span class="p">[</span><span class="mi">4</span><span class="p">,</span> <span class="mf">1.5</span><span class="p">,</span> <span class="mi">2</span><span class="p">]</span>
+        <span class="p">)</span>
         <span class="c1"># Axes</span>
         <span class="n">ax_spec</span> <span class="o">=</span> <span class="n">fig</span><span class="o">.</span><span class="n">add_subplot</span><span class="p">(</span><span class="n">gs</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">])</span>
         <span class="n">ax_ts</span> <span class="o">=</span> <span class="n">fig</span><span class="o">.</span><span class="n">add_subplot</span><span class="p">(</span><span class="n">gs</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">])</span>
         <span class="n">ax_goes</span> <span class="o">=</span> <span class="n">fig</span><span class="o">.</span><span class="n">add_subplot</span><span class="p">(</span><span class="n">gs</span><span class="p">[</span><span class="mi">2</span><span class="p">,</span> <span class="mi">0</span><span class="p">])</span>
         <span class="n">cax</span> <span class="o">=</span> <span class="n">fig</span><span class="o">.</span><span class="n">add_subplot</span><span class="p">(</span><span class="n">gs</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">])</span>  <span class="c1"># colorbar spans both rows</span>
         <span class="c1"># Plot dynamic spectrum</span>
-        <span class="n">im</span> <span class="o">=</span> <span class="n">ax_spec</span><span class="o">.</span><span class="n">imshow</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">aspect</span><span class="o">=</span><span class="s2">&quot;auto&quot;</span><span class="p">,</span> <span class="n">origin</span><span class="o">=</span><span class="s2">&quot;lower&quot;</span><span class="p">,</span> <span class="n">norm</span><span class="o">=</span><span class="n">norm</span><span class="p">,</span> <span class="n">cmap</span><span class="o">=</span><span class="s2">&quot;magma&quot;</span><span class="p">)</span>
+        <span class="n">im</span> <span class="o">=</span> <span class="n">ax_spec</span><span class="o">.</span><span class="n">imshow</span><span class="p">(</span>
+            <span class="n">data</span><span class="p">,</span> <span class="n">aspect</span><span class="o">=</span><span class="s2">&quot;auto&quot;</span><span class="p">,</span> <span class="n">origin</span><span class="o">=</span><span class="s2">&quot;lower&quot;</span><span class="p">,</span> <span class="n">norm</span><span class="o">=</span><span class="n">norm</span><span class="p">,</span> <span class="n">cmap</span><span class="o">=</span><span class="s2">&quot;magma&quot;</span>
+        <span class="p">)</span>
         <span class="n">ax_spec</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s2">&quot;Frequency (MHz)&quot;</span><span class="p">)</span>
         <span class="n">ax_spec</span><span class="o">.</span><span class="n">set_xticklabels</span><span class="p">([])</span>  <span class="c1"># Remove x-axis labels from top plot</span>
         <span class="c1"># Y-ticks</span>

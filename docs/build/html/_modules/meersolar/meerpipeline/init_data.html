@@ -292,6 +292,8 @@
     <span class="n">init_udocker</span><span class="p">,</span>
     <span class="n">initialize_wsclean_container</span><span class="p">,</span>
     <span class="n">SmartDefaultsHelpFormatter</span><span class="p">,</span>
+    <span class="n">start_server</span>
+    
 <span class="p">)</span>
 
 <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="s2">&quot;distributed&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">setLevel</span><span class="p">(</span><span class="n">logging</span><span class="o">.</span><span class="n">WARNING</span><span class="p">)</span>
@@ -397,6 +399,7 @@
 <a class="viewcode-back" href="../../../meersolar.meerpipeline.html#meersolar.meerpipeline.init_data.main">[docs]</a>
 <span class="k">def</span> <span class="nf">main</span><span class="p">(</span>
     <span class="n">init</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+    <span class="n">prefect_server</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
     <span class="n">datadir</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span>
     <span class="n">update</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
     <span class="n">link</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
@@ -409,6 +412,8 @@
 <span class="sd">    ----------</span>
 <span class="sd">    init : bool, optional</span>
 <span class="sd">        Initiate setup</span>
+<span class="sd">    prefect_server : bool, optional</span>
+<span class="sd">        Initiate prefect server</span>
 <span class="sd">    datadir : str, optional</span>
 <span class="sd">        User provided custom data directory</span>
 <span class="sd">    update : bool, optional</span>
@@ -427,6 +432,8 @@
         <span class="n">init_udocker</span><span class="p">()</span>
         <span class="n">initialize_wsclean_container</span><span class="p">()</span>
         <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;uDOCKER inititalized&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">prefect_server</span><span class="p">:</span>
+            <span class="n">start_server</span><span class="p">()</span>
         <span class="k">return</span> <span class="mi">0</span>
     <span class="k">else</span><span class="p">:</span>
         <span class="k">return</span> <span class="mi">1</span></div>
@@ -443,6 +450,9 @@
     <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s2">&quot;--init&quot;</span><span class="p">,</span> <span class="n">action</span><span class="o">=</span><span class="s2">&quot;store_true&quot;</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Initiate data&quot;</span><span class="p">)</span>
     <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
         <span class="s2">&quot;--datadir&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s2">&quot;User provided data directory&quot;</span>
+    <span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;--no_prefect_server&quot;</span><span class="p">,</span> <span class="n">action</span><span class="o">=</span><span class="s2">&quot;store_false&quot;</span><span class="p">,</span> <span class="n">dest</span><span class="o">=</span><span class="s2">&quot;init_prefect_server&quot;</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Do not inititate prefect server&quot;</span>
     <span class="p">)</span>
     <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s2">&quot;--update&quot;</span><span class="p">,</span> <span class="n">action</span><span class="o">=</span><span class="s2">&quot;store_true&quot;</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Update existing data&quot;</span><span class="p">)</span>
     <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
@@ -463,6 +473,7 @@
     <span class="n">msg</span> <span class="o">=</span> <span class="n">main</span><span class="p">(</span>
         <span class="n">init</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">init</span><span class="p">,</span>
         <span class="n">datadir</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">datadir</span><span class="p">,</span>
+        <span class="n">prefect_server</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">init_prefect_server</span><span class="p">,</span>
         <span class="n">update</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">update</span><span class="p">,</span>
         <span class="n">link</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">link</span><span class="p">,</span>
         <span class="n">emails</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">emails</span><span class="p">,</span>

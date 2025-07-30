@@ -323,7 +323,6 @@
                           [--no_applycal] [--no_apply_selfcal] [--no_imaging]
                           [--cpu_frac CPU_FRAC] [--mem_frac MEM_FRAC]
                           [--keep_backup] [--no_remote_logger]
-                          [--logger_alivetime LOGGER_ALIVETIME]
                           [--n_nodes N_NODES]
                           msname
 
@@ -418,10 +417,6 @@ Advanced hardware resource parameters for local system or per node on HPC cluste
   --mem_frac MEM_FRAC   Fraction of memory usuage per node (default: 0.8)
   --keep_backup         Keep backup of intermediate steps
   --no_remote_logger    Disable remote logger
-  --logger_alivetime LOGGER_ALIVETIME
-                        Keep remote logger alive for this many hours
-                        (Otherwise, logger will be removed after 15 minutes of
-                        inactivity) (default: 0)
 
 ###################
 Advanced HPC settings

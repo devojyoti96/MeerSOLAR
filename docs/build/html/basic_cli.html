@@ -314,7 +314,6 @@
                           [--no_applycal] [--no_apply_selfcal] [--no_imaging]
                           [--cpu_frac CPU_FRAC] [--mem_frac MEM_FRAC]
                           [--keep_backup] [--no_remote_logger]
-                          [--logger_alivetime LOGGER_ALIVETIME]
                           [--n_nodes N_NODES]
                           msname
 
@@ -409,10 +408,6 @@ Advanced hardware resource parameters for local system or per node on HPC cluste
   --mem_frac MEM_FRAC   Fraction of memory usuage per node (default: 0.8)
   --keep_backup         Keep backup of intermediate steps
   --no_remote_logger    Disable remote logger
-  --logger_alivetime LOGGER_ALIVETIME
-                        Keep remote logger alive for this many hours
-                        (Otherwise, logger will be removed after 15 minutes of
-                        inactivity) (default: 0)
 
 ###################
 Advanced HPC settings
@@ -461,6 +456,7 @@ options:
 <div class="dropdown admonition">
 <p class="admonition-title">Click here to see parameters</p>
 <div class="highlight-text notranslate"><div class="highlight"><pre><span></span>usage: run-meer-meerlogger [-h] [--jobid JOBID] [--logdir LOGDIR]
+                           [--no-prefect]
 
 MeerSOLAR Logger
 
@@ -468,6 +464,7 @@ options:
   -h, --help       show this help message and exit
   --jobid JOBID    MeerSOLAR Job ID (default: None)
   --logdir LOGDIR  Name of log directory (default: None)
+  --no-prefect     Name of log directory
 </pre></div>
 </div>
 </div>
@@ -476,19 +473,21 @@ options:
 </ol>
 <div class="dropdown admonition">
 <p class="admonition-title">Click here to see parameters</p>
-<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>usage: init-meersolar-data [-h] [--init] [--datadir DATADIR] [--update]
-                           [--remotelink LINK] [--emails EMAILS]
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>usage: init-meersolar-setup [-h] [--init] [--datadir DATADIR]
+                            [--no_prefect_server] [--update]
+                            [--remotelink LINK] [--emails EMAILS]
 
 Initiate MeerSOLAR data
 
 options:
-  -h, --help         show this help message and exit
-  --init             Initiate data
-  --datadir DATADIR  User provided data directory (default: )
-  --update           Update existing data
-  --remotelink LINK  Set remote log link (default: None)
-  --emails EMAILS    Email addresses (comma seperated) to send Job ID and
-                     password for remote logger (default: None)
+  -h, --help           show this help message and exit
+  --init               Initiate data
+  --datadir DATADIR    User provided data directory (default: )
+  --no_prefect_server  Do not inititate prefect server
+  --update             Update existing data
+  --remotelink LINK    Set remote log link (default: None)
+  --emails EMAILS      Email addresses (comma seperated) to send Job ID and
+                       password for remote logger (default: None)
 </pre></div>
 </div>
 </div>

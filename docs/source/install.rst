@@ -15,9 +15,9 @@ Load installed conda module in HPC cluster
 ------------------------------------------
 In many HPC clusters, **conda** may be installed already. In that case, it is recommended to read HPC cluster document and check how to load **conda**. In general, it can be loaded using the **module** to function. Load it as:
   
-  .. code-block:: bash
+.. code-block:: bash
   
-     module load anaconda3  
+   module load anaconda3  
      
 Otherwise, install it following the steps below.
     

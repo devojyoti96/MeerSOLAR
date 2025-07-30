@@ -283,6 +283,7 @@
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 <span class="kn">import</span> <span class="nn">traceback</span>
 <span class="kn">import</span> <span class="nn">argparse</span>
+<span class="kn">import</span> <span class="nn">webbrowser</span>
 <span class="kn">from</span> <span class="nn">collections</span> <span class="kn">import</span> <span class="n">deque</span>
 <span class="kn">from</span> <span class="nn">threading</span> <span class="kn">import</span> <span class="n">Thread</span>
 <span class="kn">from</span> <span class="nn">PyQt5.QtWidgets</span> <span class="kn">import</span> <span class="p">(</span>
@@ -412,6 +413,7 @@
         <span class="s2">&quot;noise_cal.log&quot;</span><span class="p">:</span> <span class="s2">&quot;Flux calibration using noise-diode&quot;</span><span class="p">,</span>
         <span class="s2">&quot;partition_cal.log&quot;</span><span class="p">:</span> <span class="s2">&quot;Partioning for basic calibration&quot;</span><span class="p">,</span>
         <span class="s2">&quot;ds_targets.log&quot;</span><span class="p">:</span> <span class="s2">&quot;Making dynamic spectra&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;main.log&quot;</span><span class="p">:</span><span class="s2">&quot;Main pipeline logs&quot;</span><span class="p">,</span>
     <span class="p">}</span>
 
     <span class="k">if</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">logmap</span><span class="p">:</span>
@@ -556,7 +558,7 @@
 <span class="sd">                border-bottom-left-radius: 12px;</span>
 <span class="sd">                border-bottom-right-radius: 12px;</span>
 <span class="sd">            }</span>
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">            &quot;&quot;&quot;</span>
         <span class="p">)</span>
 
         <span class="n">outer_layout</span><span class="o">.</span><span class="n">addWidget</span><span class="p">(</span><span class="n">inner_container</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span></div>
@@ -663,13 +665,26 @@
         <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
         <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Name of log directory&quot;</span><span class="p">,</span>
     <span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;--no-prefect&quot;</span><span class="p">,</span>
+        <span class="n">action</span><span class="o">=</span><span class="s2">&quot;store_false&quot;</span><span class="p">,</span>
+        <span class="n">dest</span><span class="o">=</span><span class="s2">&quot;prefect&quot;</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Name of log directory&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
     <span class="n">args</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">parse_args</span><span class="p">()</span>
 
-    <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">jobid</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">args</span><span class="o">.</span><span class="n">logdir</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Please provide either job ID or log directory.&quot;</span><span class="p">)</span>
-        <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
-    <span class="k">else</span><span class="p">:</span>
+    <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">prefect</span><span class="p">:</span>
         <span class="n">cachedir</span> <span class="o">=</span> <span class="n">get_cachedir</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">cachedir</span><span class="si">}</span><span class="s2">/prefect.dashboard&quot;</span><span class="p">):</span>
+            <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">cachedir</span><span class="si">}</span><span class="s2">/prefect.dashboard&quot;</span><span class="p">,</span><span class="s2">&quot;r&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+                <span class="n">SERVER_DASHBOARD</span><span class="o">=</span><span class="n">f</span><span class="o">.</span><span class="n">read</span><span class="p">()</span>
+            <span class="n">webbrowser</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">SERVER_DASHBOARD</span><span class="p">)</span>
+            <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">jobid</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">args</span><span class="o">.</span><span class="n">logdir</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Please provide either job ID or log directory.&quot;</span><span class="p">)</span>
+                <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
         <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">jobid</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">jobfile_name</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">cachedir</span><span class="si">}</span><span class="s2">/main_pids_</span><span class="si">{</span><span class="n">args</span><span class="o">.</span><span class="n">jobid</span><span class="si">}</span><span class="s2">.txt&quot;</span>
             <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">jobfile_name</span><span class="p">):</span>
@@ -684,7 +699,7 @@
                     <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Work directory : </span><span class="si">{</span><span class="n">workdir</span><span class="si">}</span><span class="s2"> is not present.&quot;</span><span class="p">)</span>
                     <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
                 <span class="n">LOG_DIR</span> <span class="o">=</span> <span class="n">workdir</span><span class="o">.</span><span class="n">rstrip</span><span class="p">(</span><span class="s2">&quot;/&quot;</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot;/logs&quot;</span>
-        <span class="k">else</span><span class="p">:</span>
+        <span class="k">else</span><span class="p">:</span>                       
             <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">logdir</span><span class="p">):</span>
                 <span class="nb">print</span><span class="p">(</span>
                     <span class="sa">f</span><span class="s2">&quot;Log directory: </span><span class="si">{</span><span class="n">args</span><span class="o">.</span><span class="n">logdir</span><span class="si">}</span><span class="s2"> is not present. Please provide a valid log directory.&quot;</span>

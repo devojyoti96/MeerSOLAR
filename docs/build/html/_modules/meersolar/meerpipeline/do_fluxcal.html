@@ -289,6 +289,7 @@
 <span class="kn">from</span> <span class="nn">casatasks</span> <span class="kn">import</span> <span class="n">casalog</span>
 <span class="kn">from</span> <span class="nn">casatools</span> <span class="kn">import</span> <span class="n">msmetadata</span><span class="p">,</span> <span class="n">ms</span> <span class="k">as</span> <span class="n">casamstool</span><span class="p">,</span> <span class="n">table</span>
 <span class="kn">from</span> <span class="nn">dask</span> <span class="kn">import</span> <span class="n">delayed</span>
+<span class="kn">from</span> <span class="nn">dask.distributed</span> <span class="kn">import</span> <span class="n">Client</span>
 <span class="kn">from</span> <span class="nn">meersolar.utils</span> <span class="kn">import</span> <span class="o">*</span>
 <span class="kn">from</span> <span class="nn">meersolar.meerpipeline.flagging</span> <span class="kn">import</span> <span class="n">single_ms_flag</span>
 <span class="kn">from</span> <span class="nn">meersolar.meerpipeline.import_model</span> <span class="kn">import</span> <span class="n">import_fluxcal_models</span>
@@ -333,7 +334,7 @@
 <div class="viewcode-block" id="split_autocorr">
 <a class="viewcode-back" href="../../../meersolar.meerpipeline.html#meersolar.meerpipeline.do_fluxcal.split_autocorr">[docs]</a>
 <span class="k">def</span> <span class="nf">split_autocorr</span><span class="p">(</span>
-    <span class="n">msname</span><span class="p">,</span> <span class="n">workdir</span><span class="p">,</span> <span class="n">scan_list</span><span class="p">,</span> <span class="n">time_window</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span> <span class="n">cpu_frac</span><span class="o">=</span><span class="mf">0.8</span><span class="p">,</span> <span class="n">mem_frac</span><span class="o">=</span><span class="mf">0.8</span>
+    <span class="n">msname</span><span class="p">,</span> <span class="n">workdir</span><span class="p">,</span> <span class="n">scan_list</span><span class="p">,</span> <span class="n">time_window</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span> <span class="n">cpu_frac</span><span class="o">=</span><span class="mf">0.8</span><span class="p">,</span> <span class="n">mem_frac</span><span class="o">=</span><span class="mf">0.8</span><span class="p">,</span> <span class="n">dask_addr</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
 <span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Split auto-correlations</span>
@@ -352,6 +353,8 @@
 <span class="sd">        CPU fraction to use</span>
 <span class="sd">    mem_frac : float, optional</span>
 <span class="sd">        Memory fraction to use</span>
+<span class="sd">    dask_addr : str, optional</span>
+<span class="sd">        Dask scheduler address</span>
 
 <span class="sd">    Returns</span>
 <span class="sd">    -------</span>
@@ -359,15 +362,28 @@
 <span class="sd">        Splited ms list</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">msname</span> <span class="o">=</span> <span class="n">msname</span><span class="o">.</span><span class="n">rstrip</span><span class="p">(</span><span class="s2">&quot;/&quot;</span><span class="p">)</span>
-    <span class="n">task</span> <span class="o">=</span> <span class="n">delayed</span><span class="p">(</span><span class="n">split_casatask</span><span class="p">)(</span><span class="n">dry_run</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-    <span class="n">mem_limit</span> <span class="o">=</span> <span class="n">run_limited_memory_task</span><span class="p">(</span><span class="n">task</span><span class="p">,</span> <span class="n">dask_dir</span><span class="o">=</span><span class="n">workdir</span><span class="p">)</span>
-    <span class="n">dask_client</span><span class="p">,</span> <span class="n">dask_cluster</span><span class="p">,</span> <span class="n">n_jobs</span><span class="p">,</span> <span class="n">n_threads</span><span class="p">,</span> <span class="n">mem_limit</span> <span class="o">=</span> <span class="n">get_dask_client</span><span class="p">(</span>
-        <span class="nb">len</span><span class="p">(</span><span class="n">scan_list</span><span class="p">),</span>
-        <span class="n">dask_dir</span><span class="o">=</span><span class="n">workdir</span><span class="p">,</span>
-        <span class="n">cpu_frac</span><span class="o">=</span><span class="n">cpu_frac</span><span class="p">,</span>
-        <span class="n">mem_frac</span><span class="o">=</span><span class="n">mem_frac</span><span class="p">,</span>
-        <span class="n">min_mem_per_job</span><span class="o">=</span><span class="n">mem_limit</span> <span class="o">/</span> <span class="mf">0.6</span><span class="p">,</span>
-    <span class="p">)</span>
+    <span class="n">scan_size_list</span><span class="o">=</span><span class="p">[</span><span class="n">get_ms_scan_size</span><span class="p">(</span><span class="n">msname</span><span class="p">,</span><span class="n">scan</span><span class="p">,</span><span class="n">only_autocorr</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span> <span class="k">for</span> <span class="n">scan</span> <span class="ow">in</span> <span class="n">scan_list</span><span class="p">]</span>
+    <span class="n">mem_limit</span><span class="o">=</span><span class="nb">max</span><span class="p">(</span><span class="n">scan_size_list</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">dask_addr</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">dask_client</span><span class="p">,</span> <span class="n">dask_cluster</span><span class="p">,</span> <span class="n">n_jobs</span><span class="p">,</span> <span class="n">n_threads</span><span class="p">,</span> <span class="n">mem_limit</span><span class="p">,</span> <span class="n">dask_dir</span> <span class="o">=</span> <span class="n">get_dask_client</span><span class="p">(</span>
+            <span class="nb">len</span><span class="p">(</span><span class="n">scan_list</span><span class="p">),</span>
+            <span class="n">dask_dir</span><span class="o">=</span><span class="n">workdir</span><span class="p">,</span>
+            <span class="n">cpu_frac</span><span class="o">=</span><span class="n">cpu_frac</span><span class="p">,</span>
+            <span class="n">mem_frac</span><span class="o">=</span><span class="n">mem_frac</span><span class="p">,</span>
+            <span class="n">min_mem_per_job</span><span class="o">=</span><span class="n">mem_limit</span><span class="p">,</span>
+        <span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">_</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">n_jobs</span><span class="p">,</span> <span class="n">n_threads</span><span class="p">,</span> <span class="n">mem_limit</span><span class="p">,</span> <span class="n">dask_dir</span> <span class="o">=</span> <span class="n">get_dask_client</span><span class="p">(</span>
+            <span class="nb">len</span><span class="p">(</span><span class="n">scan_list</span><span class="p">),</span>
+            <span class="n">dask_dir</span><span class="o">=</span><span class="n">workdir</span><span class="p">,</span>
+            <span class="n">cpu_frac</span><span class="o">=</span><span class="n">cpu_frac</span><span class="p">,</span>
+            <span class="n">mem_frac</span><span class="o">=</span><span class="n">mem_frac</span><span class="p">,</span>
+            <span class="n">min_mem_per_job</span><span class="o">=</span><span class="n">mem_limit</span><span class="p">,</span>
+            <span class="n">only_cal</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">dask_client</span><span class="o">=</span><span class="n">Client</span><span class="p">(</span><span class="n">address</span><span class="o">=</span><span class="n">dask_addr</span><span class="p">)</span>
+        <span class="n">os</span><span class="o">.</span><span class="n">system</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;rm -rf </span><span class="si">{</span><span class="n">dask_dir</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="n">wait_for_dask_workers</span><span class="p">(</span><span class="n">dask_client</span><span class="p">,</span><span class="n">min_worker</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span><span class="n">timeout</span><span class="o">=</span><span class="mi">60</span><span class="p">)</span>
     <span class="n">tasks</span> <span class="o">=</span> <span class="p">[]</span>
     <span class="k">for</span> <span class="n">scan</span> <span class="ow">in</span> <span class="n">scan_list</span><span class="p">:</span>
         <span class="k">if</span> <span class="n">time_window</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
@@ -399,11 +415,14 @@
             <span class="p">)</span>
         <span class="p">)</span>
     <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">tasks</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
-        <span class="n">autocorr_mslist</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">dask_client</span><span class="o">.</span><span class="n">compute</span><span class="p">(</span><span class="n">tasks</span><span class="p">,</span> <span class="n">sync</span><span class="o">=</span><span class="kc">True</span><span class="p">))</span>
+        <span class="n">futures</span> <span class="o">=</span> <span class="n">dask_client</span><span class="o">.</span><span class="n">compute</span><span class="p">(</span><span class="n">tasks</span><span class="p">)</span>
+        <span class="n">autocorr_mslist</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">dask_client</span><span class="o">.</span><span class="n">gather</span><span class="p">(</span><span class="n">futures</span><span class="p">))</span>
     <span class="k">else</span><span class="p">:</span>
         <span class="n">autocorr_mslist</span> <span class="o">=</span> <span class="p">[]</span>
     <span class="n">dask_client</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
-    <span class="n">dask_cluster</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">dask_addr</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">dask_cluster</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+        <span class="n">os</span><span class="o">.</span><span class="n">system</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;rm -rf </span><span class="si">{</span><span class="n">dask_dir</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">autocorr_mslist</span></div>
 
 
@@ -639,6 +658,7 @@
     <span class="n">time_window</span><span class="o">=</span><span class="mi">900</span><span class="p">,</span>
     <span class="n">cpu_frac</span><span class="o">=</span><span class="mf">0.8</span><span class="p">,</span>
     <span class="n">mem_frac</span><span class="o">=</span><span class="mf">0.8</span><span class="p">,</span>
+    <span class="n">dask_addr</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
 <span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Estimate attenaution scaling</span>
@@ -663,6 +683,8 @@
 <span class="sd">        CPU fraction to use</span>
 <span class="sd">    mem_frac : float, optional</span>
 <span class="sd">        Memory fraction to use</span>
+<span class="sd">    dask_addr : str, optional</span>
+<span class="sd">        Dask scheduler address</span>
 
 <span class="sd">    Returns</span>
 <span class="sd">    -------</span>
@@ -690,6 +712,7 @@
             <span class="n">time_window</span><span class="o">=</span><span class="n">time_window</span><span class="p">,</span>
             <span class="n">cpu_frac</span><span class="o">=</span><span class="n">cpu_frac</span><span class="p">,</span>
             <span class="n">mem_frac</span><span class="o">=</span><span class="n">mem_frac</span><span class="p">,</span>
+            <span class="n">dask_addr</span><span class="o">=</span><span class="n">dask_addr</span><span class="p">,</span>
         <span class="p">)</span>
         <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">autocorr_mslist</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
             <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;No scans splited.&quot;</span><span class="p">)</span>
@@ -702,16 +725,31 @@
         <span class="n">badspw</span> <span class="o">=</span> <span class="n">get_bad_chans</span><span class="p">(</span><span class="n">msname</span><span class="p">)</span>
         <span class="n">bad_ants</span><span class="p">,</span> <span class="n">bad_ants_str</span> <span class="o">=</span> <span class="n">get_bad_ants</span><span class="p">(</span><span class="n">msname</span><span class="p">,</span> <span class="n">fieldnames</span><span class="o">=</span><span class="n">fluxcal_fields</span><span class="p">)</span>
         <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Flagging auto-correlation measurement sets ...&quot;</span><span class="p">)</span>
-        <span class="n">task</span> <span class="o">=</span> <span class="n">delayed</span><span class="p">(</span><span class="n">single_ms_flag</span><span class="p">)(</span><span class="n">dry_run</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-        <span class="n">mem_limit</span> <span class="o">=</span> <span class="n">run_limited_memory_task</span><span class="p">(</span><span class="n">task</span><span class="p">,</span> <span class="n">dask_dir</span><span class="o">=</span><span class="n">workdir</span><span class="p">)</span>
-        <span class="n">mem_limit</span> <span class="o">+=</span> <span class="nb">max</span><span class="p">(</span><span class="n">scan_sizes</span><span class="p">)</span>
-        <span class="n">dask_client</span><span class="p">,</span> <span class="n">dask_cluster</span><span class="p">,</span> <span class="n">n_jobs</span><span class="p">,</span> <span class="n">n_threads</span><span class="p">,</span> <span class="n">mem_limit</span> <span class="o">=</span> <span class="n">get_dask_client</span><span class="p">(</span>
-            <span class="nb">len</span><span class="p">(</span><span class="n">autocorr_mslist</span><span class="p">),</span>
-            <span class="n">dask_dir</span><span class="o">=</span><span class="n">workdir</span><span class="p">,</span>
-            <span class="n">cpu_frac</span><span class="o">=</span><span class="n">cpu_frac</span><span class="p">,</span>
-            <span class="n">mem_frac</span><span class="o">=</span><span class="n">mem_frac</span><span class="p">,</span>
-            <span class="n">min_mem_per_job</span><span class="o">=</span><span class="n">mem_limit</span> <span class="o">/</span> <span class="mf">0.6</span><span class="p">,</span>
-        <span class="p">)</span>
+        <span class="n">mem_limit</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">scan_sizes</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">dask_addr</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">dask_client</span><span class="p">,</span> <span class="n">dask_cluster</span><span class="p">,</span> <span class="n">n_jobs</span><span class="p">,</span> <span class="n">n_threads</span><span class="p">,</span> <span class="n">mem_limit</span><span class="p">,</span> <span class="n">dask_dir</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="n">get_dask_client</span><span class="p">(</span>
+                    <span class="nb">len</span><span class="p">(</span><span class="n">autocorr_mslist</span><span class="p">),</span>
+                    <span class="n">dask_dir</span><span class="o">=</span><span class="n">workdir</span><span class="p">,</span>
+                    <span class="n">cpu_frac</span><span class="o">=</span><span class="n">cpu_frac</span><span class="p">,</span>
+                    <span class="n">mem_frac</span><span class="o">=</span><span class="n">mem_frac</span><span class="p">,</span>
+                    <span class="n">min_mem_per_job</span><span class="o">=</span><span class="n">mem_limit</span><span class="p">,</span>
+                <span class="p">)</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">_</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">n_jobs</span><span class="p">,</span> <span class="n">n_threads</span><span class="p">,</span> <span class="n">mem_limit</span><span class="p">,</span> <span class="n">dask_dir</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="n">get_dask_client</span><span class="p">(</span>
+                    <span class="nb">len</span><span class="p">(</span><span class="n">autocorr_mslist</span><span class="p">),</span>
+                    <span class="n">dask_dir</span><span class="o">=</span><span class="n">workdir</span><span class="p">,</span>
+                    <span class="n">cpu_frac</span><span class="o">=</span><span class="n">cpu_frac</span><span class="p">,</span>
+                    <span class="n">mem_frac</span><span class="o">=</span><span class="n">mem_frac</span><span class="p">,</span>
+                    <span class="n">min_mem_per_job</span><span class="o">=</span><span class="n">mem_limit</span><span class="p">,</span>
+                    <span class="n">only_cal</span><span class="o">=</span><span class="kc">True</span>
+                <span class="p">)</span>
+            <span class="p">)</span>
+            <span class="n">dask_client</span><span class="o">=</span><span class="n">Client</span><span class="p">(</span><span class="n">address</span><span class="o">=</span><span class="n">dask_addr</span><span class="p">)</span>
+            <span class="n">os</span><span class="o">.</span><span class="n">system</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;rm -rf </span><span class="si">{</span><span class="n">dask_dir</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="n">wait_for_dask_workers</span><span class="p">(</span><span class="n">dask_client</span><span class="p">,</span><span class="n">min_worker</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span><span class="n">timeout</span><span class="o">=</span><span class="mi">60</span><span class="p">)</span>
         <span class="n">tasks</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="k">for</span> <span class="n">autocorr_msname</span> <span class="ow">in</span> <span class="n">autocorr_mslist</span><span class="p">:</span>
             <span class="n">tasks</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
@@ -728,9 +766,12 @@
                     <span class="n">memory_limit</span><span class="o">=</span><span class="n">mem_limit</span><span class="p">,</span>
                 <span class="p">)</span>
             <span class="p">)</span>
-        <span class="n">results</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">dask_client</span><span class="o">.</span><span class="n">compute</span><span class="p">(</span><span class="n">tasks</span><span class="p">,</span> <span class="n">sync</span><span class="o">=</span><span class="kc">True</span><span class="p">))</span>
+        <span class="n">futures</span> <span class="o">=</span> <span class="n">dask_client</span><span class="o">.</span><span class="n">compute</span><span class="p">(</span><span class="n">tasks</span><span class="p">)</span>
+        <span class="n">results</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">dask_client</span><span class="o">.</span><span class="n">gather</span><span class="p">(</span><span class="n">futures</span><span class="p">))</span>
         <span class="n">dask_client</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
-        <span class="n">dask_cluster</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">dask_addr</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">dask_cluster</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+            <span class="n">os</span><span class="o">.</span><span class="n">system</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;rm -rf </span><span class="si">{</span><span class="n">dask_dir</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
         <span class="k">for</span> <span class="n">autocorr_msname</span> <span class="ow">in</span> <span class="n">autocorr_mslist</span><span class="p">:</span>
             <span class="n">drop_cache</span><span class="p">(</span><span class="n">autocorr_msname</span><span class="p">)</span>
         <span class="n">att_level</span> <span class="o">=</span> <span class="p">{}</span>
@@ -738,15 +779,32 @@
         <span class="c1"># Calculating per scan level</span>
         <span class="c1">########################################</span>
         <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Calculating noise-diode power difference ...&quot;</span><span class="p">)</span>
-        <span class="n">task</span> <span class="o">=</span> <span class="n">delayed</span><span class="p">(</span><span class="n">get_power_diff</span><span class="p">)(</span><span class="n">dry_run</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-        <span class="n">mem_limit</span> <span class="o">=</span> <span class="n">run_limited_memory_task</span><span class="p">(</span><span class="n">task</span><span class="p">,</span> <span class="n">dask_dir</span><span class="o">=</span><span class="n">workdir</span><span class="p">)</span>
-        <span class="n">dask_client</span><span class="p">,</span> <span class="n">dask_cluster</span><span class="p">,</span> <span class="n">n_jobs</span><span class="p">,</span> <span class="n">n_threads</span><span class="p">,</span> <span class="n">mem_limit</span> <span class="o">=</span> <span class="n">get_dask_client</span><span class="p">(</span>
-            <span class="nb">len</span><span class="p">(</span><span class="n">valid_target_scans</span><span class="p">),</span>
-            <span class="n">dask_dir</span><span class="o">=</span><span class="n">workdir</span><span class="p">,</span>
-            <span class="n">cpu_frac</span><span class="o">=</span><span class="n">cpu_frac</span><span class="p">,</span>
-            <span class="n">mem_frac</span><span class="o">=</span><span class="n">mem_frac</span><span class="p">,</span>
-            <span class="n">min_mem_per_job</span><span class="o">=</span><span class="n">mem_limit</span> <span class="o">/</span> <span class="mf">0.6</span><span class="p">,</span>
-        <span class="p">)</span>
+        <span class="n">scan_sizes</span><span class="o">=</span><span class="p">[</span><span class="n">get_column_size</span><span class="p">(</span><span class="n">ms</span><span class="p">)</span> <span class="k">for</span> <span class="n">ms</span> <span class="ow">in</span> <span class="n">autocorr_mslist</span><span class="p">]</span>
+        <span class="n">mem_limit</span><span class="o">=</span><span class="nb">max</span><span class="p">(</span><span class="n">scan_sizes</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">dask_addr</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">dask_client</span><span class="p">,</span> <span class="n">dask_cluster</span><span class="p">,</span> <span class="n">n_jobs</span><span class="p">,</span> <span class="n">n_threads</span><span class="p">,</span> <span class="n">mem_limit</span><span class="p">,</span> <span class="n">dask_dir</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="n">get_dask_client</span><span class="p">(</span>
+                    <span class="nb">len</span><span class="p">(</span><span class="n">valid_target_scans</span><span class="p">),</span>
+                    <span class="n">dask_dir</span><span class="o">=</span><span class="n">workdir</span><span class="p">,</span>
+                    <span class="n">cpu_frac</span><span class="o">=</span><span class="n">cpu_frac</span><span class="p">,</span>
+                    <span class="n">mem_frac</span><span class="o">=</span><span class="n">mem_frac</span><span class="p">,</span>
+                    <span class="n">min_mem_per_job</span><span class="o">=</span><span class="n">mem_limit</span><span class="p">,</span>
+                <span class="p">)</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">_</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">n_jobs</span><span class="p">,</span> <span class="n">n_threads</span><span class="p">,</span> <span class="n">mem_limit</span><span class="p">,</span> <span class="n">dask_dir</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="n">get_dask_client</span><span class="p">(</span>
+                    <span class="nb">len</span><span class="p">(</span><span class="n">valid_target_scans</span><span class="p">),</span>
+                    <span class="n">dask_dir</span><span class="o">=</span><span class="n">workdir</span><span class="p">,</span>
+                    <span class="n">cpu_frac</span><span class="o">=</span><span class="n">cpu_frac</span><span class="p">,</span>
+                    <span class="n">mem_frac</span><span class="o">=</span><span class="n">mem_frac</span><span class="p">,</span>
+                    <span class="n">min_mem_per_job</span><span class="o">=</span><span class="n">mem_limit</span><span class="p">,</span>
+                    <span class="n">only_cal</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                <span class="p">)</span>
+            <span class="p">)</span>
+            <span class="n">dask_client</span><span class="o">=</span><span class="n">Client</span><span class="p">(</span><span class="n">address</span><span class="o">=</span><span class="n">dask_addr</span><span class="p">)</span>
+            <span class="n">os</span><span class="o">.</span><span class="n">system</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;rm -rf </span><span class="si">{</span><span class="n">dask_dir</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="n">wait_for_dask_workers</span><span class="p">(</span><span class="n">dask_client</span><span class="p">,</span><span class="n">min_worker</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span><span class="n">timeout</span><span class="o">=</span><span class="mi">60</span><span class="p">)</span>
         <span class="n">all_scaling_files</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="n">filtered_scans</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="n">tasks</span> <span class="o">=</span> <span class="p">[]</span>
@@ -765,9 +823,12 @@
                 <span class="p">)</span>
             <span class="p">)</span>
             <span class="n">filtered_scans</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">scan</span><span class="p">)</span>
-        <span class="n">results</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">dask_client</span><span class="o">.</span><span class="n">compute</span><span class="p">(</span><span class="n">tasks</span><span class="p">,</span> <span class="n">sync</span><span class="o">=</span><span class="kc">True</span><span class="p">))</span>
+        <span class="n">futures</span> <span class="o">=</span> <span class="n">dask_client</span><span class="o">.</span><span class="n">compute</span><span class="p">(</span><span class="n">tasks</span><span class="p">)</span>
+        <span class="n">results</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">dask_client</span><span class="o">.</span><span class="n">gather</span><span class="p">(</span><span class="n">futures</span><span class="p">))</span>
         <span class="n">dask_client</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
-        <span class="n">dask_cluster</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">dask_addr</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">dask_cluster</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+            <span class="n">os</span><span class="o">.</span><span class="n">system</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;rm -rf </span><span class="si">{</span><span class="n">dask_dir</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
         <span class="c1">##########################################</span>
         <span class="c1"># Determining frequencies</span>
         <span class="c1">##########################################</span>
@@ -833,6 +894,7 @@
     <span class="n">keep_backup</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
     <span class="n">cpu_frac</span><span class="o">=</span><span class="mf">0.8</span><span class="p">,</span>
     <span class="n">mem_frac</span><span class="o">=</span><span class="mf">0.8</span><span class="p">,</span>
+    <span class="n">dask_addr</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
 <span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Perform flux calibration using noise diode</span>
@@ -849,6 +911,8 @@
 <span class="sd">        CPU fraction to use</span>
 <span class="sd">    mem_frac : float, optional</span>
 <span class="sd">        Memory fraction to use</span>
+<span class="sd">    dask_addr : str, optional</span>
+<span class="sd">        Dask scheduler address</span>
 
 <span class="sd">    Returns</span>
 <span class="sd">    -------</span>
@@ -1009,10 +1073,12 @@
             <span class="n">time_window</span><span class="o">=</span><span class="mi">900</span><span class="p">,</span>
             <span class="n">cpu_frac</span><span class="o">=</span><span class="n">cpu_frac</span><span class="p">,</span>
             <span class="n">mem_frac</span><span class="o">=</span><span class="n">mem_frac</span><span class="p">,</span>
+            <span class="n">dask_addr</span><span class="o">=</span><span class="n">dask_addr</span><span class="p">,</span>
         <span class="p">)</span>
         <span class="k">if</span> <span class="n">keep_backup</span><span class="p">:</span>
             <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Backup directory: &quot;</span> <span class="o">+</span> <span class="n">workdir</span> <span class="o">+</span> <span class="s2">&quot;/backup&quot;</span><span class="p">)</span>
             <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">workdir</span> <span class="o">+</span> <span class="s2">&quot;/backup&quot;</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="n">os</span><span class="o">.</span><span class="n">system</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;rm -rf </span><span class="si">{</span><span class="n">workdir</span><span class="si">}</span><span class="s2">/backup/autocorr_scan_*.ms*&quot;</span><span class="p">)</span>
             <span class="n">os</span><span class="o">.</span><span class="n">system</span><span class="p">(</span>
                 <span class="s2">&quot;mv &quot;</span>
                 <span class="o">+</span> <span class="n">noisecal_ms</span>
@@ -1063,6 +1129,7 @@
     <span class="n">mem_frac</span><span class="o">=</span><span class="mf">0.8</span><span class="p">,</span>
     <span class="n">logfile</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
     <span class="n">jobid</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+    <span class="n">dask_addr</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
 <span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Apply calibration solutions to a measurement set.</span>
@@ -1087,6 +1154,8 @@
 <span class="sd">        Path to the log file. If None, disables file logging. Default is None.</span>
 <span class="sd">    jobid : int, optional</span>
 <span class="sd">        Identifier for tracking the job and saving PID. Default is 0.</span>
+<span class="sd">    dask_addr : str, optional</span>
+<span class="sd">        Dask scheduler address</span>
 
 <span class="sd">    Returns</span>
 <span class="sd">    -------</span>
@@ -1138,10 +1207,12 @@
                 <span class="n">keep_backup</span><span class="o">=</span><span class="n">keep_backup</span><span class="p">,</span>
                 <span class="n">cpu_frac</span><span class="o">=</span><span class="n">cpu_frac</span><span class="p">,</span>
                 <span class="n">mem_frac</span><span class="o">=</span><span class="n">mem_frac</span><span class="p">,</span>
+                <span class="n">dask_addr</span><span class="o">=</span><span class="n">dask_addr</span><span class="p">,</span>
             <span class="p">)</span>
 
             <span class="k">if</span> <span class="n">msg</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">all_scaling_files</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
                 <span class="k">for</span> <span class="n">att_file</span> <span class="ow">in</span> <span class="n">all_scaling_files</span><span class="p">:</span>
+                    <span class="n">os</span><span class="o">.</span><span class="n">system</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;rm -rf </span><span class="si">{</span><span class="n">caldir</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">att_file</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
                     <span class="n">os</span><span class="o">.</span><span class="n">system</span><span class="p">(</span><span class="s2">&quot;mv &quot;</span> <span class="o">+</span> <span class="n">att_file</span> <span class="o">+</span> <span class="s2">&quot; &quot;</span> <span class="o">+</span> <span class="n">caldir</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Please provide a valid measurement set.&quot;</span><span class="p">)</span>

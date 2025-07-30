@@ -384,9 +384,13 @@
 </li>
           <li><a href="meersolar.meerpipeline.html#meersolar.meerpipeline.master_controller.cli">(in module meersolar.meerpipeline.master_controller)</a>
 </li>
+          <li><a href="meersolar.meerpipeline.html#meersolar.meerpipeline.master_flow.cli">(in module meersolar.meerpipeline.master_flow)</a>
+</li>
           <li><a href="meersolar.meerpipeline.html#meersolar.meerpipeline.meer_make_ds.cli">(in module meersolar.meerpipeline.meer_make_ds)</a>
 </li>
           <li><a href="meersolar.meerpipeline.html#meersolar.meerpipeline.meer_pbcor.cli">(in module meersolar.meerpipeline.meer_pbcor)</a>
+</li>
+          <li><a href="meersolar.meerpipeline.html#meersolar.meerpipeline.prefect_server.cli">(in module meersolar.meerpipeline.prefect_server)</a>
 </li>
           <li><a href="meersolar.meerpipeline.html#meersolar.meerpipeline.show_msdetails.cli">(in module meersolar.meerpipeline.show_msdetails)</a>
 </li>
@@ -575,10 +579,10 @@
           <li><a href="meersolar.utils.html#meersolar.utils.logger_utils.get_logid">(in module meersolar.utils.logger_utils)</a>
 </li>
         </ul></li>
-    </ul></td>
-    <td style="width: 33%; vertical-align: top;"><ul>
         <li><a href="meersolar.utils.html#meersolar.utils.meer_ploting_utils.get_meermap">get_meermap() (in module meersolar.utils.meer_ploting_utils)</a>
 </li>
+    </ul></td>
+    <td style="width: 33%; vertical-align: top;"><ul>
         <li><a href="meersolar.utils.html#meersolar.utils.ms_metadata.get_ms_scan_size">get_ms_scan_size() (in module meersolar.utils.ms_metadata)</a>
 </li>
         <li><a href="meersolar.utils.html#meersolar.utils.ms_metadata.get_ms_scans">get_ms_scans() (in module meersolar.utils.ms_metadata)</a>
@@ -588,6 +592,8 @@
         <li><a href="meersolar.utils.html#meersolar.utils.imaging.get_multiscale_bias">get_multiscale_bias() (in module meersolar.utils.imaging)</a>
 </li>
         <li><a href="meersolar.utils.html#meersolar.utils.proc_manage_utils.get_nprocess_solarpipe">get_nprocess_solarpipe() (in module meersolar.utils.proc_manage_utils)</a>
+</li>
+        <li><a href="meersolar.utils.html#meersolar.utils.ms_metadata.get_observatory_coord">get_observatory_coord() (in module meersolar.utils.ms_metadata)</a>
 </li>
         <li><a href="meersolar.utils.html#meersolar.utils.ms_metadata.get_observatory_name">get_observatory_name() (in module meersolar.utils.ms_metadata)</a>
 </li>
@@ -613,6 +619,8 @@
 </li>
         <li><a href="meersolar.meerpipeline.html#meersolar.meerpipeline.do_fluxcal.get_power_diff">get_power_diff() (in module meersolar.meerpipeline.do_fluxcal)</a>
 </li>
+        <li><a href="meersolar.utils.html#meersolar.utils.prefect_setup_utils.get_prefect_env">get_prefect_env() (in module meersolar.utils.prefect_setup_utils)</a>
+</li>
         <li><a href="meersolar.utils.html#meersolar.utils.calibration.get_psf_size">get_psf_size() (in module meersolar.utils.calibration)</a>
 </li>
         <li><a href="meersolar.meerpipeline.html#meersolar.meerpipeline.single_image_meerpbcor.get_radec_grid">get_radec_grid() (in module meersolar.meerpipeline.single_image_meerpbcor)</a>
@@ -621,7 +629,7 @@
 </li>
         <li><a href="meersolar.utils.html#meersolar.utils.logger_utils.get_remote_logger_link">get_remote_logger_link() (in module meersolar.utils.logger_utils)</a>
 </li>
-        <li><a href="meersolar.utils.html#meersolar.utils.sunpos_utils.get_solar_elevation_MeerKAT">get_solar_elevation_MeerKAT() (in module meersolar.utils.sunpos_utils)</a>
+        <li><a href="meersolar.utils.html#meersolar.utils.sunpos_utils.get_solar_elevation">get_solar_elevation() (in module meersolar.utils.sunpos_utils)</a>
 </li>
         <li><a href="meersolar.utils.html#meersolar.utils.ms_metadata.get_submsname_scans">get_submsname_scans() (in module meersolar.utils.ms_metadata)</a>
 </li>
@@ -778,7 +786,11 @@
         <li><a href="meersolar.utils.html#meersolar.utils.image_utils.make_timeavg_image">make_timeavg_image() (in module meersolar.utils.image_utils)</a>
 </li>
         <li><a href="meersolar.meerpipeline.html#meersolar.meerpipeline.master_controller.master_control">master_control() (in module meersolar.meerpipeline.master_controller)</a>
+
+        <ul>
+          <li><a href="meersolar.meerpipeline.html#meersolar.meerpipeline.master_flow.master_control">(in module meersolar.meerpipeline.master_flow)</a>
 </li>
+        </ul></li>
         <li><a href="meersolar.utils.html#meersolar.utils.calibration.max_time_solar_smearing">max_time_solar_smearing() (in module meersolar.utils.calibration)</a>
 </li>
         <li>
@@ -835,13 +847,6 @@
 
         <ul>
           <li><a href="meersolar.data.html#module-meersolar.data.sendmail">module</a>
-</li>
-        </ul></li>
-        <li>
-    meersolar.meerpipeline
-
-        <ul>
-          <li><a href="meersolar.meerpipeline.html#module-meersolar.meerpipeline">module</a>
 </li>
         </ul></li>
         <li>
@@ -943,6 +948,13 @@
 </li>
         </ul></li>
         <li>
+    meersolar.meerpipeline.master_flow
+
+        <ul>
+          <li><a href="meersolar.meerpipeline.html#module-meersolar.meerpipeline.master_flow">module</a>
+</li>
+        </ul></li>
+        <li>
     meersolar.meerpipeline.meer_make_ds
 
         <ul>
@@ -954,6 +966,13 @@
 
         <ul>
           <li><a href="meersolar.meerpipeline.html#module-meersolar.meerpipeline.meer_pbcor">module</a>
+</li>
+        </ul></li>
+        <li>
+    meersolar.meerpipeline.prefect_server
+
+        <ul>
+          <li><a href="meersolar.meerpipeline.html#module-meersolar.meerpipeline.prefect_server">module</a>
 </li>
         </ul></li>
         <li>
@@ -986,13 +1005,6 @@
         </ul></li>
     </ul></td>
     <td style="width: 33%; vertical-align: top;"><ul>
-        <li>
-    meersolar.utils
-
-        <ul>
-          <li><a href="meersolar.utils.html#module-meersolar.utils">module</a>
-</li>
-        </ul></li>
         <li>
     meersolar.utils.basic_utils
 
@@ -1064,6 +1076,20 @@
 </li>
         </ul></li>
         <li>
+    meersolar.utils.prefect_logger_utils
+
+        <ul>
+          <li><a href="meersolar.utils.html#module-meersolar.utils.prefect_logger_utils">module</a>
+</li>
+        </ul></li>
+        <li>
+    meersolar.utils.prefect_setup_utils
+
+        <ul>
+          <li><a href="meersolar.utils.html#module-meersolar.utils.prefect_setup_utils">module</a>
+</li>
+        </ul></li>
+        <li>
     meersolar.utils.proc_manage_utils
 
         <ul>
@@ -1122,8 +1148,6 @@
 </li>
           <li><a href="meersolar.data.html#module-meersolar.data.sendmail">meersolar.data.sendmail</a>
 </li>
-          <li><a href="meersolar.meerpipeline.html#module-meersolar.meerpipeline">meersolar.meerpipeline</a>
-</li>
           <li><a href="meersolar.meerpipeline.html#module-meersolar.meerpipeline.basic_cal">meersolar.meerpipeline.basic_cal</a>
 </li>
           <li><a href="meersolar.meerpipeline.html#module-meersolar.meerpipeline.do_apply_basiccal">meersolar.meerpipeline.do_apply_basiccal</a>
@@ -1152,9 +1176,13 @@
 </li>
           <li><a href="meersolar.meerpipeline.html#module-meersolar.meerpipeline.master_controller">meersolar.meerpipeline.master_controller</a>
 </li>
+          <li><a href="meersolar.meerpipeline.html#module-meersolar.meerpipeline.master_flow">meersolar.meerpipeline.master_flow</a>
+</li>
           <li><a href="meersolar.meerpipeline.html#module-meersolar.meerpipeline.meer_make_ds">meersolar.meerpipeline.meer_make_ds</a>
 </li>
           <li><a href="meersolar.meerpipeline.html#module-meersolar.meerpipeline.meer_pbcor">meersolar.meerpipeline.meer_pbcor</a>
+</li>
+          <li><a href="meersolar.meerpipeline.html#module-meersolar.meerpipeline.prefect_server">meersolar.meerpipeline.prefect_server</a>
 </li>
           <li><a href="meersolar.meerpipeline.html#module-meersolar.meerpipeline.show_msdetails">meersolar.meerpipeline.show_msdetails</a>
 </li>
@@ -1163,8 +1191,6 @@
           <li><a href="meersolar.meerpipeline.html#module-meersolar.meerpipeline.single_image_meerpbcor">meersolar.meerpipeline.single_image_meerpbcor</a>
 </li>
           <li><a href="meersolar.meerpipeline.html#module-meersolar.meerpipeline.viewer">meersolar.meerpipeline.viewer</a>
-</li>
-          <li><a href="meersolar.utils.html#module-meersolar.utils">meersolar.utils</a>
 </li>
           <li><a href="meersolar.utils.html#module-meersolar.utils.basic_utils">meersolar.utils.basic_utils</a>
 </li>
@@ -1185,6 +1211,10 @@
           <li><a href="meersolar.utils.html#module-meersolar.utils.meer_utils">meersolar.utils.meer_utils</a>
 </li>
           <li><a href="meersolar.utils.html#module-meersolar.utils.ms_metadata">meersolar.utils.ms_metadata</a>
+</li>
+          <li><a href="meersolar.utils.html#module-meersolar.utils.prefect_logger_utils">meersolar.utils.prefect_logger_utils</a>
+</li>
+          <li><a href="meersolar.utils.html#module-meersolar.utils.prefect_setup_utils">meersolar.utils.prefect_setup_utils</a>
 </li>
           <li><a href="meersolar.utils.html#module-meersolar.utils.proc_manage_utils">meersolar.utils.proc_manage_utils</a>
 </li>
@@ -1253,6 +1283,8 @@
 </li>
         <li><a href="meersolar.crystalball.html#meersolar.crystalball.crystalball.predict">predict() (in module meersolar.crystalball.crystalball)</a>
 </li>
+        <li><a href="meersolar.utils.html#meersolar.utils.prefect_setup_utils.prefect_server_status">prefect_server_status() (in module meersolar.utils.prefect_setup_utils)</a>
+</li>
         <li><a href="meersolar.meerpipeline.html#meersolar.meerpipeline.single_image_meerpbcor.put_IQUV">put_IQUV() (in module meersolar.meerpipeline.single_image_meerpbcor)</a>
 </li>
     </ul></td>
@@ -1292,35 +1324,67 @@
         <li><a href="meersolar.meerpipeline.html#meersolar.meerpipeline.do_imaging.run_all_imaging">run_all_imaging() (in module meersolar.meerpipeline.do_imaging)</a>
 </li>
         <li><a href="meersolar.meerpipeline.html#meersolar.meerpipeline.master_controller.run_apply_basiccal_sol">run_apply_basiccal_sol() (in module meersolar.meerpipeline.master_controller)</a>
+
+        <ul>
+          <li><a href="meersolar.meerpipeline.html#meersolar.meerpipeline.master_flow.run_apply_basiccal_sol">(in module meersolar.meerpipeline.master_flow)</a>
 </li>
+        </ul></li>
         <li><a href="meersolar.meerpipeline.html#meersolar.meerpipeline.master_controller.run_apply_pbcor">run_apply_pbcor() (in module meersolar.meerpipeline.master_controller)</a>
+
+        <ul>
+          <li><a href="meersolar.meerpipeline.html#meersolar.meerpipeline.master_flow.run_apply_pbcor">(in module meersolar.meerpipeline.master_flow)</a>
 </li>
+        </ul></li>
         <li><a href="meersolar.meerpipeline.html#meersolar.meerpipeline.master_controller.run_apply_selfcal_sol">run_apply_selfcal_sol() (in module meersolar.meerpipeline.master_controller)</a>
+
+        <ul>
+          <li><a href="meersolar.meerpipeline.html#meersolar.meerpipeline.master_flow.run_apply_selfcal_sol">(in module meersolar.meerpipeline.master_flow)</a>
 </li>
+        </ul></li>
         <li><a href="meersolar.meerpipeline.html#meersolar.meerpipeline.basic_cal.run_applycal">run_applycal() (in module meersolar.meerpipeline.basic_cal)</a>
 </li>
         <li><a href="meersolar.meerpipeline.html#meersolar.meerpipeline.basic_cal.run_bandpass">run_bandpass() (in module meersolar.meerpipeline.basic_cal)</a>
 </li>
         <li><a href="meersolar.meerpipeline.html#meersolar.meerpipeline.master_controller.run_basic_cal_jobs">run_basic_cal_jobs() (in module meersolar.meerpipeline.master_controller)</a>
+
+        <ul>
+          <li><a href="meersolar.meerpipeline.html#meersolar.meerpipeline.master_flow.run_basic_cal_jobs">(in module meersolar.meerpipeline.master_flow)</a>
 </li>
+        </ul></li>
         <li><a href="meersolar.meerpipeline.html#meersolar.meerpipeline.basic_cal.run_basic_cal_rounds">run_basic_cal_rounds() (in module meersolar.meerpipeline.basic_cal)</a>
 </li>
-    </ul></td>
-    <td style="width: 33%; vertical-align: top;"><ul>
         <li><a href="meersolar.utils.html#meersolar.utils.udocker_utils.run_chgcenter">run_chgcenter() (in module meersolar.utils.udocker_utils)</a>
 </li>
         <li><a href="meersolar.meerpipeline.html#meersolar.meerpipeline.basic_cal.run_delaycal">run_delaycal() (in module meersolar.meerpipeline.basic_cal)</a>
 </li>
+    </ul></td>
+    <td style="width: 33%; vertical-align: top;"><ul>
         <li><a href="meersolar.meerpipeline.html#meersolar.meerpipeline.master_controller.run_ds_jobs">run_ds_jobs() (in module meersolar.meerpipeline.master_controller)</a>
+
+        <ul>
+          <li><a href="meersolar.meerpipeline.html#meersolar.meerpipeline.master_flow.run_ds_jobs">(in module meersolar.meerpipeline.master_flow)</a>
 </li>
+        </ul></li>
         <li><a href="meersolar.meerpipeline.html#meersolar.meerpipeline.master_controller.run_flag">run_flag() (in module meersolar.meerpipeline.master_controller)</a>
+
+        <ul>
+          <li><a href="meersolar.meerpipeline.html#meersolar.meerpipeline.master_flow.run_flag">(in module meersolar.meerpipeline.master_flow)</a>
 </li>
+        </ul></li>
         <li><a href="meersolar.meerpipeline.html#meersolar.meerpipeline.basic_cal.run_gaincal">run_gaincal() (in module meersolar.meerpipeline.basic_cal)</a>
 </li>
         <li><a href="meersolar.meerpipeline.html#meersolar.meerpipeline.master_controller.run_imaging_jobs">run_imaging_jobs() (in module meersolar.meerpipeline.master_controller)</a>
+
+        <ul>
+          <li><a href="meersolar.meerpipeline.html#meersolar.meerpipeline.master_flow.run_imaging_jobs">(in module meersolar.meerpipeline.master_flow)</a>
 </li>
+        </ul></li>
         <li><a href="meersolar.meerpipeline.html#meersolar.meerpipeline.master_controller.run_import_model">run_import_model() (in module meersolar.meerpipeline.master_controller)</a>
+
+        <ul>
+          <li><a href="meersolar.meerpipeline.html#meersolar.meerpipeline.master_flow.run_import_model">(in module meersolar.meerpipeline.master_flow)</a>
 </li>
+        </ul></li>
         <li><a href="meersolar.meerpipeline.html#meersolar.meerpipeline.basic_cal.run_leakagecal">run_leakagecal() (in module meersolar.meerpipeline.basic_cal)</a>
 </li>
         <li><a href="meersolar.utils.html#meersolar.utils.proc_manage_utils.run_limited_memory_task">run_limited_memory_task() (in module meersolar.utils.proc_manage_utils)</a>
@@ -1328,9 +1392,17 @@
         <li><a href="meersolar.meerpipeline.html#meersolar.meerpipeline.do_fluxcal.run_noise_cal">run_noise_cal() (in module meersolar.meerpipeline.do_fluxcal)</a>
 </li>
         <li><a href="meersolar.meerpipeline.html#meersolar.meerpipeline.master_controller.run_noise_diode_cal">run_noise_diode_cal() (in module meersolar.meerpipeline.master_controller)</a>
+
+        <ul>
+          <li><a href="meersolar.meerpipeline.html#meersolar.meerpipeline.master_flow.run_noise_diode_cal">(in module meersolar.meerpipeline.master_flow)</a>
 </li>
+        </ul></li>
         <li><a href="meersolar.meerpipeline.html#meersolar.meerpipeline.master_controller.run_partition">run_partition() (in module meersolar.meerpipeline.master_controller)</a>
+
+        <ul>
+          <li><a href="meersolar.meerpipeline.html#meersolar.meerpipeline.master_flow.run_partition">(in module meersolar.meerpipeline.master_flow)</a>
 </li>
+        </ul></li>
         <li><a href="meersolar.meerpipeline.html#meersolar.meerpipeline.meer_pbcor.run_pbcor">run_pbcor() (in module meersolar.meerpipeline.meer_pbcor)</a>
 </li>
         <li><a href="meersolar.meerpipeline.html#meersolar.meerpipeline.basic_cal.run_polcal">run_polcal() (in module meersolar.meerpipeline.basic_cal)</a>
@@ -1338,13 +1410,25 @@
         <li><a href="meersolar.meerpipeline.html#meersolar.meerpipeline.basic_cal.run_postcal_flag">run_postcal_flag() (in module meersolar.meerpipeline.basic_cal)</a>
 </li>
         <li><a href="meersolar.meerpipeline.html#meersolar.meerpipeline.master_controller.run_selfcal_jobs">run_selfcal_jobs() (in module meersolar.meerpipeline.master_controller)</a>
+
+        <ul>
+          <li><a href="meersolar.meerpipeline.html#meersolar.meerpipeline.master_flow.run_selfcal_jobs">(in module meersolar.meerpipeline.master_flow)</a>
 </li>
+        </ul></li>
         <li><a href="meersolar.utils.html#meersolar.utils.udocker_utils.run_solar_sidereal_cor">run_solar_sidereal_cor() (in module meersolar.utils.udocker_utils)</a>
 </li>
         <li><a href="meersolar.meerpipeline.html#meersolar.meerpipeline.master_controller.run_solar_siderealcor_jobs">run_solar_siderealcor_jobs() (in module meersolar.meerpipeline.master_controller)</a>
+
+        <ul>
+          <li><a href="meersolar.meerpipeline.html#meersolar.meerpipeline.master_flow.run_solar_siderealcor_jobs">(in module meersolar.meerpipeline.master_flow)</a>
 </li>
+        </ul></li>
         <li><a href="meersolar.meerpipeline.html#meersolar.meerpipeline.master_controller.run_target_split_jobs">run_target_split_jobs() (in module meersolar.meerpipeline.master_controller)</a>
+
+        <ul>
+          <li><a href="meersolar.meerpipeline.html#meersolar.meerpipeline.master_flow.run_target_split_jobs">(in module meersolar.meerpipeline.master_flow)</a>
 </li>
+        </ul></li>
         <li><a href="meersolar.utils.html#meersolar.utils.udocker_utils.run_wsclean">run_wsclean() (in module meersolar.utils.udocker_utils)</a>
 </li>
     </ul></td>
@@ -1357,9 +1441,15 @@
     <td style="width: 33%; vertical-align: top;"><ul>
         <li><a href="meersolar.utils.html#meersolar.utils.meer_ploting_utils.save_in_hpc">save_in_hpc() (in module meersolar.utils.meer_ploting_utils)</a>
 </li>
+        <li><a href="meersolar.utils.html#meersolar.utils.prefect_logger_utils.save_logs_by_flow_id">save_logs_by_flow_id() (in module meersolar.utils.prefect_logger_utils)</a>
+</li>
+        <li><a href="meersolar.utils.html#meersolar.utils.prefect_logger_utils.save_logs_by_task_id">save_logs_by_task_id() (in module meersolar.utils.prefect_logger_utils)</a>
+</li>
         <li><a href="meersolar.utils.html#meersolar.utils.proc_manage_utils.save_main_process_info">save_main_process_info() (in module meersolar.utils.proc_manage_utils)</a>
 </li>
         <li><a href="meersolar.utils.html#meersolar.utils.proc_manage_utils.save_pid">save_pid() (in module meersolar.utils.proc_manage_utils)</a>
+</li>
+        <li><a href="meersolar.utils.html#meersolar.utils.prefect_setup_utils.save_prefect_env_to_file">save_prefect_env_to_file() (in module meersolar.utils.prefect_setup_utils)</a>
 </li>
         <li><a href="meersolar.meerpipeline.html#meersolar.meerpipeline.do_apply_basiccal.scale_bandpass">scale_bandpass() (in module meersolar.meerpipeline.do_apply_basiccal)</a>
 </li>
@@ -1376,6 +1466,8 @@
         <li><a href="meersolar.meerpipeline.html#meersolar.meerpipeline.show_status.show_job_status">show_job_status() (in module meersolar.meerpipeline.show_status)</a>
 </li>
         <li><a href="meersolar.meerpipeline.html#meersolar.meerpipeline.show_msdetails.show_listobs">show_listobs() (in module meersolar.meerpipeline.show_msdetails)</a>
+</li>
+        <li><a href="meersolar.utils.html#meersolar.utils.prefect_setup_utils.show_prefect_config">show_prefect_config() (in module meersolar.utils.prefect_setup_utils)</a>
 </li>
         <li><a href="meersolar.meerpipeline.html#meersolar.meerpipeline.flagging.single_ms_flag">single_ms_flag() (in module meersolar.meerpipeline.flagging)</a>
 </li>
@@ -1409,9 +1501,17 @@
 </li>
         <li><a href="meersolar.meerpipeline.html#meersolar.meerpipeline.viewer.TailWatcher.start">start() (meersolar.meerpipeline.viewer.TailWatcher method)</a>
 </li>
+        <li><a href="meersolar.utils.html#meersolar.utils.prefect_logger_utils.start_flow_log_saver">start_flow_log_saver() (in module meersolar.utils.prefect_logger_utils)</a>
+</li>
+        <li><a href="meersolar.utils.html#meersolar.utils.prefect_logger_utils.start_log_task_saver">start_log_task_saver() (in module meersolar.utils.prefect_logger_utils)</a>
+</li>
         <li><a href="meersolar.meerpipeline.html#meersolar.meerpipeline.master_controller.start_ping_logger">start_ping_logger() (in module meersolar.meerpipeline.master_controller)</a>
 </li>
+        <li><a href="meersolar.utils.html#meersolar.utils.prefect_setup_utils.start_server">start_server() (in module meersolar.utils.prefect_setup_utils)</a>
+</li>
         <li><a href="meersolar.meerpipeline.html#meersolar.meerpipeline.viewer.TailWatcher.stop">stop() (meersolar.meerpipeline.viewer.TailWatcher method)</a>
+</li>
+        <li><a href="meersolar.utils.html#meersolar.utils.prefect_setup_utils.stop_prefect_server">stop_prefect_server() (in module meersolar.utils.prefect_setup_utils)</a>
 </li>
         <li><a href="meersolar.utils.html#meersolar.utils.logger_utils.StreamToLogger">StreamToLogger (class in meersolar.utils.logger_utils)</a>
 </li>
@@ -1443,10 +1543,14 @@
   <h2>W</h2>
   <table style="width: 100%" class="indextable genindextable"><tr>
     <td style="width: 33%; vertical-align: top;"><ul>
+        <li><a href="meersolar.utils.html#meersolar.utils.proc_manage_utils.wait_for_dask_workers">wait_for_dask_workers() (in module meersolar.utils.proc_manage_utils)</a>
+</li>
         <li><a href="meersolar.utils.html#meersolar.utils.logger_utils.StreamToLogger.write">write() (meersolar.utils.logger_utils.StreamToLogger method)</a>
 </li>
     </ul></td>
     <td style="width: 33%; vertical-align: top;"><ul>
+        <li><a href="meersolar.utils.html#meersolar.utils.prefect_setup_utils.write_prefect_profile">write_prefect_profile() (in module meersolar.utils.prefect_setup_utils)</a>
+</li>
         <li><a href="meersolar.crystalball.html#meersolar.crystalball.wsclean.WSCleanModel">WSCleanModel (class in meersolar.crystalball.wsclean)</a>
 </li>
     </ul></td>

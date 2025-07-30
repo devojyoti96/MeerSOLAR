@@ -281,16 +281,9 @@
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 <span class="kn">import</span> <span class="nn">glob</span>
 <span class="kn">import</span> <span class="nn">os</span>
-<span class="kn">from</span> <span class="nn">casatasks</span> <span class="kn">import</span> <span class="n">casalog</span>
-<span class="kn">from</span> <span class="nn">casatools</span> <span class="kn">import</span> <span class="n">msmetadata</span><span class="p">,</span> <span class="n">ms</span> <span class="k">as</span> <span class="n">casamstool</span><span class="p">,</span> <span class="n">table</span>
+<span class="kn">from</span> <span class="nn">casatools</span> <span class="kn">import</span> <span class="n">msmetadata</span><span class="p">,</span> <span class="n">ms</span> <span class="k">as</span> <span class="n">casamstool</span><span class="p">,</span> <span class="n">table</span><span class="p">,</span> <span class="n">measures</span>
 <span class="kn">from</span> <span class="nn">.basic_utils</span> <span class="kn">import</span> <span class="o">*</span>
 <span class="kn">from</span> <span class="nn">.resource_utils</span> <span class="kn">import</span> <span class="o">*</span>
-
-<span class="k">try</span><span class="p">:</span>
-    <span class="n">logfile</span> <span class="o">=</span> <span class="n">casalog</span><span class="o">.</span><span class="n">logfile</span><span class="p">()</span>
-    <span class="n">os</span><span class="o">.</span><span class="n">system</span><span class="p">(</span><span class="s2">&quot;rm -rf &quot;</span> <span class="o">+</span> <span class="n">logfile</span><span class="p">)</span>
-<span class="k">except</span> <span class="ne">BaseException</span><span class="p">:</span>
-    <span class="k">pass</span>
 
 <span class="c1">##########################</span>
 <span class="c1"># Measurement set metadata</span>
@@ -750,7 +743,7 @@
                 <span class="n">grp</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">g</span><span class="p">)</span>
                 <span class="n">a</span><span class="p">,</span> <span class="n">b</span> <span class="o">=</span> <span class="n">grp</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">1</span><span class="p">],</span> <span class="n">grp</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span>
                 <span class="n">result</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">a</span><span class="si">}</span><span class="s2">&quot;</span> <span class="k">if</span> <span class="n">a</span> <span class="o">==</span> <span class="n">b</span> <span class="k">else</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">a</span><span class="si">}</span><span class="s2">~</span><span class="si">{</span><span class="n">b</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">result</span><span class="p">)</span><span class="o">&gt;</span><span class="mi">0</span><span class="p">:</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">result</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
             <span class="k">return</span> <span class="s2">&quot;0:&quot;</span> <span class="o">+</span> <span class="s2">&quot;;&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="k">return</span> <span class="s2">&quot;&quot;</span>
@@ -851,7 +844,7 @@
 <span class="sd">        Reference antenna</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">limit_threads</span><span class="p">(</span><span class="n">n_threads</span><span class="o">=</span><span class="n">n_threads</span><span class="p">)</span>
-    <span class="kn">from</span> <span class="nn">casatasks</span> <span class="kn">import</span> <span class="n">visstat</span>
+    <span class="kn">from</span> <span class="nn">casatasks</span> <span class="kn">import</span> <span class="n">visstat</span><span class="p">,</span> <span class="n">casalog</span>
 
     <span class="k">if</span> <span class="n">dry_run</span><span class="p">:</span>
         <span class="n">process</span> <span class="o">=</span> <span class="n">psutil</span><span class="o">.</span><span class="n">Process</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">getpid</span><span class="p">())</span>
@@ -990,6 +983,39 @@
     <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
         <span class="k">pass</span>
     <span class="k">return</span> <span class="n">observatory</span></div>
+
+
+
+<div class="viewcode-block" id="get_observatory_coord">
+<a class="viewcode-back" href="../../../meersolar.utils.html#meersolar.utils.ms_metadata.get_observatory_coord">[docs]</a>
+<span class="k">def</span> <span class="nf">get_observatory_coord</span><span class="p">(</span><span class="n">msname</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Get observatory coordinate</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    msname : str</span>
+<span class="sd">        Measurement set</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    float</span>
+<span class="sd">        Latitude in degrees</span>
+<span class="sd">    float</span>
+<span class="sd">        Longitude in degrees</span>
+<span class="sd">    float</span>
+<span class="sd">        Height in meters</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">msmd</span> <span class="o">=</span> <span class="n">msmetadata</span><span class="p">()</span>
+    <span class="n">msmd</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">msname</span><span class="p">)</span>
+    <span class="n">position</span> <span class="o">=</span> <span class="n">msmd</span><span class="o">.</span><span class="n">observatoryposition</span><span class="p">()</span>
+    <span class="n">me</span> <span class="o">=</span> <span class="n">measures</span><span class="p">()</span>
+    <span class="n">obs_pos</span> <span class="o">=</span> <span class="n">me</span><span class="o">.</span><span class="n">observatory</span><span class="p">(</span><span class="n">msmd</span><span class="o">.</span><span class="n">observatorynames</span><span class="p">()[</span><span class="mi">0</span><span class="p">])</span>
+    <span class="n">lon</span> <span class="o">=</span> <span class="n">obs_pos</span><span class="p">[</span><span class="s2">&quot;m0&quot;</span><span class="p">][</span><span class="s2">&quot;value&quot;</span><span class="p">]</span> <span class="o">*</span> <span class="p">(</span><span class="mf">180.0</span> <span class="o">/</span> <span class="mf">3.141592653589793</span><span class="p">)</span>
+    <span class="n">lat</span> <span class="o">=</span> <span class="n">obs_pos</span><span class="p">[</span><span class="s2">&quot;m1&quot;</span><span class="p">][</span><span class="s2">&quot;value&quot;</span><span class="p">]</span> <span class="o">*</span> <span class="p">(</span><span class="mf">180.0</span> <span class="o">/</span> <span class="mf">3.141592653589793</span><span class="p">)</span>
+    <span class="n">height</span> <span class="o">=</span> <span class="n">obs_pos</span><span class="p">[</span><span class="s2">&quot;m2&quot;</span><span class="p">][</span><span class="s2">&quot;value&quot;</span><span class="p">]</span>
+    <span class="n">msmd</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+    <span class="k">return</span> <span class="nb">round</span><span class="p">(</span><span class="n">lat</span><span class="p">,</span> <span class="mi">3</span><span class="p">),</span> <span class="nb">round</span><span class="p">(</span><span class="n">lon</span><span class="p">,</span> <span class="mi">3</span><span class="p">),</span> <span class="nb">round</span><span class="p">(</span><span class="n">height</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span></div>
 
 
 

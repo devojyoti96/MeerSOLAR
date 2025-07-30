@@ -288,6 +288,7 @@
 <span class="kn">from</span> <span class="nn">casatasks</span> <span class="kn">import</span> <span class="n">casalog</span>
 <span class="kn">from</span> <span class="nn">casatools</span> <span class="kn">import</span> <span class="n">msmetadata</span>
 <span class="kn">from</span> <span class="nn">dask</span> <span class="kn">import</span> <span class="n">delayed</span>
+<span class="kn">from</span> <span class="nn">dask.distributed</span> <span class="kn">import</span> <span class="n">Client</span>
 <span class="kn">from</span> <span class="nn">meersolar.utils</span> <span class="kn">import</span> <span class="o">*</span>
 
 <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="s2">&quot;distributed&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">setLevel</span><span class="p">(</span><span class="n">logging</span><span class="o">.</span><span class="n">WARNING</span><span class="p">)</span>
@@ -344,6 +345,7 @@
     <span class="n">mem_frac</span><span class="o">=</span><span class="mf">0.8</span><span class="p">,</span>
     <span class="n">max_cpu_frac</span><span class="o">=</span><span class="mf">0.8</span><span class="p">,</span>
     <span class="n">max_mem_frac</span><span class="o">=</span><span class="mf">0.8</span><span class="p">,</span>
+    <span class="n">dask_addr</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
 <span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Split target scans</span>
@@ -386,6 +388,8 @@
 <span class="sd">        Maximum CPU fraction to use</span>
 <span class="sd">    max_mem_frac : float, optional</span>
 <span class="sd">        Maximum memory fraction to use</span>
+<span class="sd">    dask_addr : str, optional</span>
+<span class="sd">        Dask scheduler address</span>
 
 <span class="sd">    Returns</span>
 <span class="sd">    -------</span>
@@ -449,16 +453,16 @@
         <span class="n">spw_suffix</span> <span class="o">=</span> <span class="n">good_spws</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;0:&quot;</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;;&quot;</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">spw</span><span class="p">:</span>
             <span class="n">common_spws</span> <span class="o">=</span> <span class="n">get_common_spw</span><span class="p">(</span><span class="n">good_spws</span><span class="p">,</span> <span class="n">spw</span><span class="p">)</span>
-            <span class="k">if</span> <span class="n">common_spws</span><span class="o">!=</span><span class="s2">&quot;&quot;</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">common_spws</span> <span class="o">!=</span> <span class="s2">&quot;&quot;</span><span class="p">:</span>
                 <span class="n">good_spws</span> <span class="o">=</span> <span class="n">common_spws</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;0:&quot;</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;;&quot;</span><span class="p">)</span>
             <span class="k">else</span><span class="p">:</span>
                 <span class="n">good_spws</span> <span class="o">=</span> <span class="n">spw_suffix</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="n">good_spws</span> <span class="o">=</span> <span class="n">spw_suffix</span>
-        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">good_spws</span><span class="p">)</span><span class="o">==</span><span class="mi">0</span><span class="p">:</span>
-            <span class="nb">print</span> <span class="p">(</span><span class="s2">&quot;No good spectral window is found.&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">good_spws</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;No good spectral window is found.&quot;</span><span class="p">)</span>
             <span class="k">return</span> <span class="mi">1</span><span class="p">,</span> <span class="p">[]</span>
-              
+
         <span class="c1">#############################</span>
         <span class="n">chanlist</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="k">if</span> <span class="n">spectral_chunk</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
@@ -511,17 +515,19 @@
         <span class="c1">#############################################</span>
         <span class="c1"># Memory limit</span>
         <span class="c1">#############################################</span>
-        <span class="n">task</span> <span class="o">=</span> <span class="n">delayed</span><span class="p">(</span><span class="n">single_mstransform</span><span class="p">)(</span><span class="n">dry_run</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-        <span class="n">mem_limit</span> <span class="o">=</span> <span class="n">run_limited_memory_task</span><span class="p">(</span><span class="n">task</span><span class="p">,</span> <span class="n">dask_dir</span><span class="o">=</span><span class="n">workdir</span><span class="p">)</span>
+        <span class="n">mem_limit</span> <span class="o">=</span> <span class="n">single_mstransform</span><span class="p">(</span><span class="n">dry_run</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
         <span class="c1">#######################</span>
-        <span class="n">dask_client</span><span class="p">,</span> <span class="n">dask_cluster</span><span class="p">,</span> <span class="n">max_n_jobs</span><span class="p">,</span> <span class="n">n_threads</span><span class="p">,</span> <span class="n">mem_limit</span> <span class="o">=</span> <span class="n">get_dask_client</span><span class="p">(</span>
-            <span class="n">total_chunks</span><span class="p">,</span>
-            <span class="n">dask_dir</span><span class="o">=</span><span class="n">workdir</span><span class="p">,</span>
-            <span class="n">cpu_frac</span><span class="o">=</span><span class="n">max_cpu_frac</span><span class="p">,</span>
-            <span class="n">mem_frac</span><span class="o">=</span><span class="n">max_mem_frac</span><span class="p">,</span>
-            <span class="n">min_mem_per_job</span><span class="o">=</span><span class="n">mem_limit</span> <span class="o">/</span> <span class="mf">0.6</span><span class="p">,</span>
-            <span class="n">only_cal</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">_</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">max_n_jobs</span><span class="p">,</span> <span class="n">n_threads</span><span class="p">,</span> <span class="n">mem_limit</span><span class="p">,</span> <span class="n">dask_dir</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">get_dask_client</span><span class="p">(</span>
+                <span class="n">total_chunks</span><span class="p">,</span>
+                <span class="n">dask_dir</span><span class="o">=</span><span class="n">workdir</span><span class="p">,</span>
+                <span class="n">cpu_frac</span><span class="o">=</span><span class="n">max_cpu_frac</span><span class="p">,</span>
+                <span class="n">mem_frac</span><span class="o">=</span><span class="n">max_mem_frac</span><span class="p">,</span>
+                <span class="n">min_mem_per_job</span><span class="o">=</span><span class="n">mem_limit</span><span class="p">,</span>
+                <span class="n">only_cal</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+            <span class="p">)</span>
         <span class="p">)</span>
+        <span class="n">os</span><span class="o">.</span><span class="n">system</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;rm -rf </span><span class="si">{</span><span class="n">dask_dir</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
         <span class="n">tasks</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="n">splited_ms_list</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="k">for</span> <span class="n">scan</span> <span class="ow">in</span> <span class="n">filtered_scan_list</span><span class="p">:</span>
@@ -565,18 +571,36 @@
         <span class="k">if</span> <span class="n">cpu_frac</span> <span class="o">==</span> <span class="n">max_cpu_frac</span> <span class="ow">and</span> <span class="n">mem_frac</span> <span class="o">==</span> <span class="n">max_mem_frac</span><span class="p">:</span>
             <span class="n">total_chunks</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">tasks</span><span class="p">)</span>
             <span class="k">if</span> <span class="n">total_chunks</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
-                <span class="n">dask_client</span><span class="p">,</span> <span class="n">dask_cluster</span><span class="p">,</span> <span class="n">n_jobs</span><span class="p">,</span> <span class="n">n_threads</span><span class="p">,</span> <span class="n">mem_limit</span> <span class="o">=</span> <span class="p">(</span>
-                    <span class="n">get_dask_client</span><span class="p">(</span>
-                        <span class="n">total_chunks</span><span class="p">,</span>
-                        <span class="n">dask_dir</span><span class="o">=</span><span class="n">workdir</span><span class="p">,</span>
-                        <span class="n">cpu_frac</span><span class="o">=</span><span class="n">cpu_frac</span><span class="p">,</span>
-                        <span class="n">mem_frac</span><span class="o">=</span><span class="n">mem_frac</span><span class="p">,</span>
-                        <span class="n">min_mem_per_job</span><span class="o">=</span><span class="n">mem_limit</span> <span class="o">/</span> <span class="mf">0.6</span><span class="p">,</span>
+                <span class="k">if</span> <span class="n">dask_addr</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="n">dask_client</span><span class="p">,</span> <span class="n">dask_cluster</span><span class="p">,</span> <span class="n">n_jobs</span><span class="p">,</span> <span class="n">n_threads</span><span class="p">,</span> <span class="n">mem_limit</span><span class="p">,</span> <span class="n">dask_dir</span> <span class="o">=</span> <span class="p">(</span>
+                        <span class="n">get_dask_client</span><span class="p">(</span>
+                            <span class="n">total_chunks</span><span class="p">,</span>
+                            <span class="n">dask_dir</span><span class="o">=</span><span class="n">workdir</span><span class="p">,</span>
+                            <span class="n">cpu_frac</span><span class="o">=</span><span class="n">cpu_frac</span><span class="p">,</span>
+                            <span class="n">mem_frac</span><span class="o">=</span><span class="n">mem_frac</span><span class="p">,</span>
+                            <span class="n">min_mem_per_job</span><span class="o">=</span><span class="n">mem_limit</span><span class="p">,</span>
+                        <span class="p">)</span>
                     <span class="p">)</span>
-                <span class="p">)</span>
-                <span class="n">results</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">dask_client</span><span class="o">.</span><span class="n">compute</span><span class="p">(</span><span class="n">tasks</span><span class="p">,</span> <span class="n">sync</span><span class="o">=</span><span class="kc">True</span><span class="p">))</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">_</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">n_jobs</span><span class="p">,</span> <span class="n">n_threads</span><span class="p">,</span> <span class="n">mem_limit</span><span class="p">,</span> <span class="n">dask_dir</span> <span class="o">=</span> <span class="p">(</span>
+                        <span class="n">get_dask_client</span><span class="p">(</span>
+                            <span class="n">total_chunks</span><span class="p">,</span>
+                            <span class="n">dask_dir</span><span class="o">=</span><span class="n">workdir</span><span class="p">,</span>
+                            <span class="n">cpu_frac</span><span class="o">=</span><span class="n">cpu_frac</span><span class="p">,</span>
+                            <span class="n">mem_frac</span><span class="o">=</span><span class="n">mem_frac</span><span class="p">,</span>
+                            <span class="n">min_mem_per_job</span><span class="o">=</span><span class="n">mem_limit</span><span class="p">,</span>
+                            <span class="n">only_cal</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                        <span class="p">)</span>
+                    <span class="p">)</span>
+                    <span class="n">dask_client</span><span class="o">=</span><span class="n">Client</span><span class="p">(</span><span class="n">address</span><span class="o">=</span><span class="n">dask_addr</span><span class="p">)</span>
+                    <span class="n">os</span><span class="o">.</span><span class="n">system</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;rm -rf </span><span class="si">{</span><span class="n">dask_dir</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="n">wait_for_dask_workers</span><span class="p">(</span><span class="n">dask_client</span><span class="p">,</span><span class="n">min_worker</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span><span class="n">timeout</span><span class="o">=</span><span class="mi">60</span><span class="p">)</span>
+                <span class="n">futures</span> <span class="o">=</span> <span class="n">dask_client</span><span class="o">.</span><span class="n">compute</span><span class="p">(</span><span class="n">tasks</span><span class="p">)</span>
+                <span class="n">results</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">dask_client</span><span class="o">.</span><span class="n">gather</span><span class="p">(</span><span class="n">futures</span><span class="p">))</span>
                 <span class="n">dask_client</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
-                <span class="n">dask_cluster</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+                <span class="k">if</span> <span class="n">dask_addr</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="n">dask_cluster</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+                    <span class="n">os</span><span class="o">.</span><span class="n">system</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;rm -rf </span><span class="si">{</span><span class="n">dask_dir</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
                 <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">results</span><span class="p">:</span>
                     <span class="n">splited_ms_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">r</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
@@ -585,21 +609,49 @@
                 <span class="k">if</span> <span class="n">total_chunks</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
                     <span class="k">break</span>
                 <span class="k">else</span><span class="p">:</span>
-                    <span class="n">dask_client</span><span class="p">,</span> <span class="n">dask_cluster</span><span class="p">,</span> <span class="n">n_jobs</span><span class="p">,</span> <span class="n">n_threads</span><span class="p">,</span> <span class="n">mem_limit</span> <span class="o">=</span> <span class="p">(</span>
-                        <span class="n">get_dask_client</span><span class="p">(</span>
+                    <span class="k">if</span> <span class="n">dask_addr</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                        <span class="p">(</span>
+                            <span class="n">dask_client</span><span class="p">,</span>
+                            <span class="n">dask_cluster</span><span class="p">,</span>
+                            <span class="n">n_jobs</span><span class="p">,</span>
+                            <span class="n">n_threads</span><span class="p">,</span>
+                            <span class="n">mem_limit</span><span class="p">,</span>
+                            <span class="n">dask_dir</span><span class="p">,</span>
+                        <span class="p">)</span> <span class="o">=</span> <span class="n">get_dask_client</span><span class="p">(</span>
                             <span class="n">total_chunks</span><span class="p">,</span>
                             <span class="n">dask_dir</span><span class="o">=</span><span class="n">workdir</span><span class="p">,</span>
                             <span class="n">cpu_frac</span><span class="o">=</span><span class="n">cpu_frac</span><span class="p">,</span>
                             <span class="n">mem_frac</span><span class="o">=</span><span class="n">mem_frac</span><span class="p">,</span>
-                            <span class="n">min_mem_per_job</span><span class="o">=</span><span class="n">mem_limit</span> <span class="o">/</span> <span class="mf">0.6</span><span class="p">,</span>
+                            <span class="n">min_mem_per_job</span><span class="o">=</span><span class="n">mem_limit</span><span class="p">,</span>
                         <span class="p">)</span>
-                    <span class="p">)</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="p">(</span>
+                            <span class="n">_</span><span class="p">,</span>
+                            <span class="n">_</span><span class="p">,</span>
+                            <span class="n">n_jobs</span><span class="p">,</span>
+                            <span class="n">n_threads</span><span class="p">,</span>
+                            <span class="n">mem_limit</span><span class="p">,</span>
+                            <span class="n">dask_dir</span><span class="p">,</span>
+                        <span class="p">)</span> <span class="o">=</span> <span class="n">get_dask_client</span><span class="p">(</span>
+                            <span class="n">total_chunks</span><span class="p">,</span>
+                            <span class="n">dask_dir</span><span class="o">=</span><span class="n">workdir</span><span class="p">,</span>
+                            <span class="n">cpu_frac</span><span class="o">=</span><span class="n">cpu_frac</span><span class="p">,</span>
+                            <span class="n">mem_frac</span><span class="o">=</span><span class="n">mem_frac</span><span class="p">,</span>
+                            <span class="n">min_mem_per_job</span><span class="o">=</span><span class="n">mem_limit</span><span class="p">,</span>
+                            <span class="n">only_cal</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                        <span class="p">)</span>
+                        <span class="n">dask_client</span><span class="o">=</span><span class="n">Client</span><span class="p">(</span><span class="n">address</span><span class="o">=</span><span class="n">dask_addr</span><span class="p">)</span>
+                        <span class="n">os</span><span class="o">.</span><span class="n">system</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;rm -rf </span><span class="si">{</span><span class="n">dask_dir</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                    <span class="n">wait_for_dask_workers</span><span class="p">(</span><span class="n">dask_client</span><span class="p">,</span><span class="n">min_worker</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span><span class="n">timeout</span><span class="o">=</span><span class="mi">60</span><span class="p">)</span>
                     <span class="n">chunk_tasks</span> <span class="o">=</span> <span class="n">tasks</span><span class="p">[</span><span class="mi">0</span> <span class="p">:</span> <span class="nb">min</span><span class="p">(</span><span class="n">n_jobs</span><span class="p">,</span> <span class="n">max_n_jobs</span><span class="p">)]</span>
                     <span class="k">for</span> <span class="n">ctask</span> <span class="ow">in</span> <span class="n">chunk_tasks</span><span class="p">:</span>
                         <span class="n">tasks</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">ctask</span><span class="p">)</span>
-                    <span class="n">results</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">compute</span><span class="p">(</span><span class="o">*</span><span class="n">chunk_tasks</span><span class="p">))</span>
+                    <span class="n">futures</span> <span class="o">=</span> <span class="n">dask_client</span><span class="o">.</span><span class="n">compute</span><span class="p">(</span><span class="n">tasks</span><span class="p">)</span>
+                    <span class="n">results</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">dask_client</span><span class="o">.</span><span class="n">gather</span><span class="p">(</span><span class="n">futures</span><span class="p">))</span>
                     <span class="n">dask_client</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
-                    <span class="n">dask_cluster</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+                    <span class="k">if</span> <span class="n">dask_addr</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                        <span class="n">dask_cluster</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+                        <span class="n">os</span><span class="o">.</span><span class="n">system</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;rm -rf </span><span class="si">{</span><span class="n">dask_dir</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
                     <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">results</span><span class="p">:</span>
                         <span class="n">splited_ms_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">r</span><span class="p">)</span>
                     <span class="n">n_current_process</span> <span class="o">=</span> <span class="p">(</span>
@@ -660,6 +712,7 @@
     <span class="n">logfile</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
     <span class="n">jobid</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
     <span class="n">start_remote_log</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+    <span class="n">dask_addr</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
 <span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Split target scans from a measurement set into smaller chunks for parallel processing.</span>
@@ -708,6 +761,8 @@
 <span class="sd">        Job identifier for tracking and PID storage. Default is 0.</span>
 <span class="sd">    start_remote_log : bool, optional</span>
 <span class="sd">        If True, enables remote logging using credentials stored in workdir. Default is False.</span>
+<span class="sd">    dask_addr : str, optional</span>
+<span class="sd">        Dask scheduler address</span>
 
 <span class="sd">    Returns</span>
 <span class="sd">    -------</span>
@@ -768,6 +823,7 @@
                 <span class="n">mem_frac</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">mem_frac</span><span class="p">),</span>
                 <span class="n">max_cpu_frac</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">max_cpu_frac</span><span class="p">),</span>
                 <span class="n">max_mem_frac</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">max_mem_frac</span><span class="p">),</span>
+                <span class="n">dask_addr</span><span class="o">=</span><span class="n">dask_addr</span><span class="p">,</span>
             <span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Please provide correct measurement set.</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>

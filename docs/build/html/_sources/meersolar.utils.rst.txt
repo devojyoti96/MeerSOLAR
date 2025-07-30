@@ -5,6 +5,7 @@ This module contains all basic functionalities required for the pipeline.
 .. Note ::
 
    All functions in submodules are also available from ``meersolar.utils`` namespace as well.
+   
 
 meersolar.utils.basic\_utils module
 -----------------------------------
@@ -86,6 +87,22 @@ meersolar.utils.ms\_metadata module
    :undoc-members:
    :show-inheritance:
 
+meersolar.utils.prefect\_logger\_utils module
+---------------------------------------------
+
+.. automodule:: meersolar.utils.prefect_logger_utils
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+meersolar.utils.prefect\_setup\_utils module
+--------------------------------------------
+
+.. automodule:: meersolar.utils.prefect_setup_utils
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 meersolar.utils.proc\_manage\_utils module
 ------------------------------------------
 
@@ -126,10 +143,4 @@ meersolar.utils.udocker\_utils module
    :undoc-members:
    :show-inheritance:
 
-Module contents
----------------
 
-.. automodule:: meersolar.utils
-   :members:
-   :undoc-members:
-   :show-inheritance:

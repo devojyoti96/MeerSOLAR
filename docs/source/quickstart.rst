@@ -16,11 +16,11 @@ MeerSOLAR is distributed on
 
       pip install meersolar
 
-3. Initiate necessary metadata
+3. Initiate necessary post-installation setup for metadata and ``prefect`` server
 
    .. code-block:: bash
 
-      init-meersolar-data --init
+      init-meersolar-setup --init
 
 4. Run MeerSOLAR pipeline
 
@@ -35,12 +35,19 @@ That’s all. You started MeerSOLAR pipeline for analysing your MeerKAT solar ob
    .. code-block :: bash
         
       show-meersolar-status --show
+      
        
-6. To see local log of any job using the <jobid>
+6. To see ``prefect`` dashboard:
+
+   .. code-block :: bash
+    
+      run-meer-meerlogger
+
+7. If ``prefect`` dashboard is not showing logs, use local log of any job using the <jobid>:
 
    .. code-block :: bash
     
       run-meer-meerlogger --jobid <jobid>
       
-7. Output products will be saved in : ``<path of output products directory>``.
+8. Output products will be saved in : ``<path of output products directory>``.
 

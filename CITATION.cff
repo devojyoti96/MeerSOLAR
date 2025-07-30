@@ -1,7 +1,7 @@
 cff-version: 1.2.0
 message: "If you use this software, please cite it using the metadata below."
 title: "MeerSOLAR: A pipeline for solar radio imaging and calibration pipeline from MeerKAT"
-version: "2.0.0"
+version: "3.0.0"
 date-released: 2025-07-17
 authors:
   - family-names: Kansabanik
@@ -10,7 +10,7 @@ authors:
     affiliation: University Corporation for Atmospheric Research
 identifiers:
   - type: doi
-    value: 10.5281/zenodo.16040508
+    value: 10.5281/zenodo.16590564
 license: "MIT"
 repository-code: https://github.com/devojyoti96/MeerSOLAR
 url: https://github.com/devojyoti96/MeerSOLAR

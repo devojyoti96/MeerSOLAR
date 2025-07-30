@@ -286,14 +286,6 @@
 <span class="kn">from</span> <span class="nn">astropy.coordinates</span> <span class="kn">import</span> <span class="n">Angle</span>
 <span class="kn">from</span> <span class="nn">datetime</span> <span class="kn">import</span> <span class="n">datetime</span> <span class="k">as</span> <span class="n">dt</span>
 <span class="kn">from</span> <span class="nn">contextlib</span> <span class="kn">import</span> <span class="n">contextmanager</span>
-<span class="kn">from</span> <span class="nn">casatasks</span> <span class="kn">import</span> <span class="n">casalog</span>
-
-<span class="k">try</span><span class="p">:</span>
-    <span class="n">logfile</span> <span class="o">=</span> <span class="n">casalog</span><span class="o">.</span><span class="n">logfile</span><span class="p">()</span>
-    <span class="n">os</span><span class="o">.</span><span class="n">system</span><span class="p">(</span><span class="s2">&quot;rm -rf &quot;</span> <span class="o">+</span> <span class="n">logfile</span><span class="p">)</span>
-<span class="k">except</span> <span class="ne">BaseException</span><span class="p">:</span>
-    <span class="k">pass</span>
-
 
 <span class="c1">##########################</span>
 <span class="c1"># Basic utility funactions</span>
@@ -322,7 +314,7 @@
 <a class="viewcode-back" href="../../../meersolar.utils.html#meersolar.utils.basic_utils.get_cachedir">[docs]</a>
 <span class="k">def</span> <span class="nf">get_cachedir</span><span class="p">():</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Get MeerSOLAR cache directory</span>
+<span class="sd">    Get cache directory</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">homedir</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;HOME&quot;</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">homedir</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>

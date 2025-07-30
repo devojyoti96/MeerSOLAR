@@ -289,6 +289,7 @@
 <span class="kn">import</span> <span class="nn">os</span>
 <span class="kn">import</span> <span class="nn">subprocess</span>
 <span class="kn">import</span> <span class="nn">sys</span>
+<span class="kn">import</span> <span class="nn">tempfile</span>
 <span class="kn">from</span> <span class="nn">pathlib</span> <span class="kn">import</span> <span class="n">Path</span>
 <span class="kn">from</span> <span class="nn">dask</span> <span class="kn">import</span> <span class="n">delayed</span><span class="p">,</span> <span class="n">compute</span><span class="p">,</span> <span class="n">config</span>
 <span class="kn">from</span> <span class="nn">dask.distributed</span> <span class="kn">import</span> <span class="n">Client</span><span class="p">,</span> <span class="n">LocalCluster</span>
@@ -705,6 +706,31 @@
 
 
 
+<div class="viewcode-block" id="wait_for_dask_workers">
+<a class="viewcode-back" href="../../../meersolar.utils.html#meersolar.utils.proc_manage_utils.wait_for_dask_workers">[docs]</a>
+<span class="k">def</span> <span class="nf">wait_for_dask_workers</span><span class="p">(</span><span class="n">client</span><span class="p">,</span> <span class="n">min_worker</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=</span><span class="mi">60</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Wait for dask worker</span>
+<span class="sd">    </span>
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    client : dask.client</span>
+<span class="sd">        Dask client</span>
+<span class="sd">    min_worker : int, optional</span>
+<span class="sd">        Minimum number of workers</span>
+<span class="sd">    timeout : float, optional</span>
+<span class="sd">        Timeout in seconds</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">start</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+    <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">client</span><span class="o">.</span><span class="n">scheduler_info</span><span class="p">()[</span><span class="s2">&quot;workers&quot;</span><span class="p">])</span> <span class="o">&gt;=</span> <span class="n">min_worker</span><span class="p">:</span>
+            <span class="k">break</span>
+        <span class="k">if</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span> <span class="o">-</span> <span class="n">start</span> <span class="o">&gt;</span> <span class="n">timeout</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">TimeoutError</span><span class="p">(</span><span class="s2">&quot;No Dask workers connected within timeout.&quot;</span><span class="p">)</span>
+        <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span></div>
+
+        
+        
 <div class="viewcode-block" id="get_dask_client">
 <a class="viewcode-back" href="../../../meersolar.utils.html#meersolar.utils.proc_manage_utils.get_dask_client">[docs]</a>
 <span class="k">def</span> <span class="nf">get_dask_client</span><span class="p">(</span>
@@ -718,7 +744,6 @@
     <span class="n">min_mem_per_job</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span>
     <span class="n">min_cpu_per_job</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
     <span class="n">only_cal</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-    <span class="n">process</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
     <span class="n">verbose</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
 <span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
@@ -747,8 +772,6 @@
 <span class="sd">        Minimum CPU threads per job</span>
 <span class="sd">    only_cal : bool, optional</span>
 <span class="sd">        Only calculate number of workers</span>
-<span class="sd">    process : bool, optional</span>
-<span class="sd">        Process based or thread based</span>
 <span class="sd">    verbose : bool, optional</span>
 <span class="sd">        Verbose (details of cluster)</span>
 
@@ -762,9 +785,14 @@
 <span class="sd">        Number of workers</span>
 <span class="sd">    threads_per_worker : int</span>
 <span class="sd">        Threads per worker to use</span>
+<span class="sd">    str</span>
+<span class="sd">        Dask directory</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="s2">&quot;distributed&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">setLevel</span><span class="p">(</span><span class="n">logging</span><span class="o">.</span><span class="n">ERROR</span><span class="p">)</span>
     <span class="c1"># Create the Dask temporary working directory if it does not already exist</span>
+    <span class="n">dask_dir</span><span class="o">=</span><span class="n">dask_dir</span><span class="o">.</span><span class="n">rstrip</span><span class="p">(</span><span class="s2">&quot;/&quot;</span><span class="p">)</span>
+    <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">dask_dir</span><span class="p">,</span><span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">dask_dir</span> <span class="o">=</span> <span class="n">tempfile</span><span class="o">.</span><span class="n">mkdtemp</span><span class="p">(</span><span class="n">prefix</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">dask_dir</span><span class="si">}</span><span class="s2">/dask_&quot;</span><span class="p">)</span>
     <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">dask_dir</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
     <span class="n">dask_dir_tmp</span> <span class="o">=</span> <span class="n">dask_dir</span> <span class="o">+</span> <span class="s2">&quot;/tmp&quot;</span>
     <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">dask_dir_tmp</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
@@ -891,8 +919,7 @@
     <span class="k">if</span> <span class="n">spill_frac</span> <span class="o">&gt;</span> <span class="mf">0.7</span><span class="p">:</span>
         <span class="n">spill_frac</span> <span class="o">=</span> <span class="mf">0.7</span>
     <span class="k">if</span> <span class="n">only_cal</span><span class="p">:</span>
-        <span class="n">final_mem_per_worker</span> <span class="o">=</span> <span class="nb">round</span><span class="p">((</span><span class="n">mem_per_worker</span> <span class="o">*</span> <span class="n">spill_frac</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="mf">1024.0</span><span class="o">**</span><span class="mi">3</span><span class="p">),</span> <span class="mi">2</span><span class="p">)</span>
-        <span class="k">return</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="n">n_workers</span><span class="p">,</span> <span class="n">threads_per_worker</span><span class="p">,</span> <span class="n">final_mem_per_worker</span>
+        <span class="k">return</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="n">n_workers</span><span class="p">,</span> <span class="n">threads_per_worker</span><span class="p">,</span> <span class="nb">round</span><span class="p">(</span><span class="n">mem_per_worker</span><span class="o">/</span><span class="p">(</span><span class="mf">1024.0</span><span class="o">**</span><span class="mi">3</span><span class="p">),</span><span class="mi">2</span><span class="p">),</span> <span class="n">dask_dir</span>
 
     <span class="n">soft</span><span class="p">,</span> <span class="n">hard</span> <span class="o">=</span> <span class="n">resource</span><span class="o">.</span><span class="n">getrlimit</span><span class="p">(</span><span class="n">resource</span><span class="o">.</span><span class="n">RLIMIT_NOFILE</span><span class="p">)</span>
     <span class="n">new_soft</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">hard</span> <span class="o">*</span> <span class="mf">0.8</span><span class="p">),</span> <span class="n">hard</span><span class="p">)</span>  <span class="c1"># safe cap</span>
@@ -905,7 +932,7 @@
         <span class="c1"># one python-thread per worker, in workers OpenMP threads can be used</span>
         <span class="n">memory_limit</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="nb">round</span><span class="p">(</span><span class="n">mem_per_worker</span><span class="o">/</span><span class="p">(</span><span class="mf">1024.0</span><span class="o">**</span><span class="mi">3</span><span class="p">),</span><span class="mi">2</span><span class="p">)</span><span class="si">}</span><span class="s2">GB&quot;</span><span class="p">,</span>
         <span class="n">local_directory</span><span class="o">=</span><span class="n">dask_dir</span><span class="p">,</span>
-        <span class="n">processes</span><span class="o">=</span><span class="n">process</span><span class="p">,</span>  <span class="c1"># one process per worker</span>
+        <span class="n">processes</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>  <span class="c1"># one process per worker</span>
         <span class="n">dashboard_address</span><span class="o">=</span><span class="s2">&quot;:0&quot;</span><span class="p">,</span>
         <span class="n">env</span><span class="o">=</span><span class="p">{</span>
             <span class="s2">&quot;TMPDIR&quot;</span><span class="p">:</span> <span class="n">dask_dir_tmp</span><span class="p">,</span>
@@ -928,8 +955,7 @@
         <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Dask dashboard available at: </span><span class="si">{</span><span class="n">client</span><span class="o">.</span><span class="n">dashboard_link</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
 
     <span class="n">client</span><span class="o">.</span><span class="n">run_on_scheduler</span><span class="p">(</span><span class="n">gc</span><span class="o">.</span><span class="n">collect</span><span class="p">)</span>
-    <span class="n">final_mem_per_worker</span> <span class="o">=</span> <span class="nb">round</span><span class="p">((</span><span class="n">mem_per_worker</span> <span class="o">*</span> <span class="n">spill_frac</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="mf">1024.0</span><span class="o">**</span><span class="mi">3</span><span class="p">),</span> <span class="mi">2</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">client</span><span class="p">,</span> <span class="n">cluster</span><span class="p">,</span> <span class="n">n_workers</span><span class="p">,</span> <span class="n">threads_per_worker</span><span class="p">,</span> <span class="n">final_mem_per_worker</span></div>
+    <span class="k">return</span> <span class="n">client</span><span class="p">,</span> <span class="n">cluster</span><span class="p">,</span> <span class="n">n_workers</span><span class="p">,</span> <span class="n">threads_per_worker</span><span class="p">,</span> <span class="nb">round</span><span class="p">(</span><span class="n">mem_per_worker</span><span class="o">/</span><span class="p">(</span><span class="mf">1024.0</span><span class="o">**</span><span class="mi">3</span><span class="p">),</span><span class="mi">2</span><span class="p">),</span> <span class="n">dask_dir</span></div>
 
 
 

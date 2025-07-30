@@ -280,16 +280,8 @@
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 <span class="kn">import</span> <span class="nn">glob</span>
 <span class="kn">import</span> <span class="nn">os</span>
-<span class="kn">from</span> <span class="nn">casatasks</span> <span class="kn">import</span> <span class="n">casalog</span>
 <span class="kn">from</span> <span class="nn">casatools</span> <span class="kn">import</span> <span class="n">msmetadata</span><span class="p">,</span> <span class="n">ms</span> <span class="k">as</span> <span class="n">casamstool</span><span class="p">,</span> <span class="n">table</span>
 <span class="kn">from</span> <span class="nn">.basic_utils</span> <span class="kn">import</span> <span class="o">*</span>
-
-<span class="k">try</span><span class="p">:</span>
-    <span class="n">logfile</span> <span class="o">=</span> <span class="n">casalog</span><span class="o">.</span><span class="n">logfile</span><span class="p">()</span>
-    <span class="n">os</span><span class="o">.</span><span class="n">system</span><span class="p">(</span><span class="s2">&quot;rm -rf &quot;</span> <span class="o">+</span> <span class="n">logfile</span><span class="p">)</span>
-<span class="k">except</span> <span class="ne">BaseException</span><span class="p">:</span>
-    <span class="k">pass</span>
-
 
 <span class="c1">##################################</span>
 <span class="c1"># Imaging related</span>

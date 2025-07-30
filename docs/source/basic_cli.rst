@@ -35,7 +35,7 @@ These are basic CLI for MeerSOLAR pipeline.
 .. admonition:: Click here to see parameters
    :class: dropdown
 
-   .. program-output:: init-meersolar-data -h   
+   .. program-output:: init-meersolar-setup -h   
    
 6. To stop a MeerSOLAR job in between, use ``kill-meersolar-job`` .
 

@@ -368,7 +368,7 @@
 <dl class="py function">
 <dt class="sig sig-object py" id="meersolar.utils.basic_utils.get_cachedir">
 <span class="sig-prename descclassname"><span class="pre">meersolar.utils.basic_utils.</span></span><span class="sig-name descname"><span class="pre">get_cachedir</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/meersolar/utils/basic_utils.html#get_cachedir"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#meersolar.utils.basic_utils.get_cachedir" title="Link to this definition">¶</a></dt>
-<dd><p>Get MeerSOLAR cache directory</p>
+<dd><p>Get cache directory</p>
 </dd></dl>
 
 <dl class="py function">
@@ -1329,7 +1329,7 @@ raises a NotImplementedError.</p>
 <dl class="py function">
 <dt class="sig sig-object py" id="meersolar.utils.logger_utils.init_logger">
 <span class="sig-prename descclassname"><span class="pre">meersolar.utils.logger_utils.</span></span><span class="sig-name descname"><span class="pre">init_logger</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">logname</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">logfile</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">jobname</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">password</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/meersolar/utils/logger_utils.html#init_logger"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#meersolar.utils.logger_utils.init_logger" title="Link to this definition">¶</a></dt>
-<dd><p>Initialize a local + optional remote logger with watchdog-based tailing.</p>
+<dd><p>Initialize a remote logger with watchdog-based tailing.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
@@ -1340,10 +1340,10 @@ raises a NotImplementedError.</p>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p><strong>logger</strong> – Configured logger instance.</p>
+<dd class="field-even"><p>Observer object</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>logging.Logger</p>
+<dd class="field-odd"><p>observer</p>
 </dd>
 </dl>
 </dd></dl>
@@ -2026,6 +2026,25 @@ raises a NotImplementedError.</p>
 </dd></dl>
 
 <dl class="py function">
+<dt class="sig sig-object py" id="meersolar.utils.ms_metadata.get_observatory_coord">
+<span class="sig-prename descclassname"><span class="pre">meersolar.utils.ms_metadata.</span></span><span class="sig-name descname"><span class="pre">get_observatory_coord</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">msname</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/meersolar/utils/ms_metadata.html#get_observatory_coord"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#meersolar.utils.ms_metadata.get_observatory_coord" title="Link to this definition">¶</a></dt>
+<dd><p>Get observatory coordinate</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>msname</strong> (<em>str</em>) – Measurement set</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><ul class="simple">
+<li><p><em>float</em> – Latitude in degrees</p></li>
+<li><p><em>float</em> – Longitude in degrees</p></li>
+<li><p><em>float</em> – Height in meters</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
 <dt class="sig sig-object py" id="meersolar.utils.ms_metadata.get_observatory_name">
 <span class="sig-prename descclassname"><span class="pre">meersolar.utils.ms_metadata.</span></span><span class="sig-name descname"><span class="pre">get_observatory_name</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">msname</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/meersolar/utils/ms_metadata.html#get_observatory_name"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#meersolar.utils.ms_metadata.get_observatory_name" title="Link to this definition">¶</a></dt>
 <dd><p>Get observatory name</p>
@@ -2165,6 +2184,124 @@ raises a NotImplementedError.</p>
 </dd></dl>
 
 </section>
+<section id="module-meersolar.utils.prefect_logger_utils">
+<span id="meersolar-utils-prefect-logger-utils-module"></span><h2>meersolar.utils.prefect_logger_utils module<a class="headerlink" href="#module-meersolar.utils.prefect_logger_utils" title="Link to this heading">¶</a></h2>
+<dl class="py function">
+<dt class="sig sig-object py" id="meersolar.utils.prefect_logger_utils.save_logs_by_flow_id">
+<em class="property"><span class="k"><span class="pre">async</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">meersolar.utils.prefect_logger_utils.</span></span><span class="sig-name descname"><span class="pre">save_logs_by_flow_id</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">flow_run_id</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">flow_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">logfile</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">poll_interval</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">5</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">stop_event</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/meersolar/utils/prefect_logger_utils.html#save_logs_by_flow_id"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#meersolar.utils.prefect_logger_utils.save_logs_by_flow_id" title="Link to this definition">¶</a></dt>
+<dd><p>Fetch and save prefect flow logs to a file</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>flow_run_id</strong> (<em>str</em>) – The Prefect flow run ID to monitor</p></li>
+<li><p><strong>flow_name</strong> (<em>str</em>) – Flow name</p></li>
+<li><p><strong>logfile</strong> (<em>str</em>) – Output log file</p></li>
+<li><p><strong>poll_interval</strong> (<em>int</em>) – How often to check for new logs (in seconds)</p></li>
+<li><p><strong>stop_event</strong> (<em>threading.Event</em>) – Optional external signal to stop logging</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="meersolar.utils.prefect_logger_utils.save_logs_by_task_id">
+<em class="property"><span class="k"><span class="pre">async</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">meersolar.utils.prefect_logger_utils.</span></span><span class="sig-name descname"><span class="pre">save_logs_by_task_id</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">task_run_id</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">task_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">logfile</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">poll_interval</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">5</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">stop_event</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/meersolar/utils/prefect_logger_utils.html#save_logs_by_task_id"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#meersolar.utils.prefect_logger_utils.save_logs_by_task_id" title="Link to this definition">¶</a></dt>
+<dd><p>Fetch and save prefect task logs to a file</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>task_run_id</strong> (<em>str</em>) – The Prefect task run ID to monitor</p></li>
+<li><p><strong>task_name</strong> (<em>str</em>) – Task name</p></li>
+<li><p><strong>logfile</strong> (<em>str</em>) – Output log file</p></li>
+<li><p><strong>poll_interval</strong> (<em>int</em>) – How often to check for new logs (in seconds)</p></li>
+<li><p><strong>stop_event</strong> (<em>threading.Event</em>) – Optional external signal to stop logging</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="meersolar.utils.prefect_logger_utils.start_flow_log_saver">
+<span class="sig-prename descclassname"><span class="pre">meersolar.utils.prefect_logger_utils.</span></span><span class="sig-name descname"><span class="pre">start_flow_log_saver</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">flow_run_id</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">flow_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">logfile</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">poll_interval</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">5</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">stop_event</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/meersolar/utils/prefect_logger_utils.html#start_flow_log_saver"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#meersolar.utils.prefect_logger_utils.start_flow_log_saver" title="Link to this definition">¶</a></dt>
+<dd><p>Start a background thread that saves Prefect flow logs to a file continuously.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>flow_run_id</strong> (<em>str</em>) – The Prefect flow run ID to monitor</p></li>
+<li><p><strong>flow_name</strong> (<em>str</em>) – Flow name</p></li>
+<li><p><strong>logfile</strong> (<em>str</em>) – Output log file</p></li>
+<li><p><strong>poll_interval</strong> (<em>int</em>) – How often to check for new logs (in seconds)</p></li>
+<li><p><strong>stop_event</strong> (<em>threading.Event</em>) – Optional external signal to stop logging</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="meersolar.utils.prefect_logger_utils.start_log_task_saver">
+<span class="sig-prename descclassname"><span class="pre">meersolar.utils.prefect_logger_utils.</span></span><span class="sig-name descname"><span class="pre">start_log_task_saver</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">task_run_id</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">task_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">logfile</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">poll_interval</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">5</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">stop_event</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/meersolar/utils/prefect_logger_utils.html#start_log_task_saver"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#meersolar.utils.prefect_logger_utils.start_log_task_saver" title="Link to this definition">¶</a></dt>
+<dd><p>Start a background thread that saves Prefect task logs to a file continuously.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>task_run_id</strong> (<em>str</em>) – The Prefect task run ID to monitor</p></li>
+<li><p><strong>task_name</strong> (<em>str</em>) – Task name</p></li>
+<li><p><strong>logfile</strong> (<em>str</em>) – Output log file.</p></li>
+<li><p><strong>poll_interval</strong> (<em>int</em>) – How often to check for new logs (in seconds)</p></li>
+<li><p><strong>stop_event</strong> (<em>threading.Event</em>) – Optional external signal to stop logging</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+<section id="module-meersolar.utils.prefect_setup_utils">
+<span id="meersolar-utils-prefect-setup-utils-module"></span><h2>meersolar.utils.prefect_setup_utils module<a class="headerlink" href="#module-meersolar.utils.prefect_setup_utils" title="Link to this heading">¶</a></h2>
+<dl class="py function">
+<dt class="sig sig-object py" id="meersolar.utils.prefect_setup_utils.get_prefect_env">
+<span class="sig-prename descclassname"><span class="pre">meersolar.utils.prefect_setup_utils.</span></span><span class="sig-name descname"><span class="pre">get_prefect_env</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/meersolar/utils/prefect_setup_utils.html#get_prefect_env"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#meersolar.utils.prefect_setup_utils.get_prefect_env" title="Link to this definition">¶</a></dt>
+<dd><p>Get environment variables of prefect</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="meersolar.utils.prefect_setup_utils.prefect_server_status">
+<span class="sig-prename descclassname"><span class="pre">meersolar.utils.prefect_setup_utils.</span></span><span class="sig-name descname"><span class="pre">prefect_server_status</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/meersolar/utils/prefect_setup_utils.html#prefect_server_status"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#meersolar.utils.prefect_setup_utils.prefect_server_status" title="Link to this definition">¶</a></dt>
+<dd><p>Get prefect server status</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="meersolar.utils.prefect_setup_utils.save_prefect_env_to_file">
+<span class="sig-prename descclassname"><span class="pre">meersolar.utils.prefect_setup_utils.</span></span><span class="sig-name descname"><span class="pre">save_prefect_env_to_file</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/meersolar/utils/prefect_setup_utils.html#save_prefect_env_to_file"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#meersolar.utils.prefect_setup_utils.save_prefect_env_to_file" title="Link to this definition">¶</a></dt>
+<dd><p>Save current Prefect server env config to a .env file for reuse.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="meersolar.utils.prefect_setup_utils.show_prefect_config">
+<span class="sig-prename descclassname"><span class="pre">meersolar.utils.prefect_setup_utils.</span></span><span class="sig-name descname"><span class="pre">show_prefect_config</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/meersolar/utils/prefect_setup_utils.html#show_prefect_config"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#meersolar.utils.prefect_setup_utils.show_prefect_config" title="Link to this definition">¶</a></dt>
+<dd><p>Print the effective Prefect config in this environment.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="meersolar.utils.prefect_setup_utils.start_server">
+<span class="sig-prename descclassname"><span class="pre">meersolar.utils.prefect_setup_utils.</span></span><span class="sig-name descname"><span class="pre">start_server</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">show_config</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/meersolar/utils/prefect_setup_utils.html#start_server"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#meersolar.utils.prefect_setup_utils.start_server" title="Link to this definition">¶</a></dt>
+<dd><p>Start prefect server if it is not running</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="meersolar.utils.prefect_setup_utils.stop_prefect_server">
+<span class="sig-prename descclassname"><span class="pre">meersolar.utils.prefect_setup_utils.</span></span><span class="sig-name descname"><span class="pre">stop_prefect_server</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/meersolar/utils/prefect_setup_utils.html#stop_prefect_server"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#meersolar.utils.prefect_setup_utils.stop_prefect_server" title="Link to this definition">¶</a></dt>
+<dd><p>Stop prefect server running in the current installation
+Note: it will only stop prefect server which is running from the current installation
+For this pipeline, default port (4250) is kept seperate from default prefect port 4200.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="meersolar.utils.prefect_setup_utils.write_prefect_profile">
+<span class="sig-prename descclassname"><span class="pre">meersolar.utils.prefect_setup_utils.</span></span><span class="sig-name descname"><span class="pre">write_prefect_profile</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/meersolar/utils/prefect_setup_utils.html#write_prefect_profile"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#meersolar.utils.prefect_setup_utils.write_prefect_profile" title="Link to this definition">¶</a></dt>
+<dd><p>Save prefect profile</p>
+</dd></dl>
+
+</section>
 <section id="module-meersolar.utils.proc_manage_utils">
 <span id="meersolar-utils-proc-manage-utils-module"></span><h2>meersolar.utils.proc_manage_utils module<a class="headerlink" href="#module-meersolar.utils.proc_manage_utils" title="Link to this heading">¶</a></h2>
 <dl class="py function">
@@ -2244,7 +2381,7 @@ non-interactive shells (e.g., Slurm batch jobs) by explicitly sourcing <cite>con
 
 <dl class="py function">
 <dt class="sig sig-object py" id="meersolar.utils.proc_manage_utils.get_dask_client">
-<span class="sig-prename descclassname"><span class="pre">meersolar.utils.proc_manage_utils.</span></span><span class="sig-name descname"><span class="pre">get_dask_client</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">n_jobs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dask_dir</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cpu_frac</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.8</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mem_frac</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.8</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ncpu</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">-1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mem</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">-1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">spill_frac</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.6</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">min_mem_per_job</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">-1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">min_cpu_per_job</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">only_cal</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">process</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/meersolar/utils/proc_manage_utils.html#get_dask_client"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#meersolar.utils.proc_manage_utils.get_dask_client" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">meersolar.utils.proc_manage_utils.</span></span><span class="sig-name descname"><span class="pre">get_dask_client</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">n_jobs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dask_dir</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cpu_frac</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.8</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mem_frac</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.8</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ncpu</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">-1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mem</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">-1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">spill_frac</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.6</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">min_mem_per_job</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">-1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">min_cpu_per_job</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">only_cal</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/meersolar/utils/proc_manage_utils.html#get_dask_client"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#meersolar.utils.proc_manage_utils.get_dask_client" title="Link to this definition">¶</a></dt>
 <dd><p>Create a Dask client optimized for one-task-per-worker execution,
 where each worker is a separate process that can use multiple threads internally.</p>
 <dl class="field-list simple">
@@ -2260,7 +2397,6 @@ where each worker is a separate process that can use multiple threads internally
 <li><p><strong>min_mem_per_job</strong> (<em>float</em><em>, </em><em>optional</em>) – Minimum memory per job</p></li>
 <li><p><strong>min_cpu_per_job</strong> (<em>int</em><em>, </em><em>optional</em>) – Minimum CPU threads per job</p></li>
 <li><p><strong>only_cal</strong> (<em>bool</em><em>, </em><em>optional</em>) – Only calculate number of workers</p></li>
-<li><p><strong>process</strong> (<em>bool</em><em>, </em><em>optional</em>) – Process based or thread based</p></li>
 <li><p><strong>verbose</strong> (<em>bool</em><em>, </em><em>optional</em>) – Verbose (details of cluster)</p></li>
 </ul>
 </dd>
@@ -2270,6 +2406,7 @@ where each worker is a separate process that can use multiple threads internally
 <li><p><strong>cluster</strong> (<em>dask.distributed.LocalCluster</em>) – Dask cluster</p></li>
 <li><p><strong>n_workers</strong> (<em>int</em>) – Number of workers</p></li>
 <li><p><strong>threads_per_worker</strong> (<em>int</em>) – Threads per worker to use</p></li>
+<li><p><em>str</em> – Dask directory</p></li>
 </ul>
 </p>
 </dd>
@@ -2369,6 +2506,21 @@ where each worker is a separate process that can use multiple threads internally
 </dl>
 </dd></dl>
 
+<dl class="py function">
+<dt class="sig sig-object py" id="meersolar.utils.proc_manage_utils.wait_for_dask_workers">
+<span class="sig-prename descclassname"><span class="pre">meersolar.utils.proc_manage_utils.</span></span><span class="sig-name descname"><span class="pre">wait_for_dask_workers</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">client</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">min_worker</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">timeout</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">60</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/meersolar/utils/proc_manage_utils.html#wait_for_dask_workers"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#meersolar.utils.proc_manage_utils.wait_for_dask_workers" title="Link to this definition">¶</a></dt>
+<dd><p>Wait for dask worker</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>client</strong> (<em>dask.client</em>) – Dask client</p></li>
+<li><p><strong>min_worker</strong> (<em>int</em><em>, </em><em>optional</em>) – Minimum number of workers</p></li>
+<li><p><strong>timeout</strong> (<em>float</em><em>, </em><em>optional</em>) – Timeout in seconds</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
 </section>
 <section id="module-meersolar.utils.resource_utils">
 <span id="meersolar-utils-resource-utils-module"></span><h2>meersolar.utils.resource_utils module<a class="headerlink" href="#module-meersolar.utils.resource_utils" title="Link to this heading">¶</a></h2>
@@ -2408,7 +2560,7 @@ Safe, per-file, no sudo required.</p>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="meersolar.utils.resource_utils.shm_or_tmp">
-<span class="sig-prename descclassname"><span class="pre">meersolar.utils.resource_utils.</span></span><span class="sig-name descname"><span class="pre">shm_or_tmp</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">required_gb</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">workdir</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">prefix</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'meersolar_'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/meersolar/utils/resource_utils.html#shm_or_tmp"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#meersolar.utils.resource_utils.shm_or_tmp" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">meersolar.utils.resource_utils.</span></span><span class="sig-name descname"><span class="pre">shm_or_tmp</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">required_gb</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">workdir</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">prefix</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'solar_'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/meersolar/utils/resource_utils.html#shm_or_tmp"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#meersolar.utils.resource_utils.shm_or_tmp" title="Link to this definition">¶</a></dt>
 <dd><p>Create a temporary working directory:
 1. Try /dev/shm if it has required space
 2. Else TMPDIR if set and has space
@@ -2429,7 +2581,7 @@ Cleans up after use.</p>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="meersolar.utils.resource_utils.tmp_with_cache_rel">
-<span class="sig-prename descclassname"><span class="pre">meersolar.utils.resource_utils.</span></span><span class="sig-name descname"><span class="pre">tmp_with_cache_rel</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">required_gb</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">workdir</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">prefix</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'meersolar_'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/meersolar/utils/resource_utils.html#tmp_with_cache_rel"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#meersolar.utils.resource_utils.tmp_with_cache_rel" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">meersolar.utils.resource_utils.</span></span><span class="sig-name descname"><span class="pre">tmp_with_cache_rel</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">required_gb</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">workdir</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">prefix</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'solar_'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/meersolar/utils/resource_utils.html#tmp_with_cache_rel"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#meersolar.utils.resource_utils.tmp_with_cache_rel" title="Link to this definition">¶</a></dt>
 <dd><p>Combined context manager:
 - Uses shm_or_tmp() for workspace
 - Drops kernel page cache for all files in that directory on exit</p>
@@ -2513,12 +2665,17 @@ Cleans up after use.</p>
 </dd></dl>
 
 <dl class="py function">
-<dt class="sig sig-object py" id="meersolar.utils.sunpos_utils.get_solar_elevation_MeerKAT">
-<span class="sig-prename descclassname"><span class="pre">meersolar.utils.sunpos_utils.</span></span><span class="sig-name descname"><span class="pre">get_solar_elevation_MeerKAT</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">date_time</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/meersolar/utils/sunpos_utils.html#get_solar_elevation_MeerKAT"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#meersolar.utils.sunpos_utils.get_solar_elevation_MeerKAT" title="Link to this definition">¶</a></dt>
-<dd><p>Get solar elevation at MeerKAT at a time</p>
+<dt class="sig sig-object py" id="meersolar.utils.sunpos_utils.get_solar_elevation">
+<span class="sig-prename descclassname"><span class="pre">meersolar.utils.sunpos_utils.</span></span><span class="sig-name descname"><span class="pre">get_solar_elevation</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">lat</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lon</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">elev</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">date_time</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/meersolar/utils/sunpos_utils.html#get_solar_elevation"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#meersolar.utils.sunpos_utils.get_solar_elevation" title="Link to this definition">¶</a></dt>
+<dd><p>Get solar elevation</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>date_time</strong> (<em>str</em>) – Date and time in ‘yyyy-mm-ddTHH:MM:SS’ format (default: current time)</p>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>lat</strong> (<em>float</em>) – Latitude in degrees</p></li>
+<li><p><strong>lon</strong> (<em>float</em>) – Longitude in degrees</p></li>
+<li><p><strong>elev</strong> (<em>float</em>) – Elevation in degrees</p></li>
+<li><p><strong>date_time</strong> (<em>str</em>) – Date time in YYYY-MM-DDThh:mm:ss (ISOT) format, default : present time</p></li>
+</ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p>Solar elevation in degree</p>
@@ -2691,9 +2848,6 @@ but while creating the MS, UVW values are estimated using the first phasecenter 
 <span class="sig-prename descclassname"><span class="pre">meersolar.utils.udocker_utils.</span></span><span class="sig-name descname"><span class="pre">set_udocker_env</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/meersolar/utils/udocker_utils.html#set_udocker_env"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#meersolar.utils.udocker_utils.set_udocker_env" title="Link to this definition">¶</a></dt>
 <dd></dd></dl>
 
-</section>
-<section id="module-meersolar.utils">
-<span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-meersolar.utils" title="Link to this heading">¶</a></h2>
 </section>
 </section>
 
@@ -2881,6 +3035,7 @@ but while creating the MS, UVW values are estimated using the first phasecenter 
 <li><a class="reference internal" href="#meersolar.utils.ms_metadata.get_ms_scan_size"><code class="docutils literal notranslate"><span class="pre">get_ms_scan_size()</span></code></a></li>
 <li><a class="reference internal" href="#meersolar.utils.ms_metadata.get_ms_scans"><code class="docutils literal notranslate"><span class="pre">get_ms_scans()</span></code></a></li>
 <li><a class="reference internal" href="#meersolar.utils.ms_metadata.get_ms_size"><code class="docutils literal notranslate"><span class="pre">get_ms_size()</span></code></a></li>
+<li><a class="reference internal" href="#meersolar.utils.ms_metadata.get_observatory_coord"><code class="docutils literal notranslate"><span class="pre">get_observatory_coord()</span></code></a></li>
 <li><a class="reference internal" href="#meersolar.utils.ms_metadata.get_observatory_name"><code class="docutils literal notranslate"><span class="pre">get_observatory_name()</span></code></a></li>
 <li><a class="reference internal" href="#meersolar.utils.ms_metadata.get_phasecenter"><code class="docutils literal notranslate"><span class="pre">get_phasecenter()</span></code></a></li>
 <li><a class="reference internal" href="#meersolar.utils.ms_metadata.get_pol_names"><code class="docutils literal notranslate"><span class="pre">get_pol_names()</span></code></a></li>
@@ -2888,6 +3043,23 @@ but while creating the MS, UVW values are estimated using the first phasecenter 
 <li><a class="reference internal" href="#meersolar.utils.ms_metadata.get_submsname_scans"><code class="docutils literal notranslate"><span class="pre">get_submsname_scans()</span></code></a></li>
 <li><a class="reference internal" href="#meersolar.utils.ms_metadata.get_timeranges_for_scan"><code class="docutils literal notranslate"><span class="pre">get_timeranges_for_scan()</span></code></a></li>
 <li><a class="reference internal" href="#meersolar.utils.ms_metadata.scans_in_timerange"><code class="docutils literal notranslate"><span class="pre">scans_in_timerange()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#module-meersolar.utils.prefect_logger_utils">meersolar.utils.prefect_logger_utils module</a><ul>
+<li><a class="reference internal" href="#meersolar.utils.prefect_logger_utils.save_logs_by_flow_id"><code class="docutils literal notranslate"><span class="pre">save_logs_by_flow_id()</span></code></a></li>
+<li><a class="reference internal" href="#meersolar.utils.prefect_logger_utils.save_logs_by_task_id"><code class="docutils literal notranslate"><span class="pre">save_logs_by_task_id()</span></code></a></li>
+<li><a class="reference internal" href="#meersolar.utils.prefect_logger_utils.start_flow_log_saver"><code class="docutils literal notranslate"><span class="pre">start_flow_log_saver()</span></code></a></li>
+<li><a class="reference internal" href="#meersolar.utils.prefect_logger_utils.start_log_task_saver"><code class="docutils literal notranslate"><span class="pre">start_log_task_saver()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#module-meersolar.utils.prefect_setup_utils">meersolar.utils.prefect_setup_utils module</a><ul>
+<li><a class="reference internal" href="#meersolar.utils.prefect_setup_utils.get_prefect_env"><code class="docutils literal notranslate"><span class="pre">get_prefect_env()</span></code></a></li>
+<li><a class="reference internal" href="#meersolar.utils.prefect_setup_utils.prefect_server_status"><code class="docutils literal notranslate"><span class="pre">prefect_server_status()</span></code></a></li>
+<li><a class="reference internal" href="#meersolar.utils.prefect_setup_utils.save_prefect_env_to_file"><code class="docutils literal notranslate"><span class="pre">save_prefect_env_to_file()</span></code></a></li>
+<li><a class="reference internal" href="#meersolar.utils.prefect_setup_utils.show_prefect_config"><code class="docutils literal notranslate"><span class="pre">show_prefect_config()</span></code></a></li>
+<li><a class="reference internal" href="#meersolar.utils.prefect_setup_utils.start_server"><code class="docutils literal notranslate"><span class="pre">start_server()</span></code></a></li>
+<li><a class="reference internal" href="#meersolar.utils.prefect_setup_utils.stop_prefect_server"><code class="docutils literal notranslate"><span class="pre">stop_prefect_server()</span></code></a></li>
+<li><a class="reference internal" href="#meersolar.utils.prefect_setup_utils.write_prefect_profile"><code class="docutils literal notranslate"><span class="pre">write_prefect_profile()</span></code></a></li>
 </ul>
 </li>
 <li><a class="reference internal" href="#module-meersolar.utils.proc_manage_utils">meersolar.utils.proc_manage_utils module</a><ul>
@@ -2900,6 +3072,7 @@ but while creating the MS, UVW values are estimated using the first phasecenter 
 <li><a class="reference internal" href="#meersolar.utils.proc_manage_utils.run_limited_memory_task"><code class="docutils literal notranslate"><span class="pre">run_limited_memory_task()</span></code></a></li>
 <li><a class="reference internal" href="#meersolar.utils.proc_manage_utils.save_main_process_info"><code class="docutils literal notranslate"><span class="pre">save_main_process_info()</span></code></a></li>
 <li><a class="reference internal" href="#meersolar.utils.proc_manage_utils.save_pid"><code class="docutils literal notranslate"><span class="pre">save_pid()</span></code></a></li>
+<li><a class="reference internal" href="#meersolar.utils.proc_manage_utils.wait_for_dask_workers"><code class="docutils literal notranslate"><span class="pre">wait_for_dask_workers()</span></code></a></li>
 </ul>
 </li>
 <li><a class="reference internal" href="#module-meersolar.utils.resource_utils">meersolar.utils.resource_utils module</a><ul>
@@ -2917,7 +3090,7 @@ but while creating the MS, UVW values are estimated using the first phasecenter 
 </li>
 <li><a class="reference internal" href="#module-meersolar.utils.sunpos_utils">meersolar.utils.sunpos_utils module</a><ul>
 <li><a class="reference internal" href="#meersolar.utils.sunpos_utils.correct_solar_sidereal_motion"><code class="docutils literal notranslate"><span class="pre">correct_solar_sidereal_motion()</span></code></a></li>
-<li><a class="reference internal" href="#meersolar.utils.sunpos_utils.get_solar_elevation_MeerKAT"><code class="docutils literal notranslate"><span class="pre">get_solar_elevation_MeerKAT()</span></code></a></li>
+<li><a class="reference internal" href="#meersolar.utils.sunpos_utils.get_solar_elevation"><code class="docutils literal notranslate"><span class="pre">get_solar_elevation()</span></code></a></li>
 <li><a class="reference internal" href="#meersolar.utils.sunpos_utils.move_to_sun"><code class="docutils literal notranslate"><span class="pre">move_to_sun()</span></code></a></li>
 <li><a class="reference internal" href="#meersolar.utils.sunpos_utils.radec_sun"><code class="docutils literal notranslate"><span class="pre">radec_sun()</span></code></a></li>
 </ul>
@@ -2932,7 +3105,6 @@ but while creating the MS, UVW values are estimated using the first phasecenter 
 <li><a class="reference internal" href="#meersolar.utils.udocker_utils.set_udocker_env"><code class="docutils literal notranslate"><span class="pre">set_udocker_env()</span></code></a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#module-meersolar.utils">Module contents</a></li>
 </ul>
 </li>
 </ul>

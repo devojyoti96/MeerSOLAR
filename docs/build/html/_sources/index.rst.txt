@@ -10,7 +10,7 @@ Solar radio data presents unique challenges due to the high variability and brig
 
 - Automating the calibration of interferometric data, including flux, phase, and polarization calibrations
 - Supporting time-sliced and frequency-sliced imaging workflows
-- Leveraging Dask for scalable parallel processing
+- Pipeline workflow is managed by ``prefect`` leveraging Dask for scalable parallel processing
 - Providing hooks for integration with contextual data from other wavelegths for enhanced solar analysis
 
 Features of MeerSOLAR
