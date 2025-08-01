@@ -2533,7 +2533,7 @@ def cli():
         help="Disable solar data mode",
     )
     advanced.add_argument(
-        "--non_ds",
+        "--no_ds",
         action="store_false",
         dest="make_ds",
         help="Disable making solar dynamic spectra",
