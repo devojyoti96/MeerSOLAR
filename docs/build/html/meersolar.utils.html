@@ -4,15 +4,17 @@
     <meta name="viewport" content="width=device-width,initial-scale=1"/>
     <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
 <link rel="index" title="Index" href="genindex.html" /><link rel="search" title="Search" href="search.html" /><link rel="next" title="Meersolar Pipeline Module" href="meersolar.meerpipeline.html" /><link rel="prev" title="API Reference" href="meersolar.html" />
+        <link rel="prefetch" href="_static/logo.png" as="image" />
+        <link rel="prefetch" href="_static/logo.png" as="image" />
 
-    <!-- Generated with Sphinx 8.1.3 and Furo 2024.08.06 -->
+    <!-- Generated with Sphinx 8.1.3 and Furo 2025.07.19 -->
         <title>Meersolar Utils Module - MeerSOLAR</title>
-      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=a746c00c" />
-    <link rel="stylesheet" type="text/css" href="_static/styles/furo.css?v=354aac6f" />
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=acfd86a5" />
+    <link rel="stylesheet" type="text/css" href="_static/styles/furo.css?v=25af2a20" />
     <link rel="stylesheet" type="text/css" href="_static/copybutton.css?v=76b2166b" />
     <link rel="stylesheet" type="text/css" href="_static/togglebutton.css?v=13237357" />
     <link rel="stylesheet" type="text/css" href="_static/graphviz.css?v=4ae1632d" />
-    <link rel="stylesheet" type="text/css" href="_static/styles/furo-extensions.css?v=302659d7" />
+    <link rel="stylesheet" type="text/css" href="_static/styles/furo-extensions.css?v=8dab3a3b" />
     <link rel="stylesheet" type="text/css" href="_static/custom.css?v=25136de1" />
     
     
@@ -20,20 +22,20 @@
 
 <style>
   body {
-    --color-code-background: #f8f8f8;
-  --color-code-foreground: black;
+    --color-code-background: #f2f2f2;
+  --color-code-foreground: #1e1e1e;
   
   }
   @media not print {
     body[data-theme="dark"] {
-      --color-code-background: #202020;
-  --color-code-foreground: #d0d0d0;
+      --color-code-background: #2b2b2b;
+  --color-code-foreground: #f8f8f2;
   
     }
     @media (prefers-color-scheme: dark) {
       body:not([data-theme="light"]) {
-        --color-code-background: #202020;
-  --color-code-foreground: #d0d0d0;
+        --color-code-background: #2b2b2b;
+  --color-code-foreground: #f8f8f2;
   
       }
     }
@@ -192,7 +194,6 @@
     <div class="sidebar-container">
       
       <div class="sidebar-sticky"><a class="sidebar-brand" href="index.html">
-  
   <div class="sidebar-logo-container">
     <img class="sidebar-logo only-light" src="_static/logo.png" alt="Light Logo"/>
     <img class="sidebar-logo only-dark" src="_static/logo.png" alt="Dark Logo"/>
@@ -267,7 +268,7 @@
     <span class="visually-hidden">View this page</span>
   </a>
 </div><div class="edit-this-page">
-  <a class="muted-link" href="https://github.com/devojyoti96/MeerSOLAR/edit/master/docs/source/meersolar.utils.rst" title="Edit this page">
+  <a class="muted-link" href="https://github.com/devojyoti96/MeerSOLAR/edit/master/docs/source/meersolar.utils.rst" rel="edit" title="Edit this page">
     <svg><use href="#svg-pencil"></use></svg>
     <span class="visually-hidden">Edit this page</span>
   </a>
@@ -545,7 +546,7 @@
 
 <dl class="py function">
 <dt class="sig sig-object py" id="meersolar.utils.calibration.delaycal">
-<span class="sig-prename descclassname"><span class="pre">meersolar.utils.calibration.</span></span><span class="sig-name descname"><span class="pre">delaycal</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">vis</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">caltable</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">field</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scan</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">uvrange</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">refant</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">refantmode</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'flex'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">solint</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'inf'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">combine</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'scan'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">gaintable</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">[]</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">gainfield</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">[]</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">interp</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">[]</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dry_run</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/meersolar/utils/calibration.html#delaycal"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#meersolar.utils.calibration.delaycal" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">meersolar.utils.calibration.</span></span><span class="sig-name descname"><span class="pre">delaycal</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">vis</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">caltable</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">field</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scan</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">uvrange</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">refant</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">refantmode</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'flex'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">solint</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'inf'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">combine</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'scan'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">gaintable</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">[]</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">gainfield</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">[]</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">interp</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">[]</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/meersolar/utils/calibration.html#delaycal"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#meersolar.utils.calibration.delaycal" title="Link to this definition">¶</a></dt>
 <dd><p>General delay calibration using CASA, not assuming any point source</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -668,7 +669,7 @@
 
 <dl class="py function">
 <dt class="sig sig-object py" id="meersolar.utils.casatasks.reset_weights_and_flags">
-<span class="sig-prename descclassname"><span class="pre">meersolar.utils.casatasks.</span></span><span class="sig-name descname"><span class="pre">reset_weights_and_flags</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">msname</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">restore_flag</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">force_reset</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_threads</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">-1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dry_run</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/meersolar/utils/casatasks.html#reset_weights_and_flags"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#meersolar.utils.casatasks.reset_weights_and_flags" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">meersolar.utils.casatasks.</span></span><span class="sig-name descname"><span class="pre">reset_weights_and_flags</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">msname</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">restore_flag</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">force_reset</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_threads</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">-1</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/meersolar/utils/casatasks.html#reset_weights_and_flags"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#meersolar.utils.casatasks.reset_weights_and_flags" title="Link to this definition">¶</a></dt>
 <dd><p>Reset weights and flags for the ms</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -683,7 +684,7 @@
 
 <dl class="py function">
 <dt class="sig sig-object py" id="meersolar.utils.casatasks.single_mstransform">
-<span class="sig-prename descclassname"><span class="pre">meersolar.utils.casatasks.</span></span><span class="sig-name descname"><span class="pre">single_mstransform</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">msname</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">outputms</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">field</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scan</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">width</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">timebin</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">datacolumn</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'DATA'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">spw</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">corr</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">timerange</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">numsubms</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'auto'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_threads</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">-1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dry_run</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/meersolar/utils/casatasks.html#single_mstransform"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#meersolar.utils.casatasks.single_mstransform" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">meersolar.utils.casatasks.</span></span><span class="sig-name descname"><span class="pre">single_mstransform</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">msname</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">outputms</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">field</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scan</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">width</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">timebin</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">datacolumn</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'DATA'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">spw</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">corr</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">timerange</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">numsubms</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'auto'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_threads</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">-1</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/meersolar/utils/casatasks.html#single_mstransform"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#meersolar.utils.casatasks.single_mstransform" title="Link to this definition">¶</a></dt>
 <dd><p>Perform mstransform of a single scan</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -716,7 +717,7 @@
 <span id="meersolar-utils-flagging-module"></span><h2>meersolar.utils.flagging module<a class="headerlink" href="#module-meersolar.utils.flagging" title="Link to this heading">¶</a></h2>
 <dl class="py function">
 <dt class="sig sig-object py" id="meersolar.utils.flagging.calc_flag_fraction">
-<span class="sig-prename descclassname"><span class="pre">meersolar.utils.flagging.</span></span><span class="sig-name descname"><span class="pre">calc_flag_fraction</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">msname</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">field</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scan</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_threads</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">-1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dry_run</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/meersolar/utils/flagging.html#calc_flag_fraction"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#meersolar.utils.flagging.calc_flag_fraction" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">meersolar.utils.flagging.</span></span><span class="sig-name descname"><span class="pre">calc_flag_fraction</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">msname</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">field</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scan</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_threads</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">-1</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/meersolar/utils/flagging.html#calc_flag_fraction"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#meersolar.utils.flagging.calc_flag_fraction" title="Link to this definition">¶</a></dt>
 <dd><p>Function to calculate the fraction of total data flagged.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -766,7 +767,7 @@
 
 <dl class="py function">
 <dt class="sig sig-object py" id="meersolar.utils.flagging.get_chans_flag">
-<span class="sig-prename descclassname"><span class="pre">meersolar.utils.flagging.</span></span><span class="sig-name descname"><span class="pre">get_chans_flag</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">msname</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">field</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_threads</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">-1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dry_run</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/meersolar/utils/flagging.html#get_chans_flag"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#meersolar.utils.flagging.get_chans_flag" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">meersolar.utils.flagging.</span></span><span class="sig-name descname"><span class="pre">get_chans_flag</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">msname</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">field</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_threads</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">-1</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/meersolar/utils/flagging.html#get_chans_flag"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#meersolar.utils.flagging.get_chans_flag" title="Link to this definition">¶</a></dt>
 <dd><p>Get flag/unflag channel list</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -787,7 +788,7 @@
 
 <dl class="py function">
 <dt class="sig sig-object py" id="meersolar.utils.flagging.get_unflagged_antennas">
-<span class="sig-prename descclassname"><span class="pre">meersolar.utils.flagging.</span></span><span class="sig-name descname"><span class="pre">get_unflagged_antennas</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">msname</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scan</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_threads</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">-1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dry_run</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/meersolar/utils/flagging.html#get_unflagged_antennas"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#meersolar.utils.flagging.get_unflagged_antennas" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">meersolar.utils.flagging.</span></span><span class="sig-name descname"><span class="pre">get_unflagged_antennas</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">msname</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scan</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_threads</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">-1</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/meersolar/utils/flagging.html#get_unflagged_antennas"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#meersolar.utils.flagging.get_unflagged_antennas" title="Link to this definition">¶</a></dt>
 <dd><p>Get unflagged antennas of a scan</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -1804,7 +1805,7 @@ raises a NotImplementedError.</p>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="meersolar.utils.meer_utils.split_noise_diode_scans">
-<span class="sig-prename descclassname"><span class="pre">meersolar.utils.meer_utils.</span></span><span class="sig-name descname"><span class="pre">split_noise_diode_scans</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">msname</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">noise_on_ms</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">noise_off_ms</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">field</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scan</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">datacolumn</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'data'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_threads</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">-1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dry_run</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/meersolar/utils/meer_utils.html#split_noise_diode_scans"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#meersolar.utils.meer_utils.split_noise_diode_scans" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">meersolar.utils.meer_utils.</span></span><span class="sig-name descname"><span class="pre">split_noise_diode_scans</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">msname</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">noise_on_ms</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">noise_off_ms</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">field</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scan</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">datacolumn</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'data'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_threads</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">-1</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/meersolar/utils/meer_utils.html#split_noise_diode_scans"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#meersolar.utils.meer_utils.split_noise_diode_scans" title="Link to this definition">¶</a></dt>
 <dd><p>Split noise diode on and off timestamps into two seperate measurement sets</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -1885,7 +1886,7 @@ raises a NotImplementedError.</p>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="meersolar.utils.ms_metadata.get_bad_ants">
-<span class="sig-prename descclassname"><span class="pre">meersolar.utils.ms_metadata.</span></span><span class="sig-name descname"><span class="pre">get_bad_ants</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">msname</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fieldnames</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">[]</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_threads</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">-1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dry_run</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/meersolar/utils/ms_metadata.html#get_bad_ants"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#meersolar.utils.ms_metadata.get_bad_ants" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">meersolar.utils.ms_metadata.</span></span><span class="sig-name descname"><span class="pre">get_bad_ants</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">msname</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fieldnames</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">[]</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_threads</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">-1</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/meersolar/utils/ms_metadata.html#get_bad_ants"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#meersolar.utils.ms_metadata.get_bad_ants" title="Link to this definition">¶</a></dt>
 <dd><p>Get bad antennas</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -2104,7 +2105,7 @@ raises a NotImplementedError.</p>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="meersolar.utils.ms_metadata.get_refant">
-<span class="sig-prename descclassname"><span class="pre">meersolar.utils.ms_metadata.</span></span><span class="sig-name descname"><span class="pre">get_refant</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">msname</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">field</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_threads</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">-1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dry_run</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/meersolar/utils/ms_metadata.html#get_refant"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#meersolar.utils.ms_metadata.get_refant" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">meersolar.utils.ms_metadata.</span></span><span class="sig-name descname"><span class="pre">get_refant</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">msname</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">field</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_threads</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">-1</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/meersolar/utils/ms_metadata.html#get_refant"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#meersolar.utils.ms_metadata.get_refant" title="Link to this definition">¶</a></dt>
 <dd><p>Get reference antenna</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -2165,7 +2166,7 @@ raises a NotImplementedError.</p>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="meersolar.utils.ms_metadata.scans_in_timerange">
-<span class="sig-prename descclassname"><span class="pre">meersolar.utils.ms_metadata.</span></span><span class="sig-name descname"><span class="pre">scans_in_timerange</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">msname</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">timerange</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dry_run</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/meersolar/utils/ms_metadata.html#scans_in_timerange"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#meersolar.utils.ms_metadata.scans_in_timerange" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">meersolar.utils.ms_metadata.</span></span><span class="sig-name descname"><span class="pre">scans_in_timerange</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">msname</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">timerange</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/meersolar/utils/ms_metadata.html#scans_in_timerange"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#meersolar.utils.ms_metadata.scans_in_timerange" title="Link to this definition">¶</a></dt>
 <dd><p>Get scans in the given timerange</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -2206,19 +2207,7 @@ raises a NotImplementedError.</p>
 <dl class="py function">
 <dt class="sig sig-object py" id="meersolar.utils.prefect_logger_utils.save_logs_by_task_id">
 <em class="property"><span class="k"><span class="pre">async</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">meersolar.utils.prefect_logger_utils.</span></span><span class="sig-name descname"><span class="pre">save_logs_by_task_id</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">task_run_id</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">task_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">logfile</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">poll_interval</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">5</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">stop_event</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/meersolar/utils/prefect_logger_utils.html#save_logs_by_task_id"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#meersolar.utils.prefect_logger_utils.save_logs_by_task_id" title="Link to this definition">¶</a></dt>
-<dd><p>Fetch and save prefect task logs to a file</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>task_run_id</strong> (<em>str</em>) – The Prefect task run ID to monitor</p></li>
-<li><p><strong>task_name</strong> (<em>str</em>) – Task name</p></li>
-<li><p><strong>logfile</strong> (<em>str</em>) – Output log file</p></li>
-<li><p><strong>poll_interval</strong> (<em>int</em>) – How often to check for new logs (in seconds)</p></li>
-<li><p><strong>stop_event</strong> (<em>threading.Event</em>) – Optional external signal to stop logging</p></li>
-</ul>
-</dd>
-</dl>
-</dd></dl>
+<dd></dd></dl>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="meersolar.utils.prefect_logger_utils.start_flow_log_saver">
@@ -2264,6 +2253,11 @@ raises a NotImplementedError.</p>
 </dd></dl>
 
 <dl class="py function">
+<dt class="sig sig-object py" id="meersolar.utils.prefect_setup_utils.prefect_config">
+<span class="sig-prename descclassname"><span class="pre">meersolar.utils.prefect_setup_utils.</span></span><span class="sig-name descname"><span class="pre">prefect_config</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/meersolar/utils/prefect_setup_utils.html#prefect_config"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#meersolar.utils.prefect_setup_utils.prefect_config" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
 <dt class="sig sig-object py" id="meersolar.utils.prefect_setup_utils.prefect_server_status">
 <span class="sig-prename descclassname"><span class="pre">meersolar.utils.prefect_setup_utils.</span></span><span class="sig-name descname"><span class="pre">prefect_server_status</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/meersolar/utils/prefect_setup_utils.html#prefect_server_status"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#meersolar.utils.prefect_setup_utils.prefect_server_status" title="Link to this definition">¶</a></dt>
 <dd><p>Get prefect server status</p>
@@ -2305,61 +2299,6 @@ For this pipeline, default port (4250) is kept seperate from default prefect por
 <section id="module-meersolar.utils.proc_manage_utils">
 <span id="meersolar-utils-proc-manage-utils-module"></span><h2>meersolar.utils.proc_manage_utils module<a class="headerlink" href="#module-meersolar.utils.proc_manage_utils" title="Link to this heading">¶</a></h2>
 <dl class="py function">
-<dt class="sig sig-object py" id="meersolar.utils.proc_manage_utils.create_batch_script_nonhpc">
-<span class="sig-prename descclassname"><span class="pre">meersolar.utils.proc_manage_utils.</span></span><span class="sig-name descname"><span class="pre">create_batch_script_nonhpc</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cmd</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">workdir</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">basename</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">write_logfile</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/meersolar/utils/proc_manage_utils.html#create_batch_script_nonhpc"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#meersolar.utils.proc_manage_utils.create_batch_script_nonhpc" title="Link to this definition">¶</a></dt>
-<dd><p>Function to make a batch script not non-HPC environment</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>cmd</strong> (<em>str</em>) – Command to run</p></li>
-<li><p><strong>workdir</strong> (<em>str</em>) – Work directory of the measurement set</p></li>
-<li><p><strong>basename</strong> (<em>str</em>) – Base name of the batch files</p></li>
-<li><p><strong>write_logfile</strong> (<em>bool</em><em>, </em><em>optional</em>) – Write log file or not</p></li>
-</ul>
-</dd>
-<dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p><ul class="simple">
-<li><p><em>str</em> – Batch file name</p></li>
-<li><p><em>str</em> – Log file name</p></li>
-</ul>
-</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py function">
-<dt class="sig sig-object py" id="meersolar.utils.proc_manage_utils.create_batch_script_slurm">
-<span class="sig-prename descclassname"><span class="pre">meersolar.utils.proc_manage_utils.</span></span><span class="sig-name descname"><span class="pre">create_batch_script_slurm</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cmd</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">workdir</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">basename</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">partition</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'general'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nodes</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cpus_per_task</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ntasks_per_node</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mem</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'4G'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">time</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'01:00:00'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">account</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dependency</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">write_logfile</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/meersolar/utils/proc_manage_utils.html#create_batch_script_slurm"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#meersolar.utils.proc_manage_utils.create_batch_script_slurm" title="Link to this definition">¶</a></dt>
-<dd><p>Create a Slurm-compatible batch script.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>cmd</strong> (<em>str</em>) – Command to run.</p></li>
-<li><p><strong>workdir</strong> (<em>str</em>) – Work directory.</p></li>
-<li><p><strong>basename</strong> (<em>str</em>) – Base name of batch script files. This will be Slurm job name as well (shown in <cite>squeue</cite>, <cite>sacct</cite>, etc.).</p></li>
-<li><p><strong>partition</strong> (<em>str</em><em>, </em><em>optional</em>) – Name of the Slurm partition (queue) to submit to (e.g., “compute”, “general”).</p></li>
-<li><p><strong>nodes</strong> (<em>int</em><em>, </em><em>optional</em>) – Number of physical nodes to request.</p></li>
-<li><p><strong>cpus_per_task</strong> (<em>int</em><em>, </em><em>optional</em>) – Number of CPUs to allocate for each task (for multi-threaded tasks).</p></li>
-<li><p><strong>ntasks_per_node</strong> (<em>int</em><em>, </em><em>optional</em>) – Number of tasks per node.</p></li>
-<li><p><strong>mem</strong> (<em>str</em><em>, </em><em>optional</em>) – Total memory per node (e.g., “16G”, “64000M”).</p></li>
-<li><p><strong>time</strong> (<em>str</em><em>, </em><em>optional</em>) – Maximum wall-clock time for the job in HH:MM:SS format.</p></li>
-<li><p><strong>account</strong> (<em>str</em><em>, </em><em>optional</em>) – Slurm account to charge for the job (if required).</p></li>
-<li><p><strong>dependency</strong> (<em>str</em><em>, </em><em>optional</em>) – Slurm job dependency (e.g., “afterok:12345”) to delay job until others complete.</p></li>
-<li><p><strong>write_logfile</strong> (<em>bool</em><em>, </em><em>optional</em>) – If True, write job output and error to {workdir}/logs/{basename}.log.
-If False, redirects output to /dev/null.</p></li>
-</ul>
-</dd>
-<dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p><ul class="simple">
-<li><p><em>str</em> – Batch script filename.</p></li>
-<li><p><em>str</em> – Log file path (or /dev/null).</p></li>
-</ul>
-</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py function">
 <dt class="sig sig-object py" id="meersolar.utils.proc_manage_utils.generate_activate_env">
 <span class="sig-prename descclassname"><span class="pre">meersolar.utils.proc_manage_utils.</span></span><span class="sig-name descname"><span class="pre">generate_activate_env</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">outfile</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'activate_env.sh'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/meersolar/utils/proc_manage_utils.html#generate_activate_env"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#meersolar.utils.proc_manage_utils.generate_activate_env" title="Link to this definition">¶</a></dt>
 <dd><p>Generate a shell script that activates the current Python environment.</p>
@@ -2380,40 +2319,6 @@ non-interactive shells (e.g., Slurm batch jobs) by explicitly sourcing <cite>con
 </dd></dl>
 
 <dl class="py function">
-<dt class="sig sig-object py" id="meersolar.utils.proc_manage_utils.get_dask_client">
-<span class="sig-prename descclassname"><span class="pre">meersolar.utils.proc_manage_utils.</span></span><span class="sig-name descname"><span class="pre">get_dask_client</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">n_jobs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dask_dir</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cpu_frac</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.8</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mem_frac</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.8</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ncpu</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">-1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mem</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">-1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">spill_frac</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.6</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">min_mem_per_job</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">-1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">min_cpu_per_job</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">only_cal</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/meersolar/utils/proc_manage_utils.html#get_dask_client"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#meersolar.utils.proc_manage_utils.get_dask_client" title="Link to this definition">¶</a></dt>
-<dd><p>Create a Dask client optimized for one-task-per-worker execution,
-where each worker is a separate process that can use multiple threads internally.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>n_jobs</strong> (<em>int</em>) – Number of MS tasks (ideally = number of MS files)</p></li>
-<li><p><strong>dask_dir</strong> (<em>str</em>) – Dask temporary directory</p></li>
-<li><p><strong>cpu_frac</strong> (<em>float</em><em>, </em><em>optional</em>) – Fraction of total CPUs to use</p></li>
-<li><p><strong>mem_frac</strong> (<em>float</em><em>, </em><em>optinal;</em>) – Fraction of total memory to use</p></li>
-<li><p><strong>ncpu</strong> (<em>int</em><em>, </em><em>optional</em>) – Number of CPUs to use (if specified, cpu_frac will be ignored)</p></li>
-<li><p><strong>mem</strong> (<em>float</em><em>, </em><em>optional</em>) – Memory in GB to use (if specified, mem_frac will be ignored)</p></li>
-<li><p><strong>spill_frac</strong> (<em>float</em><em>, </em><em>optional</em>) – Spill to disk at this fraction</p></li>
-<li><p><strong>min_mem_per_job</strong> (<em>float</em><em>, </em><em>optional</em>) – Minimum memory per job</p></li>
-<li><p><strong>min_cpu_per_job</strong> (<em>int</em><em>, </em><em>optional</em>) – Minimum CPU threads per job</p></li>
-<li><p><strong>only_cal</strong> (<em>bool</em><em>, </em><em>optional</em>) – Only calculate number of workers</p></li>
-<li><p><strong>verbose</strong> (<em>bool</em><em>, </em><em>optional</em>) – Verbose (details of cluster)</p></li>
-</ul>
-</dd>
-<dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p><ul class="simple">
-<li><p><strong>client</strong> (<em>dask.distributed.Client</em>) – Dask clinet</p></li>
-<li><p><strong>cluster</strong> (<em>dask.distributed.LocalCluster</em>) – Dask cluster</p></li>
-<li><p><strong>n_workers</strong> (<em>int</em>) – Number of workers</p></li>
-<li><p><strong>threads_per_worker</strong> (<em>int</em>) – Threads per worker to use</p></li>
-<li><p><em>str</em> – Dask directory</p></li>
-</ul>
-</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py function">
 <dt class="sig sig-object py" id="meersolar.utils.proc_manage_utils.get_jobid">
 <span class="sig-prename descclassname"><span class="pre">meersolar.utils.proc_manage_utils.</span></span><span class="sig-name descname"><span class="pre">get_jobid</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/meersolar/utils/proc_manage_utils.html#get_jobid"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#meersolar.utils.proc_manage_utils.get_jobid" title="Link to this definition">¶</a></dt>
 <dd><p>Get Job ID with millisecond-level uniqueness.</p>
@@ -2423,6 +2328,34 @@ where each worker is a separate process that can use multiple threads internally
 </dd>
 <dt class="field-even">Return type<span class="colon">:</span></dt>
 <dd class="field-even"><p>int</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="meersolar.utils.proc_manage_utils.get_local_dask_cluster">
+<span class="sig-prename descclassname"><span class="pre">meersolar.utils.proc_manage_utils.</span></span><span class="sig-name descname"><span class="pre">get_local_dask_cluster</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">n_jobs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dask_dir</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cpu_frac</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.8</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mem_frac</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.8</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ncpu</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">-1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mem</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">-1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">spill_frac</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.6</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/meersolar/utils/proc_manage_utils.html#get_local_dask_cluster"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#meersolar.utils.proc_manage_utils.get_local_dask_cluster" title="Link to this definition">¶</a></dt>
+<dd><p>Create a local Dask cluster</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>n_jobs</strong> (<em>int</em>) – Number of MS tasks (ideally = number of MS files)</p></li>
+<li><p><strong>dask_dir</strong> (<em>str</em>) – Dask temporary directory</p></li>
+<li><p><strong>cpu_frac</strong> (<em>float</em><em>, </em><em>optional</em>) – Fraction of total CPUs to use</p></li>
+<li><p><strong>mem_frac</strong> (<em>float</em><em>, </em><em>optional</em>) – Fraction of total memory to use</p></li>
+<li><p><strong>ncpu</strong> (<em>int</em><em>, </em><em>optional</em>) – Number of CPUs to use (if specified, cpu_frac will be ignored)</p></li>
+<li><p><strong>mem</strong> (<em>float</em><em>, </em><em>optional</em>) – Memory in GB to use (if specified, mem_frac will be ignored)</p></li>
+<li><p><strong>spill_frac</strong> (<em>float</em><em>, </em><em>optional</em>) – Spill to disk at this fraction</p></li>
+<li><p><strong>verbose</strong> (<em>bool</em><em>, </em><em>optional</em>) – Verbose (details of cluster)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><ul class="simple">
+<li><p><strong>client</strong> (<em>dask.distributed.Client</em>) – Dask client</p></li>
+<li><p><strong>cluster</strong> (<em>dask.distributed.LocalCluster</em>) – Dask cluster</p></li>
+<li><p><em>str</em> – Dask directory</p></li>
+</ul>
+</p>
 </dd>
 </dl>
 </dd></dl>
@@ -2448,21 +2381,30 @@ where each worker is a separate process that can use multiple threads internally
 </dd></dl>
 
 <dl class="py function">
-<dt class="sig sig-object py" id="meersolar.utils.proc_manage_utils.run_limited_memory_task">
-<span class="sig-prename descclassname"><span class="pre">meersolar.utils.proc_manage_utils.</span></span><span class="sig-name descname"><span class="pre">run_limited_memory_task</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">task</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dask_dir</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'/tmp'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">timeout</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">30</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/meersolar/utils/proc_manage_utils.html#run_limited_memory_task"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#meersolar.utils.proc_manage_utils.run_limited_memory_task" title="Link to this definition">¶</a></dt>
-<dd><p>Run a task for a limited time, then kill and return memory usage.</p>
+<dt class="sig sig-object py" id="meersolar.utils.proc_manage_utils.get_slurm_dask_cluster">
+<span class="sig-prename descclassname"><span class="pre">meersolar.utils.proc_manage_utils.</span></span><span class="sig-name descname"><span class="pre">get_slurm_dask_cluster</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">n_jobs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">config_yaml</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dask_dir</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cpu_frac</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.8</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mem_frac</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.8</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ncpu</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">-1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mem</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">-1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">spill_frac</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.6</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/meersolar/utils/proc_manage_utils.html#get_slurm_dask_cluster"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#meersolar.utils.proc_manage_utils.get_slurm_dask_cluster" title="Link to this definition">¶</a></dt>
+<dd><p>Launch a SLURMCluster using a YAML configuration and return a connected Dask client.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>task</strong> (<em>dask.delayed</em>) – Dask delayed task object</p></li>
-<li><p><strong>timeout</strong> (<em>int</em>) – Time in seconds to let the task run</p></li>
+<li><p><strong>n_jobs</strong> (<em>int</em>) – Number of expected tasks (used for worker scaling)</p></li>
+<li><p><strong>config_yaml</strong> (<em>str</em>) – Path to Dask SLURMCluster YAML configuration</p></li>
+<li><p><strong>dask_dir</strong> (<em>str</em>) – Dask working directory (for temporary files)</p></li>
+<li><p><strong>cpu_frac</strong> (<em>float</em>) – Fraction of total CPUs to use (ignored if ncpu &gt; 0)</p></li>
+<li><p><strong>mem_frac</strong> (<em>float</em>) – Fraction of total RAM to use (ignored if mem &gt; 0)</p></li>
+<li><p><strong>ncpu</strong> (<em>int</em>) – Total CPUs to use (overrides cpu_frac)</p></li>
+<li><p><strong>mem</strong> (<em>float</em>) – Total memory (in GB) to use (overrides mem_frac)</p></li>
+<li><p><strong>spill_frac</strong> (<em>float</em>) – Fraction of memory to spill to disk</p></li>
+<li><p><strong>verbose</strong> (<em>bool</em>) – Print Dask dashboard URL and diagnostics</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>Memory used by task (in GB)</p>
-</dd>
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>float</p>
+<dd class="field-even"><p><ul class="simple">
+<li><p><strong>client</strong> (<em>dask.distributed.Client</em>) – Connected Dask client</p></li>
+<li><p><strong>cluster</strong> (<em>dask_jobqueue.SLURMCluster</em>) – SLURM Dask cluster</p></li>
+<li><p><em>str</em> – Dask directory used</p></li>
+</ul>
+</p>
 </dd>
 </dl>
 </dd></dl>
@@ -2649,7 +2591,7 @@ Cleans up after use.</p>
 <span id="meersolar-utils-sunpos-utils-module"></span><h2>meersolar.utils.sunpos_utils module<a class="headerlink" href="#module-meersolar.utils.sunpos_utils" title="Link to this heading">¶</a></h2>
 <dl class="py function">
 <dt class="sig sig-object py" id="meersolar.utils.sunpos_utils.correct_solar_sidereal_motion">
-<span class="sig-prename descclassname"><span class="pre">meersolar.utils.sunpos_utils.</span></span><span class="sig-name descname"><span class="pre">correct_solar_sidereal_motion</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">msname</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dry_run</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/meersolar/utils/sunpos_utils.html#correct_solar_sidereal_motion"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#meersolar.utils.sunpos_utils.correct_solar_sidereal_motion" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">meersolar.utils.sunpos_utils.</span></span><span class="sig-name descname"><span class="pre">correct_solar_sidereal_motion</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">msname</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/meersolar/utils/sunpos_utils.html#correct_solar_sidereal_motion"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#meersolar.utils.sunpos_utils.correct_solar_sidereal_motion" title="Link to this definition">¶</a></dt>
 <dd><p>Correct sodereal motion of the Sun</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -2772,7 +2714,7 @@ but while creating the MS, UVW values are estimated using a wrong phase center a
 
 <dl class="py function">
 <dt class="sig sig-object py" id="meersolar.utils.udocker_utils.run_chgcenter">
-<span class="sig-prename descclassname"><span class="pre">meersolar.utils.udocker_utils.</span></span><span class="sig-name descname"><span class="pre">run_chgcenter</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">msname</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ra</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dec</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">only_uvw</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">container_name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'solarwsclean'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dry_run</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/meersolar/utils/udocker_utils.html#run_chgcenter"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#meersolar.utils.udocker_utils.run_chgcenter" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">meersolar.utils.udocker_utils.</span></span><span class="sig-name descname"><span class="pre">run_chgcenter</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">msname</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ra</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dec</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">only_uvw</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">container_name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'solarwsclean'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/meersolar/utils/udocker_utils.html#run_chgcenter"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#meersolar.utils.udocker_utils.run_chgcenter" title="Link to this definition">¶</a></dt>
 <dd><p>Run chgcenter inside a udocker container (no root permission required).</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -2798,7 +2740,7 @@ but while creating the MS, UVW values are estimated using a wrong phase center.<
 
 <dl class="py function">
 <dt class="sig sig-object py" id="meersolar.utils.udocker_utils.run_solar_sidereal_cor">
-<span class="sig-prename descclassname"><span class="pre">meersolar.utils.udocker_utils.</span></span><span class="sig-name descname"><span class="pre">run_solar_sidereal_cor</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">msname</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">only_uvw</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">container_name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'solarwsclean'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">check_container</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dry_run</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/meersolar/utils/udocker_utils.html#run_solar_sidereal_cor"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#meersolar.utils.udocker_utils.run_solar_sidereal_cor" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">meersolar.utils.udocker_utils.</span></span><span class="sig-name descname"><span class="pre">run_solar_sidereal_cor</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">msname</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">only_uvw</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">container_name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'solarwsclean'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">check_container</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/meersolar/utils/udocker_utils.html#run_solar_sidereal_cor"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#meersolar.utils.udocker_utils.run_solar_sidereal_cor" title="Link to this definition">¶</a></dt>
 <dd><p>Run chgcenter inside a udocker container to correct solar sidereal motion (no root permission required).</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -2823,7 +2765,7 @@ but while creating the MS, UVW values are estimated using the first phasecenter 
 
 <dl class="py function">
 <dt class="sig sig-object py" id="meersolar.utils.udocker_utils.run_wsclean">
-<span class="sig-prename descclassname"><span class="pre">meersolar.utils.udocker_utils.</span></span><span class="sig-name descname"><span class="pre">run_wsclean</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">wsclean_cmd</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">container_name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'solarwsclean'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">check_container</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dry_run</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/meersolar/utils/udocker_utils.html#run_wsclean"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#meersolar.utils.udocker_utils.run_wsclean" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">meersolar.utils.udocker_utils.</span></span><span class="sig-name descname"><span class="pre">run_wsclean</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">wsclean_cmd</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">container_name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'solarwsclean'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">check_container</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/meersolar/utils/udocker_utils.html#run_wsclean"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#meersolar.utils.udocker_utils.run_wsclean" title="Link to this definition">¶</a></dt>
 <dd><p>Run WSClean inside a udocker container (no root permission required).</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -3054,6 +2996,7 @@ but while creating the MS, UVW values are estimated using the first phasecenter 
 </li>
 <li><a class="reference internal" href="#module-meersolar.utils.prefect_setup_utils">meersolar.utils.prefect_setup_utils module</a><ul>
 <li><a class="reference internal" href="#meersolar.utils.prefect_setup_utils.get_prefect_env"><code class="docutils literal notranslate"><span class="pre">get_prefect_env()</span></code></a></li>
+<li><a class="reference internal" href="#meersolar.utils.prefect_setup_utils.prefect_config"><code class="docutils literal notranslate"><span class="pre">prefect_config()</span></code></a></li>
 <li><a class="reference internal" href="#meersolar.utils.prefect_setup_utils.prefect_server_status"><code class="docutils literal notranslate"><span class="pre">prefect_server_status()</span></code></a></li>
 <li><a class="reference internal" href="#meersolar.utils.prefect_setup_utils.save_prefect_env_to_file"><code class="docutils literal notranslate"><span class="pre">save_prefect_env_to_file()</span></code></a></li>
 <li><a class="reference internal" href="#meersolar.utils.prefect_setup_utils.show_prefect_config"><code class="docutils literal notranslate"><span class="pre">show_prefect_config()</span></code></a></li>
@@ -3063,13 +3006,11 @@ but while creating the MS, UVW values are estimated using the first phasecenter 
 </ul>
 </li>
 <li><a class="reference internal" href="#module-meersolar.utils.proc_manage_utils">meersolar.utils.proc_manage_utils module</a><ul>
-<li><a class="reference internal" href="#meersolar.utils.proc_manage_utils.create_batch_script_nonhpc"><code class="docutils literal notranslate"><span class="pre">create_batch_script_nonhpc()</span></code></a></li>
-<li><a class="reference internal" href="#meersolar.utils.proc_manage_utils.create_batch_script_slurm"><code class="docutils literal notranslate"><span class="pre">create_batch_script_slurm()</span></code></a></li>
 <li><a class="reference internal" href="#meersolar.utils.proc_manage_utils.generate_activate_env"><code class="docutils literal notranslate"><span class="pre">generate_activate_env()</span></code></a></li>
-<li><a class="reference internal" href="#meersolar.utils.proc_manage_utils.get_dask_client"><code class="docutils literal notranslate"><span class="pre">get_dask_client()</span></code></a></li>
 <li><a class="reference internal" href="#meersolar.utils.proc_manage_utils.get_jobid"><code class="docutils literal notranslate"><span class="pre">get_jobid()</span></code></a></li>
+<li><a class="reference internal" href="#meersolar.utils.proc_manage_utils.get_local_dask_cluster"><code class="docutils literal notranslate"><span class="pre">get_local_dask_cluster()</span></code></a></li>
 <li><a class="reference internal" href="#meersolar.utils.proc_manage_utils.get_nprocess_solarpipe"><code class="docutils literal notranslate"><span class="pre">get_nprocess_solarpipe()</span></code></a></li>
-<li><a class="reference internal" href="#meersolar.utils.proc_manage_utils.run_limited_memory_task"><code class="docutils literal notranslate"><span class="pre">run_limited_memory_task()</span></code></a></li>
+<li><a class="reference internal" href="#meersolar.utils.proc_manage_utils.get_slurm_dask_cluster"><code class="docutils literal notranslate"><span class="pre">get_slurm_dask_cluster()</span></code></a></li>
 <li><a class="reference internal" href="#meersolar.utils.proc_manage_utils.save_main_process_info"><code class="docutils literal notranslate"><span class="pre">save_main_process_info()</span></code></a></li>
 <li><a class="reference internal" href="#meersolar.utils.proc_manage_utils.save_pid"><code class="docutils literal notranslate"><span class="pre">save_pid()</span></code></a></li>
 <li><a class="reference internal" href="#meersolar.utils.proc_manage_utils.wait_for_dask_workers"><code class="docutils literal notranslate"><span class="pre">wait_for_dask_workers()</span></code></a></li>
@@ -3119,7 +3060,7 @@ but while creating the MS, UVW values are estimated using the first phasecenter 
 </div><script src="_static/documentation_options.js?v=4ebf8126"></script>
     <script src="_static/doctools.js?v=9bcbadda"></script>
     <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
-    <script src="_static/scripts/furo.js?v=5fa4622c"></script>
+    <script src="_static/scripts/furo.js?v=46bd48cc"></script>
     <script src="_static/clipboard.min.js?v=a7894cd8"></script>
     <script src="_static/copybutton.js?v=f281be69"></script>
     <script>let toggleHintShow = 'Click to show';</script>

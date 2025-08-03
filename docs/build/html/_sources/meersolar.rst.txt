@@ -10,3 +10,10 @@ This page provides details of API of different modules of MeerSOLAR pipeline.
    meersolar.crystalball
    meersolar.data
 
+Module contents
+---------------
+
+.. automodule:: meersolar
+   :members:
+   :undoc-members:
+   :show-inheritance:

@@ -1,17 +1,18 @@
 Monitoring MeerSOLAR Pipeline Jobs
 ==================================
-MeerSOLAR pipeline jobs are run in background and in parallel as ``prefect`` tasks managed by the ``prefect`` workflow. Progress of the pipeline can be monitored from ``prefect`` dashboard, in ``prefect`` server is being used. If ``prefect`` is running in ephmeral mode, no ``prefect`` dashboard will be available. In that case, a MeerSOLAR custom logger will show the task logs.
+MeerSOLAR pipeline jobs are run in background and in parallel as ``prefect`` tasks managed by the ``prefect`` workflow. If ``prefect`` is running in ephmeral mode (default), no ``prefect`` dashboard will be available. In that case, a MeerSOLAR custom logger will show the task logs.
 
-.. admonition:: Advantage
-   :class: tip
+
+1. If ``prefect`` server is running, progress of the pipeline can be monitored from ``prefect`` dashboard.
+
+   .. admonition:: Advantage
+      :class: tip
    
-   ``prefect`` server mode keeps backup of all pipeline runs logs in SQL format and provide easy access through a dashboard. 
+   ``prefect`` server mode keeps backup of all pipeline runs logs in SQL format and provide easy access through a dashboard.  To view local default ``prefect`` dashboard:
 
-1. To view local default ``prefect`` dashboard:
-
-.. code-block :: bash
-    
-    run-meer-meerlogger
+   .. code-block :: bash
+        
+      run-meer-meerlogger
     
 2. If MeerSOLAR is not running with ``prefect`` server mode, use local logger GUI.
 

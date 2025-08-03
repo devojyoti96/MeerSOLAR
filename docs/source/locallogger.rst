@@ -5,17 +5,17 @@ Local GUI Logger
 
    .. code-block :: bash
         
-      run-meer-meerlogger --jobid <jobid> --no-prefect
+      run-meer-meerlogger --jobid <jobid> 
         
 2. If user forget MeerSOLAR <jobid>, but knows the log directory, run:
 
    .. code-block :: bash
     
-       run-meer-meerlogger --logdir <logdir> --no-prefect
+       run-meer-meerlogger --logdir <logdir> 
     
 .. note ::
 
-    Log directory is generally at `<workdir>/logs`.
+    Log directory is generally at `<workdir>/logs`. If ``prefect`` server is running, but still user wants to use local GUI logger, add ``--no-prefect`` with the above commands.
 
 This will open the local GUI logger as shown below:
 

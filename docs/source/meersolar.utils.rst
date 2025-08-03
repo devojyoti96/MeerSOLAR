@@ -5,7 +5,6 @@ This module contains all basic functionalities required for the pipeline.
 .. Note ::
 
    All functions in submodules are also available from ``meersolar.utils`` namespace as well.
-   
 
 meersolar.utils.basic\_utils module
 -----------------------------------
@@ -142,5 +141,4 @@ meersolar.utils.udocker\_utils module
    :members:
    :undoc-members:
    :show-inheritance:
-
 

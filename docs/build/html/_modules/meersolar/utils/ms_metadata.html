@@ -3,15 +3,17 @@
   <head><meta charset="utf-8"/>
     <meta name="viewport" content="width=device-width,initial-scale=1"/>
     <meta name="color-scheme" content="light dark"><link rel="index" title="Index" href="../../../genindex.html" /><link rel="search" title="Search" href="../../../search.html" />
+        <link rel="prefetch" href="../../../_static/logo.png" as="image" />
+        <link rel="prefetch" href="../../../_static/logo.png" as="image" />
 
-    <!-- Generated with Sphinx 8.1.3 and Furo 2024.08.06 -->
+    <!-- Generated with Sphinx 8.1.3 and Furo 2025.07.19 -->
         <title>meersolar.utils.ms_metadata - MeerSOLAR</title>
-      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=a746c00c" />
-    <link rel="stylesheet" type="text/css" href="../../../_static/styles/furo.css?v=354aac6f" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=acfd86a5" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/styles/furo.css?v=25af2a20" />
     <link rel="stylesheet" type="text/css" href="../../../_static/copybutton.css?v=76b2166b" />
     <link rel="stylesheet" type="text/css" href="../../../_static/togglebutton.css?v=13237357" />
     <link rel="stylesheet" type="text/css" href="../../../_static/graphviz.css?v=4ae1632d" />
-    <link rel="stylesheet" type="text/css" href="../../../_static/styles/furo-extensions.css?v=302659d7" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/styles/furo-extensions.css?v=8dab3a3b" />
     <link rel="stylesheet" type="text/css" href="../../../_static/custom.css?v=25136de1" />
     
     
@@ -19,20 +21,20 @@
 
 <style>
   body {
-    --color-code-background: #f8f8f8;
-  --color-code-foreground: black;
+    --color-code-background: #f2f2f2;
+  --color-code-foreground: #1e1e1e;
   
   }
   @media not print {
     body[data-theme="dark"] {
-      --color-code-background: #202020;
-  --color-code-foreground: #d0d0d0;
+      --color-code-background: #2b2b2b;
+  --color-code-foreground: #f8f8f2;
   
     }
     @media (prefers-color-scheme: dark) {
       body:not([data-theme="light"]) {
-        --color-code-background: #202020;
-  --color-code-foreground: #d0d0d0;
+        --color-code-background: #2b2b2b;
+  --color-code-foreground: #f8f8f2;
   
       }
     }
@@ -191,7 +193,6 @@
     <div class="sidebar-container">
       
       <div class="sidebar-sticky"><a class="sidebar-brand" href="../../../index.html">
-  
   <div class="sidebar-logo-container">
     <img class="sidebar-logo only-light" src="../../../_static/logo.png" alt="Light Logo"/>
     <img class="sidebar-logo only-dark" src="../../../_static/logo.png" alt="Dark Logo"/>
@@ -631,7 +632,7 @@
 
 <div class="viewcode-block" id="get_bad_ants">
 <a class="viewcode-back" href="../../../meersolar.utils.html#meersolar.utils.ms_metadata.get_bad_ants">[docs]</a>
-<span class="k">def</span> <span class="nf">get_bad_ants</span><span class="p">(</span><span class="n">msname</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="n">fieldnames</span><span class="o">=</span><span class="p">[],</span> <span class="n">n_threads</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span> <span class="n">dry_run</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<span class="k">def</span> <span class="nf">get_bad_ants</span><span class="p">(</span><span class="n">msname</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="n">fieldnames</span><span class="o">=</span><span class="p">[],</span> <span class="n">n_threads</span><span class="o">=-</span><span class="mi">1</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Get bad antennas</span>
 
@@ -655,10 +656,6 @@
     <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">fieldnames</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
         <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Provide field names.&quot;</span><span class="p">)</span>
         <span class="k">return</span> <span class="p">[],</span> <span class="s2">&quot;&quot;</span>
-    <span class="k">if</span> <span class="n">dry_run</span><span class="p">:</span>
-        <span class="n">process</span> <span class="o">=</span> <span class="n">psutil</span><span class="o">.</span><span class="n">Process</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">getpid</span><span class="p">())</span>
-        <span class="n">mem</span> <span class="o">=</span> <span class="nb">round</span><span class="p">(</span><span class="n">process</span><span class="o">.</span><span class="n">memory_info</span><span class="p">()</span><span class="o">.</span><span class="n">rss</span> <span class="o">/</span> <span class="mi">1024</span><span class="o">**</span><span class="mi">3</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>  <span class="c1"># in GB</span>
-        <span class="k">return</span> <span class="n">mem</span>
     <span class="n">msname</span> <span class="o">=</span> <span class="n">msname</span><span class="o">.</span><span class="n">rstrip</span><span class="p">(</span><span class="s2">&quot;/&quot;</span><span class="p">)</span>
     <span class="n">mspath</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="n">msname</span><span class="p">))</span>
     <span class="n">os</span><span class="o">.</span><span class="n">chdir</span><span class="p">(</span><span class="n">mspath</span><span class="p">)</span>
@@ -754,7 +751,7 @@
 
 <div class="viewcode-block" id="scans_in_timerange">
 <a class="viewcode-back" href="../../../meersolar.utils.html#meersolar.utils.ms_metadata.scans_in_timerange">[docs]</a>
-<span class="k">def</span> <span class="nf">scans_in_timerange</span><span class="p">(</span><span class="n">msname</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="n">timerange</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="n">dry_run</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<span class="k">def</span> <span class="nf">scans_in_timerange</span><span class="p">(</span><span class="n">msname</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="n">timerange</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Get scans in the given timerange</span>
 
@@ -772,10 +769,6 @@
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="kn">from</span> <span class="nn">casatools</span> <span class="kn">import</span> <span class="n">ms</span><span class="p">,</span> <span class="n">quanta</span>
 
-    <span class="k">if</span> <span class="n">dry_run</span><span class="p">:</span>
-        <span class="n">process</span> <span class="o">=</span> <span class="n">psutil</span><span class="o">.</span><span class="n">Process</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">getpid</span><span class="p">())</span>
-        <span class="n">mem</span> <span class="o">=</span> <span class="nb">round</span><span class="p">(</span><span class="n">process</span><span class="o">.</span><span class="n">memory_info</span><span class="p">()</span><span class="o">.</span><span class="n">rss</span> <span class="o">/</span> <span class="mi">1024</span><span class="o">**</span><span class="mi">3</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>  <span class="c1"># in GB</span>
-        <span class="k">return</span> <span class="n">mem</span>
     <span class="n">msname</span> <span class="o">=</span> <span class="n">msname</span><span class="o">.</span><span class="n">rstrip</span><span class="p">(</span><span class="s2">&quot;/&quot;</span><span class="p">)</span>
     <span class="n">mspath</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="n">msname</span><span class="p">))</span>
     <span class="n">os</span><span class="o">.</span><span class="n">chdir</span><span class="p">(</span><span class="n">mspath</span><span class="p">)</span>
@@ -827,7 +820,11 @@
 
 <div class="viewcode-block" id="get_refant">
 <a class="viewcode-back" href="../../../meersolar.utils.html#meersolar.utils.ms_metadata.get_refant">[docs]</a>
-<span class="k">def</span> <span class="nf">get_refant</span><span class="p">(</span><span class="n">msname</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="n">field</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="n">n_threads</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span> <span class="n">dry_run</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<span class="k">def</span> <span class="nf">get_refant</span><span class="p">(</span>
+    <span class="n">msname</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span>
+    <span class="n">field</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span>
+    <span class="n">n_threads</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span>
+<span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Get reference antenna</span>
 
@@ -846,10 +843,6 @@
     <span class="n">limit_threads</span><span class="p">(</span><span class="n">n_threads</span><span class="o">=</span><span class="n">n_threads</span><span class="p">)</span>
     <span class="kn">from</span> <span class="nn">casatasks</span> <span class="kn">import</span> <span class="n">visstat</span><span class="p">,</span> <span class="n">casalog</span>
 
-    <span class="k">if</span> <span class="n">dry_run</span><span class="p">:</span>
-        <span class="n">process</span> <span class="o">=</span> <span class="n">psutil</span><span class="o">.</span><span class="n">Process</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">getpid</span><span class="p">())</span>
-        <span class="n">mem</span> <span class="o">=</span> <span class="nb">round</span><span class="p">(</span><span class="n">process</span><span class="o">.</span><span class="n">memory_info</span><span class="p">()</span><span class="o">.</span><span class="n">rss</span> <span class="o">/</span> <span class="mi">1024</span><span class="o">**</span><span class="mi">3</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>  <span class="c1"># in GB</span>
-        <span class="k">return</span> <span class="n">mem</span>
     <span class="n">msname</span> <span class="o">=</span> <span class="n">msname</span><span class="o">.</span><span class="n">rstrip</span><span class="p">(</span><span class="s2">&quot;/&quot;</span><span class="p">)</span>
     <span class="n">mspath</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="n">msname</span><span class="p">))</span>
     <span class="n">os</span><span class="o">.</span><span class="n">chdir</span><span class="p">(</span><span class="n">mspath</span><span class="p">)</span>
@@ -1113,7 +1106,7 @@
 </div><script src="../../../_static/documentation_options.js?v=4ebf8126"></script>
     <script src="../../../_static/doctools.js?v=9bcbadda"></script>
     <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
-    <script src="../../../_static/scripts/furo.js?v=5fa4622c"></script>
+    <script src="../../../_static/scripts/furo.js?v=46bd48cc"></script>
     <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
     <script src="../../../_static/copybutton.js?v=f281be69"></script>
     <script>let toggleHintShow = 'Click to show';</script>

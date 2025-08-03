@@ -1,12 +1,12 @@
 Initial Setup
 =============
 
-After installation of **MeerSOLAR**, before running the pipeline, some initial setup is needed. These include downloading some required metadata for the pipeline, setup ``prefect`` server and setup of remote logger.
+After installation of **MeerSOLAR**, before running the pipeline, some initial setup is needed. These include downloading some required metadata for the pipeline.
 
 
-Download MeerSOLAR metadata and ``prefect`` server setup
----------------------------------------------------------
-1. To download and save the required MeerSOLAR metadata in appropriate directory, and starting ``prefect`` server, run from command line:
+Download MeerSOLAR metadata
+------------------------------
+1. To download and save the required MeerSOLAR metadata in appropriate directory, run from command line:
 
 .. code-block :: bash
     
@@ -24,12 +24,18 @@ Download MeerSOLAR metadata and ``prefect`` server setup
 
     init-meersolar-setup --init --update
     
-3. If user does not want ``prefect`` server (so called ephemeral mode in ``prefect``), run:
+    
+Setup ``prefect`` server
+-------------------------
+By default, MeerSOLAR runs using ``prefect`` ephemeral mode, which creates temporary in-memory server for workflow orchestration and removed once the pipeline is finished. However, if user wants, user can setup a persistent ``prefect`` server such that all pipeline runs can be seen. 
+    
+To start ``prefect`` serve, run:
 
 .. code-block :: bash
     
-    init-meersolar-setup --init --no_prefect_server
+    init-meersolar-setup --init --prefect_server
 
+If ``prefect`` server is initialized, MeerSOLAR will automatically use that.
     
 Custom data directory
 ----------------------

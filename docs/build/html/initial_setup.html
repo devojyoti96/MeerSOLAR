@@ -4,15 +4,17 @@
     <meta name="viewport" content="width=device-width,initial-scale=1"/>
     <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
 <link rel="index" title="Index" href="genindex.html" /><link rel="search" title="Search" href="search.html" /><link rel="next" title="Tutorial" href="tutorial.html" /><link rel="prev" title="Install MeerSOLAR" href="install_meersolar.html" />
+        <link rel="prefetch" href="_static/logo.png" as="image" />
+        <link rel="prefetch" href="_static/logo.png" as="image" />
 
-    <!-- Generated with Sphinx 8.1.3 and Furo 2024.08.06 -->
+    <!-- Generated with Sphinx 8.1.3 and Furo 2025.07.19 -->
         <title>Initial Setup - MeerSOLAR</title>
-      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=a746c00c" />
-    <link rel="stylesheet" type="text/css" href="_static/styles/furo.css?v=354aac6f" />
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=acfd86a5" />
+    <link rel="stylesheet" type="text/css" href="_static/styles/furo.css?v=25af2a20" />
     <link rel="stylesheet" type="text/css" href="_static/copybutton.css?v=76b2166b" />
     <link rel="stylesheet" type="text/css" href="_static/togglebutton.css?v=13237357" />
     <link rel="stylesheet" type="text/css" href="_static/graphviz.css?v=4ae1632d" />
-    <link rel="stylesheet" type="text/css" href="_static/styles/furo-extensions.css?v=302659d7" />
+    <link rel="stylesheet" type="text/css" href="_static/styles/furo-extensions.css?v=8dab3a3b" />
     <link rel="stylesheet" type="text/css" href="_static/custom.css?v=25136de1" />
     
     
@@ -20,20 +22,20 @@
 
 <style>
   body {
-    --color-code-background: #f8f8f8;
-  --color-code-foreground: black;
+    --color-code-background: #f2f2f2;
+  --color-code-foreground: #1e1e1e;
   
   }
   @media not print {
     body[data-theme="dark"] {
-      --color-code-background: #202020;
-  --color-code-foreground: #d0d0d0;
+      --color-code-background: #2b2b2b;
+  --color-code-foreground: #f8f8f2;
   
     }
     @media (prefers-color-scheme: dark) {
       body:not([data-theme="light"]) {
-        --color-code-background: #202020;
-  --color-code-foreground: #d0d0d0;
+        --color-code-background: #2b2b2b;
+  --color-code-foreground: #f8f8f2;
   
       }
     }
@@ -192,7 +194,6 @@
     <div class="sidebar-container">
       
       <div class="sidebar-sticky"><a class="sidebar-brand" href="index.html">
-  
   <div class="sidebar-logo-container">
     <img class="sidebar-logo only-light" src="_static/logo.png" alt="Light Logo"/>
     <img class="sidebar-logo only-dark" src="_static/logo.png" alt="Dark Logo"/>
@@ -267,7 +268,7 @@
     <span class="visually-hidden">View this page</span>
   </a>
 </div><div class="edit-this-page">
-  <a class="muted-link" href="https://github.com/devojyoti96/MeerSOLAR/edit/master/docs/source/initial_setup.rst" title="Edit this page">
+  <a class="muted-link" href="https://github.com/devojyoti96/MeerSOLAR/edit/master/docs/source/initial_setup.rst" rel="edit" title="Edit this page">
     <svg><use href="#svg-pencil"></use></svg>
     <span class="visually-hidden">Edit this page</span>
   </a>
@@ -288,11 +289,11 @@
         <article role="main" id="furo-main-content">
           <section id="initial-setup">
 <h1>Initial Setup<a class="headerlink" href="#initial-setup" title="Link to this heading">¶</a></h1>
-<p>After installation of <strong>MeerSOLAR</strong>, before running the pipeline, some initial setup is needed. These include downloading some required metadata for the pipeline, setup <code class="docutils literal notranslate"><span class="pre">prefect</span></code> server and setup of remote logger.</p>
-<section id="download-meersolar-metadata-and-prefect-server-setup">
-<h2>Download MeerSOLAR metadata and <code class="docutils literal notranslate"><span class="pre">prefect</span></code> server setup<a class="headerlink" href="#download-meersolar-metadata-and-prefect-server-setup" title="Link to this heading">¶</a></h2>
+<p>After installation of <strong>MeerSOLAR</strong>, before running the pipeline, some initial setup is needed. These include downloading some required metadata for the pipeline.</p>
+<section id="download-meersolar-metadata">
+<h2>Download MeerSOLAR metadata<a class="headerlink" href="#download-meersolar-metadata" title="Link to this heading">¶</a></h2>
 <ol class="arabic simple">
-<li><p>To download and save the required MeerSOLAR metadata in appropriate directory, and starting <code class="docutils literal notranslate"><span class="pre">prefect</span></code> server, run from command line:</p></li>
+<li><p>To download and save the required MeerSOLAR metadata in appropriate directory, run from command line:</p></li>
 </ol>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>init-meersolar-setup<span class="w"> </span>--init
 </pre></div>
@@ -301,20 +302,20 @@
 <p class="admonition-title">Click here to see parameters</p>
 <blockquote>
 <div><div class="highlight-text notranslate"><div class="highlight"><pre><span></span>usage: init-meersolar-setup [-h] [--init] [--datadir DATADIR]
-                            [--no_prefect_server] [--update]
-                            [--remotelink LINK] [--emails EMAILS]
+                            [--prefect_server] [--update] [--remotelink LINK]
+                            [--emails EMAILS]
 
 Initiate MeerSOLAR data
 
 options:
-  -h, --help           show this help message and exit
-  --init               Initiate data
-  --datadir DATADIR    User provided data directory (default: )
-  --no_prefect_server  Do not inititate prefect server
-  --update             Update existing data
-  --remotelink LINK    Set remote log link (default: None)
-  --emails EMAILS      Email addresses (comma seperated) to send Job ID and
-                       password for remote logger (default: None)
+  -h, --help         show this help message and exit
+  --init             Initiate data
+  --datadir DATADIR  User provided data directory (default: )
+  --prefect_server   Inititate prefect server
+  --update           Update existing data
+  --remotelink LINK  Set remote log link (default: None)
+  --emails EMAILS    Email addresses (comma seperated) to send Job ID and
+                     password for remote logger (default: None)
 </pre></div>
 </div>
 </div></blockquote>
@@ -325,12 +326,15 @@ options:
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>init-meersolar-setup<span class="w"> </span>--init<span class="w"> </span>--update
 </pre></div>
 </div>
-<ol class="arabic simple" start="3">
-<li><p>If user does not want <code class="docutils literal notranslate"><span class="pre">prefect</span></code> server (so called ephemeral mode in <code class="docutils literal notranslate"><span class="pre">prefect</span></code>), run:</p></li>
-</ol>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>init-meersolar-setup<span class="w"> </span>--init<span class="w"> </span>--no_prefect_server
+</section>
+<section id="setup-prefect-server">
+<h2>Setup <code class="docutils literal notranslate"><span class="pre">prefect</span></code> server<a class="headerlink" href="#setup-prefect-server" title="Link to this heading">¶</a></h2>
+<p>By default, MeerSOLAR runs using <code class="docutils literal notranslate"><span class="pre">prefect</span></code> ephemeral mode, which creates temporary in-memory server for workflow orchestration and removed once the pipeline is finished. However, if user wants, user can setup a persistent <code class="docutils literal notranslate"><span class="pre">prefect</span></code> server such that all pipeline runs can be seen.</p>
+<p>To start <code class="docutils literal notranslate"><span class="pre">prefect</span></code> serve, run:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>init-meersolar-setup<span class="w"> </span>--init<span class="w"> </span>--prefect_server
 </pre></div>
 </div>
+<p>If <code class="docutils literal notranslate"><span class="pre">prefect</span></code> server is initialized, MeerSOLAR will automatically use that.</p>
 </section>
 <section id="custom-data-directory">
 <h2>Custom data directory<a class="headerlink" href="#custom-data-directory" title="Link to this heading">¶</a></h2>
@@ -448,7 +452,8 @@ options:
           <div class="toc-tree">
             <ul>
 <li><a class="reference internal" href="#">Initial Setup</a><ul>
-<li><a class="reference internal" href="#download-meersolar-metadata-and-prefect-server-setup">Download MeerSOLAR metadata and <code class="docutils literal notranslate"><span class="pre">prefect</span></code> server setup</a></li>
+<li><a class="reference internal" href="#download-meersolar-metadata">Download MeerSOLAR metadata</a></li>
+<li><a class="reference internal" href="#setup-prefect-server">Setup <code class="docutils literal notranslate"><span class="pre">prefect</span></code> server</a></li>
 <li><a class="reference internal" href="#custom-data-directory">Custom data directory</a></li>
 <li><a class="reference internal" href="#setup-e-mail-ids">Setup e-mail ids</a></li>
 <li><a class="reference internal" href="#setup-remote-logger-link">Setup remote logger link</a></li>
@@ -468,7 +473,7 @@ options:
 </div><script src="_static/documentation_options.js?v=4ebf8126"></script>
     <script src="_static/doctools.js?v=9bcbadda"></script>
     <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
-    <script src="_static/scripts/furo.js?v=5fa4622c"></script>
+    <script src="_static/scripts/furo.js?v=46bd48cc"></script>
     <script src="_static/clipboard.min.js?v=a7894cd8"></script>
     <script src="_static/copybutton.js?v=f281be69"></script>
     <script>let toggleHintShow = 'Click to show';</script>

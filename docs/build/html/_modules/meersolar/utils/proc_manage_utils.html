@@ -3,15 +3,17 @@
   <head><meta charset="utf-8"/>
     <meta name="viewport" content="width=device-width,initial-scale=1"/>
     <meta name="color-scheme" content="light dark"><link rel="index" title="Index" href="../../../genindex.html" /><link rel="search" title="Search" href="../../../search.html" />
+        <link rel="prefetch" href="../../../_static/logo.png" as="image" />
+        <link rel="prefetch" href="../../../_static/logo.png" as="image" />
 
-    <!-- Generated with Sphinx 8.1.3 and Furo 2024.08.06 -->
+    <!-- Generated with Sphinx 8.1.3 and Furo 2025.07.19 -->
         <title>meersolar.utils.proc_manage_utils - MeerSOLAR</title>
-      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=a746c00c" />
-    <link rel="stylesheet" type="text/css" href="../../../_static/styles/furo.css?v=354aac6f" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=acfd86a5" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/styles/furo.css?v=25af2a20" />
     <link rel="stylesheet" type="text/css" href="../../../_static/copybutton.css?v=76b2166b" />
     <link rel="stylesheet" type="text/css" href="../../../_static/togglebutton.css?v=13237357" />
     <link rel="stylesheet" type="text/css" href="../../../_static/graphviz.css?v=4ae1632d" />
-    <link rel="stylesheet" type="text/css" href="../../../_static/styles/furo-extensions.css?v=302659d7" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/styles/furo-extensions.css?v=8dab3a3b" />
     <link rel="stylesheet" type="text/css" href="../../../_static/custom.css?v=25136de1" />
     
     
@@ -19,20 +21,20 @@
 
 <style>
   body {
-    --color-code-background: #f8f8f8;
-  --color-code-foreground: black;
+    --color-code-background: #f2f2f2;
+  --color-code-foreground: #1e1e1e;
   
   }
   @media not print {
     body[data-theme="dark"] {
-      --color-code-background: #202020;
-  --color-code-foreground: #d0d0d0;
+      --color-code-background: #2b2b2b;
+  --color-code-foreground: #f8f8f2;
   
     }
     @media (prefers-color-scheme: dark) {
       body:not([data-theme="light"]) {
-        --color-code-background: #202020;
-  --color-code-foreground: #d0d0d0;
+        --color-code-background: #2b2b2b;
+  --color-code-foreground: #f8f8f2;
   
       }
     }
@@ -191,7 +193,6 @@
     <div class="sidebar-container">
       
       <div class="sidebar-sticky"><a class="sidebar-brand" href="../../../index.html">
-  
   <div class="sidebar-logo-container">
     <img class="sidebar-logo only-light" src="../../../_static/logo.png" alt="Light Logo"/>
     <img class="sidebar-logo only-dark" src="../../../_static/logo.png" alt="Dark Logo"/>
@@ -293,6 +294,7 @@
 <span class="kn">from</span> <span class="nn">pathlib</span> <span class="kn">import</span> <span class="n">Path</span>
 <span class="kn">from</span> <span class="nn">dask</span> <span class="kn">import</span> <span class="n">delayed</span><span class="p">,</span> <span class="n">compute</span><span class="p">,</span> <span class="n">config</span>
 <span class="kn">from</span> <span class="nn">dask.distributed</span> <span class="kn">import</span> <span class="n">Client</span><span class="p">,</span> <span class="n">LocalCluster</span>
+<span class="kn">from</span> <span class="nn">dask_jobqueue</span> <span class="kn">import</span> <span class="n">SLURMCluster</span>
 <span class="kn">from</span> <span class="nn">datetime</span> <span class="kn">import</span> <span class="n">datetime</span> <span class="k">as</span> <span class="n">dt</span><span class="p">,</span> <span class="n">timedelta</span>
 <span class="kn">from</span> <span class="nn">.basic_utils</span> <span class="kn">import</span> <span class="o">*</span>
 
@@ -453,185 +455,6 @@
 
 
 
-<div class="viewcode-block" id="create_batch_script_nonhpc">
-<a class="viewcode-back" href="../../../meersolar.utils.html#meersolar.utils.proc_manage_utils.create_batch_script_nonhpc">[docs]</a>
-<span class="k">def</span> <span class="nf">create_batch_script_nonhpc</span><span class="p">(</span><span class="n">cmd</span><span class="p">,</span> <span class="n">workdir</span><span class="p">,</span> <span class="n">basename</span><span class="p">,</span> <span class="n">write_logfile</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Function to make a batch script not non-HPC environment</span>
-
-<span class="sd">    Parameters</span>
-<span class="sd">    ----------</span>
-<span class="sd">    cmd : str</span>
-<span class="sd">        Command to run</span>
-<span class="sd">    workdir : str</span>
-<span class="sd">        Work directory of the measurement set</span>
-<span class="sd">    basename : str</span>
-<span class="sd">        Base name of the batch files</span>
-<span class="sd">    write_logfile : bool, optional</span>
-<span class="sd">        Write log file or not</span>
-
-<span class="sd">    Returns</span>
-<span class="sd">    -------</span>
-<span class="sd">    str</span>
-<span class="sd">        Batch file name</span>
-<span class="sd">    str</span>
-<span class="sd">        Log file name</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">batch_file</span> <span class="o">=</span> <span class="n">workdir</span> <span class="o">+</span> <span class="s2">&quot;/&quot;</span> <span class="o">+</span> <span class="n">basename</span> <span class="o">+</span> <span class="s2">&quot;.batch&quot;</span>
-    <span class="n">cmd_batch</span> <span class="o">=</span> <span class="n">workdir</span> <span class="o">+</span> <span class="s2">&quot;/&quot;</span> <span class="o">+</span> <span class="n">basename</span> <span class="o">+</span> <span class="s2">&quot;_cmd.batch&quot;</span>
-    <span class="n">finished_touch_file</span> <span class="o">=</span> <span class="n">workdir</span> <span class="o">+</span> <span class="s2">&quot;/.Finished_&quot;</span> <span class="o">+</span> <span class="n">basename</span>
-    <span class="n">os</span><span class="o">.</span><span class="n">system</span><span class="p">(</span><span class="s2">&quot;rm -rf &quot;</span> <span class="o">+</span> <span class="n">finished_touch_file</span> <span class="o">+</span> <span class="s2">&quot;*&quot;</span><span class="p">)</span>
-    <span class="n">finished_touch_file_error</span> <span class="o">=</span> <span class="n">finished_touch_file</span> <span class="o">+</span> <span class="s2">&quot;_1&quot;</span>
-    <span class="n">finished_touch_file_success</span> <span class="o">=</span> <span class="n">finished_touch_file</span> <span class="o">+</span> <span class="s2">&quot;_0&quot;</span>
-    <span class="n">cmd_file_content</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">cmd</span><span class="si">}</span><span class="s2">; exit_code=$?; if [ $exit_code -ne 0 ]; then touch </span><span class="si">{</span><span class="n">finished_touch_file_error</span><span class="si">}</span><span class="s2">; else touch </span><span class="si">{</span><span class="n">finished_touch_file_success</span><span class="si">}</span><span class="s2">; fi&quot;</span>
-    <span class="k">if</span> <span class="n">write_logfile</span><span class="p">:</span>
-        <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isdir</span><span class="p">(</span><span class="n">workdir</span> <span class="o">+</span> <span class="s2">&quot;/logs&quot;</span><span class="p">)</span> <span class="o">==</span> <span class="kc">False</span><span class="p">:</span>
-            <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">workdir</span> <span class="o">+</span> <span class="s2">&quot;/logs&quot;</span><span class="p">)</span>
-        <span class="n">logfile</span> <span class="o">=</span> <span class="n">workdir</span> <span class="o">+</span> <span class="s2">&quot;/logs/&quot;</span> <span class="o">+</span> <span class="n">basename</span> <span class="o">+</span> <span class="s2">&quot;.log&quot;</span>
-    <span class="k">else</span><span class="p">:</span>
-        <span class="n">logfile</span> <span class="o">=</span> <span class="s2">&quot;/dev/null&quot;</span>
-    <span class="n">batch_file_content</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;&quot;&quot;export PYTHONUNBUFFERED=1</span><span class="se">\n</span><span class="s2">nohup sh </span><span class="si">{</span><span class="n">cmd_batch</span><span class="si">}</span><span class="s2">&gt; </span><span class="si">{</span><span class="n">logfile</span><span class="si">}</span><span class="s2"> 2&gt;&amp;1 &amp;</span><span class="se">\n</span><span class="s2">sleep 2</span><span class="se">\n</span><span class="s2"> rm -rf </span><span class="si">{</span><span class="n">batch_file</span><span class="si">}</span><span class="se">\n</span><span class="s2"> rm -rf </span><span class="si">{</span><span class="n">cmd_batch</span><span class="si">}</span><span class="s2">&quot;&quot;&quot;</span>
-    <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">cmd_batch</span><span class="p">):</span>
-        <span class="n">os</span><span class="o">.</span><span class="n">system</span><span class="p">(</span><span class="s2">&quot;rm -rf &quot;</span> <span class="o">+</span> <span class="n">cmd_batch</span><span class="p">)</span>
-    <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">batch_file</span><span class="p">):</span>
-        <span class="n">os</span><span class="o">.</span><span class="n">system</span><span class="p">(</span><span class="s2">&quot;rm -rf &quot;</span> <span class="o">+</span> <span class="n">batch_file</span><span class="p">)</span>
-    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">cmd_batch</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">cmd_batch_file</span><span class="p">:</span>
-        <span class="n">cmd_batch_file</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">cmd_file_content</span><span class="p">)</span>
-    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">batch_file</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">b_file</span><span class="p">:</span>
-        <span class="n">b_file</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">batch_file_content</span><span class="p">)</span>
-    <span class="n">os</span><span class="o">.</span><span class="n">system</span><span class="p">(</span><span class="s2">&quot;chmod a+rwx &quot;</span> <span class="o">+</span> <span class="n">batch_file</span><span class="p">)</span>
-    <span class="n">os</span><span class="o">.</span><span class="n">system</span><span class="p">(</span><span class="s2">&quot;chmod a+rwx &quot;</span> <span class="o">+</span> <span class="n">cmd_batch</span><span class="p">)</span>
-    <span class="k">del</span> <span class="n">cmd</span>
-    <span class="k">return</span> <span class="n">workdir</span> <span class="o">+</span> <span class="s2">&quot;/&quot;</span> <span class="o">+</span> <span class="n">basename</span> <span class="o">+</span> <span class="s2">&quot;.batch&quot;</span><span class="p">,</span> <span class="n">logfile</span></div>
-
-
-
-<div class="viewcode-block" id="create_batch_script_slurm">
-<a class="viewcode-back" href="../../../meersolar.utils.html#meersolar.utils.proc_manage_utils.create_batch_script_slurm">[docs]</a>
-<span class="k">def</span> <span class="nf">create_batch_script_slurm</span><span class="p">(</span>
-    <span class="n">cmd</span><span class="p">,</span>
-    <span class="n">workdir</span><span class="p">,</span>
-    <span class="n">basename</span><span class="p">,</span>
-    <span class="n">partition</span><span class="o">=</span><span class="s2">&quot;general&quot;</span><span class="p">,</span>
-    <span class="n">nodes</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
-    <span class="n">cpus_per_task</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
-    <span class="n">ntasks_per_node</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
-    <span class="n">mem</span><span class="o">=</span><span class="s2">&quot;4G&quot;</span><span class="p">,</span>
-    <span class="n">time</span><span class="o">=</span><span class="s2">&quot;01:00:00&quot;</span><span class="p">,</span>
-    <span class="n">account</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-    <span class="n">dependency</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-    <span class="n">write_logfile</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-<span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Create a Slurm-compatible batch script.</span>
-
-<span class="sd">    Parameters</span>
-<span class="sd">    ----------</span>
-<span class="sd">    cmd : str</span>
-<span class="sd">        Command to run.</span>
-<span class="sd">    workdir : str</span>
-<span class="sd">        Work directory.</span>
-<span class="sd">    basename : str</span>
-<span class="sd">        Base name of batch script files. This will be Slurm job name as well (shown in `squeue`, `sacct`, etc.).</span>
-<span class="sd">    partition : str, optional</span>
-<span class="sd">        Name of the Slurm partition (queue) to submit to (e.g., &quot;compute&quot;, &quot;general&quot;).</span>
-<span class="sd">    nodes : int, optional</span>
-<span class="sd">        Number of physical nodes to request.</span>
-<span class="sd">    cpus_per_task : int, optional</span>
-<span class="sd">        Number of CPUs to allocate for each task (for multi-threaded tasks).</span>
-<span class="sd">    ntasks_per_node : int, optional</span>
-<span class="sd">        Number of tasks per node.</span>
-<span class="sd">    mem : str, optional</span>
-<span class="sd">        Total memory per node (e.g., &quot;16G&quot;, &quot;64000M&quot;).</span>
-<span class="sd">    time : str, optional</span>
-<span class="sd">        Maximum wall-clock time for the job in HH:MM:SS format.</span>
-<span class="sd">    account : str, optional</span>
-<span class="sd">        Slurm account to charge for the job (if required).</span>
-<span class="sd">    dependency : str, optional</span>
-<span class="sd">        Slurm job dependency (e.g., &quot;afterok:12345&quot;) to delay job until others complete.</span>
-<span class="sd">    write_logfile : bool, optional</span>
-<span class="sd">        If True, write job output and error to {workdir}/logs/{basename}.log.</span>
-<span class="sd">        If False, redirects output to /dev/null.</span>
-
-<span class="sd">    Returns</span>
-<span class="sd">    -------</span>
-<span class="sd">    str</span>
-<span class="sd">        Batch script filename.</span>
-<span class="sd">    str</span>
-<span class="sd">        Log file path (or /dev/null).</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">env_file</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">workdir</span><span class="p">,</span> <span class="s2">&quot;activate_env.sh&quot;</span><span class="p">)</span>
-    <span class="c1"># Generate the env file if it doesn&#39;t exist</span>
-    <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">env_file</span><span class="p">):</span>
-        <span class="n">generate_activate_env</span><span class="p">(</span><span class="n">outfile</span><span class="o">=</span><span class="n">env_file</span><span class="p">)</span>
-    <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">workdir</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-    <span class="n">batch_file</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">workdir</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">basename</span><span class="si">}</span><span class="s2">.sbatch&quot;</span><span class="p">)</span>
-    <span class="n">cmd_batch</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">workdir</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">basename</span><span class="si">}</span><span class="s2">_cmd.batch&quot;</span><span class="p">)</span>
-    <span class="n">finished_touch_base</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">workdir</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;.Finished_</span><span class="si">{</span><span class="n">basename</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-    <span class="n">finished_touch_error</span> <span class="o">=</span> <span class="n">finished_touch_base</span> <span class="o">+</span> <span class="s2">&quot;_1&quot;</span>
-    <span class="n">finished_touch_success</span> <span class="o">=</span> <span class="n">finished_touch_base</span> <span class="o">+</span> <span class="s2">&quot;_0&quot;</span>
-    <span class="c1"># Remove old status files</span>
-    <span class="n">os</span><span class="o">.</span><span class="n">system</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;rm -rf </span><span class="si">{</span><span class="n">finished_touch_base</span><span class="si">}</span><span class="s2">*&quot;</span><span class="p">)</span>
-    <span class="c1"># === Command script content with environment activation ===</span>
-    <span class="n">cmd_file_content</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
-        <span class="p">[</span>
-            <span class="sa">f</span><span class="s2">&quot;#!/bin/bash&quot;</span><span class="p">,</span>
-            <span class="sa">f</span><span class="s2">&quot;source </span><span class="si">{</span><span class="n">env_file</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
-            <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">cmd</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
-            <span class="s2">&quot;exit_code=$?&quot;</span><span class="p">,</span>
-            <span class="sa">f</span><span class="s2">&quot;if [ $exit_code -ne 0 ]; then touch </span><span class="si">{</span><span class="n">finished_touch_error</span><span class="si">}</span><span class="s2">;&quot;</span><span class="p">,</span>
-            <span class="sa">f</span><span class="s2">&quot;else touch </span><span class="si">{</span><span class="n">finished_touch_success</span><span class="si">}</span><span class="s2">; fi&quot;</span><span class="p">,</span>
-        <span class="p">]</span>
-    <span class="p">)</span>
-    <span class="c1"># Write log output</span>
-    <span class="k">if</span> <span class="n">write_logfile</span><span class="p">:</span>
-        <span class="n">log_dir</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">workdir</span><span class="p">,</span> <span class="s2">&quot;logs&quot;</span><span class="p">)</span>
-        <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">log_dir</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-        <span class="n">outputfile</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">log_dir</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">basename</span><span class="si">}</span><span class="s2">.log&quot;</span><span class="p">)</span>
-    <span class="k">else</span><span class="p">:</span>
-        <span class="n">outputfile</span> <span class="o">=</span> <span class="s2">&quot;/dev/null&quot;</span>
-    <span class="c1"># === SBATCH directives ===</span>
-    <span class="n">sbatch_lines</span> <span class="o">=</span> <span class="p">[</span>
-        <span class="s2">&quot;#!/bin/bash&quot;</span><span class="p">,</span>
-        <span class="sa">f</span><span class="s2">&quot;#SBATCH --job-name=</span><span class="si">{</span><span class="n">basename</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
-        <span class="sa">f</span><span class="s2">&quot;#SBATCH --partition=</span><span class="si">{</span><span class="n">partition</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
-        <span class="sa">f</span><span class="s2">&quot;#SBATCH --nodes=</span><span class="si">{</span><span class="n">nodes</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
-        <span class="sa">f</span><span class="s2">&quot;#SBATCH --ntasks-per-node=</span><span class="si">{</span><span class="n">ntasks_per_node</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
-        <span class="sa">f</span><span class="s2">&quot;#SBATCH --cpus-per-task=</span><span class="si">{</span><span class="n">cpus_per_task</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
-        <span class="sa">f</span><span class="s2">&quot;#SBATCH --mem=</span><span class="si">{</span><span class="n">mem</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
-        <span class="sa">f</span><span class="s2">&quot;#SBATCH --time=</span><span class="si">{</span><span class="n">time</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
-    <span class="p">]</span>
-    <span class="k">if</span> <span class="n">account</span><span class="p">:</span>
-        <span class="n">sbatch_lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;#SBATCH --account=</span><span class="si">{</span><span class="n">account</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-    <span class="k">if</span> <span class="n">dependency</span><span class="p">:</span>
-        <span class="n">sbatch_lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;#SBATCH --dependency=</span><span class="si">{</span><span class="n">dependency</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-    <span class="k">if</span> <span class="n">write_logfile</span><span class="p">:</span>
-        <span class="n">sbatch_lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;#SBATCH --output=</span><span class="si">{</span><span class="n">outputfile</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-        <span class="n">sbatch_lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;#SBATCH --error=</span><span class="si">{</span><span class="n">outputfile</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-    <span class="c1"># === Batch script content ===</span>
-    <span class="n">batch_script_content</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
-        <span class="p">[</span>
-            <span class="o">*</span><span class="n">sbatch_lines</span><span class="p">,</span>
-            <span class="s2">&quot;&quot;</span><span class="p">,</span>
-            <span class="sa">f</span><span class="s2">&quot;bash </span><span class="si">{</span><span class="n">cmd_batch</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
-            <span class="sa">f</span><span class="s2">&quot;rm -rf </span><span class="si">{</span><span class="n">batch_file</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
-            <span class="sa">f</span><span class="s2">&quot;rm -rf </span><span class="si">{</span><span class="n">cmd_batch</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
-        <span class="p">]</span>
-    <span class="p">)</span>
-    <span class="c1"># Write files</span>
-    <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="p">[</span><span class="n">cmd_batch</span><span class="p">,</span> <span class="n">batch_file</span><span class="p">]:</span>
-        <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">f</span><span class="p">):</span>
-            <span class="n">os</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
-    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">cmd_batch</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
-        <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">cmd_file_content</span><span class="p">)</span>
-    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">batch_file</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
-        <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">batch_script_content</span><span class="p">)</span>
-    <span class="n">os</span><span class="o">.</span><span class="n">chmod</span><span class="p">(</span><span class="n">cmd_batch</span><span class="p">,</span> <span class="mo">0o777</span><span class="p">)</span>
-    <span class="n">os</span><span class="o">.</span><span class="n">chmod</span><span class="p">(</span><span class="n">batch_file</span><span class="p">,</span> <span class="mo">0o777</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">batch_file</span><span class="p">,</span> <span class="n">outputfile</span></div>
-
-
-
 <div class="viewcode-block" id="generate_activate_env">
 <a class="viewcode-back" href="../../../meersolar.utils.html#meersolar.utils.proc_manage_utils.generate_activate_env">[docs]</a>
 <span class="k">def</span> <span class="nf">generate_activate_env</span><span class="p">(</span><span class="n">outfile</span><span class="o">=</span><span class="s2">&quot;activate_env.sh&quot;</span><span class="p">):</span>
@@ -711,7 +534,7 @@
 <span class="k">def</span> <span class="nf">wait_for_dask_workers</span><span class="p">(</span><span class="n">client</span><span class="p">,</span> <span class="n">min_worker</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=</span><span class="mi">60</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Wait for dask worker</span>
-<span class="sd">    </span>
+
 <span class="sd">    Parameters</span>
 <span class="sd">    ----------</span>
 <span class="sd">    client : dask.client</span>
@@ -721,19 +544,13 @@
 <span class="sd">    timeout : float, optional</span>
 <span class="sd">        Timeout in seconds</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">start</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
-    <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
-        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">client</span><span class="o">.</span><span class="n">scheduler_info</span><span class="p">()[</span><span class="s2">&quot;workers&quot;</span><span class="p">])</span> <span class="o">&gt;=</span> <span class="n">min_worker</span><span class="p">:</span>
-            <span class="k">break</span>
-        <span class="k">if</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span> <span class="o">-</span> <span class="n">start</span> <span class="o">&gt;</span> <span class="n">timeout</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">TimeoutError</span><span class="p">(</span><span class="s2">&quot;No Dask workers connected within timeout.&quot;</span><span class="p">)</span>
-        <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span></div>
+    <span class="n">client</span><span class="o">.</span><span class="n">wait_for_workers</span><span class="p">(</span><span class="n">n_workers</span><span class="o">=</span><span class="n">min_worker</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=</span><span class="n">timeout</span><span class="p">)</span></div>
 
-        
-        
-<div class="viewcode-block" id="get_dask_client">
-<a class="viewcode-back" href="../../../meersolar.utils.html#meersolar.utils.proc_manage_utils.get_dask_client">[docs]</a>
-<span class="k">def</span> <span class="nf">get_dask_client</span><span class="p">(</span>
+
+
+<div class="viewcode-block" id="get_local_dask_cluster">
+<a class="viewcode-back" href="../../../meersolar.utils.html#meersolar.utils.proc_manage_utils.get_local_dask_cluster">[docs]</a>
+<span class="k">def</span> <span class="nf">get_local_dask_cluster</span><span class="p">(</span>
     <span class="n">n_jobs</span><span class="p">,</span>
     <span class="n">dask_dir</span><span class="p">,</span>
     <span class="n">cpu_frac</span><span class="o">=</span><span class="mf">0.8</span><span class="p">,</span>
@@ -741,14 +558,10 @@
     <span class="n">ncpu</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span>
     <span class="n">mem</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span>
     <span class="n">spill_frac</span><span class="o">=</span><span class="mf">0.6</span><span class="p">,</span>
-    <span class="n">min_mem_per_job</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span>
-    <span class="n">min_cpu_per_job</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
-    <span class="n">only_cal</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
     <span class="n">verbose</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
 <span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Create a Dask client optimized for one-task-per-worker execution,</span>
-<span class="sd">    where each worker is a separate process that can use multiple threads internally.</span>
+<span class="sd">    Create a local Dask cluster</span>
 
 <span class="sd">    Parameters</span>
 <span class="sd">    ----------</span>
@@ -758,7 +571,7 @@
 <span class="sd">        Dask temporary directory</span>
 <span class="sd">    cpu_frac : float, optional</span>
 <span class="sd">        Fraction of total CPUs to use</span>
-<span class="sd">    mem_frac : float, optinal;</span>
+<span class="sd">    mem_frac : float, optional</span>
 <span class="sd">        Fraction of total memory to use</span>
 <span class="sd">    ncpu : int, optional</span>
 <span class="sd">        Number of CPUs to use (if specified, cpu_frac will be ignored)</span>
@@ -766,183 +579,71 @@
 <span class="sd">        Memory in GB to use (if specified, mem_frac will be ignored)</span>
 <span class="sd">    spill_frac : float, optional</span>
 <span class="sd">        Spill to disk at this fraction</span>
-<span class="sd">    min_mem_per_job : float, optional</span>
-<span class="sd">        Minimum memory per job</span>
-<span class="sd">    min_cpu_per_job : int, optional</span>
-<span class="sd">        Minimum CPU threads per job</span>
-<span class="sd">    only_cal : bool, optional</span>
-<span class="sd">        Only calculate number of workers</span>
 <span class="sd">    verbose : bool, optional</span>
 <span class="sd">        Verbose (details of cluster)</span>
 
 <span class="sd">    Returns</span>
 <span class="sd">    -------</span>
 <span class="sd">    client : dask.distributed.Client</span>
-<span class="sd">        Dask clinet</span>
+<span class="sd">        Dask client</span>
 <span class="sd">    cluster : dask.distributed.LocalCluster</span>
 <span class="sd">        Dask cluster</span>
-<span class="sd">    n_workers : int</span>
-<span class="sd">        Number of workers</span>
-<span class="sd">    threads_per_worker : int</span>
-<span class="sd">        Threads per worker to use</span>
 <span class="sd">    str</span>
 <span class="sd">        Dask directory</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="s2">&quot;distributed&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">setLevel</span><span class="p">(</span><span class="n">logging</span><span class="o">.</span><span class="n">ERROR</span><span class="p">)</span>
-    <span class="c1"># Create the Dask temporary working directory if it does not already exist</span>
-    <span class="n">dask_dir</span><span class="o">=</span><span class="n">dask_dir</span><span class="o">.</span><span class="n">rstrip</span><span class="p">(</span><span class="s2">&quot;/&quot;</span><span class="p">)</span>
-    <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">dask_dir</span><span class="p">,</span><span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-    <span class="n">dask_dir</span> <span class="o">=</span> <span class="n">tempfile</span><span class="o">.</span><span class="n">mkdtemp</span><span class="p">(</span><span class="n">prefix</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">dask_dir</span><span class="si">}</span><span class="s2">/dask_&quot;</span><span class="p">)</span>
-    <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">dask_dir</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-    <span class="n">dask_dir_tmp</span> <span class="o">=</span> <span class="n">dask_dir</span> <span class="o">+</span> <span class="s2">&quot;/tmp&quot;</span>
+
+    <span class="c1"># Set up Dask working directories</span>
+    <span class="n">dask_dir</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">dask_dir</span><span class="o">.</span><span class="n">rstrip</span><span class="p">(</span><span class="s2">&quot;/&quot;</span><span class="p">),</span> <span class="sa">f</span><span class="s2">&quot;dask_</span><span class="si">{</span><span class="nb">int</span><span class="p">(</span><span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">())</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="n">dask_dir_tmp</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">dask_dir</span><span class="p">,</span> <span class="s2">&quot;tmp&quot;</span><span class="p">)</span>
     <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">dask_dir_tmp</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 
-    <span class="c1"># Detect total system resources</span>
-    <span class="n">total_cpus</span> <span class="o">=</span> <span class="n">psutil</span><span class="o">.</span><span class="n">cpu_count</span><span class="p">(</span><span class="n">logical</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>  <span class="c1"># Total logical CPU cores</span>
-    <span class="n">total_mem</span> <span class="o">=</span> <span class="n">psutil</span><span class="o">.</span><span class="n">virtual_memory</span><span class="p">()</span><span class="o">.</span><span class="n">total</span>  <span class="c1"># Total system memory (bytes)</span>
-    <span class="k">if</span> <span class="n">ncpu</span> <span class="o">&gt;=</span> <span class="mi">1</span><span class="p">:</span>
-        <span class="n">cpu_frac</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">ncpu</span> <span class="o">/</span> <span class="n">total_cpus</span><span class="p">)</span>
+    <span class="n">total_cpus</span> <span class="o">=</span> <span class="n">psutil</span><span class="o">.</span><span class="n">cpu_count</span><span class="p">(</span><span class="n">logical</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">total_mem</span> <span class="o">=</span> <span class="n">psutil</span><span class="o">.</span><span class="n">virtual_memory</span><span class="p">()</span><span class="o">.</span><span class="n">total</span> <span class="o">/</span> <span class="mi">1024</span><span class="o">**</span><span class="mi">3</span>  <span class="c1"># In GB</span>
+
+    <span class="c1"># Override fractions if ncpu or mem is provided</span>
+    <span class="k">if</span> <span class="n">ncpu</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">cpu_frac</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">ncpu</span> <span class="o">/</span> <span class="n">total_cpus</span><span class="p">,</span> <span class="mf">0.8</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">mem</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
-        <span class="n">mem_frac</span> <span class="o">=</span> <span class="nb">float</span><span class="p">((</span><span class="n">mem</span> <span class="o">*</span> <span class="mi">1024</span><span class="o">**</span><span class="mi">3</span><span class="p">)</span> <span class="o">/</span> <span class="n">total_mem</span><span class="p">)</span>
-    <span class="k">if</span> <span class="n">cpu_frac</span> <span class="o">&gt;</span> <span class="mf">0.8</span><span class="p">:</span>
-        <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span>
-            <span class="nb">print</span><span class="p">(</span>
-                <span class="s2">&quot;Given CPU fraction is more than 80%. Resetting to 80% to avoid system crash.&quot;</span>
-            <span class="p">)</span>
-        <span class="n">cpu_frac</span> <span class="o">=</span> <span class="mf">0.8</span>
-    <span class="k">if</span> <span class="n">mem_frac</span> <span class="o">&gt;</span> <span class="mf">0.8</span><span class="p">:</span>
-        <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span>
-            <span class="nb">print</span><span class="p">(</span>
-                <span class="s2">&quot;Given memory fraction is more than 80%. Resetting to 80% to avoid system crash.&quot;</span>
-            <span class="p">)</span>
-        <span class="n">mem_frac</span> <span class="o">=</span> <span class="mf">0.8</span>
+        <span class="n">mem_frac</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">mem</span> <span class="o">/</span> <span class="n">total_mem</span><span class="p">,</span> <span class="mf">0.8</span><span class="p">)</span>
+    <span class="n">cpu_frac</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">cpu_frac</span><span class="p">,</span> <span class="mf">0.8</span><span class="p">)</span>
+    <span class="n">mem_frac</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">mem_frac</span><span class="p">,</span> <span class="mf">0.8</span><span class="p">)</span>
+    <span class="n">usable_mem</span> <span class="o">=</span> <span class="n">total_mem</span> <span class="o">*</span> <span class="n">mem_frac</span>
+    <span class="n">usable_cpus</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">total_cpus</span> <span class="o">*</span> <span class="n">cpu_frac</span><span class="p">)</span>
+    <span class="n">n_workers</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">usable_cpus</span><span class="p">)</span>
 
-    <span class="c1">############################################</span>
-    <span class="c1"># Wait until enough free CPU is available</span>
-    <span class="c1">############################################</span>
-    <span class="n">count</span> <span class="o">=</span> <span class="mi">0</span>
-    <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
-        <span class="n">available_cpu_pct</span> <span class="o">=</span> <span class="mi">100</span> <span class="o">-</span> <span class="n">psutil</span><span class="o">.</span><span class="n">cpu_percent</span><span class="p">(</span>
-            <span class="n">interval</span><span class="o">=</span><span class="mi">1</span>
-        <span class="p">)</span>  <span class="c1"># Percent CPUs currently free</span>
-        <span class="n">available_cpus</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span>
-            <span class="n">total_cpus</span> <span class="o">*</span> <span class="n">available_cpu_pct</span> <span class="o">/</span> <span class="mf">100.0</span>
-        <span class="p">)</span>  <span class="c1"># Number of free CPU cores</span>
-        <span class="n">usable_cpus</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span>
-            <span class="mi">1</span><span class="p">,</span> <span class="nb">int</span><span class="p">(</span><span class="n">total_cpus</span> <span class="o">*</span> <span class="n">cpu_frac</span><span class="p">)</span>
-        <span class="p">)</span>  <span class="c1"># Target number of CPU cores we want available based on cpu_frac</span>
-        <span class="k">if</span> <span class="n">available_cpus</span> <span class="o">&gt;=</span> <span class="nb">int</span><span class="p">(</span>
-            <span class="mf">0.5</span> <span class="o">*</span> <span class="n">usable_cpus</span>
-        <span class="p">):</span>  <span class="c1"># Enough free CPUs (at-least more than 50%), exit loop</span>
-            <span class="n">usable_cpus</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">usable_cpus</span><span class="p">,</span> <span class="n">available_cpus</span><span class="p">)</span>
-            <span class="k">break</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="k">if</span> <span class="n">count</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
-                <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Waiting for available free CPUs...&quot;</span><span class="p">)</span>
-            <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mi">5</span><span class="p">)</span>  <span class="c1"># Wait a bit and retry</span>
-        <span class="n">count</span> <span class="o">+=</span> <span class="mi">1</span>
-
-    <span class="c1">############################################</span>
-    <span class="c1"># Wait until enough free memory is available</span>
-    <span class="c1">############################################</span>
-    <span class="n">count</span> <span class="o">=</span> <span class="mi">0</span>
-    <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
-        <span class="n">available_mem</span> <span class="o">=</span> <span class="p">(</span>
-            <span class="n">psutil</span><span class="o">.</span><span class="n">virtual_memory</span><span class="p">()</span><span class="o">.</span><span class="n">available</span>
-        <span class="p">)</span>  <span class="c1"># Current available system memory (bytes)</span>
-        <span class="n">usable_mem</span> <span class="o">=</span> <span class="n">total_mem</span> <span class="o">*</span> <span class="n">mem_frac</span>  <span class="c1"># Target usable memory based on mem_frac</span>
-        <span class="k">if</span> <span class="p">(</span>
-            <span class="n">available_mem</span> <span class="o">&gt;=</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="n">usable_mem</span>
-        <span class="p">):</span>  <span class="c1"># Enough free memory, (at-least more than 50%) exit loop</span>
-            <span class="n">usable_mem</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">usable_mem</span><span class="p">,</span> <span class="n">available_mem</span><span class="p">)</span>
-            <span class="k">break</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="k">if</span> <span class="n">count</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
-                <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Waiting for available free memory...&quot;</span><span class="p">)</span>
-            <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mi">5</span><span class="p">)</span>  <span class="c1"># Wait and retry</span>
-        <span class="n">count</span> <span class="o">+=</span> <span class="mi">1</span>
-
-    <span class="c1">############################################</span>
-    <span class="c1"># Calculate memory per worker</span>
-    <span class="c1">############################################</span>
-    <span class="n">mem_per_worker</span> <span class="o">=</span> <span class="n">usable_mem</span> <span class="o">/</span> <span class="n">n_jobs</span>  <span class="c1"># Assume initially one job per worker</span>
-    <span class="c1"># Apply minimum memory per worker constraint</span>
-    <span class="n">min_mem_per_job</span> <span class="o">=</span> <span class="nb">round</span><span class="p">(</span>
-        <span class="n">min_mem_per_job</span><span class="p">,</span> <span class="mi">2</span>
-    <span class="p">)</span>  <span class="c1"># Ensure min_mem_per_job is a clean float</span>
-    <span class="k">if</span> <span class="n">min_mem_per_job</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">mem_per_worker</span> <span class="o">&lt;</span> <span class="p">(</span><span class="n">min_mem_per_job</span> <span class="o">*</span> <span class="mi">1024</span><span class="o">**</span><span class="mi">3</span><span class="p">):</span>
-        <span class="c1"># If calculated memory per worker is smaller than user-requested</span>
-        <span class="c1"># minimum, adjust number of workers</span>
-        <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span>
-            <span class="nb">print</span><span class="p">(</span>
-                <span class="sa">f</span><span class="s2">&quot;Total memory per job is smaller than </span><span class="si">{</span><span class="n">min_mem_per_job</span><span class="si">}</span><span class="s2"> GB. Adjusting total number of workers to meet this.&quot;</span>
-            <span class="p">)</span>
-        <span class="n">mem_per_worker</span> <span class="o">=</span> <span class="p">(</span>
-            <span class="n">min_mem_per_job</span> <span class="o">*</span> <span class="mi">1024</span><span class="o">**</span><span class="mi">3</span>
-        <span class="p">)</span>  <span class="c1"># Reset memory per worker to minimum allowed</span>
-        <span class="n">n_workers</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span>
-            <span class="n">n_jobs</span><span class="p">,</span> <span class="nb">int</span><span class="p">(</span><span class="n">usable_mem</span> <span class="o">/</span> <span class="n">mem_per_worker</span><span class="p">)</span>
-        <span class="p">)</span>  <span class="c1"># Reduce number of workers accordingly</span>
-    <span class="k">else</span><span class="p">:</span>
-        <span class="c1"># Otherwise, just keep n_jobs workers</span>
-        <span class="n">n_workers</span> <span class="o">=</span> <span class="n">n_jobs</span>
-
-    <span class="c1">#########################################</span>
-    <span class="c1"># Cap number of workers to available CPUs</span>
-    <span class="n">n_workers</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span>
-        <span class="mi">1</span><span class="p">,</span> <span class="nb">min</span><span class="p">(</span><span class="n">n_workers</span><span class="p">,</span> <span class="nb">int</span><span class="p">(</span><span class="n">usable_cpus</span> <span class="o">/</span> <span class="n">min_cpu_per_job</span><span class="p">))</span>
-    <span class="p">)</span>  <span class="c1"># Prevent CPU oversubscription</span>
-    <span class="c1"># Recalculate final memory per worker based on capped n_workers</span>
-    <span class="n">mem_per_worker</span> <span class="o">=</span> <span class="n">usable_mem</span> <span class="o">/</span> <span class="n">n_workers</span>
-    <span class="c1"># Calculate threads per worker</span>
-    <span class="n">threads_per_worker</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span>
-        <span class="mi">1</span><span class="p">,</span> <span class="n">usable_cpus</span> <span class="o">//</span> <span class="nb">max</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">n_workers</span><span class="p">)</span>
-    <span class="p">)</span>  <span class="c1"># Each worker gets min_cpu_per_job or more threads</span>
-
-    <span class="c1">##########################################</span>
-    <span class="k">if</span> <span class="ow">not</span> <span class="n">only_cal</span> <span class="ow">and</span> <span class="n">verbose</span><span class="p">:</span>
-        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;#################################&quot;</span><span class="p">)</span>
-        <span class="nb">print</span><span class="p">(</span>
-            <span class="sa">f</span><span class="s2">&quot;Dask workers: </span><span class="si">{</span><span class="n">n_workers</span><span class="si">}</span><span class="s2">, Threads per worker: </span><span class="si">{</span><span class="n">threads_per_worker</span><span class="si">}</span><span class="s2">, Mem/worker: </span><span class="si">{</span><span class="nb">round</span><span class="p">(</span><span class="n">mem_per_worker</span><span class="o">/</span><span class="p">(</span><span class="mf">1024.0</span><span class="o">**</span><span class="mi">3</span><span class="p">),</span><span class="mi">2</span><span class="p">)</span><span class="si">}</span><span class="s2"> GB&quot;</span>
-        <span class="p">)</span>
-        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;#################################&quot;</span><span class="p">)</span>
-    <span class="c1"># Memory control settings</span>
-    <span class="n">swap</span> <span class="o">=</span> <span class="n">psutil</span><span class="o">.</span><span class="n">swap_memory</span><span class="p">()</span>
-    <span class="n">swap_gb</span> <span class="o">=</span> <span class="n">swap</span><span class="o">.</span><span class="n">total</span> <span class="o">/</span> <span class="mf">1024.0</span><span class="o">**</span><span class="mi">3</span>
-    <span class="k">if</span> <span class="n">swap_gb</span> <span class="o">&gt;</span> <span class="mi">16</span><span class="p">:</span>
-        <span class="k">pass</span>
-    <span class="k">elif</span> <span class="n">swap_gb</span> <span class="o">&gt;</span> <span class="mi">4</span><span class="p">:</span>
-        <span class="n">spill_frac</span> <span class="o">=</span> <span class="mf">0.6</span>
-    <span class="k">else</span><span class="p">:</span>
+    <span class="c1"># Adjust memory spill behavior based on swap</span>
+    <span class="n">swap_gb</span> <span class="o">=</span> <span class="n">psutil</span><span class="o">.</span><span class="n">swap_memory</span><span class="p">()</span><span class="o">.</span><span class="n">total</span> <span class="o">/</span> <span class="mi">1024</span><span class="o">**</span><span class="mi">3</span>
+    <span class="k">if</span> <span class="n">swap_gb</span> <span class="o">&lt;=</span> <span class="mi">4</span><span class="p">:</span>
         <span class="n">spill_frac</span> <span class="o">=</span> <span class="mf">0.5</span>
+    <span class="k">elif</span> <span class="n">swap_gb</span> <span class="o">&lt;=</span> <span class="mi">16</span><span class="p">:</span>
+        <span class="n">spill_frac</span> <span class="o">=</span> <span class="mf">0.6</span>
+    <span class="n">spill_frac</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">spill_frac</span><span class="p">,</span> <span class="mf">0.7</span><span class="p">)</span>
 
-    <span class="k">if</span> <span class="n">spill_frac</span> <span class="o">&gt;</span> <span class="mf">0.7</span><span class="p">:</span>
-        <span class="n">spill_frac</span> <span class="o">=</span> <span class="mf">0.7</span>
-    <span class="k">if</span> <span class="n">only_cal</span><span class="p">:</span>
-        <span class="k">return</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="n">n_workers</span><span class="p">,</span> <span class="n">threads_per_worker</span><span class="p">,</span> <span class="nb">round</span><span class="p">(</span><span class="n">mem_per_worker</span><span class="o">/</span><span class="p">(</span><span class="mf">1024.0</span><span class="o">**</span><span class="mi">3</span><span class="p">),</span><span class="mi">2</span><span class="p">),</span> <span class="n">dask_dir</span>
-
+    <span class="c1"># Raise file descriptor limit</span>
     <span class="n">soft</span><span class="p">,</span> <span class="n">hard</span> <span class="o">=</span> <span class="n">resource</span><span class="o">.</span><span class="n">getrlimit</span><span class="p">(</span><span class="n">resource</span><span class="o">.</span><span class="n">RLIMIT_NOFILE</span><span class="p">)</span>
-    <span class="n">new_soft</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">hard</span> <span class="o">*</span> <span class="mf">0.8</span><span class="p">),</span> <span class="n">hard</span><span class="p">)</span>  <span class="c1"># safe cap</span>
-    <span class="k">if</span> <span class="n">soft</span> <span class="o">&lt;</span> <span class="n">new_soft</span><span class="p">:</span>
-        <span class="n">resource</span><span class="o">.</span><span class="n">setrlimit</span><span class="p">(</span><span class="n">resource</span><span class="o">.</span><span class="n">RLIMIT_NOFILE</span><span class="p">,</span> <span class="p">(</span><span class="n">new_soft</span><span class="p">,</span> <span class="n">hard</span><span class="p">))</span>
+    <span class="k">if</span> <span class="n">soft</span> <span class="o">&lt;</span> <span class="nb">int</span><span class="p">(</span><span class="n">hard</span> <span class="o">*</span> <span class="mf">0.8</span><span class="p">):</span>
+        <span class="n">resource</span><span class="o">.</span><span class="n">setrlimit</span><span class="p">(</span><span class="n">resource</span><span class="o">.</span><span class="n">RLIMIT_NOFILE</span><span class="p">,</span> <span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">hard</span> <span class="o">*</span> <span class="mf">0.8</span><span class="p">),</span> <span class="n">hard</span><span class="p">))</span>
+
     <span class="n">dask</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">set</span><span class="p">({</span><span class="s2">&quot;temporary-directory&quot;</span><span class="p">:</span> <span class="n">dask_dir</span><span class="p">})</span>
+
     <span class="n">cluster</span> <span class="o">=</span> <span class="n">LocalCluster</span><span class="p">(</span>
-        <span class="n">n_workers</span><span class="o">=</span><span class="n">n_workers</span><span class="p">,</span>
+        <span class="n">n_workers</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
         <span class="n">threads_per_worker</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
-        <span class="c1"># one python-thread per worker, in workers OpenMP threads can be used</span>
-        <span class="n">memory_limit</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="nb">round</span><span class="p">(</span><span class="n">mem_per_worker</span><span class="o">/</span><span class="p">(</span><span class="mf">1024.0</span><span class="o">**</span><span class="mi">3</span><span class="p">),</span><span class="mi">2</span><span class="p">)</span><span class="si">}</span><span class="s2">GB&quot;</span><span class="p">,</span>
+        <span class="n">memory_limit</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">usable_mem</span><span class="si">}</span><span class="s2">GB&quot;</span><span class="p">,</span>
         <span class="n">local_directory</span><span class="o">=</span><span class="n">dask_dir</span><span class="p">,</span>
-        <span class="n">processes</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>  <span class="c1"># one process per worker</span>
         <span class="n">dashboard_address</span><span class="o">=</span><span class="s2">&quot;:0&quot;</span><span class="p">,</span>
+        <span class="n">processes</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
         <span class="n">env</span><span class="o">=</span><span class="p">{</span>
             <span class="s2">&quot;TMPDIR&quot;</span><span class="p">:</span> <span class="n">dask_dir_tmp</span><span class="p">,</span>
             <span class="s2">&quot;TMP&quot;</span><span class="p">:</span> <span class="n">dask_dir_tmp</span><span class="p">,</span>
             <span class="s2">&quot;TEMP&quot;</span><span class="p">:</span> <span class="n">dask_dir_tmp</span><span class="p">,</span>
-            <span class="s2">&quot;DASK_TEMPORARY_DIRECTORY&quot;</span><span class="p">:</span> <span class="n">dask_dir</span><span class="p">,</span>
+            <span class="s2">&quot;DASK_TEMPORARY_DIRECTORY&quot;</span><span class="p">:</span> <span class="n">dask_dir_tmp</span><span class="p">,</span>
             <span class="s2">&quot;MALLOC_TRIM_THRESHOLD_&quot;</span><span class="p">:</span> <span class="s2">&quot;0&quot;</span><span class="p">,</span>
-        <span class="p">},</span>  <span class="c1"># Explicitly set for workers</span>
+            <span class="s2">&quot;PYTHONWARNINGS&quot;</span><span class="p">:</span> <span class="s2">&quot;ignore::UserWarning:contextlib&quot;</span><span class="p">,</span>
+        <span class="p">},</span>
     <span class="p">)</span>
-    <span class="n">client</span> <span class="o">=</span> <span class="n">Client</span><span class="p">(</span><span class="n">cluster</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=</span><span class="s2">&quot;60s&quot;</span><span class="p">,</span> <span class="n">heartbeat_interval</span><span class="o">=</span><span class="s2">&quot;5s&quot;</span><span class="p">)</span>
+    <span class="n">client</span> <span class="o">=</span> <span class="n">Client</span><span class="p">(</span><span class="n">cluster</span><span class="p">,</span> <span class="n">heartbeat_interval</span><span class="o">=</span><span class="s2">&quot;5s&quot;</span><span class="p">)</span>
     <span class="n">dask</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">set</span><span class="p">(</span>
         <span class="p">{</span>
             <span class="s2">&quot;distributed.worker.memory.target&quot;</span><span class="p">:</span> <span class="n">spill_frac</span><span class="p">,</span>
@@ -952,71 +653,129 @@
         <span class="p">}</span>
     <span class="p">)</span>
     <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;####################################################&quot;</span><span class="p">)</span>
         <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Dask dashboard available at: </span><span class="si">{</span><span class="n">client</span><span class="o">.</span><span class="n">dashboard_link</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-
-    <span class="n">client</span><span class="o">.</span><span class="n">run_on_scheduler</span><span class="p">(</span><span class="n">gc</span><span class="o">.</span><span class="n">collect</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">client</span><span class="p">,</span> <span class="n">cluster</span><span class="p">,</span> <span class="n">n_workers</span><span class="p">,</span> <span class="n">threads_per_worker</span><span class="p">,</span> <span class="nb">round</span><span class="p">(</span><span class="n">mem_per_worker</span><span class="o">/</span><span class="p">(</span><span class="mf">1024.0</span><span class="o">**</span><span class="mi">3</span><span class="p">),</span><span class="mi">2</span><span class="p">),</span> <span class="n">dask_dir</span></div>
-
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;####################################################&quot;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">client</span><span class="p">,</span> <span class="n">cluster</span><span class="p">,</span> <span class="n">dask_dir</span></div>
 
 
-<div class="viewcode-block" id="run_limited_memory_task">
-<a class="viewcode-back" href="../../../meersolar.utils.html#meersolar.utils.proc_manage_utils.run_limited_memory_task">[docs]</a>
-<span class="k">def</span> <span class="nf">run_limited_memory_task</span><span class="p">(</span><span class="n">task</span><span class="p">,</span> <span class="n">dask_dir</span><span class="o">=</span><span class="s2">&quot;/tmp&quot;</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=</span><span class="mi">30</span><span class="p">):</span>
+
+<div class="viewcode-block" id="get_slurm_dask_cluster">
+<a class="viewcode-back" href="../../../meersolar.utils.html#meersolar.utils.proc_manage_utils.get_slurm_dask_cluster">[docs]</a>
+<span class="k">def</span> <span class="nf">get_slurm_dask_cluster</span><span class="p">(</span>
+    <span class="n">n_jobs</span><span class="p">,</span>
+    <span class="n">config_yaml</span><span class="p">,</span>
+    <span class="n">dask_dir</span><span class="p">,</span>
+    <span class="n">cpu_frac</span><span class="o">=</span><span class="mf">0.8</span><span class="p">,</span>
+    <span class="n">mem_frac</span><span class="o">=</span><span class="mf">0.8</span><span class="p">,</span>
+    <span class="n">ncpu</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span>
+    <span class="n">mem</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span>
+    <span class="n">spill_frac</span><span class="o">=</span><span class="mf">0.6</span><span class="p">,</span>
+    <span class="n">verbose</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+<span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Run a task for a limited time, then kill and return memory usage.</span>
+<span class="sd">    Launch a SLURMCluster using a YAML configuration and return a connected Dask client.</span>
 
 <span class="sd">    Parameters</span>
 <span class="sd">    ----------</span>
-<span class="sd">    task : dask.delayed</span>
-<span class="sd">        Dask delayed task object</span>
-<span class="sd">    timeout : int</span>
-<span class="sd">        Time in seconds to let the task run</span>
+<span class="sd">    n_jobs : int</span>
+<span class="sd">        Number of expected tasks (used for worker scaling)</span>
+<span class="sd">    config_yaml : str</span>
+<span class="sd">        Path to Dask SLURMCluster YAML configuration</span>
+<span class="sd">    dask_dir : str</span>
+<span class="sd">        Dask working directory (for temporary files)</span>
+<span class="sd">    cpu_frac : float</span>
+<span class="sd">        Fraction of total CPUs to use (ignored if ncpu &gt; 0)</span>
+<span class="sd">    mem_frac : float</span>
+<span class="sd">        Fraction of total RAM to use (ignored if mem &gt; 0)</span>
+<span class="sd">    ncpu : int</span>
+<span class="sd">        Total CPUs to use (overrides cpu_frac)</span>
+<span class="sd">    mem : float</span>
+<span class="sd">        Total memory (in GB) to use (overrides mem_frac)</span>
+<span class="sd">    spill_frac : float</span>
+<span class="sd">        Fraction of memory to spill to disk</span>
+<span class="sd">    verbose : bool</span>
+<span class="sd">        Print Dask dashboard URL and diagnostics</span>
 
 <span class="sd">    Returns</span>
 <span class="sd">    -------</span>
-<span class="sd">    float</span>
-<span class="sd">        Memory used by task (in GB)</span>
+<span class="sd">    client : dask.distributed.Client</span>
+<span class="sd">        Connected Dask client</span>
+<span class="sd">    cluster : dask_jobqueue.SLURMCluster</span>
+<span class="sd">        SLURM Dask cluster</span>
+<span class="sd">    str</span>
+<span class="sd">        Dask directory used</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">dask</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">set</span><span class="p">({</span><span class="s2">&quot;temporary-directory&quot;</span><span class="p">:</span> <span class="n">dask_dir</span><span class="p">})</span>
-    <span class="n">warnings</span><span class="o">.</span><span class="n">filterwarnings</span><span class="p">(</span><span class="s2">&quot;ignore&quot;</span><span class="p">)</span>
-    <span class="n">cluster</span> <span class="o">=</span> <span class="n">LocalCluster</span><span class="p">(</span>
-        <span class="n">n_workers</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
-        <span class="n">threads_per_worker</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
-        <span class="c1"># one python-thread per worker, in workers OpenMP threads can be used</span>
-        <span class="n">local_directory</span><span class="o">=</span><span class="n">dask_dir</span><span class="p">,</span>
-        <span class="n">processes</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>  <span class="c1"># one process per worker</span>
-        <span class="n">dashboard_address</span><span class="o">=</span><span class="s2">&quot;:0&quot;</span><span class="p">,</span>
-    <span class="p">)</span>
-    <span class="n">client</span> <span class="o">=</span> <span class="n">Client</span><span class="p">(</span><span class="n">cluster</span><span class="p">)</span>
-    <span class="n">future</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">compute</span><span class="p">(</span><span class="n">task</span><span class="p">)</span>
-    <span class="n">start</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+    <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="s2">&quot;distributed&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">setLevel</span><span class="p">(</span><span class="n">logging</span><span class="o">.</span><span class="n">ERROR</span><span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">get_worker_memory_info</span><span class="p">():</span>
-        <span class="n">proc</span> <span class="o">=</span> <span class="n">psutil</span><span class="o">.</span><span class="n">Process</span><span class="p">()</span>
-        <span class="k">return</span> <span class="p">{</span>
-            <span class="s2">&quot;rss_GB&quot;</span><span class="p">:</span> <span class="n">proc</span><span class="o">.</span><span class="n">memory_info</span><span class="p">()</span><span class="o">.</span><span class="n">rss</span> <span class="o">/</span> <span class="mi">1024</span><span class="o">**</span><span class="mi">3</span><span class="p">,</span>
-            <span class="s2">&quot;vms_GB&quot;</span><span class="p">:</span> <span class="n">proc</span><span class="o">.</span><span class="n">memory_info</span><span class="p">()</span><span class="o">.</span><span class="n">vms</span> <span class="o">/</span> <span class="mi">1024</span><span class="o">**</span><span class="mi">3</span><span class="p">,</span>
+    <span class="n">dask_dir</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">dask_dir</span><span class="o">.</span><span class="n">rstrip</span><span class="p">(</span><span class="s2">&quot;/&quot;</span><span class="p">),</span> <span class="sa">f</span><span class="s2">&quot;dask_</span><span class="si">{</span><span class="nb">int</span><span class="p">(</span><span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">())</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="n">dask_dir_tmp</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">dask_dir</span><span class="p">,</span> <span class="s2">&quot;tmp&quot;</span><span class="p">)</span>
+    <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">dask_dir_tmp</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="n">total_cpus</span> <span class="o">=</span> <span class="n">psutil</span><span class="o">.</span><span class="n">cpu_count</span><span class="p">(</span><span class="n">logical</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">total_mem</span> <span class="o">=</span> <span class="n">psutil</span><span class="o">.</span><span class="n">virtual_memory</span><span class="p">()</span><span class="o">.</span><span class="n">total</span> <span class="o">/</span> <span class="mi">1024</span><span class="o">**</span><span class="mi">3</span>  <span class="c1"># in GB</span>
+
+    <span class="k">if</span> <span class="n">ncpu</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">cpu_frac</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">ncpu</span> <span class="o">/</span> <span class="n">total_cpus</span><span class="p">,</span> <span class="mf">0.8</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">mem</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">mem_frac</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">mem</span> <span class="o">/</span> <span class="n">total_mem</span><span class="p">,</span> <span class="mf">0.8</span><span class="p">)</span>
+
+    <span class="n">cpu_frac</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">cpu_frac</span><span class="p">,</span> <span class="mf">0.8</span><span class="p">)</span>
+    <span class="n">mem_frac</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">mem_frac</span><span class="p">,</span> <span class="mf">0.8</span><span class="p">)</span>
+    <span class="n">usable_mem</span> <span class="o">=</span> <span class="n">total_mem</span> <span class="o">*</span> <span class="n">mem_frac</span>
+    <span class="n">usable_cpus</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">total_cpus</span> <span class="o">*</span> <span class="n">cpu_frac</span><span class="p">)</span>
+
+    <span class="c1"># Adjust memory spill behavior based on swap</span>
+    <span class="n">swap_gb</span> <span class="o">=</span> <span class="n">psutil</span><span class="o">.</span><span class="n">swap_memory</span><span class="p">()</span><span class="o">.</span><span class="n">total</span> <span class="o">/</span> <span class="mi">1024</span><span class="o">**</span><span class="mi">3</span>
+    <span class="k">if</span> <span class="n">swap_gb</span> <span class="o">&lt;=</span> <span class="mi">4</span><span class="p">:</span>
+        <span class="n">spill_frac</span> <span class="o">=</span> <span class="mf">0.5</span>
+    <span class="k">elif</span> <span class="n">swap_gb</span> <span class="o">&lt;=</span> <span class="mi">16</span><span class="p">:</span>
+        <span class="n">spill_frac</span> <span class="o">=</span> <span class="mf">0.6</span>
+    <span class="n">spill_frac</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">spill_frac</span><span class="p">,</span> <span class="mf">0.7</span><span class="p">)</span>
+
+    <span class="c1"># Raise file descriptor limit</span>
+    <span class="n">soft</span><span class="p">,</span> <span class="n">hard</span> <span class="o">=</span> <span class="n">resource</span><span class="o">.</span><span class="n">getrlimit</span><span class="p">(</span><span class="n">resource</span><span class="o">.</span><span class="n">RLIMIT_NOFILE</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">soft</span> <span class="o">&lt;</span> <span class="nb">int</span><span class="p">(</span><span class="n">hard</span> <span class="o">*</span> <span class="mf">0.8</span><span class="p">):</span>
+        <span class="n">resource</span><span class="o">.</span><span class="n">setrlimit</span><span class="p">(</span><span class="n">resource</span><span class="o">.</span><span class="n">RLIMIT_NOFILE</span><span class="p">,</span> <span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">hard</span> <span class="o">*</span> <span class="mf">0.8</span><span class="p">),</span> <span class="n">hard</span><span class="p">))</span>
+
+    <span class="n">dask</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">set</span><span class="p">(</span>
+        <span class="p">{</span>
+            <span class="s2">&quot;temporary-directory&quot;</span><span class="p">:</span> <span class="n">dask_dir</span><span class="p">,</span>
+            <span class="s2">&quot;distributed.worker.memory.target&quot;</span><span class="p">:</span> <span class="n">spill_frac</span><span class="p">,</span>
+            <span class="s2">&quot;distributed.worker.memory.spill&quot;</span><span class="p">:</span> <span class="n">spill_frac</span> <span class="o">+</span> <span class="mf">0.1</span><span class="p">,</span>
+            <span class="s2">&quot;distributed.worker.memory.pause&quot;</span><span class="p">:</span> <span class="n">spill_frac</span> <span class="o">+</span> <span class="mf">0.2</span><span class="p">,</span>
+            <span class="s2">&quot;distributed.worker.memory.terminate&quot;</span><span class="p">:</span> <span class="n">spill_frac</span> <span class="o">+</span> <span class="mf">0.25</span><span class="p">,</span>
         <span class="p">}</span>
+    <span class="p">)</span>
 
-    <span class="k">while</span> <span class="ow">not</span> <span class="n">future</span><span class="o">.</span><span class="n">done</span><span class="p">():</span>
-        <span class="k">if</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span> <span class="o">-</span> <span class="n">start</span> <span class="o">&gt;</span> <span class="n">timeout</span><span class="p">:</span>
-            <span class="k">try</span><span class="p">:</span>
-                <span class="n">mem_info</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">get_worker_memory_info</span><span class="p">)</span>
-                <span class="n">total_rss</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="n">v</span><span class="p">[</span><span class="s2">&quot;rss_GB&quot;</span><span class="p">]</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">mem_info</span><span class="o">.</span><span class="n">values</span><span class="p">())</span>
-                <span class="n">per_worker_mem</span> <span class="o">=</span> <span class="n">total_rss</span>
-            <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
-                <span class="n">per_worker_mem</span> <span class="o">=</span> <span class="kc">None</span>
-            <span class="n">future</span><span class="o">.</span><span class="n">cancel</span><span class="p">()</span>
-            <span class="n">client</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
-            <span class="n">cluster</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
-            <span class="k">return</span> <span class="n">per_worker_mem</span>
-        <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
-    <span class="n">mem_info</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">get_worker_memory_info</span><span class="p">)</span>
-    <span class="n">total_rss</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="n">v</span><span class="p">[</span><span class="s2">&quot;rss_GB&quot;</span><span class="p">]</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">mem_info</span><span class="o">.</span><span class="n">values</span><span class="p">())</span>
-    <span class="n">per_worker_mem</span> <span class="o">=</span> <span class="n">total_rss</span>
-    <span class="n">client</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
-    <span class="n">cluster</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
-    <span class="k">return</span> <span class="nb">round</span><span class="p">(</span><span class="n">per_worker_mem</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span></div>
+    <span class="c1"># Load cluster config from YAML</span>
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">config_yaml</span><span class="p">,</span> <span class="s2">&quot;r&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+        <span class="n">cluster_config</span> <span class="o">=</span> <span class="n">yaml</span><span class="o">.</span><span class="n">safe_load</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+    <span class="n">dask</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">cluster_config</span><span class="p">,</span> <span class="n">priority</span><span class="o">=</span><span class="s2">&quot;new&quot;</span><span class="p">)</span>
+
+    <span class="c1"># Initialize SLURM cluster</span>
+    <span class="n">cluster</span> <span class="o">=</span> <span class="n">SLURMCluster</span><span class="p">(</span>
+        <span class="n">local_directory</span><span class="o">=</span><span class="n">dask_dir_tmp</span><span class="p">,</span>
+        <span class="n">env_extra</span><span class="o">=</span><span class="p">[</span>
+            <span class="sa">f</span><span class="s2">&quot;TMPDIR=</span><span class="si">{</span><span class="n">dask_dir_tmp</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
+            <span class="sa">f</span><span class="s2">&quot;TMP=</span><span class="si">{</span><span class="n">dask_dir_tmp</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
+            <span class="sa">f</span><span class="s2">&quot;TEMP=</span><span class="si">{</span><span class="n">dask_dir_tmp</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
+            <span class="sa">f</span><span class="s2">&quot;DASK_TEMPORARY_DIRECTORY=</span><span class="si">{</span><span class="n">dask_dir_tmp</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;MALLOC_TRIM_THRESHOLD_=0&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;PYTHONWARNINGS=ignore::UserWarning:contextlib&quot;</span><span class="p">,</span>
+        <span class="p">],</span>
+    <span class="p">)</span>
+
+    <span class="c1"># Scale workers (1 per task/MS file ideally)</span>
+    <span class="n">cluster</span><span class="o">.</span><span class="n">scale</span><span class="p">(</span><span class="n">n_jobs</span><span class="p">)</span>
+    <span class="n">client</span> <span class="o">=</span> <span class="n">Client</span><span class="p">(</span><span class="n">cluster</span><span class="p">,</span> <span class="n">heartbeat_interval</span><span class="o">=</span><span class="s2">&quot;5s&quot;</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;####################################################&quot;</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Dask dashboard available at: </span><span class="si">{</span><span class="n">client</span><span class="o">.</span><span class="n">dashboard_link</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;####################################################&quot;</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">client</span><span class="p">,</span> <span class="n">cluster</span><span class="p">,</span> <span class="n">dask_dir</span></div>
 
 
 
@@ -1061,7 +820,7 @@
 </div><script src="../../../_static/documentation_options.js?v=4ebf8126"></script>
     <script src="../../../_static/doctools.js?v=9bcbadda"></script>
     <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
-    <script src="../../../_static/scripts/furo.js?v=5fa4622c"></script>
+    <script src="../../../_static/scripts/furo.js?v=46bd48cc"></script>
     <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
     <script src="../../../_static/copybutton.js?v=f281be69"></script>
     <script>let toggleHintShow = 'Click to show';</script>

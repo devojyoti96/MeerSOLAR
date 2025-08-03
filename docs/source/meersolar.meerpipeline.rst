@@ -2,7 +2,6 @@ Meersolar Pipeline Module
 ==========================
 This module does all pipeline handling all calibration and imaging jobs and provides command-line interface.
 
-
 meersolar.meerpipeline.basic\_cal module
 ----------------------------------------
 
@@ -103,14 +102,6 @@ meersolar.meerpipeline.kill\_job module
 ---------------------------------------
 
 .. automodule:: meersolar.meerpipeline.kill_job
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-meersolar.meerpipeline.master\_controller module
-------------------------------------------------
-
-.. automodule:: meersolar.meerpipeline.master_controller
    :members:
    :undoc-members:
    :show-inheritance:
