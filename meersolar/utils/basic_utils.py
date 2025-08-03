@@ -9,6 +9,7 @@ from astropy.coordinates import Angle
 from datetime import datetime as dt
 from contextlib import contextmanager
 
+
 ##########################
 # Basic utility funactions
 ##########################

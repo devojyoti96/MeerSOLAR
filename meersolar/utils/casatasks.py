@@ -4,6 +4,7 @@ import numpy as np
 import glob
 import os
 import traceback
+import time
 from casatools import msmetadata, ms as casamstool, table
 from .basic_utils import *
 from .resource_utils import *
@@ -40,7 +41,10 @@ def check_scan_in_caltable(caltable, scan):
 
 
 def reset_weights_and_flags(
-    msname="", restore_flag=True, force_reset=False, n_threads=-1, dry_run=False
+    msname="",
+    restore_flag=True,
+    force_reset=False,
+    n_threads=-1,
 ):
     """
     Reset weights and flags for the ms
@@ -57,10 +61,6 @@ def reset_weights_and_flags(
     limit_threads(n_threads=n_threads)
     from casatasks import flagdata
 
-    if dry_run:
-        process = psutil.Process(os.getpid())
-        mem = round(process.memory_info().rss / 1024**3, 2)  # in GB
-        return mem
     msname = msname.rstrip("/")
     if os.path.exists(f"{msname}/.reset") == False or force_reset:
         mspath = os.path.dirname(os.path.abspath(msname))
@@ -144,7 +144,6 @@ def single_mstransform(
     timerange="",
     numsubms="auto",
     n_threads=-1,
-    dry_run=False,
 ):
     """
     Perform mstransform of a single scan
@@ -184,10 +183,6 @@ def single_mstransform(
     limit_threads(n_threads=n_threads)
     from casatasks import mstransform, initweights, flagdata
 
-    if dry_run:
-        process = psutil.Process(os.getpid())
-        mem = round(process.memory_info().rss / 1024**3, 2)  # in GB
-        return mem
     if timebin == "" or timebin is None:
         timeaverage = False
     else:
@@ -230,15 +225,17 @@ def single_mstransform(
                 separationaxis="scan",
                 numsubms=numsubms,
             )
-        with suppress_casa_output():
-            initweights(vis=outputms, wtmode="ones", dowtsp=True)
-            flagdata(
-                vis=outputms,
-                mode="clip",
-                clipzeros=True,
-                datacolumn="data",
-                flagbackup=False,
-            )
+            time.sleep(5)
+        if os.path.exists(outputms):
+            with suppress_casa_output():
+                initweights(vis=outputms, wtmode="ones", dowtsp=True)
+                flagdata(
+                    vis=outputms,
+                    mode="clip",
+                    clipzeros=True,
+                    datacolumn="data",
+                    flagbackup=False,
+                )
         os.system(f"touch {outputms}/.splited")
         return outputms
     except Exception as e:

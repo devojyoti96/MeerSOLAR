@@ -237,7 +237,7 @@ def get_logid(logfile):
         "noise_cal.log": "Flux calibration using noise-diode",
         "partition_cal.log": "Partioning for basic calibration",
         "ds_targets.log": "Making dynamic spectra",
-        "main.log":"Main pipeline log",
+        "main.log": "Main pipeline log",
     }
 
     if name in logmap:
@@ -273,7 +273,7 @@ def init_logger(logname, logfile, jobname="", password=""):
 
     Returns
     -------
-    observer 
+    observer
         Observer object
     """
     timeout = 30

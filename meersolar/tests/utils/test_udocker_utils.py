@@ -49,11 +49,10 @@ def test_check_udocker_container(mock_env, system_mock, system_return, expected)
 
 
 @pytest.mark.parametrize(
-    "check_container, container_present, dry_run, expected_return",
+    "check_container, container_present, expected_return",
     [
-        (True, False, False, 1),  # container check fails, fallback fails
-        (True, True, True, 2.5),  # dry run, mock memory
-        (False, True, False, 0),  # skip check, run successfully
+        (True, False, 1),  # container check fails, fallback fails
+        (False, True, 0),  # skip check, run successfully
     ],
 )
 @patch("meersolar.utils.udocker_utils.traceback.print_exc")
@@ -81,7 +80,6 @@ def test_run_wsclean_param_cases(
     mock_traceback,
     check_container,
     container_present,
-    dry_run,
     expected_return,
 ):
     mock_check.return_value = container_present
@@ -93,21 +91,15 @@ def test_run_wsclean_param_cases(
         container_name="meerwsclean",
         check_container=check_container,
         verbose=False,
-        dry_run=dry_run,
     )
-    if dry_run:
-        assert isinstance(result, float)
-        assert round(result, 1) == expected_return
-    else:
-        assert result == expected_return
+    assert result == expected_return
 
 
 @pytest.mark.parametrize(
-    "container_present, dry_run, expected",
+    "container_present, expected",
     [
-        (False, False, 0),  # Container not found, init fails
-        (True, True, 2.5),  # Dry run returns mock memory
-        (True, False, 0),  # Normal run success
+        (False, 0),  # Container not found, init fails
+        (True, 0),  # Normal run success
     ],
 )
 @patch("meersolar.utils.udocker_utils.traceback.print_exc")
@@ -134,7 +126,6 @@ def test_run_solar_sidereal_cor(
     mock_process,
     mock_traceback,
     container_present,
-    dry_run,
     expected,
 ):
     mock_check.return_value = container_present
@@ -146,20 +137,15 @@ def test_run_solar_sidereal_cor(
         only_uvw=False,
         container_name="meerwsclean",
         verbose=False,
-        dry_run=dry_run,
     )
-    if dry_run:
-        assert isinstance(result, float)
-    else:
-        assert result == expected
+    assert result == expected
 
 
 @pytest.mark.parametrize(
-    "container_present, dry_run, expected",
+    "container_present, expected",
     [
-        (False, False, 1),  # container missing, init fails
-        (True, True, 2.5),  # dry run, returns memory usage
-        (True, False, 0),  # normal run, successful
+        (False, 1),  # container missing, init fails
+        (True, 0),  # normal run, successful
     ],
 )
 @patch("meersolar.utils.udocker_utils.traceback.print_exc")
@@ -186,7 +172,6 @@ def test_run_chgcenter_param_cases(
     mock_process,
     mock_traceback,
     container_present,
-    dry_run,
     expected,
 ):
     mock_check.return_value = container_present
@@ -202,10 +187,5 @@ def test_run_chgcenter_param_cases(
         only_uvw=False,
         container_name="meerwsclean",
         verbose=False,
-        dry_run=dry_run,
     )
-    if dry_run:
-        assert isinstance(result, float)
-        assert round(result, 1) == expected
-    else:
-        assert result == expected
+    assert result == expected

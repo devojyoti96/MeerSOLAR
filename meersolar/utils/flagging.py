@@ -49,7 +49,11 @@ def do_flag_backup(msname, flagtype="flagdata"):
     af.done()
 
 
-def get_unflagged_antennas(msname="", scan="", n_threads=-1, dry_run=False):
+def get_unflagged_antennas(
+    msname="",
+    scan="",
+    n_threads=-1,
+):
     """
     Get unflagged antennas of a scan
 
@@ -70,10 +74,6 @@ def get_unflagged_antennas(msname="", scan="", n_threads=-1, dry_run=False):
     limit_threads(n_threads=n_threads)
     from casatasks import flagdata
 
-    if dry_run:
-        process = psutil.Process(os.getpid())
-        mem = round(process.memory_info().rss / 1024**3, 2)  # in GB
-        return mem
     msname = msname.rstrip("/")
     mspath = os.path.dirname(os.path.abspath(msname))
     os.chdir(mspath)
@@ -92,7 +92,11 @@ def get_unflagged_antennas(msname="", scan="", n_threads=-1, dry_run=False):
     return unflagged_antenna_names, flag_frac_list
 
 
-def get_chans_flag(msname="", field="", n_threads=-1, dry_run=False):
+def get_chans_flag(
+    msname="",
+    field="",
+    n_threads=-1,
+):
     """
     Get flag/unflag channel list
 
@@ -113,10 +117,6 @@ def get_chans_flag(msname="", field="", n_threads=-1, dry_run=False):
     limit_threads(n_threads=n_threads)
     from casatasks import flagdata
 
-    if dry_run:
-        process = psutil.Process(os.getpid())
-        mem = round(process.memory_info().rss / 1024**3, 2)  # in GB
-        return mem
     msname = msname.rstrip("/")
     mspath = os.path.dirname(os.path.abspath(msname))
     os.chdir(mspath)
@@ -135,10 +135,14 @@ def get_chans_flag(msname="", field="", n_threads=-1, dry_run=False):
     return unflag_chans, flag_chans
 
 
-def calc_flag_fraction(msname="", field="", scan="", n_threads=-1, dry_run=False):
+def calc_flag_fraction(
+    msname="",
+    field="",
+    scan="",
+    n_threads=-1,
+):
     """
     Function to calculate the fraction of total data flagged.
-
 
     Parameters
     ----------
@@ -157,10 +161,6 @@ def calc_flag_fraction(msname="", field="", scan="", n_threads=-1, dry_run=False
     limit_threads(n_threads=n_threads)
     from casatasks import flagdata
 
-    if dry_run:
-        process = psutil.Process(os.getpid())
-        mem = round(process.memory_info().rss / 1024**3, 2)  # in GB
-        return mem
     msname = msname.rstrip("/")
     mspath = os.path.dirname(os.path.abspath(msname))
     os.chdir(mspath)

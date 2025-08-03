@@ -140,7 +140,7 @@ def move_to_sun(msname, only_uvw=False):
     return msg
 
 
-def correct_solar_sidereal_motion(msname="", verbose=False, dry_run=False):
+def correct_solar_sidereal_motion(msname="", verbose=False):
     """
     Correct sodereal motion of the Sun
 
@@ -154,9 +154,6 @@ def correct_solar_sidereal_motion(msname="", verbose=False, dry_run=False):
     int
         Success message
     """
-    if dry_run:
-        mem = run_solar_sidereal_cor(dry_run=True)
-        return mem
     print(f"Correcting sidereal motion for ms: {msname}\n")
     if os.path.exists(msname + "/.sidereal_cor") == False:
         msg = run_solar_sidereal_cor(

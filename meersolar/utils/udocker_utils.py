@@ -91,7 +91,6 @@ def run_wsclean(
     container_name="solarwsclean",
     check_container=False,
     verbose=False,
-    dry_run=False,
 ):
     """
     Run WSClean inside a udocker container (no root permission required).
@@ -133,19 +132,6 @@ def run_wsclean(
                     f"Container {container_name} is not initiated. First initiate container and then run."
                 )
                 return 1
-
-    if dry_run:
-        cmd = f"chgenter >> {tmp1} >> {tmp2}"
-        cwd = os.getcwd()
-        full_command = (
-            f"udocker --quiet run --nobanner --volume={cwd}:{cwd} solarwsclean {cmd}"
-        )
-        os.system(full_command)
-        process = psutil.Process(os.getpid())
-        mem = round(process.memory_info().rss / 1024**3, 2)  # in GB
-        os.system(f"rm -rf {tmp1} {tmp2}")
-        return mem
-
     msname = wsclean_cmd.split(" ")[-1]
     msname = os.path.abspath(msname)
     mspath = os.path.dirname(msname)
@@ -209,7 +195,6 @@ def run_solar_sidereal_cor(
     container_name="solarwsclean",
     check_container=False,
     verbose=False,
-    dry_run=False,
 ):
     """
     Run chgcenter inside a udocker container to correct solar sidereal motion (no root permission required).
@@ -248,19 +233,6 @@ def run_solar_sidereal_cor(
                     f"Container {container_name} is not initiated. First initiate container and then run."
                 )
                 return 1
-
-    if dry_run:
-        cmd = f"chgcentre >> {tmp1} >> {tmp2}"
-        cwd = os.getcwd()
-        full_command = (
-            f"udocker --quiet run --nobanner --volume={cwd}:{cwd} solarwsclean {cmd}"
-        )
-        os.system(full_command)
-        process = psutil.Process(os.getpid())
-        mem = round(process.memory_info().rss / 1024**3, 2)  # in GB
-        os.system(f"rm -rf {tmp1} {tmp2}")
-        return mem
-
     msname = os.path.abspath(msname)
     mspath = os.path.dirname(msname)
     temp_docker_path = tempfile.mkdtemp(prefix="chgcenter_udocker_", dir=mspath)
@@ -301,7 +273,6 @@ def run_chgcenter(
     only_uvw=False,
     container_name="solarwsclean",
     verbose=False,
-    dry_run=False,
 ):
     """
     Run chgcenter inside a udocker container (no root permission required).
@@ -341,17 +312,6 @@ def run_chgcenter(
                 f"Container {container_name} is not initiated. First initiate container and then run."
             )
             return 1
-    if dry_run:
-        cmd = f"chgenter >> {tmp1} >> {tmp2}"
-        cwd = os.getcwd()
-        full_command = (
-            f"udocker --quiet run --nobanner --volume={cwd}:{cwd} solarwsclean {cmd}"
-        )
-        os.system(full_command)
-        process = psutil.Process(os.getpid())
-        mem = round(process.memory_info().rss / 1024**3, 2)  # in GB
-        os.system(f"rm -rf {tmp1} {tmp2}")
-        return mem
     msname = os.path.abspath(msname)
     mspath = os.path.dirname(msname)
     temp_docker_path = tempfile.mkdtemp(prefix="chgcenter_udocker_", dir=mspath)

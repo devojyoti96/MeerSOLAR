@@ -98,68 +98,18 @@ def test_save_main_process_info(
     )
 
 
-@patch("meersolar.utils.proc_manage_utils.os.system")
-@patch("meersolar.utils.proc_manage_utils.os.path.exists")
-@patch("meersolar.utils.proc_manage_utils.os.makedirs")
-@patch("meersolar.utils.proc_manage_utils.os.path.isdir")
-@patch("builtins.open", new_callable=mock_open)
-def test_create_batch_script_nonhpc(
-    mock_openfile,
-    mock_isdir,
-    mock_makedirs,
-    mock_exists,
-    mock_system,
-):
-    cmd = "python script.py"
-    workdir = "/mock/work"
-    basename = "testjob"
-    mock_isdir.return_value = False
-    mock_exists.return_value = False
-    batch_path = f"{workdir}/{basename}.batch"
-    cmd_batch_path = f"{workdir}/{basename}_cmd.batch"
-    finished_prefix = f"{workdir}/.Finished_{basename}"
-    outputfile = f"{workdir}/logs/{basename}.log"
-    returned_batch_file, returned_log_file = create_batch_script_nonhpc(
-        cmd, workdir, basename
-    )
-    assert returned_batch_file == batch_path
-    assert returned_log_file == outputfile
-    mock_isdir.assert_called_once_with(f"{workdir}/logs")
-    mock_makedirs.assert_called_once_with(f"{workdir}/logs")
-    handle = mock_openfile()
-    expected_cmd = (
-        f"{cmd}; exit_code=$?; if [ $exit_code -ne 0 ]; then touch {finished_prefix}_1; "
-        f"else touch {finished_prefix}_0; fi"
-    )
-    expected_batch = (
-        f"export PYTHONUNBUFFERED=1\n"
-        f"nohup sh {cmd_batch_path}> {outputfile} 2>&1 &\n"
-        f"sleep 2\n rm -rf {batch_path}\n rm -rf {cmd_batch_path}"
-    )
-    handle.write.assert_has_calls(
-        [
-            call(expected_cmd),  # first write: cmd batch file
-            call(expected_batch),  # second write: launch batch file
-        ]
-    )
-    mock_system.assert_any_call(f"rm -rf {finished_prefix}*")
-    mock_system.assert_any_call(f"chmod a+rwx {batch_path}")
-    mock_system.assert_any_call(f"chmod a+rwx {cmd_batch_path}")
-
-
 def calc_sum(i):
-    time.sleep(5)
+    time.sleep(0.5)
     return np.nansum(i)
 
 
-def test_get_dask_client():
-    client, cluster, n, t, mem, dask_dir = get_dask_client(
-        n_jobs=10,
+def test_get_local_dask_cluster():
+    client, cluster, dask_dir = get_local_dask_cluster(
+        1,
         dask_dir="/tmp/test_dask",
-        only_cal=False,
     )
     assert client is not None
-    assert n >= 1
+    cluster.adapt(minimum=2, maximum=5)
     expected_results = [np.nansum(i) for i in range(10)]
     tasks = [delayed(calc_sum)(i) for i in range(10)]
     results = compute(*tasks)
@@ -169,20 +119,12 @@ def test_get_dask_client():
     assert results == expected_results
     assert os.path.exists(dask_dir)
     os.system(f"rm -rf {dask_dir}")
-    assert os.path.exists(dask_dir)==False
+    assert os.path.exists(dask_dir) == False
+
 
 def dummy_task():
     time.sleep(2)
     return sum(range(1000000))
-
-
-def test_run_limited_memory_task():
-    task = delayed(dummy_task)()
-    mem_gb = run_limited_memory_task(task, dask_dir="/tmp", timeout=5)
-    print(f"Memory used: {mem_gb} GB")
-    assert mem_gb is not None
-    assert isinstance(mem_gb, float)
-    assert mem_gb > 0
 
 
 @pytest.mark.parametrize(
@@ -227,97 +169,3 @@ def test_generate_activate_env(env_type, mock_env, expected_line):
 
             assert expected_line in content
             assert os.access(result, os.X_OK)
-
-
-@patch("meersolar.utils.proc_manage_utils.generate_activate_env")
-@patch("meersolar.utils.proc_manage_utils.os.makedirs")
-@patch(
-    "meersolar.utils.proc_manage_utils.os.path.exists", side_effect=lambda path: False
-)
-@patch("meersolar.utils.proc_manage_utils.os.system")
-@patch("meersolar.utils.proc_manage_utils.os.remove")
-@patch("meersolar.utils.proc_manage_utils.os.chmod")
-@patch("meersolar.utils.proc_manage_utils.open", new_callable=mock_open)
-def test_create_batch_script_slurm(
-    mock_open_func,
-    mock_chmod,
-    mock_remove,
-    mock_system,
-    mock_exists,
-    mock_makedirs,
-    mock_generate_env,
-):
-    # Inputs
-    cmd = "python script.py"
-    workdir = "/mock/work"
-    basename = "testjob"
-    partition = "debug"
-
-    # Expected paths
-    batch_file_expected = f"{workdir}/{basename}.sbatch"
-    log_file_expected = f"{workdir}/logs/{basename}.log"
-
-    # Call function
-    batch_file, log_file = create_batch_script_slurm(
-        cmd=cmd,
-        workdir=workdir,
-        basename=basename,
-        partition=partition,
-        nodes=1,
-        cpus_per_task=2,
-        mem="8G",
-        time="00:30:00",
-        account="astro",
-        dependency="afterok:12345",
-        write_logfile=True,
-    )
-
-    # Output path checks
-    assert batch_file == batch_file_expected
-    assert log_file == log_file_expected
-
-    # Check file write calls
-    written_files = [call_args[0][0] for call_args in mock_open_func.call_args_list]
-    assert f"{workdir}/{basename}_cmd.batch" in written_files
-    assert f"{workdir}/{basename}.sbatch" in written_files
-
-    # Directory creation
-    mock_makedirs.assert_any_call(workdir, exist_ok=True)
-    mock_makedirs.assert_any_call(f"{workdir}/logs", exist_ok=True)
-
-    # Status cleanup
-    mock_system.assert_called_with(f"rm -rf {workdir}/.Finished_{basename}*")
-
-    # Env script
-    mock_generate_env.assert_called_once_with(outfile=f"{workdir}/activate_env.sh")
-
-    # chmod
-    mock_chmod.assert_any_call(f"{workdir}/{basename}_cmd.batch", 0o777)
-    mock_chmod.assert_any_call(f"{workdir}/{basename}.sbatch", 0o777)
-    
-@pytest.mark.parametrize(
-    "workers_sequence, min_worker, timeout, should_raise",
-    [
-        # ✅ workers appear at second iteration
-        ([{}, {"w1": {}, "w2": {}}], 2, 5, False),
-
-        # ❌ never appears
-        ([{}] * 3, 1, 3, True),
-    ]
-)
-def test_wait_for_dask_workers(workers_sequence, min_worker, timeout, should_raise):
-    mock_client = MagicMock()
-    # Prevent StopIteration by repeating last element
-    safe_side_effect = chain(
-        [{"workers": ws} for ws in workers_sequence],
-        repeat({"workers": workers_sequence[-1] if workers_sequence else {}}),
-    )
-    mock_client.scheduler_info = MagicMock(side_effect=safe_side_effect)
-
-    with patch("time.sleep", return_value=None):
-        if should_raise:
-            with pytest.raises(TimeoutError, match="No Dask workers connected within timeout."):
-                wait_for_dask_workers(mock_client, min_worker=min_worker, timeout=timeout)
-        else:
-            wait_for_dask_workers(mock_client, min_worker=min_worker, timeout=timeout)
-

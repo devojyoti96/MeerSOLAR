@@ -137,7 +137,9 @@ def test_split_noise_diode_scans(
     mock_ms.getdata.return_value = {"data": np.array([10.0])}
     mock_mstool.return_value = mock_ms
     noise_on_ms, noise_off_ms = split_noise_diode_scans(
-        msname="dummy.ms", field="0", scan="3", dry_run=False
+        msname="dummy.ms",
+        field="0",
+        scan="3",
     )
     assert "noise_on.ms" in noise_on_ms or "noise_off.ms" in noise_off_ms
     assert mock_split.call_count == 2  # Called for even and odd splits

@@ -505,7 +505,6 @@ def split_noise_diode_scans(
     scan="",
     datacolumn="data",
     n_threads=-1,
-    dry_run=True,
 ):
     """
     Split noise diode on and off timestamps into two seperate measurement sets
@@ -533,10 +532,6 @@ def split_noise_diode_scans(
     limit_threads(n_threads=n_threads)
     from casatasks import split
 
-    if dry_run:
-        process = psutil.Process(os.getpid())
-        mem = round(process.memory_info().rss / 1024**3, 2)  # in GB
-        return mem
     msname = msname.rstrip("/")
     mspath = os.path.dirname(os.path.abspath(msname))
     os.chdir(mspath)

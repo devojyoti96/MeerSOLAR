@@ -32,31 +32,31 @@ def test_correct_missing_col_subms(dummy_submsname):
     correct_missing_col_subms(dummy_submsname)
 
 
-@patch("meersolar.utils.casatasks.psutil.Process")
-@patch("meersolar.utils.casatasks.os.path.exists", return_value=False)
-@patch("meersolar.utils.casatasks.os.system")
-@patch("meersolar.utils.casatasks.limit_threads")
-@patch("meersolar.utils.casatasks.suppress_casa_output")
-@patch("casatasks.mstransform")
-@patch("casatasks.initweights")
 @patch("casatasks.flagdata")
+@patch("casatasks.initweights")
+@patch("casatasks.mstransform")
+@patch("meersolar.utils.casatasks.suppress_casa_output")
+@patch("meersolar.utils.casatasks.limit_threads")
+@patch("meersolar.utils.casatasks.os.system")
+@patch("meersolar.utils.casatasks.os.path.exists", return_value=False)
+@patch("meersolar.utils.casatasks.psutil.Process")
+@patch("meersolar.utils.casatasks.msmetadata")
 def test_single_mstransform(
-    mock_flagdata,
-    mock_initweights,
-    mock_mstransform,
-    mock_suppress,
-    mock_limit_threads,
-    mock_system,
-    mock_exists,
+    mock_msmetadata,
     mock_psutil_process,
+    mock_exists,
+    mock_system,
+    mock_limit_threads,
+    mock_suppress,
+    mock_mstransform,
+    mock_initweights,
+    mock_flagdata,
 ):
-    # Mock memory return for dry_run
-    mock_process = MagicMock()
-    mock_process.memory_info.return_value.rss = 3 * 1024**3  # 3 GB
-    mock_psutil_process.return_value = mock_process
+    # Setup mock for msmetadata
+    mock_msmd = MagicMock()
+    mock_msmd.fieldsforscan.return_value = [0]
+    mock_msmetadata.return_value = mock_msmd
 
-    # Run only dry_run path
-    mem = single_mstransform(msname="mock.ms", dry_run=True)
-
-    assert isinstance(mem, float)
-    assert mem == 3.0
+    # Call the function and check return
+    outputms = single_mstransform(msname="mock.ms", outputms="mock_output.ms", scan="1")
+    assert outputms == "mock_output.ms"

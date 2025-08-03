@@ -324,7 +324,7 @@ def check_datacolumn_valid(msname, datacolumn="DATA"):
         return False
 
 
-def get_bad_ants(msname="", fieldnames=[], n_threads=-1, dry_run=False):
+def get_bad_ants(msname="", fieldnames=[], n_threads=-1):
     """
     Get bad antennas
 
@@ -348,10 +348,6 @@ def get_bad_ants(msname="", fieldnames=[], n_threads=-1, dry_run=False):
     if len(fieldnames) == 0:
         print("Provide field names.")
         return [], ""
-    if dry_run:
-        process = psutil.Process(os.getpid())
-        mem = round(process.memory_info().rss / 1024**3, 2)  # in GB
-        return mem
     msname = msname.rstrip("/")
     mspath = os.path.dirname(os.path.abspath(msname))
     os.chdir(mspath)
@@ -441,7 +437,7 @@ def get_common_spw(spw1, spw2):
     return to_str(to_set(spw1) & to_set(spw2))
 
 
-def scans_in_timerange(msname="", timerange="", dry_run=False):
+def scans_in_timerange(msname="", timerange=""):
     """
     Get scans in the given timerange
 
@@ -459,10 +455,6 @@ def scans_in_timerange(msname="", timerange="", dry_run=False):
     """
     from casatools import ms, quanta
 
-    if dry_run:
-        process = psutil.Process(os.getpid())
-        mem = round(process.memory_info().rss / 1024**3, 2)  # in GB
-        return mem
     msname = msname.rstrip("/")
     mspath = os.path.dirname(os.path.abspath(msname))
     os.chdir(mspath)
@@ -511,7 +503,11 @@ def scans_in_timerange(msname="", timerange="", dry_run=False):
     return valid_scans
 
 
-def get_refant(msname="", field="", n_threads=-1, dry_run=False):
+def get_refant(
+    msname="",
+    field="",
+    n_threads=-1,
+):
     """
     Get reference antenna
 
@@ -530,10 +526,6 @@ def get_refant(msname="", field="", n_threads=-1, dry_run=False):
     limit_threads(n_threads=n_threads)
     from casatasks import visstat, casalog
 
-    if dry_run:
-        process = psutil.Process(os.getpid())
-        mem = round(process.memory_info().rss / 1024**3, 2)  # in GB
-        return mem
     msname = msname.rstrip("/")
     mspath = os.path.dirname(os.path.abspath(msname))
     os.chdir(mspath)

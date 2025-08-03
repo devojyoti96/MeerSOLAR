@@ -189,7 +189,6 @@ def delaycal(
     gaintable=[],
     gainfield=[],
     interp=[],
-    dry_run=False,
 ):
     """
     General delay calibration using CASA, not assuming any point source
@@ -228,10 +227,6 @@ def delaycal(
     """
     from casatasks import bandpass, gaincal, rerefant
 
-    if dry_run:
-        process = psutil.Process(os.getpid())
-        mem = round(process.memory_info().rss / 1024**3, 2)  # in GB
-        return mem
     try:
         if refant == "":
             print("Provide a reference antenna.")
