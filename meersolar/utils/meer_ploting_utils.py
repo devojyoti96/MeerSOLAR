@@ -800,7 +800,6 @@ def make_ds_file_per_scan(msname, save_file, scan, datacolumn):
         try:
             all_data = []
             for ant in range(5):
-                print(f"Extracting data for antenna :{ant}, scan: {scan}")
                 mstool.open(msname)
                 mstool.selectpolarization(["I"])
                 mstool.select(
@@ -825,9 +824,6 @@ def make_ds_file_per_scan(msname, save_file, scan, datacolumn):
                 for i in range(5):
                     for j in range(5):
                         if i != j:
-                            print(
-                                f"Extracting data for antennas :{i} and {j}, scan: {scan}"
-                            )
                             mstool.open(msname)
                             mstool.selectpolarization(["I"])
                             mstool.select(
