@@ -4,15 +4,8 @@ import traceback
 import glob
 import sys
 import os
-from casatasks import casalog
 from casatasks import listobs
 from meersolar.utils import get_cachedir, drop_cache, SmartDefaultsHelpFormatter
-
-try:
-    casalogfile = casalog.logfile()
-    os.system("rm -rf " + casalogfile)
-except BaseException:
-    pass
 
 
 def show_job_status(clean_old_jobs=False):

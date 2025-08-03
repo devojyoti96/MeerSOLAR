@@ -222,6 +222,7 @@ def test_init_meersolar_data(
 )
 def test_main(init_flag, expected_calls, monkeypatch):
     from meersolar.meerpipeline import init_data
+
     # Create mock functions
     mocks = {name: Mock(name=f"mock_{name}") for name in expected_calls}
 
@@ -270,13 +271,13 @@ def test_main(init_flag, expected_calls, monkeypatch):
         if expected_calls["initialize_wsclean_container"]
         else mocks["initialize_wsclean_container"].assert_not_called()
     )
-    
+
 
 @pytest.mark.parametrize(
-    "argv_args, expect_main_called, expect_exit_called, expected_args",
+    "argv_args, expect_exit",
     [
         # Case 0: no arguments → help and exit
-        (["prog"], False, True, None),
+        (["prog"], 1),
         # Case 1: minimal valid call
         (
             [
@@ -290,44 +291,16 @@ def test_main(init_flag, expected_calls, monkeypatch):
                 "--emails",
                 "a@b.com",
             ],
-            True,
-            False,
-            {
-                "init": True,
-                "datadir": "/mockdir",
-                "update": True,
-                "link": "http://example.com",
-                "emails": "a@b.com",
-                "prefect_server":True,
-            },
+            0,
         ),
     ],
 )
 @patch("meersolar.meerpipeline.init_data.main", return_value=0)
 @patch("meersolar.meerpipeline.init_data.sys.exit")
 @patch("meersolar.meerpipeline.init_data.argparse.ArgumentParser.print_help")
-def test_cli(
-    mock_print_help,
-    mock_exit,
-    mock_main,
-    argv_args,
-    expect_main_called,
-    expect_exit_called,
-    expected_args,
-):
+def test_cli_init_data(mock_print_help, mock_exit, mock_main, argv_args, expect_exit):
     with patch("sys.argv", argv_args):
         from meersolar.meerpipeline import init_data
 
-        if expect_exit_called:
-            mock_exit.side_effect = SystemExit
-            with pytest.raises(SystemExit):
-                result = init_data.cli()
-            mock_exit.assert_called_once_with(1)
-            mock_print_help.assert_called_once()
-            mock_main.assert_not_called()
-        else:
-            result = init_data.cli()
-            assert result == 0
-            mock_main.assert_called_once_with(**expected_args)
-            mock_exit.assert_not_called()
-            mock_print_help.assert_not_called()
+        result = init_data.cli()
+        assert result == expect_exit

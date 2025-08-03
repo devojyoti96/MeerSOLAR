@@ -10,11 +10,8 @@ from meersolar.meerpipeline.do_apply_selfcal import *
     "meersolar.meerpipeline.do_apply_selfcal.check_datacolumn_valid", return_value=True
 )
 @patch("meersolar.meerpipeline.do_apply_selfcal.msmetadata")
-@patch("meersolar.meerpipeline.do_apply_selfcal.get_dask_client")
+@patch("meersolar.meerpipeline.do_apply_selfcal.get_local_dask_cluster")
 @patch("meersolar.meerpipeline.do_apply_selfcal.get_column_size", return_value=1.0)
-@patch(
-    "meersolar.meerpipeline.do_apply_selfcal.run_limited_memory_task", return_value=4.0
-)
 @patch("meersolar.meerpipeline.do_apply_selfcal.delayed")
 @patch(
     "meersolar.meerpipeline.do_apply_selfcal.glob.glob",
@@ -24,13 +21,14 @@ from meersolar.meerpipeline.do_apply_selfcal import *
     "meersolar.meerpipeline.do_apply_selfcal.os.path.basename",
     side_effect=lambda x: x.split("/")[-1],
 )
-@patch("meersolar.meerpipeline.do_apply_selfcal.wait_for_dask_workers",return_value=True)
+@patch(
+    "meersolar.meerpipeline.do_apply_selfcal.wait_for_dask_workers", return_value=True
+)
 def test_run_all_applysol(
     mock_wait,
     mock_basename,
     mock_glob,
     mock_delayed,
-    mock_run_limited,
     mock_get_column_size,
     mock_get_dask_client,
     mock_msmetadata,
@@ -49,10 +47,18 @@ def test_run_all_applysol(
 
     mock_dask_client = MagicMock()
     mock_dask_cluster = MagicMock()
-    mock_get_dask_client.return_value = (mock_dask_client, mock_dask_cluster, 1, 1, 4.0, "/mock/dask_dir")
+    mock_get_dask_client.return_value = (
+        mock_dask_client,
+        mock_dask_cluster,
+        1,
+        1,
+        4.0,
+        "/mock/dask_dir",
+    )
 
     result = run_all_applysol(
-        mslist=["mock.ms"],
+        ["mock.ms"],
+        mock_dask_client,
         workdir="/tmp/work",
         caldir="/tmp/caldir",
         overwrite_datacolumn=True,
@@ -60,7 +66,6 @@ def test_run_all_applysol(
         force_apply=True,
         cpu_frac=0.8,
         mem_frac=0.8,
-        dask_addr=None,
     )
 
     assert result == 0
@@ -118,6 +123,7 @@ def test_main_applysol(
     mock_exists.side_effect = exists_side_effect
     mock_run_all.return_value = 0 if run_ok else 1
 
+    dask_client = MagicMock()
     msg = main(
         mslist=mslist_str,
         workdir=workdir,
@@ -130,7 +136,7 @@ def test_main_applysol(
         mem_frac=0.5,
         logfile=None,
         jobid=42,
-        dask_addr=None,
+        dask_client=dask_client,
     )
 
     assert msg == expected_msg
@@ -163,15 +169,11 @@ def test_main_applysol(
     ],
 )
 @patch("meersolar.meerpipeline.do_apply_selfcal.main", return_value=0)
-def test_cli_applysol(mock_main, argv, should_exit):
-    with patch.object(sys, "argv", argv):
-        if should_exit:
-            import pytest
+@patch("meersolar.meerpipeline.do_apply_selfcal.sys.exit")
+@patch("meersolar.meerpipeline.do_apply_selfcal.argparse.ArgumentParser.print_help")
+def test_cli_apply_selfcal(mock_print_help, mock_exit, mock_main, argv, should_exit):
+    with patch("sys.argv", argv):
+        from meersolar.meerpipeline import do_apply_selfcal
 
-            with pytest.raises(SystemExit) as e:
-                cli()
-            assert e.value.code == 1
-        else:
-            result = cli()
-            assert result == 0
-            assert mock_main.called
+        result = do_apply_selfcal.cli()
+        assert result == should_exit

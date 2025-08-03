@@ -10,23 +10,17 @@ import os
 from casatasks import casalog
 from casatools import msmetadata
 from dask import delayed
-from dask.distributed import Client
 from meersolar.utils import *
 from meersolar.meerpipeline.do_apply_basiccal import applysol
 
-logging.getLogger("distributed").setLevel(logging.WARNING)
-
-try:
-    casalogfile = casalog.logfile()
-    os.system("rm -rf " + casalogfile)
-except BaseException:
-    pass
-
 datadir = get_datadir()
+logging.getLogger("distributed").setLevel(logging.ERROR)
+logging.getLogger("tornado.application").setLevel(logging.CRITICAL)
 
 
 def run_all_applysol(
     mslist,
+    dask_client,
     workdir,
     caldir,
     overwrite_datacolumn=False,
@@ -34,7 +28,6 @@ def run_all_applysol(
     force_apply=False,
     cpu_frac=0.8,
     mem_frac=0.8,
-    dask_addr=None,
 ):
     """
     Apply self-calibrator solutions on all target scans
@@ -43,6 +36,8 @@ def run_all_applysol(
     ----------
     mslist : str
         Measurement set list
+    dask_client : dask.client
+        Dask client
     workdir : str
         Working directory
     caldir : str
@@ -57,8 +52,6 @@ def run_all_applysol(
         CPU fraction to use
     mem_frac : float, optional
         Memory fraction to use
-    dask_addr : str, optional
-        Dask scheduler address
 
     Returns
     --------
@@ -67,6 +60,12 @@ def run_all_applysol(
     """
     start_time = time.time()
     try:
+        if cpu_frac > 0.8:
+            cpu_frac = 0.8
+        total_cpu = int(psutil.cpu_count() * cpu_frac)
+        if mem_frac > 0.8:
+            mem_frac = 0.8
+        total_mem = (psutil.virtual_memory().available * mem_frac) / (1024**3)  # In GB
         os.chdir(workdir)
         mslist = np.unique(mslist).tolist()
         parang = False
@@ -102,34 +101,11 @@ def run_all_applysol(
         # Applycal jobs
         ####################################
         print(f"Total ms list: {len(mslist)}")
-        ms_size_list = [get_column_size(ms) for ms in mslist]
-        mem_limit = max(ms_size_list)
-        if dask_addr is None:
-            dask_client, dask_cluster, n_jobs, n_threads, mem_limit, dask_dir = (
-                get_dask_client(
-                    len(mslist),
-                    dask_dir=workdir,
-                    cpu_frac=cpu_frac,
-                    mem_frac=mem_frac,
-                    min_mem_per_job=mem_limit,
-                )
-            )
-        else:
-            _, _, n_jobs, n_threads, mem_limit, dask_dir = (
-                get_dask_client(
-                    len(mslist),
-                    dask_dir=workdir,
-                    cpu_frac=cpu_frac,
-                    mem_frac=mem_frac,
-                    min_mem_per_job=mem_limit,
-                    only_cal=True,
-                )
-            )
-            os.system(f"rm -rf {dask_dir}")
-            dask_client = Client(address=dask_addr)
-        wait_for_dask_workers(dask_client,min_worker=1,timeout=60)
+        wait_for_dask_workers(dask_client, min_worker=2, timeout=60)
         tasks = []
         msmd = msmetadata()
+        njobs = min(total_cpu, len(mslist))
+        mem_limit = total_mem / njobs
         for ms in mslist:
             msmd.open(ms)
             ms_scan = msmd.scannumbers()[0]
@@ -147,7 +123,7 @@ def run_all_applysol(
                     overwrite_datacolumn=overwrite_datacolumn,
                     applymode=applymode,
                     interp=["linear,linearflag"],
-                    n_threads=n_threads,
+                    n_threads=1,
                     parang=parang,
                     memory_limit=mem_limit,
                     force_apply=force_apply,
@@ -156,10 +132,6 @@ def run_all_applysol(
             )
         futures = dask_client.compute(tasks)
         results = list(dask_client.gather(futures))
-        dask_client.close()
-        if dask_addr is None:
-            dask_cluster.close()
-            os.system(f"rm -rf {dask_dir}")
         if np.nansum(results) == 0:
             print("##################")
             print(
@@ -200,7 +172,7 @@ def main(
     mem_frac=0.8,
     logfile=None,
     jobid=0,
-    dask_addr=None,
+    dask_client=None,
 ):
     """
     Apply calibration solutions to a list of measurement sets.
@@ -229,8 +201,8 @@ def main(
         Path to the logfile for saving logs. If None, logging to file is disabled. Default is None.
     jobid : int, optional
         Job ID for PID tracking and logging. Default is 0.
-    dask_addr : str, optional
-        Dask scheduler address
+    dask_client : dask.client, optional
+        Dask client address
 
     Returns
     -------
@@ -266,7 +238,23 @@ def main(
             )
     if observer == None:
         print("Remote link or jobname is blank. Not transmiting to remote logger.")
-    ###########
+
+    dask_cluster = None
+    if dask_client is None:
+        dask_client, dask_cluster, dask_dir = get_local_dask_cluster(
+            1,
+            dask_dir=workdir,
+            cpu_frac=cpu_frac,
+            mem_frac=mem_frac,
+        )
+        nworker = max(2, int(psutil.cpu_count() * cpu_frac))
+        usable_mem = (mem_frac * psutil.virtual_memory().total) / 1024**3
+        per_job_mem = usable_mem / nworker
+        if per_job_mem < 2:
+            nworker = max(2, int(usable_mem / 2))
+        print(f"Maximum dask workder: {nworker}")
+        dask_cluster.adapt(minimum=2, maximum=nworker)  # 2 worker will be required
+
     try:
         print("\n###################################")
         print("Starting applying solutions...")
@@ -278,6 +266,7 @@ def main(
         else:
             msg = run_all_applysol(
                 mslist,
+                dask_client,
                 workdir,
                 caldir,
                 overwrite_datacolumn=overwrite_datacolumn,
@@ -285,7 +274,6 @@ def main(
                 force_apply=force_apply,
                 cpu_frac=cpu_frac,
                 mem_frac=mem_frac,
-                dask_addr=dask_addr,
             )
     except Exception:
         traceback.print_exc()
@@ -296,6 +284,10 @@ def main(
             drop_cache(ms)
         drop_cache(workdir)
         clean_shutdown(observer)
+        if dask_cluster is not None:
+            dask_client.close()
+            dask_cluster.close()
+            os.system(f"rm -rf {dask_dir}")
     return msg
 
 
@@ -372,7 +364,7 @@ def cli():
 
     if len(sys.argv) == 1:
         parser.print_help(sys.stderr)
-        sys.exit(1)
+        return 1
 
     args = parser.parse_args()
 

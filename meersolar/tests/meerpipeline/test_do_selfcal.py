@@ -71,7 +71,9 @@ def test_do_selfcal(
         ]
     )
     status, caltable = do_selfcal(
-        msname="mock.ms", workdir="/tmp", selfcaldir="/tmp", dry_run=False
+        msname="mock.ms",
+        workdir="/tmp",
+        selfcaldir="/tmp",
     )
     assert status == 0
     assert caltable in ["g0.cal", "g1.cal", "g2.cal"]
@@ -82,7 +84,9 @@ def test_do_selfcal(
         (1, "", 0, 0, "", "", ""),
     ]
     status, caltable = do_selfcal(
-        msname="mock.ms", workdir="/tmp", selfcaldir="/tmp", dry_run=False
+        msname="mock.ms",
+        workdir="/tmp",
+        selfcaldir="/tmp",
     )
     assert status == 1
     assert caltable == []
@@ -92,18 +96,12 @@ def test_do_selfcal(
         (2, "", 0, 0, "", "", ""),
     ]
     status, caltable = do_selfcal(
-        msname="mock.ms", workdir="/tmp", selfcaldir="/tmp", dry_run=False
+        msname="mock.ms",
+        workdir="/tmp",
+        selfcaldir="/tmp",
     )
     assert status == 2 or status == 1
     assert caltable == []
-
-    # --- Case 4: dry run
-    import psutil, os
-
-    expected_mem = round(psutil.Process(os.getpid()).memory_info().rss / 1024**3, 2)
-    mem = do_selfcal(msname="mock.ms", workdir="/tmp", selfcaldir="/tmp", dry_run=True)
-    assert isinstance(mem, float)
-    assert abs(mem - expected_mem) < 1.0  # within 1 GB
 
     # --- Case 5: Dynamic range drop triggers fallback to previous gaintable
     mock_intensity_selfcal.side_effect = cycle(
@@ -114,7 +112,9 @@ def test_do_selfcal(
         ]
     )
     status, caltable = do_selfcal(
-        msname="mock.ms", workdir="/tmp", selfcaldir="/tmp", dry_run=False
+        msname="mock.ms",
+        workdir="/tmp",
+        selfcaldir="/tmp",
     )
     assert status == 0
     assert caltable in ["g1.cal", "g2.cal"]  # depends on exact logic
@@ -135,7 +135,10 @@ def test_do_selfcal(
         ]
     )
     status, caltable = do_selfcal(
-        msname="mock.ms", workdir="/tmp", selfcaldir="/tmp", max_iter=5, dry_run=False
+        msname="mock.ms",
+        workdir="/tmp",
+        selfcaldir="/tmp",
+        max_iter=5,
     )
     assert status == 0
     assert caltable.startswith("g")
@@ -143,7 +146,9 @@ def test_do_selfcal(
     # --- Case 7: Exception path
     mock_intensity_selfcal.side_effect = Exception("simulated failure")
     status, caltable = do_selfcal(
-        msname="mock.ms", workdir="/tmp", selfcaldir="/tmp", dry_run=False
+        msname="mock.ms",
+        workdir="/tmp",
+        selfcaldir="/tmp",
     )
     assert status == 1
     assert caltable == []
@@ -168,12 +173,11 @@ def test_do_selfcal(
 @patch("meersolar.meerpipeline.do_selfcal.table")
 @patch("meersolar.meerpipeline.do_selfcal.check_udocker_container")
 @patch("meersolar.meerpipeline.do_selfcal.initialize_wsclean_container")
-@patch("meersolar.meerpipeline.do_selfcal.run_limited_memory_task", return_value=4)
 @patch("meersolar.meerpipeline.do_selfcal.check_datacolumn_valid")
-@patch("meersolar.meerpipeline.do_selfcal.get_dask_client")
+@patch("meersolar.meerpipeline.do_selfcal.get_local_dask_cluster")
 @patch(
     "meersolar.meerpipeline.do_selfcal.do_selfcal",
-    side_effect=lambda *args, **kwargs: 1.5 if kwargs.get("dry_run") else (0, "mock.gcal"),
+    side_effect=lambda *args, **kwargs: (0, "mock.gcal"),
 )
 @patch("meersolar.meerpipeline.do_selfcal.drop_cache")
 @patch("meersolar.meerpipeline.do_selfcal.clean_shutdown")
@@ -185,7 +189,7 @@ def test_do_selfcal(
     "meersolar.meerpipeline.do_selfcal.resource.getrlimit", return_value=(1024, 4096)
 )
 @patch("meersolar.meerpipeline.do_selfcal.resource.setrlimit")
-@patch("meersolar.meerpipeline.do_selfcal.wait_for_dask_workers",return_value=True)
+@patch("meersolar.meerpipeline.do_selfcal.wait_for_dask_workers", return_value=True)
 def test_main_selfcal(
     mock_wait,
     mock_setrlimit,
@@ -199,7 +203,6 @@ def test_main_selfcal(
     mock_do_selfcal,
     mock_get_dask_client,
     mock_check_datacolumn,
-    mock_run_limited_memory_task,
     mock_init_container,
     mock_check_container,
     mock_table,
@@ -268,7 +271,7 @@ def test_main_selfcal(
     dask_client.compute.return_value = [MagicMock()] * len(mslist)
     dask_client.gather.return_value = [(0, "mock.gcal")] * len(mslist)
     dask_cluster = MagicMock()
-    mock_get_dask_client.return_value = (dask_client, dask_cluster, len(mslist), 1, 2, "/mock/dask_dir")
+    mock_get_dask_client.return_value = (dask_client, dask_cluster, "/mock/dask_dir")
 
     # Run main
     msg = main(
@@ -295,7 +298,7 @@ def test_main_selfcal(
         mem_frac=0.6,
         jobid=42,
         start_remote_log=False,
-        dask_addr=None,
+        dask_client=dask_client,
     )
 
     assert msg == expected_msg
@@ -339,15 +342,11 @@ def test_main_selfcal(
     ],
 )
 @patch("meersolar.meerpipeline.do_selfcal.main", return_value=0)
-def test_cli_selfcal(mock_main, argv, should_exit):
-    with patch.object(sys, "argv", argv):
-        if should_exit:
-            import pytest
+@patch("meersolar.meerpipeline.do_selfcal.sys.exit")
+@patch("meersolar.meerpipeline.do_selfcal.argparse.ArgumentParser.print_help")
+def test_cli_selfcal(mock_print_help, mock_exit, mock_main, argv, should_exit):
+    with patch("sys.argv", argv):
+        from meersolar.meerpipeline import do_selfcal
 
-            with pytest.raises(SystemExit) as e:
-                cli()
-            assert e.value.code == 1
-        else:
-            result = cli()
-            assert result == 0
-            assert mock_main.called
+        result = do_selfcal.cli()
+        assert result == should_exit

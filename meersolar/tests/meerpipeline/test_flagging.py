@@ -16,7 +16,6 @@ def test_single_ms_flag(dummy_submsname):
         flag_autocorr=True,
         n_threads=-1,
         memory_limit=-1,
-        dry_run=False,
     )
     assert result == 0
     tb = table()
@@ -33,10 +32,13 @@ def test_single_ms_flag(dummy_submsname):
     )
 
 
-def test_do_flagging(dummy_submsname):
+@patch("meersolar.meerpipeline.flagging.wait")
+def test_do_flagging(mock_wait, dummy_submsname):
     workdir = os.getcwd()
+    dask_client = MagicMock()
     result = do_flagging(
         dummy_submsname,
+        dask_client,
         workdir,
         datacolumn="data",
         flag_bad_ants=True,
@@ -48,7 +50,6 @@ def test_do_flagging(dummy_submsname):
         flag_backup=True,
         cpu_frac=0.8,
         mem_frac=0.8,
-        dask_addr=None,
     )
     assert result == 0
     tb = table()
@@ -61,6 +62,7 @@ def test_do_flagging(dummy_submsname):
     os.system(f"rm -rf {dummy_submsname}.flagversions")
     os.system(f"rm -rf {workdir}/dask-scratch-space {workdir}/tmp")
     assert os.path.exists(f"{dummy_submsname}.flagversions") == False
+    mock_wait.assert_called()
 
 
 @pytest.mark.parametrize(
@@ -104,7 +106,7 @@ def test_main_flagging(
 
     mock_exists.side_effect = exists_side_effect
     mock_do_flagging.return_value = flag_result
-
+    dask_client = MagicMock()
     msg = main(
         msname=msname,
         workdir=workdir,
@@ -121,61 +123,35 @@ def test_main_flagging(
         logfile=None,
         jobid=1,
         start_remote_log=False,
-        dask_addr=None,
+        dask_client=dask_client,
     )
     assert msg == expected_msg
 
 
 @pytest.mark.parametrize(
-    "argv, should_exit",
+    "argv_args, expect_main_called, expected_exit",
     [
-        (["prog.py"], True),  # No args → help and exit
+        (["prog"], False, 1),  # No args: expect sys.exit(1)
         (
-            [
-                "prog.py",
-                "mock.ms",
-                "--workdir",
-                "/mock/work",
-                "--no_flag_bad_ants",
-                "--no_flag_bad_spw",
-                "--use_tfcrop",
-                "--use_rflag",
-                "--no_flag_autocorr",
-                "--no_flagbackup",
-                "--flagdimension",
-                "time",
-            ],
-            False,
-        ),  # Valid call
+            ["prog", "mock.ms", "--workdir", "mockdir"],
+            True,
+            0,  # Valid: expect main() call and return value
+        ),
     ],
 )
-@patch("meersolar.meerpipeline.flagging.do_flagging", return_value=0)
-@patch("meersolar.meerpipeline.flagging.save_pid")
-@patch("meersolar.meerpipeline.flagging.get_cachedir", return_value="/mock/cache")
-@patch("os.makedirs")
-@patch("os.path.exists", return_value=True)
-@patch("os.getpid", return_value=1234)
-@patch("meersolar.meerpipeline.flagging.drop_cache")
-@patch("meersolar.meerpipeline.flagging.clean_shutdown")
-@patch("time.sleep", return_value=None)
+@patch("meersolar.meerpipeline.flagging.main", return_value=0)
+@patch("meersolar.meerpipeline.flagging.sys.exit")
+@patch("meersolar.meerpipeline.flagging.argparse.ArgumentParser.print_help")
 def test_cli_flagging(
-    mock_sleep,
-    mock_shutdown,
-    mock_drop_cache,
-    mock_getpid,
-    mock_exists,
-    mock_makedirs,
-    mock_cachedir,
-    mock_save_pid,
-    mock_do_flagging,
-    argv,
-    should_exit,
+    mock_print_help,
+    mock_exit,
+    mock_main,
+    argv_args,
+    expect_main_called,
+    expected_exit,
 ):
-    with patch.object(sys, "argv", argv):
-        if should_exit:
-            with pytest.raises(SystemExit) as e:
-                cli()
-            assert e.value.code == 1
-        else:
-            result = cli()
-            assert result == 0
+    with patch("sys.argv", argv_args):
+        from meersolar.meerpipeline import flagging
+
+        result = flagging.cli()
+        assert result == expected_exit

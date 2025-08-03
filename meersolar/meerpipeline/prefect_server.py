@@ -2,13 +2,16 @@ import argparse
 import sys
 from meersolar.utils import *
 
+
 def cli():
     parser = argparse.ArgumentParser(description="Manage a local Prefect server.")
     subparsers = parser.add_subparsers(dest="command", help="Sub-command help")
     # Start
     start_parser = subparsers.add_parser("start", help="Start the Prefect server")
     start_parser.add_argument(
-        "--show-config", action="store_true", help="Display Prefect config after startup"
+        "--show-config",
+        action="store_true",
+        help="Display Prefect config after startup",
     )
     # Stop
     subparsers.add_parser("stop", help="Stop the Prefect server")
@@ -17,11 +20,13 @@ def cli():
     subparsers.add_parser("status", help="Check if the Prefect server is running")
 
     # Env
-    subparsers.add_parser("save_env", help="Save the Prefect environment to a .env file")
+    subparsers.add_parser(
+        "save_env", help="Save the Prefect environment to a .env file"
+    )
 
     # Config
     subparsers.add_parser("config", help="Print the current Prefect config")
-    
+
     if len(sys.argv) == 1:
         parser.print_help(sys.stderr)
         sys.exit(1)
@@ -33,7 +38,8 @@ def cli():
         stop_prefect_server()
     elif args.command == "status":
         if prefect_server_status():
-            print(f"🟢 Prefect server is running at {SERVER_DASHBOARD}")
+            config = prefect_config()
+            print(f"🟢 Prefect server is running at {config['SERVER_DASHBOARD']}")
         else:
             print("🔴 Prefect server is not running.")
     elif args.command == "save_env":
@@ -43,5 +49,6 @@ def cli():
     else:
         parser.print_help()
 
-if __name__=="__main__":
+
+if __name__ == "__main__":
     cli()

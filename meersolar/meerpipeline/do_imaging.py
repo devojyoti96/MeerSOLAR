@@ -10,20 +10,12 @@ import time
 import glob
 import sys
 import os
-from casatasks import casalog
 from casatools import msmetadata
 from dask import delayed
-from dask.distributed import Client
 from meersolar.utils import *
 
-logging.getLogger("distributed").setLevel(logging.WARNING)
-
-try:
-    logfile = casalog.logfile()
-    os.system("rm -rf " + logfile)
-except BaseException:
-    pass
-
+logging.getLogger("distributed").setLevel(logging.ERROR)
+logging.getLogger("tornado.application").setLevel(logging.CRITICAL)
 datadir = get_datadir()
 
 
@@ -55,7 +47,6 @@ def perform_imaging(
     make_overlay=True,
     make_plots=True,
     logfile="imaging.log",
-    dry_run=False,
 ):
     """
     Perform spectropolarimetric snapshot imaging of a ms
@@ -124,10 +115,6 @@ def perform_imaging(
     """
     if os.path.exists(logfile):
         os.system(f"rm -rf {logfile}")
-    if dry_run:
-        process = psutil.Process(os.getpid())
-        usemem = round(process.memory_info().rss / 1024**3, 2)  # in GB
-        return usemem
     logger, logfile = create_logger(
         os.path.basename(logfile).split(".log")[0],
         logfile,
@@ -511,7 +498,8 @@ def perform_imaging(
 
 
 def run_all_imaging(
-    mslist=[],
+    mslist,
+    dask_client,
     mainlogger=None,
     workdir="",
     outdir="",
@@ -537,7 +525,6 @@ def run_all_imaging(
     cpu_frac=0.8,
     mem_frac=0.8,
     logfile="imaging.log",
-    dask_addr=None,
 ):
     """
     Run spectropolarimetric snapshot imaging on a list of measurement sets
@@ -546,6 +533,8 @@ def run_all_imaging(
     ----------
     mslist : list
         Measurement set list
+    dask_client : dask.client
+        Dask client
     mainlogger : str
         Python logger
     workdir : str
@@ -594,8 +583,6 @@ def run_all_imaging(
         CPU fraction to use
     mem_frac : float, optional
         Memory fraction to use
-    dask_addr : str, optional
-        Dask scheduler address
 
     Returns
     -------
@@ -719,39 +706,29 @@ def run_all_imaging(
             total_fd += per_job_fd
         if total_fd <= 0:
             total_fd = 1
-        n_jobs = max(1, int(new_soft_limit / total_fd))
-        n_jobs = min(len(mslist), n_jobs)
 
         #################################
-        # Dask client setup
+        # Determining per worker resource
         #################################
-        mem_limit = perform_imaging(dry_run=True)
-        if dask_addr is None:
-            dask_client, dask_cluster, n_jobs, n_threads, mem_limit, dask_dir = (
-                get_dask_client(
-                    n_jobs,
-                    dask_dir=workdir,
-                    cpu_frac=cpu_frac,
-                    mem_frac=mem_frac,
-                    min_cpu_per_job=3,
-                    min_mem_per_job=mem_limit,
-                )
-            )
-        else:
-            _, _, n_jobs, n_threads, mem_limit, dask_dir = (
-                get_dask_client(
-                    n_jobs,
-                    dask_dir=workdir,
-                    cpu_frac=cpu_frac,
-                    mem_frac=mem_frac,
-                    min_cpu_per_job=3,
-                    min_mem_per_job=mem_limit,
-                    only_cal=True,
-                )
-            )
-            dask_client=Client(address=dask_addr)
-            os.system(f"rm -rf {dask_dir}")
-        wait_for_dask_workers(dask_client,min_worker=1,timeout=60)
+        n_jobs = int(new_soft_limit / total_fd)
+        n_jobs = max(1, min(len(mslist), n_jobs))
+        if cpu_frac > 0.8:
+            cpu_frac = 0.8
+        total_cpu = int(psutil.cpu_count() * cpu_frac)
+        n_threads = max(2, int(total_cpu / n_jobs))
+        n_jobs = max(1, int(total_cpu / n_threads))
+        if mem_frac > 0.8:
+            mem_frac = 0.8
+        total_mem = (psutil.virtual_memory().available * mem_frac) / (1024**3)  # In GB
+        mem_limit = total_mem / n_jobs
+
+        print("#################################")
+        print(f"Total dask worker: {n_jobs}")
+        print(f"CPU per worker: {n_threads}")
+        print(f"Memory per worker: {mem_limit}GB")
+        print("#################################")
+        #########################################
+
         tasks = []
         for i in range(len(mslist)):
             ms = mslist[i]
@@ -823,12 +800,8 @@ def run_all_imaging(
                     logfile=logfile,
                 )
             )
-        futures = dask_client.compute(tasks)
-        results = list(dask_client.gather(futures))
-        dask_client.close()
-        if dask_addr is None:
-            dask_cluster.close()
-            os.system(f"rm -rf {dask_dir}")
+        wait_for_dask_workers(dask_client, min_worker=2, timeout=60)
+        results = list(dask_client.gather(dask_client.compute(tasks)))
         all_image_list = []
         all_imaged_ms_list = []
         for i in range(len(results)):
@@ -896,7 +869,7 @@ def main(
     cpu_frac=0.8,
     mem_frac=0.8,
     jobid=0,
-    dask_addr=None,
+    dask_client=None,
 ):
     """
     Perform distributed spectropolarimetric snapshot imaging on multiple measurement sets.
@@ -953,8 +926,8 @@ def main(
         Fraction of total system memory to use per task. Default is 0.8.
     jobid : int, optional
         Unique job identifier for logging and PID tracking. Default is 0.
-    dask_addr : str, optional
-        Dask scheduler address
+    dask_client : dask.client, optional
+        Dask client
 
     Returns
     -------
@@ -1004,7 +977,22 @@ def main(
             )
     if observer == None:
         print("Remote link or jobname is blank. Not transmiting to remote logger.")
-    ##########
+
+    dask_cluster = None
+    if dask_client is None:
+        dask_client, dask_cluster, dask_dir = get_local_dask_cluster(
+            1,
+            dask_dir=workdir,
+            cpu_frac=cpu_frac,
+            mem_frac=mem_frac,
+        )
+        nworker = max(2, int(psutil.cpu_count() * cpu_frac))
+        usable_mem = (mem_frac * psutil.virtual_memory().total) / 1024**3
+        per_job_mem = usable_mem / nworker
+        if per_job_mem < 2:
+            nworker = max(2, int(usable_mem / 2))
+        print(f"Maximum dask workder: {nworker}")
+        dask_cluster.adapt(minimum=2, maximum=nworker)  # 2 worker will be required
 
     try:
         if len(mslist) == 0:
@@ -1012,7 +1000,8 @@ def main(
             msg = 1
         else:
             msg = run_all_imaging(
-                mslist=mslist,
+                mslist,
+                dask_client,
                 mainlogger=mainlogger,
                 workdir=workdir,
                 outdir=outdir,
@@ -1036,7 +1025,6 @@ def main(
                 saveres=saveres,
                 cpu_frac=cpu_frac,
                 mem_frac=mem_frac,
-                dask_addr=dask_addr,
             )
     except Exception:
         traceback.print_exc()
@@ -1048,6 +1036,10 @@ def main(
         drop_cache(workdir)
         drop_cache(outdir)
         clean_shutdown(observer)
+        if dask_cluster is not None:
+            dask_client.close()
+            dask_cluster.close()
+            os.system(f"rm -rf {dask_dir}")
     return msg
 
 
@@ -1223,7 +1215,7 @@ def cli():
 
     if len(sys.argv) == 1:
         parser.print_help(sys.stderr)
-        sys.exit(1)
+        return 1
 
     args = parser.parse_args()
 

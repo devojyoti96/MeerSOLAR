@@ -1,15 +1,8 @@
 import argparse
 import sys
 import os
-from casatasks import casalog
 from casatasks import listobs
 from meersolar.utils.resource_utils import drop_cache
-
-try:
-    casalogfile = casalog.logfile()
-    os.system("rm -rf " + casalogfile)
-except BaseException:
-    pass
 
 
 def show_listobs(msname):

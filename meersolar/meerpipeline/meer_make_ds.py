@@ -8,25 +8,19 @@ import time
 import glob
 import sys
 import os
-from casatasks import casalog
 from casatools import msmetadata, ms as casamstool
 from dask import delayed
-from dask.distributed import Client
+from dask.distributed import wait
 from meersolar.utils import *
 
-logging.getLogger("distributed").setLevel(logging.WARNING)
-
-try:
-    casalogfile = casalog.logfile()
-    os.system("rm -rf " + casalogfile)
-except BaseException:
-    pass
-
+logging.getLogger("distributed").setLevel(logging.ERROR)
+logging.getLogger("tornado.application").setLevel(logging.CRITICAL)
 datadir = get_datadir()
 
 
 def make_solar_DS(
     msname,
+    dask_client,
     workdir,
     ds_file_name="",
     extension="png",
@@ -36,7 +30,6 @@ def make_solar_DS(
     showgui=False,
     cpu_frac=0.8,
     mem_frac=0.8,
-    dask_addr=None,
 ):
     """
     Make solar dynamic spectrum and plots
@@ -44,7 +37,9 @@ def make_solar_DS(
     Parameters
     ----------
     msname : str
-        Measurement set name'
+        Measurement set name
+    dask_client : dask.client
+        Dask client
     workdir : str
         Work directory
     ds_file_name : str, optional
@@ -63,9 +58,14 @@ def make_solar_DS(
         CPU fraction to use
     mem_frac : float, optional
         Memory fraction to use
-    dask_addr : str, optional
-        Dask scheduler address
     """
+    if cpu_frac > 0.8:
+        cpu_frac = 0.8
+    total_cpu = int(psutil.cpu_count() * cpu_frac)
+    if mem_frac > 0.8:
+        mem_frac = 0.8
+    total_mem = (psutil.virtual_memory().available * mem_frac) / (1024**3)  # In GB
+
     warnings.filterwarnings("ignore", category=RuntimeWarning)
     os.makedirs(f"{workdir}/dynamic_spectra", exist_ok=True)
     print("##############################################")
@@ -93,16 +93,7 @@ def make_solar_DS(
                 len(target_scans) > 0 and int(scan) in target_scans
             ):
                 final_scans.append(int(scan))
-                msmd.open(msname)
-                nchan = msmd.nchan(0)
-                nant = msmd.nantennas()
-                msmd.close()
-                mstool.open(msname)
-                mstool.select({"scan_number": int(scan)})
-                nrow = mstool.nrow(True)
-                mstool.close()
-                nbaselines = int(nant + (nant * (nant - 1) / 2))
-                scan_size = (5 * (nrow / nbaselines) * 16) / (1024**3)
+                scan_size = get_ms_scan_size(msname, int(scan), only_autocorr=True)
                 scan_size_list.append(scan_size)
     if len(final_scans) == 0:
         print("No scans to make dynamic spectra.")
@@ -119,27 +110,21 @@ def make_solar_DS(
     else:
         datacolumn = "DATA"
     mspath = os.path.dirname(msname)
-    mem_limit = max(scan_size_list)
-    if dask_addr is None:
-        dask_client, dask_cluster, n_jobs, n_threads, mem_limit, dask_dir = get_dask_client(
-            len(scans),
-            dask_dir=workdir,
-            cpu_frac=cpu_frac,
-            mem_frac=mem_frac,
-            min_mem_per_job=mem_limit,
-        )
-    else:
-        _, _, n_jobs, n_threads, mem_limit, dask_dir = get_dask_client(
-            len(scans),
-            dask_dir=workdir,
-            cpu_frac=cpu_frac,
-            mem_frac=mem_frac,
-            min_mem_per_job=mem_limit,
-            only_cal=True,
-        )
-        dask_client=Client(address=dask_addr)
-        os.system(f"rm -rf {dask_dir}")
-    wait_for_dask_workers(dask_client,min_worker=1,timeout=60)
+
+    ########################################
+    # Number of worker limit based on memory
+    ########################################
+    mem_limit = min(total_mem, max(scan_size_list))
+    n_jobs = max(1, min(total_cpu, int(total_mem / mem_limit)))
+    n_threads = max(1, int(total_cpu / n_jobs))
+
+    print("#################################")
+    print(f"Total dask worker: {n_jobs}")
+    print(f"CPU per worker: {n_threads}")
+    print(f"Memory per worker: {mem_limit}GB")
+    print("#################################")
+    ###########################################
+
     tasks = []
     for scan in scans:
         tasks.append(
@@ -150,26 +135,28 @@ def make_solar_DS(
                 datacolumn,
             )
         )
-    futures = dask_client.compute(tasks)
-    results = list(dask_client.gather(futures))
-    dask_client.close()
-    if dask_addr is None:
-        dask_cluster.close()
-        os.system(f"rm -rf {dask_dir}")
+    results = []
+    for i in range(0, len(tasks), n_jobs):
+        batch = tasks[i : i + n_jobs]
+        wait_for_dask_workers(dask_client, min_worker=2, timeout=60)
+        futures = dask_client.compute(batch)
+        wait(futures)
+        results.extend(dask_client.gather(futures))
+    results = list(results)
+
     ds_files = [
         f"{workdir}/dynamic_spectra/{ds_file_name}_scan_{scan}.npy" for scan in scans
     ]
     print(f"DS files: {ds_files}")
-    if not merge_scan:
-        plots = []
-        for dsfile in ds_files:
-            plot_file = make_ds_plot(
-                [dsfile],
-                plot_file=dsfile.replace(".npy", f".{extension}"),
-                showgui=showgui,
-            )
-            plots.append(plot_file)
-    else:
+    plots = []
+    for dsfile in ds_files:
+        plot_file = make_ds_plot(
+            [dsfile],
+            plot_file=dsfile.replace(".npy", f".{extension}"),
+            showgui=showgui,
+        )
+        plots.append(plot_file)
+    if merge_scan:
         plot_file = make_ds_plot(
             ds_files,
             plot_file=f"{workdir}/dynamic_spectra/{ds_file_name}.{extension}",
@@ -183,15 +170,14 @@ def make_solar_DS(
 
 def make_dsfiles(
     msname,
+    dask_client,
     workdir,
     outdir,
     extension="png",
     target_scans=[],
-    merge_scans=True,
     seperate_scans=True,
     cpu_frac=0.8,
     mem_frac=0.8,
-    dask_addr=None,
 ):
     """
     Make all dynamic spectra of the solar scans
@@ -200,6 +186,8 @@ def make_dsfiles(
     ----------
     msname : str
         Measurement set name
+    dask_client : dask.client
+        Dask client
     workdir : str
         Work directory
     outdir : str
@@ -208,16 +196,12 @@ def make_dsfiles(
         Plot file extension
     target_scans : list, optional
         Target scans
-    merge_scans: bool, optional
-        Merge scans
     seperate_scans : bool, optional
-        Seperate scans
+        Only seperate scan plots
     cpu_frac : float, optional
         CPU fraction to use
     mem_frac : float, optional
         Memory fraction to use
-    dask_addr : str, optional
-        Dask scheduler address
 
     Returns
     -------
@@ -226,33 +210,33 @@ def make_dsfiles(
     """
     msname = msname.rstrip("/")
     workdir = workdir.rstrip("/")
-    if seperate_scans == False and merge_scans == False:
+    if seperate_scans == False:
         return
     try:
         if seperate_scans:
             make_solar_DS(
                 msname,
+                dask_client,
                 workdir,
                 extension=extension,
                 target_scans=target_scans,
                 merge_scan=False,
                 cpu_frac=cpu_frac,
                 mem_frac=mem_frac,
-                dask_addr=dask_addr,
             )
-        if merge_scans:
+        else:
             make_solar_DS(
                 msname,
+                dask_client,
                 workdir,
                 extension=extension,
                 target_scans=target_scans,
                 merge_scan=True,
                 cpu_frac=cpu_frac,
                 mem_frac=mem_frac,
-                dask_addr=dask_addr,
             )
         if os.path.samefile(outdir, workdir) == False:
-            os.makedirs(f"{outdir}/dynamic_spectra",exist_ok=True)
+            os.makedirs(f"{outdir}/dynamic_spectra", exist_ok=True)
             os.system(f"mv {workdir}/dynamic_spectra/* {outdir}/dynamic_spectra/")
             os.system(f"rm -rf {workdir}/dynamic_spectra")
         ds_file_name = os.path.basename(msname).split(".ms")[0] + "_DS"
@@ -273,14 +257,13 @@ def main(
     outdir,
     extension="png",
     target_scans=[],
-    merge=True,
     seperate=True,
     cpu_frac=0.8,
     mem_frac=0.8,
     logfile=None,
     jobid="0",
     start_remote_log=False,
-    dask_addr=None,
+    dask_client=None,
 ):
     """
     Make dynamic spectra
@@ -297,10 +280,8 @@ def main(
         Plot extension
     target_scans : list, optional
         Target scans
-    merge : bool, optional
-        Merge scans plot
     seperate : bool, optional
-        Seperate scan plots
+        Only seperate scan plots
     cpu_frac : float, optional
         CPU fraction
     mem_frac : float, optional
@@ -311,8 +292,8 @@ def main(
         Job ID
     start_remote_log : bool, optional
         Start remote log
-    dask_addr: str, optional
-        Dask scheduler address
+    dask_client: dask.client, optional
+        Dask client
 
     Returns
     -------
@@ -344,21 +325,35 @@ def main(
             observer = init_logger(
                 "ds_plot", logfile, jobname=jobname, password=password
             )
-    ###########
+
+    dask_cluster = None
+    if dask_client is None:
+        dask_client, dask_cluster, dask_dir = get_local_dask_cluster(
+            1,
+            dask_dir=workdir,
+            cpu_frac=cpu_frac,
+            mem_frac=mem_frac,
+        )
+        nworker = max(2, int(psutil.cpu_count() * cpu_frac))
+        usable_mem = (mem_frac * psutil.virtual_memory().total) / 1024**3
+        per_job_mem = usable_mem / nworker
+        if per_job_mem < 2:
+            nworker = max(2, int(usable_mem / 2))
+        print(f"Maximum dask workder: {nworker}")
+        dask_cluster.adapt(minimum=2, maximum=nworker)  # 2 worker will be required
 
     try:
         if msname != "" and os.path.exists(msname):
             ds_files = make_dsfiles(
                 msname,
+                dask_client,
                 workdir,
                 outdir,
                 extension=extension,
                 target_scans=target_scans,
-                merge_scans=merge,
                 seperate_scans=seperate,
                 cpu_frac=float(cpu_frac),
                 mem_frac=float(mem_frac),
-                dask_addr=dask_addr,
             )
             msg = 0
         else:
@@ -369,7 +364,13 @@ def main(
         msg = 1
     finally:
         time.sleep(5)
+        drop_cache(msname)
+        drop_cache(workdir)
         clean_shutdown(observer)
+        if dask_cluster is not None:
+            dask_client.close()
+            dask_cluster.close()
+            os.system(f"rm -rf {dask_dir}")
     return msg
 
 
@@ -416,12 +417,6 @@ def cli():
         help="List of target scans to process (space-separated, e.g. 3 5 7)",
     )
     adv_args.add_argument(
-        "--no_merge",
-        action="store_false",
-        dest="merge",
-        help="Do not merge scans",
-    )
-    adv_args.add_argument(
         "--no_seperate",
         action="store_false",
         dest="seperate",
@@ -456,7 +451,7 @@ def cli():
 
     if len(sys.argv) == 1:
         parser.print_help(sys.stderr)
-        sys.exit(1)
+        return 1
 
     args = parser.parse_args()
 
@@ -466,7 +461,6 @@ def cli():
         outdir=args.outdir,
         extension=args.extension,
         target_scans=args.target_scans,
-        merge=args.merge,
         seperate=args.seperate,
         cpu_frac=args.cpu_frac,
         mem_frac=args.mem_frac,

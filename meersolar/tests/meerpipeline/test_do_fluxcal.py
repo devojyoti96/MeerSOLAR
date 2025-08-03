@@ -5,6 +5,8 @@ from meersolar.meerpipeline.do_fluxcal import *
 
 def test_split_casatask(dummy_msname):
     outputvis = os.getcwd() + "/scan1.ms"
+    if os.path.exists(outputvis):
+        os.remove(outputvis)
     result = split_casatask(msname=dummy_msname, outputvis=outputvis, scan="1")
     assert result == outputvis
     assert os.path.exists(result)
@@ -13,41 +15,58 @@ def test_split_casatask(dummy_msname):
 
 
 @patch("meersolar.meerpipeline.do_fluxcal.split_casatask")
-@patch("meersolar.meerpipeline.do_fluxcal.run_limited_memory_task", return_value=0.5)
-@patch("meersolar.meerpipeline.do_fluxcal.get_dask_client")
+@patch("meersolar.meerpipeline.do_fluxcal.get_local_dask_cluster")
 @patch("meersolar.meerpipeline.do_fluxcal.os.path.exists", return_value=False)
-@patch("meersolar.meerpipeline.do_fluxcal.wait_for_dask_workers",return_value=True)
+@patch("meersolar.meerpipeline.do_fluxcal.wait_for_dask_workers", return_value=True)
 @patch("meersolar.meerpipeline.do_fluxcal.get_ms_scan_size")
+@patch(
+    "meersolar.meerpipeline.do_fluxcal.delayed",
+    side_effect=lambda f: lambda *args, **kwargs: f(*args, **kwargs),
+)
+@patch("meersolar.meerpipeline.do_fluxcal.wait")
 def test_split_autocorr(
-    mock_get_column_size,
     mock_wait,
+    mock_delayed,
+    mock_get_column_size,
+    mock_wait_dask,
     mock_exists,
     mock_get_dask_client,
-    mock_run_limited,
     mock_split_casatask,
 ):
-    mock_split_casatask.return_value = "mock.ms"
+    # Mock split_casatask return
+    mock_split_casatask.side_effect = lambda ms, out, scan, tr, **kwargs: out
+
+    # Create fake Dask client and cluster
     dummy_client = MagicMock()
     dummy_cluster = MagicMock()
-    mock_get_dask_client.return_value = (dummy_client, dummy_cluster, 2, 1, 0.5, "/mock/dask_dir")
-    dummy_client.compute.return_value = [MagicMock(),MagicMock()]
-    dummy_client.gather.return_value = ["autocorr_scan_1.ms", "autocorr_scan_2.ms"]
-    mock_get_column_size.side_effect = [0.01,0.02] # in GB
+    dummy_client.cluster = dummy_cluster
+    dummy_client.compute.side_effect = lambda x: x  # pass-through
+    dummy_client.gather.side_effect = lambda x: x  # pass-through
+
+    mock_get_dask_client.return_value = (dummy_client, dummy_cluster, "/mock/dask_dir")
+    mock_get_column_size.side_effect = [0.01, 0.02]  # GB for scans 1 and 2
+
+    # Call function
     result = split_autocorr(
-        msname="mock.ms",
+        "mock.ms",
+        dask_client=dummy_client,
         workdir="/mock/workdir",
         scan_list=[1, 2],
         time_window=-1,
         cpu_frac=0.5,
         mem_frac=0.5,
-        dask_addr=None,
     )
+
+    # Assert results
     assert isinstance(result, list)
-    assert result == ["autocorr_scan_1.ms", "autocorr_scan_2.ms"]
-    mock_get_dask_client.assert_called_once()
-    dummy_client.compute.assert_called()
-    assert dummy_client.close.called
-    assert dummy_cluster.close.called
+    assert result == [
+        "/mock/workdir/autocorr_scan_1.ms",
+        "/mock/workdir/autocorr_scan_2.ms",
+    ]
+
+    # Cluster adaptation and compute/gather checks
+    assert dummy_client.compute.called
+    assert dummy_client.gather.called
 
 
 @patch("meersolar.meerpipeline.do_fluxcal.casamstool")
@@ -62,7 +81,9 @@ def test_get_on_off_power(mock_casamstool):
     ant_list = [0, 1, 2, 3]
     scale_factor = np.ones((1, 2))
     result = get_on_off_power(
-        msname=msname, scale_factor=scale_factor, ant_list=ant_list, dry_run=False
+        msname=msname,
+        scale_factor=scale_factor,
+        ant_list=ant_list,
     )
     assert isinstance(result, np.ndarray)
     assert result.shape == (1, 2, 4)  # averaged over time
@@ -144,7 +165,6 @@ def test_get_power_diff(
         off_cal="off.tbl",
         n_threads=1,
         memory_limit=1.0,
-        dry_run=False,
     )
     assert isinstance(att, np.ndarray)
     assert isinstance(att_ant_array, np.ndarray)
@@ -157,24 +177,48 @@ def test_get_power_diff(
     mock_table_instance.getcol.assert_any_call("CPARAM")
 
 
-@patch("meersolar.meerpipeline.do_fluxcal.get_fluxcals")
-@patch("meersolar.meerpipeline.do_fluxcal.get_bad_chans")
-@patch("meersolar.meerpipeline.do_fluxcal.get_bad_ants")
-@patch("meersolar.meerpipeline.do_fluxcal.run_limited_memory_task")
-@patch("meersolar.meerpipeline.do_fluxcal.get_dask_client")
+@patch(
+    "meersolar.meerpipeline.do_fluxcal.get_power_diff",
+    return_value=[
+        np.array([[0.5, 0.6, 0.7], [0.52, 0.62, 0.72]]),
+        np.array(
+            [
+                [
+                    [0.48, 0.51, 0.49, 0.52],
+                    [0.59, 0.61, 0.6, 0.58],
+                    [0.7, 0.69, 0.71, 0.72],
+                ],
+                [
+                    [0.5, 0.53, 0.51, 0.54],
+                    [0.6, 0.63, 0.6, 0.64],
+                    [0.7, 0.73, 0.7, 0.74],
+                ],
+            ]
+        ),
+    ],
+)
+@patch("meersolar.meerpipeline.do_fluxcal.delayed", side_effect=lambda f: f)
+@patch(
+    "meersolar.meerpipeline.do_fluxcal.get_fluxcals",
+    return_value=(["J0408-6545"], {1: [5]}),
+)
+@patch("meersolar.meerpipeline.do_fluxcal.get_bad_chans", return_value=[1, 2])
+@patch("meersolar.meerpipeline.do_fluxcal.get_bad_ants", return_value=([0, 1], "0,1"))
 @patch("meersolar.meerpipeline.do_fluxcal.msmetadata")
-@patch("meersolar.meerpipeline.do_fluxcal.get_ms_scan_size")
+@patch("meersolar.meerpipeline.do_fluxcal.get_ms_scan_size", return_value=0.01)
 @patch("meersolar.meerpipeline.do_fluxcal.split_autocorr")
 @patch("meersolar.meerpipeline.do_fluxcal.drop_cache")
-@patch("meersolar.meerpipeline.do_fluxcal.single_ms_flag")
+@patch("meersolar.meerpipeline.do_fluxcal.single_ms_flag", return_value=0)
 @patch("meersolar.meerpipeline.do_fluxcal.np.save")
 @patch("meersolar.meerpipeline.do_fluxcal.os.path.exists", return_value=True)
 @patch("meersolar.meerpipeline.do_fluxcal.os.makedirs")
-@patch("meersolar.meerpipeline.do_fluxcal.wait_for_dask_workers",return_value=True)
-@patch("meersolar.meerpipeline.do_fluxcal.get_column_size")
+@patch("meersolar.meerpipeline.do_fluxcal.wait_for_dask_workers", return_value=True)
+@patch("meersolar.meerpipeline.do_fluxcal.get_column_size", return_value=0.01)
+@patch("meersolar.meerpipeline.do_fluxcal.wait")
 def test_estimate_att(
-    mock_get_column_size,
     mock_wait,
+    mock_get_column_size,
+    mock_wait_dask,
     mock_makedirs,
     mock_exists,
     mock_save,
@@ -183,56 +227,39 @@ def test_estimate_att(
     mock_split_autocorr,
     mock_ms_size,
     mock_msmetadata,
-    mock_get_dask_client,
-    mock_run_limited_memory_task,
     mock_get_bad_ants,
     mock_get_bad_chans,
     mock_get_fluxcals,
+    mock_delayed,
+    mock_get_power_diff,
 ):
     msname = "test.ms"
-    workdir = "workdir"
+    workdir = "/mock/workdir"
     on_cal = "on.cal"
     off_cal = "off.cal"
     flux_scan = 5
     target_scans = [10]
-    mock_get_fluxcals.return_value = (["J0408-6545"], {1: [flux_scan]})
-    mock_get_bad_chans.return_value = [1, 2]
-    mock_get_bad_ants.return_value = ([0, 1], "0,1")
-    mock_run_limited_memory_task.return_value = 0.1
+
     mock_dask_client = MagicMock()
     mock_dask_cluster = MagicMock()
-    mock_get_dask_client.return_value = (mock_dask_client, mock_dask_cluster, 1, 1, 0.1, "/mock/dask_dir")
-    mock_split_autocorr.return_value = [
-        f"{workdir}/autocorr_scan_{flux_scan}.ms",
-        f"{workdir}/autocorr_scan_{target_scans[0]}.ms",
-    ]
-    mock_single_ms_flag.return_value = 0
-
-    # mock compute result for get_power_diff
-    att_array = np.array([[0.5, 0.6, 0.7], [0.52, 0.62, 0.72]])
-    att_ant_array = np.array(
-        [  # att_ant_array: (2, 3, 4)
-            [
-                [0.48, 0.51, 0.49, 0.52],
-                [0.59, 0.61, 0.6, 0.58],
-                [0.7, 0.69, 0.71, 0.72],
-            ],
-            [[0.5, 0.53, 0.51, 0.54], [0.6, 0.63, 0.6, 0.64], [0.7, 0.73, 0.7, 0.74]],
-        ]
-    )
-    mock_get_column_size.side_effect = [0.01]*len(att_array)  # in GB
-    mock_dask_client.compute.side_effect = [MagicMock()]*len(att_array)
-    mock_dask_client.gather.side_effect = lambda *args, **kwargs: [
-        [att_array, att_ant_array]
+    mock_dask_client.cluster = mock_dask_cluster
+    mock_dask_client.compute.side_effect = lambda tasks: tasks
+    mock_dask_client.gather.side_effect = lambda tasks: [
+        mock_get_power_diff.return_value
     ]
 
     mock_msmd = MagicMock()
     mock_msmd.chanfreqs.return_value = np.array([100e6, 110e6, 120e6])
     mock_msmetadata.return_value = mock_msmd
-    mock_ms_size.return_value = 0.01
+
+    mock_split_autocorr.return_value = [
+        f"{workdir}/autocorr_scan_{flux_scan}.ms",
+        f"{workdir}/autocorr_scan_{target_scans[0]}.ms",
+    ]
 
     status, att_level, att_files = estimate_att(
         msname,
+        mock_dask_client,
         workdir,
         on_cal,
         off_cal,
@@ -241,16 +268,16 @@ def test_estimate_att(
         time_window=300,
         cpu_frac=0.5,
         mem_frac=0.5,
-        dask_addr=None,
     )
-    mock_dask_client.compute.assert_called()
-    mock_dask_client.gather.assert_called()
+
     assert status == 0
     assert isinstance(att_level, dict)
     assert isinstance(att_files, list)
     assert target_scans[0] in att_level
     assert att_level[target_scans[0]].shape == (2, 3)
     assert att_files[0].endswith(".npy")
+    mock_dask_client.compute.assert_called()
+    mock_dask_client.gather.assert_called()
     mock_save.assert_called()
 
 
@@ -312,7 +339,8 @@ def test_run_noise_cal(
     )
     msname = "test.ms"
     workdir = "/mock/workdir"
-    status, att_level, att_files = run_noise_cal(msname, workdir)
+    dask_client = MagicMock()
+    status, att_level, att_files = run_noise_cal(msname, dask_client, workdir)
     assert status == 0
     assert isinstance(att_level, dict)
     assert isinstance(att_files, list)
@@ -326,7 +354,7 @@ def test_run_noise_cal(
 @pytest.mark.parametrize(
     "argv, should_exit",
     [
-        (["prog.py"], True),
+        (["prog.py"], 1),
         (
             [
                 "prog.py",
@@ -343,20 +371,14 @@ def test_run_noise_cal(
                 "--jobid",
                 "123",
             ],
-            False,
+            0,
         ),
     ],
 )
 @patch("meersolar.meerpipeline.do_fluxcal.main", return_value=0)
 def test_cli_fluxcal(mock_main, argv, should_exit):
-    with patch.object(sys, "argv", argv):
-        if should_exit:
-            import pytest
+    with patch("sys.argv", argv):
+        from meersolar.meerpipeline import do_fluxcal
 
-            with pytest.raises(SystemExit) as e:
-                cli()
-            assert e.value.code == 1
-        else:
-            result = cli()
-            assert result == 0
-            assert mock_main.called
+        result = do_fluxcal.cli()
+        assert result == should_exit

@@ -79,8 +79,6 @@ def test_applysol(
     mock_proc = MagicMock()
     mock_proc.memory_info.return_value.rss = 2 * 1024**3  # 2GB
     mock_process.return_value = mock_proc
-    mem = applysol(msname="test.ms", dry_run=True)
-    assert mem == 2.0
     status = applysol(
         msname="test.ms",
         gaintable=["a.cal", "b.cal"],
@@ -94,7 +92,6 @@ def test_applysol(
         force_apply=True,
         soltype="basic",
         do_post_flag=True,
-        dry_run=False,
     )
     assert status == 0
     mock_applycal.assert_called_once()
@@ -145,10 +142,7 @@ def mock_glob_pattern(pattern):
     "meersolar.meerpipeline.do_apply_basiccal.check_datacolumn_valid", return_value=True
 )
 @patch("meersolar.meerpipeline.do_apply_basiccal.get_column_size", return_value=1.0)
-@patch(
-    "meersolar.meerpipeline.do_apply_basiccal.run_limited_memory_task", return_value=1.0
-)
-@patch("meersolar.meerpipeline.do_apply_basiccal.get_dask_client")
+@patch("meersolar.meerpipeline.do_apply_basiccal.get_local_dask_cluster")
 @patch(
     "meersolar.meerpipeline.do_apply_basiccal.delayed",
     side_effect=lambda f, *a, **kw: f,
@@ -158,14 +152,15 @@ def mock_glob_pattern(pattern):
     "meersolar.meerpipeline.do_apply_basiccal.scale_bandpass",
     return_value="scaled.bcal",
 )
-@patch("meersolar.meerpipeline.do_apply_basiccal.wait_for_dask_workers",return_value=True)
+@patch(
+    "meersolar.meerpipeline.do_apply_basiccal.wait_for_dask_workers", return_value=True
+)
 def test_run_all_applysol(
     mock_wait,
     mock_scale,
     mock_applysol,
     mock_delayed,
     mock_dask,
-    mock_memtask,
     mock_ms_size,
     mock_checkcol,
     mock_glob,
@@ -176,10 +171,12 @@ def test_run_all_applysol(
     mock_sleep,
     mock_drop,
 ):
-    mock_dask.return_value = (MagicMock(), MagicMock(), 1, 1, 1.0, "/mock/dask_dir")
+    mock_dask.return_value = (MagicMock(), MagicMock(), "/mock/dask_dir")
     mock_glob.side_effect = mock_glob_pattern
+    dask_client = MagicMock()
     result = run_all_applysol(
-        mslist="test1.ms,test2.ms",
+        ["test1.ms", "test2.ms"],
+        dask_client,
         workdir="/mock/workdir",
         caldir="/mock/caldir",
         use_only_bandpass=False,
@@ -189,7 +186,6 @@ def test_run_all_applysol(
         do_post_flag=True,
         cpu_frac=0.8,
         mem_frac=0.8,
-        dask_addr=None,
     )
     assert result == 0
 
@@ -236,6 +232,7 @@ def test_main_apply_basiccal(
     mslist = mslist_str.split(",")
     workdir = "/mock/work"
     caldir = "/mock/caltables" if caldir_exists else ""
+    dask_client = MagicMock()
 
     def exists_side_effect(path):
         if "jobname_password.npy" in path:
@@ -260,6 +257,7 @@ def test_main_apply_basiccal(
         mem_frac=0.6,
         logfile="mock.log",
         jobid=42,
+        dask_client=dask_client,
     )
 
     assert msg == expected_msg
@@ -286,13 +284,11 @@ def test_main_apply_basiccal(
     ],
 )
 @patch("meersolar.meerpipeline.do_apply_basiccal.main", return_value=0)
-def test_cli_apply_basiccal(mock_main, argv, should_exit):
-    with patch.object(sys, "argv", argv):
-        if should_exit:
-            with pytest.raises(SystemExit) as e:
-                cli()
-            assert e.value.code == 1
-        else:
-            result = cli()
-            assert result == 0
-            assert mock_main.called
+@patch("meersolar.meerpipeline.do_apply_basiccal.sys.exit")
+@patch("meersolar.meerpipeline.do_apply_basiccal.argparse.ArgumentParser.print_help")
+def test_cli_apply_basiccal(mock_print_help, mock_exit, mock_main, argv, should_exit):
+    with patch("sys.argv", argv):
+        from meersolar.meerpipeline import do_apply_basiccal
+
+        result = do_apply_basiccal.cli()
+        assert result == should_exit

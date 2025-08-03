@@ -51,11 +51,10 @@ def test_get_polmodel_coeff(mock_loadtxt):
 
 
 @pytest.mark.parametrize(
-    "field_name, dry_run, expected",
+    "field_name, expected",
     [
-        ("3C286", True, 2.5),  # dry_run returns memory usage
-        ("3C286", False, None),  # full run calls setjy
-        ("Unknown", False, 1),  # unknown field returns 1
+        ("3C286", None),  # full run calls setjy
+        ("Unknown", 1),  # unknown field returns 1
     ],
 )
 @patch("meersolar.meerpipeline.import_model.traceback.print_exc")
@@ -72,7 +71,6 @@ def test_polcal_setjy(
     mock_suppress,
     mock_traceback,
     field_name,
-    dry_run,
     expected,
 ):
     mock_process.return_value.memory_info.return_value.rss = 2.5 * 1024**3
@@ -83,11 +81,11 @@ def test_polcal_setjy(
         [0.05, 0.01],
         [0.3, -0.1],
     )
-    result = polcal_setjy(msname="test.ms", field_name=field_name, dry_run=dry_run)
-    if dry_run:
-        assert isinstance(result, float)
-        assert round(result, 1) == expected
-    elif field_name == "Unknown":
+    result = polcal_setjy(
+        msname="test.ms",
+        field_name=field_name,
+    )
+    if field_name == "Unknown":
         assert result == expected
         mock_setjy.assert_not_called()
     else:
@@ -96,10 +94,9 @@ def test_polcal_setjy(
 
 
 @pytest.mark.parametrize(
-    "dry_run, expected",
+    "expected",
     [
-        (True, 2.5),  # dry-run: returns memory
-        (False, None),  # normal run
+        (None),  # normal run
     ],
 )
 @patch("meersolar.meerpipeline.import_model.traceback.print_exc")
@@ -113,7 +110,6 @@ def test_phasecal_setjy(
     mock_setjy,
     mock_suppress,
     mock_traceback,
-    dry_run,
     expected,
 ):
     mock_process.return_value.memory_info.return_value.rss = 2.5 * 1024**3
@@ -121,15 +117,9 @@ def test_phasecal_setjy(
         msname="test.ms",
         field="phasecal_field",
         ismms=True,
-        dry_run=dry_run,
     )
-    if dry_run:
-        assert isinstance(result, float)
-        assert round(result, 1) == expected
-        mock_setjy.assert_not_called()
-    else:
-        assert result == expected
-        mock_setjy.assert_called_once()
+    assert result == expected
+    mock_setjy.assert_called_once()
 
 
 @pytest.mark.parametrize(
@@ -185,8 +175,13 @@ def test_import_phasecal_models(dummy_submsname):
     ]
     workdir = os.getcwd()
     phasecal_fields, phasecal_scans, phasecal_flux_list = get_phasecals(dummy_submsname)
+    dask_client = MagicMock()
     result = import_phasecal_models(
-        mslist, phasecal_fields, phasecal_scans, workdir, cpu_frac=0.8, mem_frac=0.8, dask_addr=None,
+        mslist,
+        dask_client,
+        phasecal_fields,
+        phasecal_scans,
+        workdir,
     )
     assert result == 0
 
@@ -198,8 +193,13 @@ def test_import_polcal_models(dummy_submsname):
     ]
     workdir = os.getcwd()
     polcal_fields, polcal_scans = get_polcals(dummy_submsname)
+    dask_client = MagicMock()
     result = import_polcal_models(
-        mslist, polcal_fields, polcal_scans, workdir, cpu_frac=0.8, mem_frac=0.8, dask_addr=None,
+        mslist,
+        dask_client,
+        polcal_fields,
+        polcal_scans,
+        workdir,
     )
     assert result == 1
 
@@ -239,7 +239,8 @@ def test_import_all_models(
     mock_flux_import.return_value = 0
     mock_phase_import.return_value = 0
     mock_pol_import.return_value = 0
-    flux, phase, pol = import_all_models(msname, workdir)
+    dask_client = MagicMock()
+    flux, phase, pol = import_all_models(msname, dask_client, workdir)
     assert (flux, phase, pol) == (0, 0, 0)
     assert mock_correct.called
     assert mock_get_scans.called
@@ -291,6 +292,7 @@ def test_main_function(
 
     mock_exists.side_effect = exists_side_effect
     mock_import_all.return_value = import_result
+    dask_client = MagicMock()
 
     msg = main(
         msname=msname,
@@ -300,7 +302,7 @@ def test_main_function(
         logfile=None,
         jobid=101,
         start_remote_log=False,
-        dask_addr=None,
+        dask_client=dask_client,
     )
     assert msg == expected_msg
 
@@ -312,35 +314,18 @@ def test_main_function(
         (["prog.py", "mock.ms", "--workdir", "/mock/work"], False),  # Valid
     ],
 )
-@patch("meersolar.meerpipeline.import_model.import_all_models", return_value=(0, 0, 0))
-@patch("meersolar.meerpipeline.import_model.save_pid")
-@patch("meersolar.meerpipeline.import_model.get_cachedir", return_value="/mock/cache")
-@patch("os.makedirs")
-@patch("os.path.exists", return_value=True)
-@patch("os.getpid", return_value=8765)
-@patch("os.system")
-@patch("meersolar.meerpipeline.import_model.drop_cache")
-@patch("meersolar.meerpipeline.import_model.clean_shutdown")
-@patch("time.sleep", return_value=None)
-def test_cli_function(
-    mock_sleep,
-    mock_shutdown,
-    mock_drop,
-    mock_system,
-    mock_getpid,
-    mock_exists,
-    mock_makedirs,
-    mock_cachedir,
-    mock_save_pid,
-    mock_import_all,
+@patch("meersolar.meerpipeline.import_model.main", return_value=0)
+@patch("meersolar.meerpipeline.import_model.sys.exit")
+@patch("meersolar.meerpipeline.import_model.argparse.ArgumentParser.print_help")
+def test_cli(
+    mock_print_help,
+    mock_exit,
+    mock_main,
     argv,
     should_exit,
 ):
-    with patch.object(sys, "argv", argv):
-        if should_exit:
-            with pytest.raises(SystemExit) as e:
-                cli()
-            assert e.value.code == 1
-        else:
-            result = cli()
-            assert result == 0
+    with patch("sys.argv", argv):
+        from meersolar.meerpipeline import import_model
+
+        result = import_model.cli()
+        assert result == should_exit

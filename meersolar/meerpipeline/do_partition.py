@@ -7,25 +7,19 @@ import copy
 import time
 import sys
 import os
-from casatasks import casalog
 from casatools import msmetadata
 from dask import delayed
-from dask.distributed import Client
+from dask.distributed import wait
 from meersolar.utils import *
 
-logging.getLogger("distributed").setLevel(logging.WARNING)
-
-try:
-    casalogfile = casalog.logfile()
-    os.system("rm -rf " + casalogfile)
-except BaseException:
-    pass
-
+logging.getLogger("distributed").setLevel(logging.ERROR)
+logging.getLogger("tornado.application").setLevel(logging.CRITICAL)
 datadir = get_datadir()
 
 
 def partion_ms(
     msname,
+    dask_client,
     outputms,
     workdir,
     fields="",
@@ -35,7 +29,6 @@ def partion_ms(
     datacolumn="DATA",
     cpu_frac=0.8,
     mem_frac=0.8,
-    dask_addr=None,
 ):
     """
     Perform mstransform of a single scan
@@ -44,6 +37,8 @@ def partion_ms(
     ----------
     msname : str
         Name of the measurement set
+    dask_client : dask.client
+        Dask client
     outputms : str
         Output ms name
     workdir : str
@@ -58,10 +53,10 @@ def partion_ms(
         Time to average
     datacolumn : str, optional
         Data column to split
-    ncpu : int, optional
-        Number of CPU threads to use
-    dask_addr : str, optional
-        Dask scheduler address
+    cpu_frac : float, optional
+        CPU fraction to use
+    mem_frac : float, optional
+        Memory fraction to use
 
     Returns
     -------
@@ -72,6 +67,14 @@ def partion_ms(
     print("Paritioning measurement set: " + msname)
     print("##################\n")
     print("Determining valid scan list ....")
+    if mem_frac > 0.8:
+        mem_frac = 0.8
+    total_mem = (psutil.virtual_memory().available * mem_frac) / (1024**3)  # In GB
+
+    if cpu_frac > 0.8:
+        cpu_frac = 0.8
+    total_cpu = int(psutil.cpu_count() * cpu_frac)  # In GB
+
     start_time = time.time()
     valid_scans = get_valid_scans(msname, min_scan_time=1)
     msmd = msmetadata()
@@ -121,37 +124,23 @@ def partion_ms(
     msmd.done()
     field = ",".join(field_list)
 
-    ###########################
-    # Dask local cluster setup
-    ###########################
     scan_sizes = []
     for scan in scan_list:
         scan_sizes.append(get_ms_scan_size(msname, int(scan)))
-    total_required_size = round(2 * np.nansum(scan_sizes), 2)
-    mem_limit = total_required_size / len(scan_list)
-    if dask_addr is None:
-        dask_client, dask_cluster, n_jobs, n_threads, mem_limit, dask_dir = (
-            get_dask_client(
-                len(scan_list),
-                dask_dir=workdir,
-                cpu_frac=cpu_frac,
-                mem_frac=mem_frac,
-                min_mem_per_job=mem_limit,
-            )
-        )
-        dask_cluster.adapt(minimum=0, maximum=n_jobs)
-    else:
-        _, _, n_jobs, n_threads, mem_limit, dask_dir = get_dask_client(
-            len(scan_list),
-            dask_dir=workdir,
-            cpu_frac=cpu_frac,
-            mem_frac=mem_frac,
-            min_mem_per_job=mem_limit,
-            only_cal=True,
-        )
-        os.system(f"rm -rf {dask_dir}")
-        dask_client = Client(address=dask_addr)
-    wait_for_dask_workers(dask_client,min_worker=1,timeout=60)
+    ########################################
+    # Number of worker limit based on memory
+    ########################################
+    mem_limit = min(total_mem, max(scan_sizes))
+    n_jobs = max(1, min(total_cpu, int(total_mem / mem_limit)))
+    n_threads = max(1, int(total_cpu / n_jobs))
+
+    print("#################################")
+    print(f"Total dask worker: {n_jobs}")
+    print(f"CPU per worker: {n_threads}")
+    print(f"Memory per worker: {mem_limit}GB")
+    print("#################################")
+    ###########################################
+
     tasks = []
     for i in range(len(scan_list)):
         scan = scan_list[i]
@@ -167,12 +156,15 @@ def partion_ms(
             numsubms=1,
         )
         tasks.append(task)
-    futures = dask_client.compute(tasks)
-    splited_ms_list = list(dask_client.gather(futures))
-    dask_client.close()
-    if dask_addr is None:
-        dask_cluster.close()
-        os.system(f"rm -rf {dask_dir}")
+    wait_for_dask_workers(dask_client, min_worker=2, timeout=60)
+    results = []
+    for i in range(0, len(tasks), n_jobs):
+        batch = tasks[i : i + n_jobs]
+        futures = dask_client.compute(batch)
+        wait(futures)
+        results.extend(dask_client.gather(futures))
+    splited_ms_list = list(results)
+
     splited_ms_list_copy = copy.deepcopy(splited_ms_list)
     for ms in splited_ms_list:
         if ms is None:
@@ -213,7 +205,7 @@ def main(
     logfile=None,
     jobid="0",
     start_remote_log=False,
-    dask_addr=None,
+    dask_client=None,
 ):
     """
     Partition a measurement set using field, scan, channel, and time selection in subms.
@@ -246,8 +238,8 @@ def main(
         Unique job identifier used for PID tracking. Default is "0".
     start_remote_log : bool, optional
         If True, enables remote logging using credentials in `workdir`. Default is False.
-    dask_addr : str, optional
-        Dask scheduler address
+    dask_client : dask.client, optional
+        Dask client
 
     Returns
     -------
@@ -281,12 +273,28 @@ def main(
             )
     if observer == None:
         print("Remote link or jobname is blank. Not transmiting to remote logger.")
-    ###########
+
+    dask_cluster = None
+    if dask_client is None:
+        dask_client, dask_cluster, dask_dir = get_local_dask_cluster(
+            1,
+            dask_dir=workdir,
+            cpu_frac=cpu_frac,
+            mem_frac=mem_frac,
+        )
+        nworker = max(2, int(psutil.cpu_count() * cpu_frac))
+        usable_mem = (mem_frac * psutil.virtual_memory().total) / 1024**3
+        per_job_mem = usable_mem / nworker
+        if per_job_mem < 2:
+            nworker = max(2, int(usable_mem / 2))
+        print(f"Maximum dask workder: {nworker}")
+        dask_cluster.adapt(minimum=2, maximum=nworker)  # 2 worker will be required
 
     try:
         if os.path.exists(msname):
             outputms = partion_ms(
                 msname,
+                dask_client,
                 outputms,
                 workdir,
                 fields=fields,
@@ -296,7 +304,6 @@ def main(
                 datacolumn=datacolumn,
                 cpu_frac=cpu_frac,
                 mem_frac=mem_frac,
-                dask_addr=dask_addr,
             )
             if outputms is None or not os.path.exists(outputms):
                 print("Error in partitioning measurement set.")
@@ -315,6 +322,10 @@ def main(
         drop_cache(msname)
         drop_cache(workdir)
         clean_shutdown(observer)
+        if dask_cluster is not None:
+            dask_client.close()
+            dask_cluster.close()
+            os.system(f"rm -rf {dask_dir}")
     return msg
 
 
@@ -406,7 +417,7 @@ def cli():
     # Show help if nothing is passed
     if len(sys.argv) == 1:
         parser.print_help(sys.stderr)
-        sys.exit(1)
+        return 1
 
     args = parser.parse_args()
 

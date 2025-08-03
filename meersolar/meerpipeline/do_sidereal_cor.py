@@ -6,25 +6,18 @@ import traceback
 import time
 import sys
 import os
-from casatasks import casalog
 from dask import delayed
-from dask.distributed import Client
 from meersolar.utils import *
 
-logging.getLogger("distributed").setLevel(logging.WARNING)
-
-
-try:
-    casalogfile = casalog.logfile()
-    os.system("rm -rf " + casalogfile)
-except BaseException:
-    pass
-
+logging.getLogger("distributed").setLevel(logging.ERROR)
+logging.getLogger("tornado.application").setLevel(logging.CRITICAL)
 datadir = get_datadir()
 
 
 def cor_sidereal_motion(
-    mslist, workdir, cpu_frac=0.8, mem_frac=0.8, max_cpu_frac=0.8, max_mem_frac=0.8, dask_addr=None,
+    mslist,
+    dask_client,
+    workdir,
 ):
     """
     Perform sidereal motion correction
@@ -33,18 +26,10 @@ def cor_sidereal_motion(
     ----------
     mslist : list
         Measurement set list
+    dask_client : dask.client
+        Dask client
     workdir : str
         Work directory
-    cpu_frac : float, optional
-        CPU fraction to use
-    mem_frac : float, optional
-        Memory fraction to use
-    max_cpu_frac : float, optional
-        Maximum CPU fraction to use
-    max_mem_frac : float, optional
-        Maximum memory fraction to use
-    dask_addr : str, optional
-        Dask scheduler address
 
     Returns
     -------
@@ -64,45 +49,14 @@ def cor_sidereal_motion(
                     "Container {container_name} is not initiated. First initiate container and then run."
                 )
                 return 1, []
-        #############################################
-        # Memory limit
-        #############################################
-        mem_limit = correct_solar_sidereal_motion(dry_run=True)
-        #############################################
+
         tasks = []
         for ms in mslist:
             tasks.append(delayed(correct_solar_sidereal_motion)(ms))
-        total_chunks = len(tasks)
-        if dask_addr is None:
-            dask_client, dask_cluster, n_jobs, n_threads, mem_limit, dask_dir = (
-                get_dask_client(
-                    total_chunks,
-                    dask_dir=workdir,
-                    cpu_frac=cpu_frac,
-                    mem_frac=mem_frac,
-                    min_mem_per_job=mem_limit,
-                )
-            )
-        else:
-            _, _, n_jobs, n_threads, mem_limit, dask_dir = (
-                get_dask_client(
-                    total_chunks,
-                    dask_dir=workdir,
-                    cpu_frac=cpu_frac,
-                    mem_frac=mem_frac,
-                    min_mem_per_job=mem_limit,
-                    only_cal=True,
-                )
-            )
-            dask_client=Client(address=dask_addr)
-            os.system(f"rm -rf {dask_dir}")
-        wait_for_dask_workers(dask_client,min_worker=1,timeout=60)
-        futures = dask_client.compute(tasks)
-        results = list(dask_client.gather(futures))
-        dask_client.close()
-        if dask_addr is None:
-            dask_cluster.close()
-            os.system(f"rm -rf {dask_dir}")
+
+        wait_for_dask_workers(dask_client, min_worker=1, timeout=60)
+        results = list(dask_client.gather(dask_client.compute(tasks)))
+
         splited_ms_list_phaserotated = []
         for i in range(len(results)):
             msg = results[i]
@@ -143,7 +97,7 @@ def main(
     logfile=None,
     jobid=0,
     start_remote_log=False,
-    dask_addr=None,
+    dask_client=None,
 ):
     """
     Run a parallel processing pipeline for solar sidereal motion correction
@@ -170,8 +124,8 @@ def main(
         Unique job identifier used for PID tracking and task differentiation. Default is 0.
     start_remote_log : bool, optional
         Whether to enable remote logging based on credentials stored in the workdir. Default is False.
-    dask_addr : str, optional
-        Dask scheduler address
+    dask_client : dask.client, optional
+        Dask client
 
     Returns
     -------
@@ -206,7 +160,22 @@ def main(
             )
     if observer == None:
         print("Remote link or jobname is blank. Not transmiting to remote logger.")
-    ###########
+
+    dask_cluster = None
+    if dask_client is None:
+        dask_client, dask_cluster, dask_dir = get_local_dask_cluster(
+            1,
+            dask_dir=workdir,
+            cpu_frac=cpu_frac,
+            mem_frac=mem_frac,
+        )
+        nworker = max(2, int(psutil.cpu_count() * cpu_frac))
+        usable_mem = (mem_frac * psutil.virtual_memory().total) / 1024**3
+        per_job_mem = usable_mem / nworker
+        if per_job_mem < 2:
+            nworker = max(2, int(usable_mem / 2))
+        print(f"Maximum dask workder: {nworker}")
+        dask_cluster.adapt(minimum=2, maximum=nworker)  # 2 worker will be required
 
     try:
         if len(mslist) == 0:
@@ -215,12 +184,8 @@ def main(
         else:
             msg, final_target_mslist = cor_sidereal_motion(
                 mslist,
+                dask_client,
                 workdir,
-                cpu_frac=float(cpu_frac),
-                mem_frac=float(mem_frac),
-                max_cpu_frac=float(max_cpu_frac),
-                max_mem_frac=float(max_mem_frac),
-                dask_addr=dask_addr,
             )
     except Exception as e:
         traceback.print_exc()
@@ -231,6 +196,10 @@ def main(
             drop_cache(ms)
         drop_cache(workdir)
         clean_shutdown(observer)
+        if dask_cluster is not None:
+            dask_client.close()
+            dask_cluster.close()
+            os.system(f"rm -rf {dask_dir}")
     return msg
 
 
@@ -296,7 +265,7 @@ def cli():
 
     if len(sys.argv) == 1:
         parser.print_help(sys.stderr)
-        sys.exit(1)
+        return 1
 
     args = parser.parse_args()
 

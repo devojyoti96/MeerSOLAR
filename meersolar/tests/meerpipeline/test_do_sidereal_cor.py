@@ -35,23 +35,21 @@ from meersolar.meerpipeline.do_sidereal_cor import *
 @patch("meersolar.meerpipeline.do_sidereal_cor.drop_cache")
 @patch("meersolar.meerpipeline.do_sidereal_cor.time.sleep", return_value=None)
 @patch("meersolar.meerpipeline.do_sidereal_cor.delayed")
-@patch("meersolar.meerpipeline.do_sidereal_cor.get_dask_client")
-@patch(
-    "meersolar.meerpipeline.do_sidereal_cor.run_limited_memory_task", return_value=4.0
-)
+@patch("meersolar.meerpipeline.do_sidereal_cor.get_local_dask_cluster")
 @patch(
     "meersolar.meerpipeline.do_sidereal_cor.initialize_wsclean_container",
     return_value=None,
 )
 @patch("meersolar.meerpipeline.do_sidereal_cor.check_udocker_container")
 @patch("meersolar.meerpipeline.do_sidereal_cor.os.path.exists")
-@patch("meersolar.meerpipeline.do_sidereal_cor.wait_for_dask_workers",return_value=True)
+@patch(
+    "meersolar.meerpipeline.do_sidereal_cor.wait_for_dask_workers", return_value=True
+)
 def test_cor_sidereal_motion(
     mock_wait,
     mock_exists,
     mock_check_container,
     mock_init_container,
-    mock_run_memtask,
     mock_get_dask,
     mock_delayed,
     mock_sleep,
@@ -78,10 +76,10 @@ def test_cor_sidereal_motion(
     # Dask client mock
     mock_client = MagicMock()
     mock_cluster = MagicMock()
-    mock_get_dask.return_value = (mock_client, mock_cluster, 2, 2, 4.0, "/mock/dask_dir")
+    mock_get_dask.return_value = (mock_client, mock_cluster, "/mock/dask_dir")
 
     # Compute mock return
-    mock_client.compute.return_value = [MagicMock()]*len(compute_result)
+    mock_client.compute.return_value = [MagicMock()] * len(compute_result)
     mock_client.gather.return_value = compute_result
 
     # Mock existence of .sidereal_cor
@@ -93,7 +91,7 @@ def test_cor_sidereal_motion(
     mock_exists.side_effect = exists_side_effect
 
     # === Run test ===
-    code, corrected = cor_sidereal_motion(mslist, workdir)
+    code, corrected = cor_sidereal_motion(mslist, mock_client, workdir)
 
     assert code == expected_code
     assert corrected == expected_mslist
@@ -145,6 +143,7 @@ def test_main_sidereal(
     mock_exists.side_effect = exists_side_effect
     mock_cor_sidereal.return_value = (0 if cor_success else 1, ["corrected.ms"])
 
+    dask_client = MagicMock()
     result = main(
         mslist=mslist_str,
         workdir="/mock/workdir",
@@ -155,7 +154,7 @@ def test_main_sidereal(
         logfile=None,
         jobid=5,
         start_remote_log=False,
-        dask_addr=None,
+        dask_client=dask_client,
     )
     assert result == expected_msg
 
@@ -170,44 +169,18 @@ def test_main_sidereal(
         ),  # Normal
     ],
 )
-@patch(
-    "meersolar.meerpipeline.do_sidereal_cor.cor_sidereal_motion",
-    return_value=(0, ["ms1.ms"]),
-)
-@patch("meersolar.meerpipeline.do_sidereal_cor.save_pid")
-@patch(
-    "meersolar.meerpipeline.do_sidereal_cor.get_cachedir", return_value="/mock/cache"
-)
-@patch("os.makedirs")
-@patch("os.path.exists", return_value=True)
-@patch("os.getpid", return_value=6789)
-@patch("meersolar.meerpipeline.do_sidereal_cor.drop_cache")
-@patch("meersolar.meerpipeline.do_sidereal_cor.clean_shutdown")
-@patch("time.sleep", return_value=None)
+@patch("meersolar.meerpipeline.do_sidereal_cor.main", return_value=0)
+@patch("meersolar.meerpipeline.do_sidereal_cor.sys.exit")
+@patch("meersolar.meerpipeline.do_sidereal_cor.argparse.ArgumentParser.print_help")
 def test_cli_sidereal(
-    mock_sleep,
-    mock_shutdown,
-    mock_drop,
-    mock_getpid,
-    mock_exists,
-    mock_makedirs,
-    mock_cachedir,
-    mock_save_pid,
-    mock_cor_sidereal,
+    mock_print_help,
+    mock_exit,
+    mock_main,
     argv,
     should_exit,
 ):
-    import sys
-    from unittest.mock import patch
-    from meersolar.meerpipeline.do_sidereal_cor import cli
+    with patch("sys.argv", argv):
+        from meersolar.meerpipeline import do_sidereal_cor
 
-    with patch.object(sys, "argv", argv):
-        if should_exit:
-            import pytest
-
-            with pytest.raises(SystemExit) as e:
-                cli()
-            assert e.value.code == 1
-        else:
-            result = cli()
-            assert result == 0
+        result = do_sidereal_cor.cli()
+        assert result == should_exit

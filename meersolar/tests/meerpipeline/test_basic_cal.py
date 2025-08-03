@@ -1,5 +1,5 @@
 import pytest
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch, MagicMock, call
 from meersolar.meerpipeline.basic_cal import *
 
 
@@ -36,11 +36,11 @@ def test_run_delaycal(
         gainfield=["0"],
         interp=["linear"],
         n_threads=1,
-        dry_run=False,
         uvrange=uvrange,
     )
 
-    mock_limit_threads.assert_called_once_with(n_threads=1)
+    expected_calls = [call(n_threads=1), call(n_threads=1)]
+    mock_limit_threads.assert_has_calls(expected_calls)
     # Determine which function to assert based on which was used
     if mock_gaincal.called:
         mock_gaincal.assert_called_once_with(
@@ -104,10 +104,10 @@ def test_run_bandpass(
         gainfield=["0"],
         interp=["linear"],
         n_threads=2,
-        dry_run=False,
     )
 
-    mock_limit_threads.assert_called_once_with(n_threads=2)
+    expected_calls = [call(n_threads=2), call(n_threads=1)]
+    mock_limit_threads.assert_has_calls(expected_calls)
     mock_bandpass.assert_called_once_with(
         vis=msname,
         caltable=expected_caltable,
@@ -157,10 +157,10 @@ def test_run_gaincal(mock_gaincal, mock_suppress_output, mock_limit_threads):
         gainfield=["0"],
         interp=["linear"],
         n_threads=4,
-        dry_run=False,
     )
 
-    mock_limit_threads.assert_called_once_with(n_threads=4)
+    expected_calls = [call(n_threads=4), call(n_threads=1)]
+    mock_limit_threads.assert_has_calls(expected_calls)
     mock_gaincal.assert_called_once_with(
         vis=msname,
         caltable=expected_caltable,
@@ -209,10 +209,10 @@ def test_run_leakagecal(
         gainfield=["1"],
         interp=["linear"],
         n_threads=2,
-        dry_run=False,
     )
 
-    mock_limit_threads.assert_called_once_with(n_threads=2)
+    expected_calls = [call(n_threads=2), call(n_threads=1)]
+    mock_limit_threads.assert_has_calls(expected_calls)
     mock_polcal.assert_called_once_with(
         vis=msname,
         caltable=expected_caltable,
@@ -266,7 +266,6 @@ def test_run_polcal(
         gaintable=gaintable,
         gainfield=gainfield,
         interp=interp,
-        dry_run=False,
     )
     assert kcrosscal.endswith(".kcrosscal")
     assert xfcal.endswith(".xfcal")
@@ -303,7 +302,6 @@ def test_run_applycal(
         calwt=calwt,
         parang=False,
         n_threads=2,
-        dry_run=False,
     )
     assert result is None
     mock_applycal.assert_called_once()
@@ -344,9 +342,9 @@ def test_run_postcal_flag(
         mode="rflag",
         n_threads=2,
         memory_limit=4,
-        dry_run=False,
     )
-    mock_limit_threads.assert_called_once()
+    expected_calls = [call(n_threads=2), call(n_threads=1)]
+    mock_limit_threads.assert_has_calls(expected_calls)
     mock_flagdata.assert_called_once()
     mock_suppress_output.assert_called_once()
     mock_msmetadata.assert_called_once()
@@ -357,9 +355,11 @@ def test_run_postcal_flag(
 @patch("meersolar.meerpipeline.basic_cal.time.sleep")
 @patch("meersolar.meerpipeline.basic_cal.get_submsname_scans")
 @patch("meersolar.meerpipeline.basic_cal.msmetadata")
-@patch("meersolar.meerpipeline.basic_cal.get_dask_client")
-@patch("meersolar.meerpipeline.basic_cal.run_limited_memory_task")
-@patch("meersolar.meerpipeline.basic_cal.delayed", side_effect=lambda f: f)
+@patch("meersolar.meerpipeline.basic_cal.get_local_dask_cluster")
+@patch(
+    "meersolar.meerpipeline.basic_cal.delayed",
+    side_effect=lambda f: lambda *args, **kwargs: f(*args, **kwargs),
+)
 @patch(
     "meersolar.meerpipeline.basic_cal.merge_caltables",
     side_effect=lambda x, y, **kwargs: y,
@@ -371,25 +371,31 @@ def test_run_postcal_flag(
 @patch(
     "meersolar.meerpipeline.basic_cal.run_delaycal", return_value="test_caltable.kcal"
 )
-@patch("meersolar.meerpipeline.basic_cal.run_bandpass", return_value="bandpass.cal")
-@patch("meersolar.meerpipeline.basic_cal.run_gaincal", return_value="gain.cal")
-@patch("meersolar.meerpipeline.basic_cal.run_leakagecal", return_value="leakage.cal")
+@patch(
+    "meersolar.meerpipeline.basic_cal.run_bandpass", return_value="test_caltable.bcal"
+)
+@patch(
+    "meersolar.meerpipeline.basic_cal.run_gaincal", return_value="test_caltable.gcal"
+)
+@patch(
+    "meersolar.meerpipeline.basic_cal.run_leakagecal", return_value="test_caltable.dcal"
+)
 @patch(
     "meersolar.meerpipeline.basic_cal.run_polcal",
-    return_value=("kcross.cal", "crossphase.cal", "pangle.cal"),
+    return_value=("mocked.kcrosscal", "mocked.xfcal", "mocked.panglecal"),
 )
 @patch("meersolar.meerpipeline.basic_cal.suppress_casa_output")
 @patch(
     "casatasks.fluxscale",
     return_value={
-        "0": {"fieldName": "field2", "0": {"fluxd": [1.0], "fluxdErr": [0.1]}},
+        "0": {"fieldName": "field2", "0": {"fluxd": [1.0], "fluxdErr": [0.1]}}
     },
 )
 @patch("meersolar.meerpipeline.basic_cal.os.path.exists", return_value=True)
 @patch("meersolar.meerpipeline.basic_cal.os.system")
 @patch("meersolar.meerpipeline.basic_cal.os.makedirs")
 @patch("meersolar.meerpipeline.basic_cal.table")
-@patch("meersolar.meerpipeline.basic_cal.wait_for_dask_workers",return_value=True)
+@patch("meersolar.meerpipeline.basic_cal.wait_for_dask_workers", return_value=True)
 def test_single_round_cal_and_flag(
     mock_wait,
     mock_table,
@@ -406,36 +412,38 @@ def test_single_round_cal_and_flag(
     mock_postcal_flag,
     mock_applycal,
     mock_flag_backup,
-    mock_ms_size,
+    mock_get_col_size,
     mock_merge,
     mock_delayed,
-    mock_memtask,
-    mock_dask,
-    mock_msmd,
-    mock_getscans,
+    mock_get_local_dask_cluster,
+    mock_msmetadata,
+    mock_get_submsname_scans,
     mock_sleep,
-    mock_drop,
+    mock_drop_cache,
 ):
-    # Setup mocks
-    mock_dask.return_value = (MagicMock(), MagicMock(), 1, 1, 1.0, "/mock/dask_dir")
-    mock_getscans.return_value = (["ms1", "ms2"], [1, 2])
-    mock_memtask.return_value = 0.1
-    # Mock msmetadata
-    mock_msmd_instance = MagicMock()
-    mock_msmd_instance.ncorrforpol.return_value = [4]
-    mock_msmd_instance.fieldsforname.return_value = [0]
-    mock_msmd.return_value = mock_msmd_instance
-    # Mock CASA table behavior
+    # Setup fake Dask client
+    fake_client = MagicMock()
+    fake_client.compute.side_effect = lambda x: x  # Return the argument directly
+    fake_client.gather.return_value = "mocked.kcal"
+    mock_get_local_dask_cluster.return_value = (
+        fake_client,
+        fake_client,
+        "/mock_dask_dir",
+    )
+    # Simulate sub-MS names and scan IDs
+    mock_get_submsname_scans.return_value = (["ms1", "ms2"], [1, 2])
+    # Simulate msmetadata
+    msmd_instance = MagicMock()
+    msmd_instance.ncorrforpol.return_value = [4]
+    msmd_instance.fieldsforname.return_value = [0]
+    mock_msmetadata.return_value = msmd_instance
+    # Simulate CASA table object
     mock_tb = MagicMock()
     mock_table.return_value = mock_tb
-    mock_tb.open.return_value = None
     mock_tb.getcol.return_value = np.zeros((1, 1, 1), dtype=bool)
-    mock_tb.putcol.return_value = None
-    mock_tb.flush.return_value = None
-    mock_tb.close.return_value = None
-    # Call the function
     status, caltables = single_round_cal_and_flag(
-        msname="test.ms",
+        "test.ms",
+        fake_client,  # triggers use of mocked get_local_dask_cluster
         workdir="/tmp",
         cal_round=1,
         refant="ant1",
@@ -453,12 +461,27 @@ def test_single_round_cal_and_flag(
         do_postcal_flag=True,
         cpu_frac=0.8,
         mem_frac=0.8,
-        dask_addr=None,
     )
+    # ✅ Assertions
     assert status == 0
     assert len(caltables) == 7
     for cal in caltables:
         assert cal is not None and cal.endswith("cal")
+    assert fake_client.gather.call_count == 8
+    expected_calls = [
+        call("test_caltable.kcal"),
+        call("test_caltable.bcal"),
+        call("test_caltable.gcal"),
+        call("mocked.kcal"),
+        call("test_caltable.dcal"),
+        call([("mocked.kcrosscal", "mocked.xfcal", "mocked.panglecal")]),
+        call([None, None, None]),
+        call([None, None, None]),
+    ]
+    fake_client.gather.assert_has_calls(expected_calls, any_order=False)
+    assert mock_wait.call_count == 8
+    for call_args in mock_wait.call_args_list:
+        assert call_args == call(fake_client, min_worker=2, timeout=60)
 
 
 @patch("meersolar.meerpipeline.basic_cal.drop_cache")
@@ -507,8 +530,10 @@ def test_run_basic_cal_rounds(
         0,
         ["a.cal", "b.cal", "c.cal", "d.cal", "e.cal", "f.cal", "g.cal"],
     )
+    dask_client = MagicMock()
     status, caltables = run_basic_cal_rounds(
-        msname="test.ms",
+        "test.ms",
+        dask_client,
         workdir="/tmp",
         keep_backup=True,
         perform_polcal=True,
@@ -520,12 +545,13 @@ def test_run_basic_cal_rounds(
         (0, ["a.cal", "b.cal", "c.cal", "d.cal", "e.cal", "f.cal", "g.cal"]),
         (1, []),
     ]
+    dask_client = MagicMock()
     status_fail, caltables_fail = run_basic_cal_rounds(
-        msname="test.ms",
+        "test.ms",
+        dask_client,
         workdir="/tmp",
         keep_backup=False,
         perform_polcal=True,
-        dask_addr=None,
     )
     assert status_fail == 1
     assert caltables_fail == []
@@ -558,13 +584,17 @@ def test_main(
     mock_drop_cache,
     mock_clean_shutdown,
 ):
+    # Setup return for logger
     mock_logger = MagicMock()
-    mock_init_logger.return_value = (mock_logger, "/mock/logfile.log", MagicMock())
+    mock_init_logger.return_value = mock_logger
 
     # Inputs
     msname = "/mock/data/test.ms"
     workdir = "/mock/data/workdir"
     caldir = "/mock/data/caltables"
+    dask_client = MagicMock()
+
+    # Call main
     result = main(
         msname=msname,
         workdir=workdir,
@@ -578,12 +608,16 @@ def test_main(
         logfile="/mock/logfile.log",
         jobid="123",
         start_remote_log=True,
-        dask_addr=None,
+        dask_client=dask_client,
     )
+
+    # Assertions
     assert result == 0
     mock_save_pid.assert_called_once()
+
     mock_run_basic_cal_rounds.assert_called_once_with(
         msname,
+        dask_client,
         workdir,
         refant="m001",
         uvrange=">100lambda",
@@ -591,19 +625,18 @@ def test_main(
         keep_backup=True,
         cpu_frac=0.5,
         mem_frac=0.5,
-        dask_addr=None,
     )
+
     for caltable in ["/mock/caltable1", "/mock/caltable2"]:
-        mock_system.assert_any_call(
-            "rm -rf " + caldir + "/" + os.path.basename(caltable)
-        )
-        mock_system.assert_any_call("mv " + caltable + " " + caldir)
+        dest = os.path.join(caldir, os.path.basename(caltable))
+        mock_system.assert_any_call(f"rm -rf {dest}")
+        mock_system.assert_any_call(f"mv {caltable} {caldir}")
 
 
 @pytest.mark.parametrize(
     "argv_args, expect_main_called, expected_exit",
     [
-        (["run_basic_cal"], False, 0),  # No arguments → print help and exit(1)
+        (["run_basic_cal"], False, 1),  # No arguments → print help and exit(1)
         (
             [
                 "run_basic_cal",

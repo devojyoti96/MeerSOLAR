@@ -9,21 +9,13 @@ import time
 import sys
 import os
 import copy
-from casatasks import casalog
 from casatools import msmetadata, table
 from dask import delayed
-from dask.distributed import Client
 from functools import partial
 from meersolar.utils import *
 
-logging.getLogger("distributed").setLevel(logging.WARNING)
-
-try:
-    casalogfile = casalog.logfile()
-    os.system("rm -rf " + casalogfile)
-except BaseException:
-    pass
-
+logging.getLogger("distributed").setLevel(logging.ERROR)
+logging.getLogger("tornado.application").setLevel(logging.CRITICAL)
 datadir = get_datadir()
 
 
@@ -48,7 +40,6 @@ def do_selfcal(
     solar_selfcal=True,
     ncpu=-1,
     mem=-1,
-    dry_run=False,
     logfile="selfcal.log",
 ):
     """
@@ -109,10 +100,6 @@ def do_selfcal(
     limit_threads(n_threads=ncpu)
     from casatasks import split, flagdata, flagmanager
 
-    if dry_run:
-        process = psutil.Process(os.getpid())
-        mem = round(process.memory_info().rss / 1024**3, 2)  # in GB
-        return mem
     sub_observer = None
     logger, logfile = create_logger(
         os.path.basename(logfile).split(".log")[0], logfile, verbose=False
@@ -566,7 +553,7 @@ def main(
     mem_frac=0.8,
     jobid=0,
     start_remote_log=False,
-    dask_addr=None,
+    dask_client=None,
 ):
     """
     Perform iterative self-calibration on a list of measurement sets.
@@ -619,8 +606,8 @@ def main(
         Identifier for job tracking and logging. Default is 0.
     start_remote_log : bool, optional
         Whether to initiate remote logging via job credentials. Default is False.
-    dask_addr : str, optional
-        Dask scheduler address
+    dask_client : dask.client, optional
+        Dask client
 
     Returns
     -------
@@ -664,7 +651,22 @@ def main(
             )
     if observer == None:
         print("Remote link or jobname is blank. Not transmiting to remote logger.")
-    ###########
+
+    dask_cluster = None
+    if dask_client is None:
+        dask_client, dask_cluster, dask_dir = get_local_dask_cluster(
+            1,
+            dask_dir=workdir,
+            cpu_frac=cpu_frac,
+            mem_frac=mem_frac,
+        )
+        nworker = max(2, int(psutil.cpu_count() * cpu_frac))
+        usable_mem = (mem_frac * psutil.virtual_memory().total) / 1024**3
+        per_job_mem = usable_mem / nworker
+        if per_job_mem < 2:
+            nworker = max(2, int(usable_mem / 2))
+        print(f"Maximum dask workder: {nworker}")
+        dask_cluster.adapt(minimum=2, maximum=nworker)  # 2 worker will be required
 
     ###########################
     # WSClean container
@@ -684,7 +686,6 @@ def main(
             mainlogger.info("Please provide at-least one measurement set.")
             msg = 1
         else:
-            mem_limit = do_selfcal(dry_run=True)
             partial_do_selfcal = partial(
                 do_selfcal,
                 start_threshold=float(start_thresh),
@@ -728,12 +729,6 @@ def main(
                 if channame not in chanlist:
                     chanlist.append(channame)
 
-            available_mem = psutil.virtual_memory().available / 1024**3
-            if mem_limit < 4 and available_mem > 4:
-                min_mem_per_job = 4
-            else:
-                min_mem_per_job = mem_limit
-
             ######################################
             # Resetting maximum file limit
             ######################################
@@ -768,32 +763,22 @@ def main(
                 total_fd = max(num_fd_list) * len(mslist)
                 n_jobs = max(1, int(new_soft_limit / total_fd))
                 n_jobs = min(len(mslist), n_jobs)
-                if dask_addr is None:
-                    dask_client, dask_cluster, n_jobs, n_threads, mem_limit, dask_dir = (
-                        get_dask_client(
-                            n_jobs,
-                            dask_dir=workdir,
-                            cpu_frac=float(cpu_frac),
-                            mem_frac=float(mem_frac),
-                            min_cpu_per_job=3,
-                            min_mem_per_job=min_mem_per_job,
-                        )
-                    )
-                else:
-                    _, _, n_jobs, n_threads, mem_limit, dask_dir = (
-                        get_dask_client(
-                            n_jobs,
-                            dask_dir=workdir,
-                            cpu_frac=float(cpu_frac),
-                            mem_frac=float(mem_frac),
-                            min_cpu_per_job=3,
-                            min_mem_per_job=min_mem_per_job,
-                            only_cal=True,
-                        )
-                    )
-                    dask_client=Client(address=dask_addr)
-                    os.system(f"rm -rf {dask_dir}")
-                wait_for_dask_workers(dask_client,min_worker=1,timeout=60)
+
+                #####################################
+                # Determining per jobs resource
+                #####################################
+                total_cpu = int(psutil.cpu_count() * cpu_frac)
+                n_threads = max(2, int(total_cpu / n_jobs))
+                n_jobs = max(1, int(total_cpu / n_threads))
+                total_mem = (psutil.virtual_memory().total * mem_frac) / 1024**3
+                mem_limit = total_mem / n_jobs
+                print("#################################")
+                print(f"Total dask worker: {n_jobs}")
+                print(f"CPU per worker: {n_threads}")
+                print(f"Memory per worker: {mem_limit}GB")
+                print("#################################")
+
+                #####################################
                 tasks = []
                 for ms in mslist:
                     logfile = (
@@ -816,12 +801,8 @@ def main(
                             logfile=logfile,
                         )
                     )
-                futures = dask_client.compute(tasks)
-                results = list(dask_client.gather(futures))
-                dask_client.close()
-                if dask_addr is None:
-                    dask_cluster.close()
-                    os.system(f"rm -rf {dask_dir}")
+                results = list(dask_client.gather(dask_client.compute(tasks)))
+
                 gcal_list = []
                 for i in range(len(results)):
                     r = results[i]
@@ -863,6 +844,10 @@ def main(
             drop_cache(ms)
         drop_cache(workdir)
         clean_shutdown(observer)
+        if dask_cluster is not None:
+            dask_client.close()
+            dask_cluster.close()
+            os.system(f"rm -rf {dask_dir}")
     return msg
 
 
@@ -1020,7 +1005,7 @@ def cli():
 
     if len(sys.argv) == 1:
         parser.print_help(sys.stderr)
-        sys.exit(1)
+        return 1
 
     args = parser.parse_args()
 

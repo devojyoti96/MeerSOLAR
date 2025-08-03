@@ -13,7 +13,6 @@ from astropy.io import fits
 from astropy.time import Time
 from astropy.coordinates import EarthLocation, SkyCoord, AltAz
 from astropy.wcs import FITSFixedWarning
-from casatasks import casalog
 from numpy.linalg import inv
 from astropy.wcs import WCS
 from scipy.interpolate import RectBivariateSpline
@@ -25,14 +24,8 @@ from meersolar.utils import (
     save_pid,
 )
 
-logging.getLogger("distributed").setLevel(logging.WARNING)
-
-try:
-    casalogfile = casalog.logfile()
-    os.system("rm -rf " + casalogfile)
-except BaseException:
-    pass
-
+logging.getLogger("distributed").setLevel(logging.ERROR)
+logging.getLogger("tornado.application").setLevel(logging.CRITICAL)
 datadir = get_datadir()
 
 warnings.simplefilter("ignore", category=FITSFixedWarning)
@@ -794,7 +787,7 @@ def cli():
 
     if len(sys.argv) == 1:
         parser.print_help(sys.stderr)
-        sys.exit(1)
+        return 1
 
     args = parser.parse_args()
 

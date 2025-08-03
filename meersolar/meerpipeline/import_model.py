@@ -7,21 +7,11 @@ import time
 import sys
 import os
 import logging
-from casatasks import casalog
 from dask import delayed
-from dask.distributed import Client
 from meersolar.utils import *
 
-logging.getLogger("distributed").setLevel(logging.WARNING)
-
-
-try:
-    casalogfile = casalog.logfile()
-    os.system("rm -rf " + casalogfile)
-except BaseException:
-    pass
-
-
+logging.getLogger("distributed").setLevel(logging.ERROR)
+logging.getLogger("tornado.application").setLevel(logging.CRITICAL)
 datadir = get_datadir()
 
 
@@ -56,7 +46,7 @@ def get_polmodel_coeff(model_file):
     return ref_freq, I[0], polyI[1:], poly_pfrac, poly_pangle
 
 
-def polcal_setjy(msname="", field_name="", n_threads=-1, ismms=True, dry_run=False):
+def polcal_setjy(msname="", field_name="", n_threads=-1, ismms=True):
     """
     Setjy polcal fields (3C286 or 3C138)
 
@@ -72,10 +62,6 @@ def polcal_setjy(msname="", field_name="", n_threads=-1, ismms=True, dry_run=Fal
     limit_threads(n_threads=n_threads)
     from casatasks import setjy
 
-    if dry_run:
-        process = psutil.Process(os.getpid())
-        mem = round(process.memory_info().rss / 1024**3, 2)  # in GB
-        return mem
     try:
         print(f"Polarization calibrator field name : {field_name}")
         if field_name in ["3C286", "1328+307", "1331+305", "J1331+3030"]:
@@ -109,7 +95,7 @@ def polcal_setjy(msname="", field_name="", n_threads=-1, ismms=True, dry_run=Fal
     return
 
 
-def phasecal_setjy(msname="", field="", ismms=False, n_threads=-1, dry_run=False):
+def phasecal_setjy(msname="", field="", ismms=False, n_threads=-1):
     """
     Setjy phasecal fields
 
@@ -127,10 +113,6 @@ def phasecal_setjy(msname="", field="", ismms=False, n_threads=-1, dry_run=False
     limit_threads(n_threads=n_threads)
     from casatasks import setjy
 
-    if dry_run:
-        process = psutil.Process(os.getpid())
-        mem = round(process.memory_info().rss / 1024**3, 2)  # in GB
-        return mem
     try:
         with suppress_casa_output():
             setjy(
@@ -198,15 +180,12 @@ def import_fluxcal_models(mslist, fluxcal_fields, fluxcal_scans, ncpus=1, mem_fr
                         "-ns 1000",
                         "-j " + str(ncpus),
                         "-mf " + str(mem_frac),
+                        sub_msname,
                     ]
-                    crys_cmd = (
-                        "crystalball " + " ".join(crys_cmd_args) + " " + sub_msname
-                    )
-                    print(crys_cmd)
-                    tmpfile = f"tmp_{os.path.basename(sub_msname).split('.ms')[0]}"
-                    with suppress_casa_output():
-                        msg = os.system(crys_cmd + f" > {tmpfile}")
-                    os.system(f"rm -rf {tmpfile}")
+                    cmd = ["crystalball"] + crys_cmd_args
+                    cmd = " ".join(cmd)
+                    print(f"Running: {cmd}")
+                    msg = os.system(cmd)
                     if msg == 0:
                         print(f"Fluxcal model is imported successfully for scan: {s}.")
                     else:
@@ -220,12 +199,10 @@ def import_fluxcal_models(mslist, fluxcal_fields, fluxcal_scans, ncpus=1, mem_fr
 
 def import_phasecal_models(
     mslist,
+    dask_client,
     phasecal_fields,
     phasecal_scans,
     workdir,
-    cpu_frac=0.8,
-    mem_frac=0.8,
-    dask_addr=None,
 ):
     """
     Import model visibilities for phasecal
@@ -234,18 +211,14 @@ def import_phasecal_models(
     ----------
     mslist : list
         List of sub-MS
+    dask_client : dask.client
+        Dask client
     phasecal_fields : list
         Phasecal fields
     phasecal_scans : list
         Phasecal scans
     workdir : str
         Work directory
-    cpu_frac : float, optional
-        CPU fraction to use
-    mem_frac : float, optional
-        Memory fraction to use
-    dask_addr : str, optional
-        Dask scheduler address
 
     Returns
     -------
@@ -261,29 +234,6 @@ def import_phasecal_models(
             ms_scans = get_ms_scans(ms)
             for s in ms_scans:
                 scans.append(s)
-        mem_limit = phasecal_setjy(dry_run=True)
-        if dask_addr is None:
-            dask_client, dask_cluster, n_jobs, n_threads, mem_limit, dask_dir = (
-                get_dask_client(
-                    len(mslist),
-                    dask_dir=workdir,
-                    cpu_frac=cpu_frac,
-                    mem_frac=mem_frac,
-                    min_mem_per_job=mem_limit,
-                )
-            )
-        else:
-            _, _, n_jobs, n_threads, mem_limit, dask_dir = get_dask_client(
-                len(mslist),
-                dask_dir=workdir,
-                cpu_frac=cpu_frac,
-                mem_frac=mem_frac,
-                min_mem_per_job=mem_limit,
-                only_cal=True,
-            )
-            os.system(f"rm -rf {dask_dir}")
-            dask_client = Client(address=dask_addr)
-        wait_for_dask_workers(dask_client,min_worker=1,timeout=60)
         tasks = []
         for phasecal in phasecal_fields:
             ph_scan = phasecal_scans[phasecal]
@@ -296,15 +246,11 @@ def import_phasecal_models(
                             sub_msname,
                             field=phasecal,
                             ismms=True,
-                            n_threads=n_threads,
+                            n_threads=1,
                         )
                     )
-        futures = dask_client.compute(tasks)
-        results = list(dask_client.gather(futures))
-        dask_client.close()
-        if dask_addr is None:
-            dask_cluster.close()
-            os.system(f"rm -rf {dask_dir}")
+        wait_for_dask_workers(dask_client, min_worker=2, timeout=60)
+        results = list(dask_client.gather(dask_client.compute(tasks)))
         print("Phasecal models are initiated.\n")
         return 0
     except Exception as e:
@@ -315,12 +261,10 @@ def import_phasecal_models(
 
 def import_polcal_models(
     mslist,
+    dask_client,
     polcal_fields,
     polcal_scans,
     workdir,
-    cpu_frac=0.8,
-    mem_frac=0.8,
-    dask_addr=None,
 ):
     """
     Import model for polarization calibrators (3C286 or 3C138)
@@ -329,16 +273,14 @@ def import_polcal_models(
     ----------
     mslist : list
         List of sub-MS
+    dask_client : dask.client
+        Dask client
     polcal_fields : list
         Polcal fields
     polcal_scans : list
         Polcal scans
     workdir : str
         Work directory
-    n_threads : int, optional
-        Number of OpenMP threads
-    dask_addr : str, optional
-        Dask scheduler address
 
     Returns
     -------
@@ -354,29 +296,6 @@ def import_polcal_models(
             ms_scans = get_ms_scans(ms)
             for s in ms_scans:
                 scans.append(s)
-        mem_limit = polcal_setjy(dry_run=True)
-        if dask_addr is None:
-            dask_client, dask_cluster, n_jobs, n_threads, mem_limit, dask_dir = (
-                get_dask_client(
-                    len(polcal_scans),
-                    dask_dir=workdir,
-                    cpu_frac=cpu_frac,
-                    mem_frac=mem_frac,
-                    min_mem_per_job=mem_limit,
-                )
-            )
-        else:
-            _, _, n_jobs, n_threads, mem_limit, dask_dir = get_dask_client(
-                len(polcal_scans),
-                dask_dir=workdir,
-                cpu_frac=cpu_frac,
-                mem_frac=mem_frac,
-                min_mem_per_job=mem_limit,
-                only_cal=True,
-            )
-            os.system(f"rm -rf {dask_dir}")
-            dask_client = Client(address=dask_addr)
-        wait_for_dask_workers(dask_client,min_worker=1,timeout=60)
         tasks = []
         for polcal_field in polcal_fields:
             p_scan = polcal_scans[polcal_field]
@@ -386,22 +305,18 @@ def import_polcal_models(
                     sub_msname = mslist[pos]
                     tasks.append(
                         delayed(polcal_setjy)(
-                            sub_msname, polcal_field, ismms=True, n_threads=n_threads
+                            sub_msname, polcal_field, ismms=True, n_threads=1
                         )
                     )
-        futures = dask_client.compute(tasks)
-        results = list(dask_client.gather(futures))
-        dask_client.close()
-        if dask_addr is None:
-            dask_cluster.close()
-            os.system(f"rm -rf {dask_dir}")
+        wait_for_dask_workers(dask_client, min_worker=2, timeout=60)
+        results = list(dask_client.gather(dask_client.compute(tasks)))
         return 0
     except Exception as e:
         traceback.print_exc()
         return 1
 
 
-def import_all_models(msname, workdir, cpu_frac=0.8, mem_frac=0.8, dask_addr=None):
+def import_all_models(msname, dask_client, workdir, cpu_frac=0.8, mem_frac=0.8):
     """
     Import all calibrator models
 
@@ -409,14 +324,14 @@ def import_all_models(msname, workdir, cpu_frac=0.8, mem_frac=0.8, dask_addr=Non
     ----------
     msname : str
         Measurement set name
+    dask_client : dask.client
+        Dask client
     workdir : str
         Work directory
     cpu_frac : float, optional
         CPU fraction to use
     mem_frac : float, optional
         Memory fraction to use
-    dask_addr : str, optional
-        Dask scheduler address
 
     Returns
     -------
@@ -451,21 +366,17 @@ def import_all_models(msname, workdir, cpu_frac=0.8, mem_frac=0.8, dask_addr=Non
             return fluxcal_result, 1, 1
         phasecal_result = import_phasecal_models(
             mslist,
+            dask_client,
             phasecal_fields,
             phasecal_scans,
             workdir,
-            cpu_frac=cpu_frac,
-            mem_frac=mem_frac,
-            dask_addr=dask_addr,
         )
         polcal_result = import_polcal_models(
             mslist,
+            dask_client,
             polcal_fields,
             polcal_scans,
             workdir,
-            cpu_frac=cpu_frac,
-            mem_frac=mem_frac,
-            dask_addr=dask_addr,
         )
         if phasecal_result != 0:
             print(
@@ -495,7 +406,7 @@ def main(
     logfile=None,
     jobid=0,
     start_remote_log=False,
-    dask_addr=None,
+    dask_client=None,
 ):
     """
     Run the calibrator model import pipeline.
@@ -518,8 +429,8 @@ def main(
     start_remote_log : bool, optional
         If True, enables remote logging based on credentials stored in the
         working directory. Default is False.
-    dask_addr : str, optional
-        Dask scheduler address
+    dask_client : dask.client, optional
+        Dask client
 
     Returns
     -------
@@ -551,16 +462,31 @@ def main(
             observer = init_logger(
                 "import_model", logfile, jobname=jobname, password=password
             )
-    ###########
+
+    dask_cluster = None
+    if dask_client is None:
+        dask_client, dask_cluster, dask_dir = get_local_dask_cluster(
+            1,
+            dask_dir=workdir,
+            cpu_frac=cpu_frac,
+            mem_frac=mem_frac,
+        )
+        nworker = max(2, int(psutil.cpu_count() * cpu_frac))
+        usable_mem = (mem_frac * psutil.virtual_memory().total) / 1024**3
+        per_job_mem = usable_mem / nworker
+        if per_job_mem < 2:
+            nworker = max(2, int(usable_mem / 2))
+        print(f"Maximum dask workder: {nworker}")
+        dask_cluster.adapt(minimum=2, maximum=nworker)  # 2 worker will be required
 
     try:
         if msname and os.path.exists(msname):
             fluxcal_result, phasecal_result, polcal_result = import_all_models(
                 os.path.abspath(msname),
+                dask_client,
                 workdir,
                 cpu_frac=cpu_frac,
                 mem_frac=mem_frac,
-                dask_addr=dask_addr,
             )
             os.system("touch " + workdir + "/.fluxcal_" + str(fluxcal_result))
             os.system("touch " + workdir + "/.phasecal_" + str(phasecal_result))
@@ -585,6 +511,10 @@ def main(
         drop_cache(msname)
         drop_cache(workdir)
         clean_shutdown(observer)
+        if dask_cluster is not None:
+            dask_client.close()
+            dask_cluster.close()
+            os.system(f"rm -rf {dask_dir}")
     return msg
 
 
@@ -626,7 +556,7 @@ def cli():
 
     if len(sys.argv) == 1:
         parser.print_help(sys.stderr)
-        sys.exit(1)
+        return 1
 
     args = parser.parse_args()
 

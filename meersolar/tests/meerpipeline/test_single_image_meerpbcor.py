@@ -526,36 +526,20 @@ def test_main_function(
         ),  # Success case
     ],
 )
+@patch("meersolar.meerpipeline.single_image_meerpbcor.main", return_value=0)
+@patch("meersolar.meerpipeline.single_image_meerpbcor.sys.exit")
 @patch(
-    "meersolar.meerpipeline.single_image_meerpbcor.get_pbcor_image",
-    return_value="mock_image.pbcor.fits",
+    "meersolar.meerpipeline.single_image_meerpbcor.argparse.ArgumentParser.print_help"
 )
-@patch("meersolar.meerpipeline.single_image_meerpbcor.save_pid")
-@patch(
-    "meersolar.meerpipeline.single_image_meerpbcor.get_cachedir",
-    return_value="/mock/cache",
-)
-@patch("os.makedirs")
-@patch("os.path.exists", return_value=True)
-@patch("os.getpid", return_value=5678)
-@patch("sys.stderr", new_callable=lambda: MagicMock())
 def test_cli_function(
-    mock_stderr,
-    mock_getpid,
-    mock_exists,
-    mock_makedirs,
-    mock_get_cachedir,
-    mock_save_pid,
-    mock_get_pbcor_image,
+    mock_print_help,
+    mock_exit,
+    mock_main,
     argv,
     expected_exit_code,
 ):
-    with patch.object(sys, "argv", argv):
-        if expected_exit_code == 1:
-            with pytest.raises(SystemExit) as e:
-                cli()
-            assert e.type == SystemExit
-            assert e.value.code == 1
-        else:
-            result = cli()
-            assert result == expected_exit_code
+    with patch("sys.argv", argv):
+        from meersolar.meerpipeline import single_image_meerpbcor
+
+        result = single_image_meerpbcor.cli()
+        assert result == expected_exit_code

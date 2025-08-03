@@ -10,7 +10,9 @@ from meersolar.meerpipeline.master_flow import *
 @patch("meersolar.meerpipeline.master_flow.os.path.exists")
 @patch("meersolar.meerpipeline.master_flow.os.remove")
 @patch("meersolar.meerpipeline.meer_make_ds.main")
+@patch("meersolar.meerpipeline.master_flow.get_dask_client")
 def test_run_ds_jobs(
+    mock_dask_client,
     mock_main,
     mock_remove,
     mock_exists,
@@ -42,7 +44,6 @@ def test_run_ds_jobs(
         cpu_frac=0.5,
         mem_frac=0.5,
         remote_log=True,
-        dask_addr="tcp://mock:8786",
     )
 
     if raises:
@@ -57,7 +58,8 @@ def test_run_ds_jobs(
     mock_makedirs.assert_called_once_with("/mock/workdir/logs", exist_ok=True)
     mock_log_task_saver.assert_called_once()
     mock_thread.join.assert_called_once_with(timeout=5)
-    
+
+
 @pytest.mark.parametrize("mock_msg,raises", [(0, False), (99, True)])
 @patch("meersolar.meerpipeline.master_flow.get_run_context")
 @patch("meersolar.meerpipeline.master_flow.start_log_task_saver")
@@ -65,7 +67,9 @@ def test_run_ds_jobs(
 @patch("meersolar.meerpipeline.master_flow.os.path.exists")
 @patch("meersolar.meerpipeline.master_flow.os.remove")
 @patch("meersolar.meerpipeline.do_fluxcal.main")
+@patch("meersolar.meerpipeline.master_flow.get_dask_client")
 def test_run_noise_diode_cal(
+    mock_client,
     mock_fluxcal_main,
     mock_remove,
     mock_exists,
@@ -99,7 +103,6 @@ def test_run_noise_diode_cal(
         cpu_frac=0.6,
         mem_frac=0.5,
         remote_log=True,
-        dask_addr="tcp://localhost:8786",
     )
 
     if raises:
@@ -113,8 +116,8 @@ def test_run_noise_diode_cal(
     mock_remove.assert_called_once_with("/mock/workdir/logs/noise_cal.log")
     mock_log_saver.assert_called_once()
     mock_thread.join.assert_called_once_with(timeout=5)
-    
-    
+
+
 @pytest.mark.parametrize("mock_msg,raises", [(0, False), (42, True)])
 @patch("meersolar.meerpipeline.master_flow.get_run_context")
 @patch("meersolar.meerpipeline.master_flow.start_log_task_saver")
@@ -126,7 +129,9 @@ def test_run_noise_diode_cal(
 @patch("meersolar.meerpipeline.master_flow.get_cal_target_scans")
 @patch("meersolar.meerpipeline.master_flow.msmetadata")
 @patch("meersolar.meerpipeline.do_partition.main")
+@patch("meersolar.meerpipeline.master_flow.get_dask_client")
 def test_run_partition(
+    mock_client,
     mock_main,
     mock_msmd,
     mock_get_scans,
@@ -172,11 +177,12 @@ def test_run_partition(
         cpu_frac=0.6,
         mem_frac=0.7,
         remote_log=True,
-        dask_addr="tcp://localhost:8786"
     )
 
     if raises:
-        with pytest.raises(RuntimeError, match="Partitioning calibrator scans is failed."):
+        with pytest.raises(
+            RuntimeError, match="Partitioning calibrator scans is failed."
+        ):
             run_partition.fn(**kwargs)
     else:
         result = run_partition.fn(**kwargs)
@@ -186,8 +192,8 @@ def test_run_partition(
     mock_remove.assert_called_once_with("/mock/workdir/logs/partition_cal.log")
     mock_thread.join.assert_called_once_with(timeout=5)
     mock_main.assert_called_once()
-    
-    
+
+
 @pytest.mark.parametrize("mock_msg,raises", [(0, False), (99, True)])
 @patch("meersolar.meerpipeline.master_flow.get_run_context")
 @patch("meersolar.meerpipeline.master_flow.start_log_task_saver")
@@ -195,7 +201,9 @@ def test_run_partition(
 @patch("meersolar.meerpipeline.master_flow.os.path.exists")
 @patch("meersolar.meerpipeline.master_flow.os.remove")
 @patch("meersolar.meerpipeline.do_target_split.main")
+@patch("meersolar.meerpipeline.master_flow.get_dask_client")
 def test_run_target_split_jobs(
+    mock_client,
     mock_main,
     mock_remove,
     mock_exists,
@@ -237,10 +245,7 @@ def test_run_target_split_jobs(
         jobid=123,
         cpu_frac=0.5,
         mem_frac=0.6,
-        max_cpu_frac=0.7,
-        max_mem_frac=0.8,
         remote_log=True,
-        dask_addr="tcp://127.0.0.1:8786"
     )
 
     if raises:
@@ -256,7 +261,7 @@ def test_run_target_split_jobs(
     mock_log_saver.assert_called_once()
     mock_thread.join.assert_called_once_with(timeout=5)
     mock_main.assert_called_once()
-    
+
 
 @pytest.mark.parametrize("mock_msg,raises", [(0, False), (1, True)])
 @patch("meersolar.meerpipeline.master_flow.get_run_context")
@@ -265,7 +270,9 @@ def test_run_target_split_jobs(
 @patch("meersolar.meerpipeline.master_flow.os.path.exists")
 @patch("meersolar.meerpipeline.master_flow.os.remove")
 @patch("meersolar.meerpipeline.import_model.main")
+@patch("meersolar.meerpipeline.master_flow.get_dask_client")
 def test_run_import_model(
+    mock_client,
     mock_main,
     mock_remove,
     mock_exists,
@@ -297,7 +304,6 @@ def test_run_import_model(
         cpu_frac=0.6,
         mem_frac=0.7,
         remote_log=True,
-        dask_addr="tcp://localhost:8786",
     )
 
     if raises:
@@ -313,7 +319,8 @@ def test_run_import_model(
     mock_log_saver.assert_called_once()
     mock_thread.join.assert_called_once_with(timeout=5)
     mock_main.assert_called_once()
-    
+
+
 @pytest.mark.parametrize("mock_msg,raises", [(0, False), (99, True)])
 @patch("meersolar.meerpipeline.master_flow.get_run_context")
 @patch("meersolar.meerpipeline.master_flow.start_log_task_saver")
@@ -321,7 +328,9 @@ def test_run_import_model(
 @patch("meersolar.meerpipeline.master_flow.os.path.exists")
 @patch("meersolar.meerpipeline.master_flow.os.remove")
 @patch("meersolar.meerpipeline.basic_cal.main")
+@patch("meersolar.meerpipeline.master_flow.get_dask_client")
 def test_run_basic_cal_jobs(
+    mock_client,
     mock_main,
     mock_remove,
     mock_exists,
@@ -356,7 +365,6 @@ def test_run_basic_cal_jobs(
         mem_frac=0.8,
         keep_backup=True,
         remote_log=True,
-        dask_addr="tcp://localhost:8786"
     )
 
     if raises:
@@ -372,8 +380,8 @@ def test_run_basic_cal_jobs(
     mock_log_saver.assert_called_once()
     mock_thread.join.assert_called_once_with(timeout=5)
     mock_main.assert_called_once()
-    
-    
+
+
 @pytest.mark.parametrize("mock_msg,raises", [(0, False), (1, True)])
 @patch("meersolar.meerpipeline.master_flow.get_run_context")
 @patch("meersolar.meerpipeline.master_flow.start_log_task_saver")
@@ -381,7 +389,9 @@ def test_run_basic_cal_jobs(
 @patch("meersolar.meerpipeline.master_flow.os.path.exists")
 @patch("meersolar.meerpipeline.master_flow.os.remove")
 @patch("meersolar.meerpipeline.do_apply_basiccal.main")
+@patch("meersolar.meerpipeline.master_flow.get_dask_client",return_value=MagicMock())
 def test_run_apply_basiccal_sol(
+    mock_client,
     mock_main,
     mock_remove,
     mock_exists,
@@ -403,6 +413,7 @@ def test_run_apply_basiccal_sol(
     mock_thread = MagicMock()
     mock_log_saver.return_value = mock_thread
 
+    dask_client=MagicMock()
     # Test input arguments
     kwargs = dict(
         target_mslist=["ms1.ms", "ms2.ms"],
@@ -415,11 +426,12 @@ def test_run_apply_basiccal_sol(
         cpu_frac=0.5,
         mem_frac=0.6,
         remote_log=True,
-        dask_addr="tcp://localhost:8786",
     )
 
     if raises:
-        with pytest.raises(RuntimeError, match="Applying basic calibration solutions is failed."):
+        with pytest.raises(
+            RuntimeError, match="Applying basic calibration solutions is failed."
+        ):
             run_apply_basiccal_sol.fn(**kwargs)
     else:
         result = run_apply_basiccal_sol.fn(**kwargs)
@@ -442,10 +454,10 @@ def test_run_apply_basiccal_sol(
         mem_frac=0.6,
         logfile=expected_log,
         jobid=3,
-        dask_addr="tcp://localhost:8786",
+        dask_client=mock_client.return_value.__enter__.return_value,
     )
-    
-    
+
+
 @pytest.mark.parametrize("mock_msg,raises", [(0, False), (1, True)])
 @patch("meersolar.meerpipeline.master_flow.get_run_context")
 @patch("meersolar.meerpipeline.master_flow.start_log_task_saver")
@@ -453,7 +465,9 @@ def test_run_apply_basiccal_sol(
 @patch("meersolar.meerpipeline.master_flow.os.path.exists")
 @patch("meersolar.meerpipeline.master_flow.os.remove")
 @patch("meersolar.meerpipeline.do_sidereal_cor.main")
+@patch("meersolar.meerpipeline.master_flow.get_dask_client")
 def test_run_solar_siderealcor_jobs(
+    mock_client,
     mock_main,
     mock_remove,
     mock_exists,
@@ -482,14 +496,13 @@ def test_run_solar_siderealcor_jobs(
         jobid=99,
         cpu_frac=0.6,
         mem_frac=0.5,
-        max_cpu_frac=0.7,
-        max_mem_frac=0.9,
         remote_log=True,
-        dask_addr="tcp://localhost:8786",
     )
 
     if raises:
-        with pytest.raises(RuntimeError, match="Solar sidereal motion correction is failed."):
+        with pytest.raises(
+            RuntimeError, match="Solar sidereal motion correction is failed."
+        ):
             run_solar_siderealcor_jobs.fn(**kwargs)
     else:
         result = run_solar_siderealcor_jobs.fn(**kwargs)
@@ -505,15 +518,13 @@ def test_run_solar_siderealcor_jobs(
         workdir="/mock/workdir",
         cpu_frac=0.6,
         mem_frac=0.5,
-        max_cpu_frac=0.7,
-        max_mem_frac=0.9,
         logfile=expected_log,
         jobid=99,
         start_remote_log=True,
-        dask_addr="tcp://localhost:8786",
+        dask_client=mock_client.return_value.__enter__.return_value,
     )
-    
-    
+
+
 @pytest.mark.parametrize("mock_msg,raises", [(0, False), (1, True)])
 @patch("meersolar.meerpipeline.master_flow.get_run_context")
 @patch("meersolar.meerpipeline.master_flow.start_log_task_saver")
@@ -521,7 +532,9 @@ def test_run_solar_siderealcor_jobs(
 @patch("meersolar.meerpipeline.master_flow.os.path.exists")
 @patch("meersolar.meerpipeline.master_flow.os.remove")
 @patch("meersolar.meerpipeline.do_selfcal.main")
+@patch("meersolar.meerpipeline.master_flow.get_dask_client")
 def test_run_selfcal_jobs(
+    mock_client,
     mock_main,
     mock_remove,
     mock_exists,
@@ -570,7 +583,6 @@ def test_run_selfcal_jobs(
         cpu_frac=0.6,
         mem_frac=0.7,
         remote_log=True,
-        dask_addr="tcp://localhost:8786",
     )
 
     if raises:
@@ -610,10 +622,10 @@ def test_run_selfcal_jobs(
         mem_frac=0.7,
         jobid=101,
         start_remote_log=True,
-        dask_addr="tcp://localhost:8786",
+        dask_client=mock_client.return_value.__enter__.return_value,
     )
-    
-    
+
+
 @pytest.mark.parametrize("mock_msg,raises", [(0, False), (1, True)])
 @patch("meersolar.meerpipeline.master_flow.get_run_context")
 @patch("meersolar.meerpipeline.master_flow.start_log_task_saver")
@@ -621,7 +633,9 @@ def test_run_selfcal_jobs(
 @patch("meersolar.meerpipeline.master_flow.os.path.exists")
 @patch("meersolar.meerpipeline.master_flow.os.remove")
 @patch("meersolar.meerpipeline.do_apply_selfcal.main")
+@patch("meersolar.meerpipeline.master_flow.get_dask_client")
 def test_run_apply_selfcal_sol(
+    mock_client,
     mock_main,
     mock_remove,
     mock_exists,
@@ -656,11 +670,12 @@ def test_run_apply_selfcal_sol(
         cpu_frac=0.6,
         mem_frac=0.7,
         remote_log=True,
-        dask_addr="tcp://localhost:8786"
     )
 
     if raises:
-        with pytest.raises(RuntimeError, match="Applying self-calibration solutions is failed."):
+        with pytest.raises(
+            RuntimeError, match="Applying self-calibration solutions is failed."
+        ):
             run_apply_selfcal_sol.fn(**kwargs)
     else:
         result = run_apply_selfcal_sol.fn(**kwargs)
@@ -684,7 +699,7 @@ def test_run_apply_selfcal_sol(
         mem_frac=0.7,
         logfile=expected_log,
         jobid=10,
-        dask_addr="tcp://localhost:8786",
+        dask_client=mock_client.return_value.__enter__.return_value,
     )
 
 
@@ -695,7 +710,9 @@ def test_run_apply_selfcal_sol(
 @patch("meersolar.meerpipeline.master_flow.os.path.exists")
 @patch("meersolar.meerpipeline.master_flow.os.remove")
 @patch("meersolar.meerpipeline.do_imaging.main")
+@patch("meersolar.meerpipeline.master_flow.get_dask_client")
 def test_run_imaging_jobs(
+    mock_client,
     mock_main,
     mock_remove,
     mock_exists,
@@ -744,7 +761,6 @@ def test_run_imaging_jobs(
         cpu_frac=0.6,
         mem_frac=0.7,
         remote_log=True,
-        dask_addr="tcp://localhost:8786",
     )
 
     if raises:
@@ -784,10 +800,10 @@ def test_run_imaging_jobs(
         cpu_frac=0.6,
         mem_frac=0.7,
         jobid=202,
-        dask_addr="tcp://localhost:8786",
+        dask_client=mock_client.return_value.__enter__.return_value,
     )
-    
-    
+
+
 @pytest.mark.parametrize("mock_msg,raises", [(0, False), (1, True)])
 @patch("meersolar.meerpipeline.master_flow.get_run_context")
 @patch("meersolar.meerpipeline.master_flow.start_log_task_saver")
@@ -795,7 +811,9 @@ def test_run_imaging_jobs(
 @patch("meersolar.meerpipeline.master_flow.os.path.exists")
 @patch("meersolar.meerpipeline.master_flow.os.remove")
 @patch("meersolar.meerpipeline.meer_pbcor.main")
+@patch("meersolar.meerpipeline.master_flow.get_dask_client")
 def test_run_apply_pbcor(
+    mock_client,
     mock_main,
     mock_remove,
     mock_exists,
@@ -828,7 +846,6 @@ def test_run_apply_pbcor(
         cpu_frac=0.6,
         mem_frac=0.7,
         remote_log=True,
-        dask_addr="tcp://localhost:8786"
     )
 
     if raises:
@@ -853,7 +870,5 @@ def test_run_apply_pbcor(
         logfile=expected_log,
         jobid=5,
         start_remote_log=True,
-        dask_addr="tcp://localhost:8786",
+        dask_client=mock_client.return_value.__enter__.return_value,
     )
-    
-    

@@ -8,10 +8,7 @@ def test_chanlist_to_str():
     assert result == "0~2;10;45"
 
 
-@patch("meersolar.meerpipeline.do_target_split.get_dask_client")
-@patch(
-    "meersolar.meerpipeline.do_target_split.run_limited_memory_task", return_value=1.0
-)
+@patch("meersolar.meerpipeline.do_target_split.get_local_dask_cluster")
 @patch(
     "meersolar.meerpipeline.do_target_split.get_cal_target_scans",
     return_value=([1, 2], [], [], [], []),
@@ -42,9 +39,15 @@ def test_chanlist_to_str():
 @patch("meersolar.meerpipeline.do_target_split.drop_cache")
 @patch("meersolar.meerpipeline.do_target_split.msmetadata")
 @patch("meersolar.meerpipeline.do_target_split.os.chdir")
-@patch("meersolar.meerpipeline.do_target_split.wait_for_dask_workers",return_value=True)
+@patch(
+    "meersolar.meerpipeline.do_target_split.wait_for_dask_workers", return_value=True
+)
+@patch("meersolar.meerpipeline.do_target_split.wait")
+@patch("meersolar.meerpipeline.do_target_split.get_ms_scan_size", return_value=1.0)
 def test_split_target_scans(
+    mock_get_ms_scan_size,
     mock_wait,
+    mock_wait_dask,
     mock_chdir,
     mock_msmetadata,
     mock_drop_cache,
@@ -57,28 +60,30 @@ def test_split_target_scans(
     mock_get_bad_chans,
     mock_get_valid_scans,
     mock_get_cal_target_scans,
-    mock_run_mem,
     mock_get_dask_client,
 ):
     mock_dask_client = MagicMock()
     mock_dask_cluster = MagicMock()
-    mock_get_dask_client.return_value = (mock_dask_client, mock_dask_cluster, 1, 1, 1.0, "/mock/dask_dir")
+    mock_get_dask_client.return_value = (
+        mock_dask_client,
+        mock_dask_cluster,
+        "/mock/dask_dir",
+    )
     mock_dask_client.compute.return_value = [MagicMock()]
-    mock_dask_client.gather.return_value = ["mock.ms"] 
+    mock_dask_client.gather.return_value = ["mock.ms"]
     mock_msmd = MagicMock()
     mock_msmd.chanres.return_value = [0.1]
     mock_msmd.chanfreqs.return_value = [100.0, 200.0, 300.0]
     mock_msmd.nchan.return_value = 3
     mock_msmetadata.return_value = mock_msmd
-
     msg, result = split_target_scans(
-        msname="mock.ms",
+        "mock.ms",
+        mock_dask_client,
         workdir="/mock/workdir",
         timeres=1.0,
         freqres=1.0,
         datacolumn="DATA",
         scans=[],
-        dask_addr=None,
     )
     mock_dask_client.compute.assert_called()
     mock_dask_client.gather.assert_called()
@@ -134,7 +139,7 @@ def test_main_split_target_scans(
         0 if split_success else 1,
         ["out1.ms", "out2.ms"],
     )
-
+    dask_client = MagicMock()
     msg = main(
         msname=msname,
         workdir=workdir,
@@ -152,12 +157,10 @@ def test_main_split_target_scans(
         merge_spws=False,
         cpu_frac=0.8,
         mem_frac=0.8,
-        max_cpu_frac=0.8,
-        max_mem_frac=0.8,
         logfile=None,
         jobid=0,
         start_remote_log=False,
-        dask_addr=None,
+        dask_client=dask_client,
     )
     assert msg == expected_msg
 
@@ -181,44 +184,18 @@ def test_main_split_target_scans(
         ),  # Normal CLI call
     ],
 )
-@patch(
-    "meersolar.meerpipeline.do_target_split.split_target_scans",
-    return_value=(0, ["out1.ms"]),
-)
-@patch("meersolar.meerpipeline.do_target_split.save_pid")
-@patch(
-    "meersolar.meerpipeline.do_target_split.get_cachedir", return_value="/mock/cache"
-)
-@patch("os.makedirs")
-@patch("os.path.exists", return_value=True)
-@patch("os.getpid", return_value=1234)
-@patch("meersolar.meerpipeline.do_target_split.drop_cache")
-@patch("meersolar.meerpipeline.do_target_split.clean_shutdown")
-@patch("time.sleep", return_value=None)
+@patch("meersolar.meerpipeline.do_target_split.main", return_value=0)
+@patch("meersolar.meerpipeline.do_target_split.sys.exit")
+@patch("meersolar.meerpipeline.do_target_split.argparse.ArgumentParser.print_help")
 def test_cli_split_target_scans(
-    mock_sleep,
-    mock_shutdown,
-    mock_drop_cache,
-    mock_getpid,
-    mock_exists,
-    mock_makedirs,
-    mock_cachedir,
-    mock_save_pid,
-    mock_split_target_scans,
+    mock_print_help,
+    mock_exit,
+    mock_main,
     argv,
     should_exit,
 ):
-    import sys
-    from unittest.mock import patch
-    from meersolar.meerpipeline.do_target_split import cli
+    with patch("sys.argv", argv):
+        from meersolar.meerpipeline import do_target_split
 
-    with patch.object(sys, "argv", argv):
-        if should_exit:
-            import pytest
-
-            with pytest.raises(SystemExit) as e:
-                cli()
-            assert e.value.code == 1
-        else:
-            result = cli()
-            assert result == 0
+        result = do_target_split.cli()
+        assert result == should_exit

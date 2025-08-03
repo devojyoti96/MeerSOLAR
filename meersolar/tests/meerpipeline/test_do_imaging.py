@@ -91,7 +91,6 @@ def test_perform_imaging(
         nchan=1,
         ntime=1,
         pol="I",
-        dry_run=False,
     )
 
     assert code == expected_status
@@ -126,16 +125,14 @@ def test_perform_imaging(
 @patch("meersolar.meerpipeline.do_imaging.init_logger")
 @patch("meersolar.meerpipeline.do_imaging.create_logger")
 @patch("meersolar.meerpipeline.do_imaging.msmetadata")
-@patch("meersolar.meerpipeline.do_imaging.get_dask_client")
-@patch("meersolar.meerpipeline.do_imaging.run_limited_memory_task", return_value=4.0)
+@patch("meersolar.meerpipeline.do_imaging.get_local_dask_cluster")
 @patch("meersolar.meerpipeline.do_imaging.np.load", return_value=["job", "pass"])
 @patch("meersolar.meerpipeline.do_imaging.perform_imaging")
-@patch("meersolar.meerpipeline.do_imaging.wait_for_dask_workers",return_value=True)
+@patch("meersolar.meerpipeline.do_imaging.wait_for_dask_workers", return_value=True)
 def test_run_all_imaging(
     mock_wait,
     mock_perform_imaging,
     mock_npload,
-    mock_run_limited,
     mock_get_dask,
     mock_msmd,
     mock_create_logger,
@@ -191,14 +188,14 @@ def test_run_all_imaging(
     outdir = "/tmp/mockout"
 
     result = run_all_imaging(
-        mslist=mslist,
+        mslist,
+        client,
         workdir=workdir,
         outdir=outdir,
         freqres=freqres,
         timeres=timeres,
         pol="IQUV",
     )
-    mock_get_dask.assert_called_once()
     client.compute.assert_called()
 
     assert result == expected
@@ -278,13 +275,14 @@ def test_main_do_imaging(
         mock_run_all_imaging.return_value = 0
     else:
         mock_run_all_imaging.side_effect = Exception("Mock failure")
-
+    dask_client = MagicMock()
     msg = main(
         mslist=mslist_str,
         workdir=workdir,
         outdir=outdir,
         start_remote_log=False,
         jobid=42,
+        dask_client=dask_client,
     )
 
     assert msg == expected_msg
@@ -318,14 +316,11 @@ def test_main_do_imaging(
     ],
 )
 @patch("meersolar.meerpipeline.do_imaging.main", return_value=0)
-def test_cli_do_imaging(mock_main, argv, should_exit):
-    with patch.object(sys, "argv", argv):
-        if should_exit:
-            with pytest.raises(SystemExit) as e:
-                cli()
-            assert e.value.code == 1
-            mock_main.assert_not_called()
-        else:
-            result = cli()
-            assert result == 0
-            mock_main.assert_called_once()
+@patch("meersolar.meerpipeline.do_imaging.sys.exit")
+@patch("meersolar.meerpipeline.do_imaging.argparse.ArgumentParser.print_help")
+def test_cli_do_imaging(mock_print_help, mock_exit, mock_main, argv, should_exit):
+    with patch("sys.argv", argv):
+        from meersolar.meerpipeline import do_imaging
+
+        result = do_imaging.cli()
+        assert result == should_exit

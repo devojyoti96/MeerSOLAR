@@ -57,7 +57,7 @@ def test_run_pbcor(apply_parang, returncode, expected_flag):
             apply_parang=apply_parang,
             jobid=jobid,
             ncpu=ncpu,
-            verbose=True
+            verbose=True,
         )
 
         # Verify correct result code
@@ -90,15 +90,17 @@ def test_run_pbcor(apply_parang, returncode, expected_flag):
     "meersolar.meerpipeline.meer_pbcor.plot_in_hpc", return_value=["out.png", "out.pdf"]
 )
 @patch("meersolar.meerpipeline.meer_pbcor.save_in_hpc")
-@patch("meersolar.meerpipeline.meer_pbcor.get_dask_client")
+@patch("meersolar.meerpipeline.meer_pbcor.get_local_dask_cluster")
 @patch("meersolar.meerpipeline.meer_pbcor.delayed")
 @patch("meersolar.meerpipeline.meer_pbcor.get_fits_freq")
 @patch("meersolar.meerpipeline.meer_pbcor.os.path.getsize")
 @patch("meersolar.meerpipeline.meer_pbcor.glob.glob")
 @patch("meersolar.meerpipeline.meer_pbcor.os.makedirs")
-@patch("meersolar.meerpipeline.meer_pbcor.wait_for_dask_workers",return_value=1)
+@patch("meersolar.meerpipeline.meer_pbcor.wait_for_dask_workers", return_value=1)
+@patch("meersolar.meerpipeline.meer_pbcor.wait")
 def test_pbcor_all_images(
     mock_wait,
+    mock_wait_dask,
     mock_makedirs,
     mock_glob,
     mock_getsize,
@@ -124,25 +126,31 @@ def test_pbcor_all_images(
     mock_getsize.return_value = 1024**3  # 1GB each
     mock_dask_client = MagicMock()
     dask_cluster = MagicMock()
-    mock_get_dask_client.return_value = (mock_dask_client, dask_cluster, 2, 4, 8.0, "/mock/dask_dir")
+    mock_get_dask_client.return_value = (
+        mock_dask_client,
+        dask_cluster,
+        2,
+        4,
+        8.0,
+        "/mock/dask_dir",
+    )
     mock_delayed.side_effect = lambda f: f  # simulate delayed identity
     mock_dask_client.compute.return_value = [MagicMock(), MagicMock()]
     mock_dask_client.gather.return_value = [0, 0]
     result = pbcor_all_images(
-        imagedir="/mock/imagedir",
+        "/mock/imagedir",
+        mock_dask_client,
         make_TB=make_TB,
         make_plots=make_plots,
         apply_parang=apply_parang,
         jobid=99,
         cpu_frac=0.5,
         mem_frac=0.5,
-        dask_addr=None,
     )
     mock_dask_client.compute.assert_called()
     # Check expected cleanup was called
     assert result == 0
     assert mock_makedirs.call_count >= 1
-    assert mock_get_dask_client.call_count >= 1
     assert mock_save_in_hpc.called
     if make_TB:
         assert mock_generate_tb.called
@@ -196,7 +204,7 @@ def test_main_function(
 
     mock_exists.side_effect = exists_side_effect
     mock_pbcor.return_value = 0 if pbcor_success else 1
-
+    dask_client = MagicMock()
     msg = main(
         imagedir=imagedir,
         workdir=workdir,
@@ -207,7 +215,7 @@ def test_main_function(
         mem_frac=0.6,
         logfile=None,
         jobid=1,
-        dask_addr=None,
+        dask_client=dask_client,
     )
     assert msg == expected_return
 
@@ -219,34 +227,18 @@ def test_main_function(
         (["prog.py", "mockdir", "--no_make_TB"], False),  # Normal run
     ],
 )
-@patch("meersolar.meerpipeline.meer_pbcor.pbcor_all_images", return_value=0)
-@patch("meersolar.meerpipeline.meer_pbcor.save_pid")
-@patch("meersolar.meerpipeline.meer_pbcor.get_cachedir", return_value="/mock/cache")
-@patch("os.makedirs")
-@patch("os.path.exists", return_value=True)
-@patch("os.getpid", return_value=8888)
-@patch("meersolar.meerpipeline.meer_pbcor.drop_cache")
-@patch("meersolar.meerpipeline.meer_pbcor.clean_shutdown")
-@patch("time.sleep", return_value=None)
+@patch("meersolar.meerpipeline.meer_pbcor.main", return_value=0)
+@patch("meersolar.meerpipeline.meer_pbcor.sys.exit")
+@patch("meersolar.meerpipeline.meer_pbcor.argparse.ArgumentParser.print_help")
 def test_cli_function(
-    mock_sleep,
-    mock_shutdown,
-    mock_drop,
-    mock_getpid,
-    mock_exists,
-    mock_makedirs,
-    mock_cachedir,
-    mock_save_pid,
-    mock_pbcor,
+    mock_print_help,
+    mock_exit,
+    mock_main,
     argv,
     expect_exit,
 ):
-    with patch.object(sys, "argv", argv):
-        if expect_exit:
-            with pytest.raises(SystemExit) as e:
-                cli()
-            assert e.type == SystemExit
-            assert e.value.code == 1
-        else:
-            result = cli()
-            assert result == 0
+    with patch("sys.argv", argv):
+        from meersolar.meerpipeline import meer_pbcor
+
+        result = meer_pbcor.cli()
+        assert result == expect_exit

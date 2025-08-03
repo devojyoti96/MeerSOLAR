@@ -4,7 +4,6 @@ import argparse
 import requests
 import sys
 import os
-from casatasks import casalog
 from datetime import datetime as dt
 from parfive import Downloader
 from meersolar.utils import (
@@ -14,17 +13,11 @@ from meersolar.utils import (
     init_udocker,
     initialize_wsclean_container,
     SmartDefaultsHelpFormatter,
-    start_server
-    
+    start_server,
 )
 
-logging.getLogger("distributed").setLevel(logging.WARNING)
-
-try:
-    casalogfile = casalog.logfile()
-    os.system("rm -rf " + casalogfile)
-except BaseException:
-    pass
+logging.getLogger("distributed").setLevel(logging.ERROR)
+logging.getLogger("tornado.application").setLevel(logging.CRITICAL)
 
 all_filenames = [
     "3C138_pol_model.txt",
@@ -110,7 +103,7 @@ def init_meersolar_data(update=False, remote_link=None, emails=None):
 
 def main(
     init=False,
-    prefect_server=True,
+    prefect_server=False,
     datadir="",
     update=False,
     link=None,
@@ -160,7 +153,10 @@ def cli():
         "--datadir", type=str, default="", help="User provided data directory"
     )
     parser.add_argument(
-        "--no_prefect_server", action="store_false", dest="init_prefect_server", help="Do not inititate prefect server"
+        "--prefect_server",
+        action="store_true",
+        dest="init_prefect_server",
+        help="Inititate prefect server",
     )
     parser.add_argument("--update", action="store_true", help="Update existing data")
     parser.add_argument(
@@ -175,7 +171,8 @@ def cli():
 
     if len(sys.argv) == 1:
         parser.print_help(sys.stderr)
-        sys.exit(1)
+        return 1
+
     args = parser.parse_args()
 
     msg = main(
