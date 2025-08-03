@@ -65,7 +65,6 @@ def single_ms_flag(
         # Flagging bad channels
         ##############################
         if badspw != "":
-            print(f"Flagging bad spectral windows: {badspw}\n")
             try:
                 with suppress_casa_output():
                     flagdata(
@@ -82,7 +81,6 @@ def single_ms_flag(
         # Flagging bad antennas
         ##############################
         if bad_ants_str != "":
-            print(f"Flagging bad antenna: {bad_ants_str}\n")
             try:
                 with suppress_casa_output():
                     flagdata(
@@ -156,7 +154,7 @@ def single_ms_flag(
             )
             if not corcolumn_present:
                 print(
-                    "Corrected data column is chosen for flagging, but it is not present.\n"
+                    "Corrected data column is chosen for flagging, but it is not present."
                 )
                 return
             else:
@@ -168,7 +166,7 @@ def single_ms_flag(
         if datacolumn == "data" or datacolumn == "DATA":
             datacolumn_present = check_datacolumn_valid(msname, datacolumn="DATA")
             if not datacolumn_present:
-                print("Data column is chosen for flagging, but it is not present.\n")
+                print("Data column is chosen for flagging, but it is not present.")
                 return
             else:
                 datacolumn = "data"
@@ -399,6 +397,8 @@ def do_flagging(
             )
             for ms in subms_list
         ]
+
+        print (f"Flagging mslist: {','.join(subms_list)}")
 
         results = []
         for i in range(0, len(tasks), n_jobs):

@@ -1771,7 +1771,6 @@ def master_control(
                 mem_frac=round(mem_frac, 2),
                 remote_log=remote_logger,
             )
-            msg = future_maskms.result()
             try:
                 msg = future_maskms.result()
             except Exception as e:

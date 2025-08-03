@@ -180,15 +180,12 @@ def import_fluxcal_models(mslist, fluxcal_fields, fluxcal_scans, ncpus=1, mem_fr
                         "-ns 1000",
                         "-j " + str(ncpus),
                         "-mf " + str(mem_frac),
+                        sub_msname,
                     ]
-                    crys_cmd = (
-                        "crystalball " + " ".join(crys_cmd_args) + " " + sub_msname
-                    )
-                    print(crys_cmd)
-                    tmpfile = f"tmp_{os.path.basename(sub_msname).split('.ms')[0]}"
-                    with suppress_casa_output():
-                        msg = os.system(crys_cmd + f" > {tmpfile}")
-                    os.system(f"rm -rf {tmpfile}")
+                    cmd = ["crystalball"] + crys_cmd_args
+                    cmd = " ".join(cmd)
+                    print(f"Running: {cmd}")
+                    msg = os.system(cmd)
                     if msg == 0:
                         print(f"Fluxcal model is imported successfully for scan: {s}.")
                     else:
