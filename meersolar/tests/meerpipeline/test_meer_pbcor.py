@@ -97,9 +97,7 @@ def test_run_pbcor(apply_parang, returncode, expected_flag):
 @patch("meersolar.meerpipeline.meer_pbcor.glob.glob")
 @patch("meersolar.meerpipeline.meer_pbcor.os.makedirs")
 @patch("meersolar.meerpipeline.meer_pbcor.wait_for_dask_workers", return_value=1)
-@patch("meersolar.meerpipeline.meer_pbcor.wait")
 def test_pbcor_all_images(
-    mock_wait,
     mock_wait_dask,
     mock_makedirs,
     mock_glob,

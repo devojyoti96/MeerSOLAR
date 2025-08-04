@@ -106,6 +106,7 @@ def run_all_applysol(
         msmd = msmetadata()
         njobs = min(total_cpu, len(mslist))
         mem_limit = total_mem / njobs
+        n_threads=max(1,int(total_cpu/njobs))
         for ms in mslist:
             msmd.open(ms)
             ms_scan = msmd.scannumbers()[0]
@@ -123,7 +124,7 @@ def run_all_applysol(
                     overwrite_datacolumn=overwrite_datacolumn,
                     applymode=applymode,
                     interp=["linear,linearflag"],
-                    n_threads=1,
+                    n_threads=n_threads,
                     parang=parang,
                     memory_limit=mem_limit,
                     force_apply=force_apply,

@@ -421,6 +421,7 @@ def run_all_applysol(
             bpass_table = bandpass_table[0]
         njobs = min(total_cpu, len(mslist))
         mem_limit = total_mem / njobs
+        n_threads=max(1,int(total_cpu/njobs))
         for ms in mslist:
             interp = []
             final_gaintable = gaintable + [bpass_table]
@@ -439,7 +440,7 @@ def run_all_applysol(
                     applymode=applymode,
                     interp=interp,
                     do_post_flag=do_post_flag,
-                    n_threads=1,
+                    n_threads=n_threads,
                     parang=parang,
                     memory_limit=mem_limit,
                     force_apply=force_apply,

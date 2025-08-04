@@ -78,7 +78,7 @@ def split_autocorr(
         Splited ms list
     """
     msname = msname.rstrip("/")
-    scan_size_list = [
+    scan_sizes= [
         get_ms_scan_size(msname, scan, only_autocorr=True) for scan in scan_list
     ]
     tasks = []
@@ -92,7 +92,7 @@ def split_autocorr(
     ########################################
     # Number of worker limit based on memory
     ########################################
-    mem_limit = min(total_mem, max(scan_size_list))
+    mem_limit = min(total_mem, max(scan_sizes))
     n_jobs = max(1, min(total_cpu, int(total_mem / mem_limit)))
     n_threads = max(1, int(total_cpu / n_jobs))
 
@@ -138,7 +138,6 @@ def split_autocorr(
             batch = tasks[i : i + n_jobs]
             wait_for_dask_workers(dask_client, min_worker=2, timeout=60)
             futures = dask_client.compute(batch)
-            wait(futures)
             results.extend(dask_client.gather(futures))
         autocorr_mslist = list(results)
     else:
@@ -464,7 +463,6 @@ def estimate_att(
             batch = tasks[i : i + n_jobs]
             wait_for_dask_workers(dask_client, min_worker=2, timeout=60)
             futures = dask_client.compute(batch)
-            wait(futures)
             results.extend(dask_client.gather(futures))
         results = list(results)
 
@@ -475,7 +473,7 @@ def estimate_att(
         # Calculating per scan level
         ########################################
         print("Calculating noise-diode power difference ...")
-        scan_sizes = [get_column_size(ms) for ms in autocorr_mslist]
+        scan_sizes = [get_column_size(ms,only_autocorr=True) for ms in autocorr_mslist]
         ########################################
         # Number of worker limit based on memory
         ########################################
@@ -514,7 +512,6 @@ def estimate_att(
             batch = tasks[i : i + n_jobs]
             wait_for_dask_workers(dask_client, min_worker=2, timeout=60)
             futures = dask_client.compute(batch)
-            wait(futures)
             results.extend(dask_client.gather(futures))
         results = list(results)
 

@@ -40,46 +40,41 @@ def run_delaycal(
     limit_threads(n_threads=n_threads)
     from meersolar.utils.calibration import delaycal
     from casatasks import gaincal
-
-    time.sleep(1)
     caltable_prefix = os.path.basename(msname).split(".ms")[0]
-    try:
-        with suppress_casa_output():
-            if uvrange == "":
-                gaincal(
-                    vis=msname,
-                    caltable=caltable_prefix + ".kcal",
-                    field=str(field),
-                    scan=str(scan),
-                    uvrange="",
-                    refant=refant,
-                    refantmode=refantmode,
-                    solint=solint,
-                    gaintype="K",
-                    combine=combine,
-                    gaintable=gaintable,
-                    gainfield=gainfield,
-                    interp=interp,
-                )
-            else:
-                delaycal(
-                    vis=msname,
-                    caltable=caltable_prefix + ".kcal",
-                    field=str(field),
-                    scan=str(scan),
-                    uvrange=uvrange,
-                    refant=refant,
-                    refantmode=refantmode,
-                    solint=solint,
-                    combine=combine,
-                    gaintable=gaintable,
-                    gainfield=gainfield,
-                    interp=interp,
-                )
-            drop_cache(msname)
-        return caltable_prefix + ".kcal"
-    finally:
-        limit_threads(n_threads=1)
+    with suppress_casa_output():
+        if uvrange == "":
+            gaincal(
+                vis=msname,
+                caltable=caltable_prefix + ".kcal",
+                field=str(field),
+                scan=str(scan),
+                uvrange="",
+                refant=refant,
+                refantmode=refantmode,
+                solint=solint,
+                gaintype="K",
+                combine=combine,
+                gaintable=gaintable,
+                gainfield=gainfield,
+                interp=interp,
+            )
+        else:
+            delaycal(
+                vis=msname,
+                caltable=caltable_prefix + ".kcal",
+                field=str(field),
+                scan=str(scan),
+                uvrange=uvrange,
+                refant=refant,
+                refantmode=refantmode,
+                solint=solint,
+                combine=combine,
+                gaintable=gaintable,
+                gainfield=gainfield,
+                interp=interp,
+            )
+        drop_cache(msname)
+    return caltable_prefix + ".kcal"
 
 
 def run_bandpass(
@@ -101,35 +96,30 @@ def run_bandpass(
     """
     limit_threads(n_threads=n_threads)
     from casatasks import bandpass, flagdata
-
-    time.sleep(1)
     caltable_prefix = os.path.basename(msname).split(".ms")[0]
-    try:
-        with suppress_casa_output():
-            bandpass(
-                vis=msname,
-                caltable=caltable_prefix + ".bcal",
-                field=str(field),
-                scan=str(scan),
-                uvrange=uvrange,
-                refant=refant,
-                solint=solint,
-                solnorm=solnorm,
-                combine=combine,
-                gaintable=gaintable,
-                gainfield=gainfield,
-                interp=interp,
-            )
-            flagdata(
-                vis=caltable_prefix + ".bcal",
-                mode="rflag",
-                datacolumn="CPARAM",
-                flagbackup=False,
-            )
-        drop_cache(msname)
-        return caltable_prefix + ".bcal"
-    finally:
-        limit_threads(n_threads=1)
+    with suppress_casa_output():
+        bandpass(
+            vis=msname,
+            caltable=caltable_prefix + ".bcal",
+            field=str(field),
+            scan=str(scan),
+            uvrange=uvrange,
+            refant=refant,
+            solint=solint,
+            solnorm=solnorm,
+            combine=combine,
+            gaintable=gaintable,
+            gainfield=gainfield,
+            interp=interp,
+        )
+        flagdata(
+            vis=caltable_prefix + ".bcal",
+            mode="rflag",
+            datacolumn="CPARAM",
+            flagbackup=False,
+        )
+    drop_cache(msname)
+    return caltable_prefix + ".bcal"
 
 
 def run_gaincal(
@@ -157,36 +147,31 @@ def run_gaincal(
     """
     limit_threads(n_threads=n_threads)
     from casatasks import gaincal, flagdata
-
-    time.sleep(1)
     caltable_prefix = os.path.basename(msname).split(".ms")[0]
-    try:
-        with suppress_casa_output():
-            gaincal(
-                vis=msname,
-                caltable=caltable_prefix + ".gcal",
-                field=str(field),
-                scan=str(scan),
-                uvrange=uvrange,
-                refant=refant,
-                refantmode=refantmode,
-                solint=solint,
-                combine=combine,
-                gaintype=gaintype,
-                calmode=calmode,
-                solmode=solmode,
-                rmsthresh=rmsthresh,
-                smodel=smodel,
-                append=append,
-                gaintable=gaintable,
-                gainfield=gainfield,
-                interp=interp,
-            )
-        drop_cache(msname)
-        return caltable_prefix + ".gcal"
-    finally:
-        limit_threads(n_threads=1)
-
+    with suppress_casa_output():
+        gaincal(
+            vis=msname,
+            caltable=caltable_prefix + ".gcal",
+            field=str(field),
+            scan=str(scan),
+            uvrange=uvrange,
+            refant=refant,
+            refantmode=refantmode,
+            solint=solint,
+            combine=combine,
+            gaintype=gaintype,
+            calmode=calmode,
+            solmode=solmode,
+            rmsthresh=rmsthresh,
+            smodel=smodel,
+            append=append,
+            gaintable=gaintable,
+            gainfield=gainfield,
+            interp=interp,
+        )
+    drop_cache(msname)
+    return caltable_prefix + ".gcal"
+        
 
 def run_leakagecal(
     msname="",
@@ -205,35 +190,30 @@ def run_leakagecal(
     """
     limit_threads(n_threads=n_threads)
     from casatasks import polcal, flagdata
-
-    time.sleep(1)
     caltable_prefix = os.path.basename(msname).split(".ms")[0]
-    try:
-        with suppress_casa_output():
-            polcal(
-                vis=msname,
-                caltable=caltable_prefix + ".dcal",
-                field=str(field),
-                scan=str(scan),
-                uvrange=uvrange,
-                refant=refant,
-                solint="inf,10MHz",
-                combine=combine,
-                poltype="Df",
-                gaintable=gaintable,
-                gainfield=gainfield,
-                interp=interp,
-            )
-            flagdata(
-                vis=caltable_prefix + ".dcal",
-                mode="rflag",
-                datacolumn="CPARAM",
-                flagbackup=False,
-            )
-        drop_cache(msname)
-        return caltable_prefix + ".dcal"
-    finally:
-        limit_threads(n_threads=1)
+    with suppress_casa_output():
+        polcal(
+            vis=msname,
+            caltable=caltable_prefix + ".dcal",
+            field=str(field),
+            scan=str(scan),
+            uvrange=uvrange,
+            refant=refant,
+            solint="inf,10MHz",
+            combine=combine,
+            poltype="Df",
+            gaintable=gaintable,
+            gainfield=gainfield,
+            interp=interp,
+        )
+        flagdata(
+            vis=caltable_prefix + ".dcal",
+            mode="rflag",
+            datacolumn="CPARAM",
+            flagbackup=False,
+        )
+    drop_cache(msname)
+    return caltable_prefix + ".dcal"
 
 
 def run_polcal(
@@ -253,74 +233,69 @@ def run_polcal(
     """
     limit_threads(n_threads=n_threads)
     from casatasks import gaincal, polcal
-
-    time.sleep(1)
     caltable_prefix = os.path.basename(msname).split(".ms")[0]
-    try:
+    with suppress_casa_output():
+        gaincal(
+            vis=msname,
+            caltable=caltable_prefix + ".kcrosscal",
+            field=str(field),
+            scan=str(scan),
+            uvrange=uvrange,
+            refant=refant,
+            refantmode="flex",
+            solint="inf",
+            combine=combine,
+            gaintype="KCROSS",
+            gaintable=gaintable,
+            gainfield=gainfield,
+            interp=interp,
+        )
+    if os.path.exists(caltable_prefix + ".kcrosscal"):
+        gaintable.append(caltable_prefix + ".kcrosscal")
+        gainfield.append(str(field))
+        interp.append("")
         with suppress_casa_output():
-            gaincal(
+            polcal(
                 vis=msname,
-                caltable=caltable_prefix + ".kcrosscal",
+                caltable=caltable_prefix + ".xfcal",
                 field=str(field),
                 scan=str(scan),
                 uvrange=uvrange,
                 refant=refant,
-                refantmode="flex",
-                solint="inf",
+                solint="inf,10MHz",
                 combine=combine,
-                gaintype="KCROSS",
+                poltype="Xf",
                 gaintable=gaintable,
                 gainfield=gainfield,
                 interp=interp,
             )
-        if os.path.exists(caltable_prefix + ".kcrosscal"):
-            gaintable.append(caltable_prefix + ".kcrosscal")
+        if os.path.exists(caltable_prefix + ".xfcal"):
+            gaintable.append(caltable_prefix + ".xfcal")
             gainfield.append(str(field))
             interp.append("")
             with suppress_casa_output():
                 polcal(
                     vis=msname,
-                    caltable=caltable_prefix + ".xfcal",
+                    caltable=caltable_prefix + ".panglecal",
                     field=str(field),
                     scan=str(scan),
                     uvrange=uvrange,
                     refant=refant,
+                    refantmode="flex",
                     solint="inf,10MHz",
-                    combine=combine,
-                    poltype="Xf",
+                    combine="obs,scan",
+                    poltype="PosAng",
                     gaintable=gaintable,
                     gainfield=gainfield,
                     interp=interp,
                 )
-            if os.path.exists(caltable_prefix + ".xfcal"):
-                gaintable.append(caltable_prefix + ".xfcal")
-                gainfield.append(str(field))
-                interp.append("")
-                with suppress_casa_output():
-                    polcal(
-                        vis=msname,
-                        caltable=caltable_prefix + ".panglecal",
-                        field=str(field),
-                        scan=str(scan),
-                        uvrange=uvrange,
-                        refant=refant,
-                        refantmode="flex",
-                        solint="inf,10MHz",
-                        combine="obs,scan",
-                        poltype="PosAng",
-                        gaintable=gaintable,
-                        gainfield=gainfield,
-                        interp=interp,
-                    )
-        drop_cache(msname)
-        return (
-            caltable_prefix + ".kcrosscal",
-            caltable_prefix + ".xfcal",
-            caltable_prefix + ".panglecal",
-        )
-    finally:
-        limit_threads(n_threads=1)
-
+    drop_cache(msname)
+    return (
+        caltable_prefix + ".kcrosscal",
+        caltable_prefix + ".xfcal",
+        caltable_prefix + ".panglecal",
+    )
+    
 
 def run_applycal(
     msname="",
@@ -340,26 +315,21 @@ def run_applycal(
     """
     limit_threads(n_threads=n_threads)
     from casatasks import applycal
-
-    time.sleep(1)
-    try:
-        with suppress_casa_output():
-            applycal(
-                vis=msname,
-                field=str(field),
-                scan=str(scan),
-                gaintable=gaintable,
-                gainfield=gainfield,
-                interp=interp,
-                calwt=calwt,
-                applymode=applymode,
-                flagbackup=flagbackup,
-                parang=parang,
-            )
-        drop_cache(msname)
-        return
-    finally:
-        limit_threads(n_threads=1)
+    with suppress_casa_output():
+        applycal(
+            vis=msname,
+            field=str(field),
+            scan=str(scan),
+            gaintable=gaintable,
+            gainfield=gainfield,
+            interp=interp,
+            calwt=calwt,
+            applymode=applymode,
+            flagbackup=flagbackup,
+            parang=parang,
+        )
+    drop_cache(msname)
+    return
 
 
 def run_postcal_flag(
@@ -375,8 +345,6 @@ def run_postcal_flag(
     """
     limit_threads(n_threads=n_threads)
     from casatasks import flagdata
-
-    time.sleep(1)
     ncol = 3
     ####################################################
     # Check if required columns are present for residual
@@ -402,35 +370,32 @@ def run_postcal_flag(
                 "Corrected data column is chosen for flagging, but it is not present."
             )
             return
-    try:
-        nchunk = get_chunk_size(msname, memory_limit=memory_limit)
-        if nchunk <= 1:
-            ntime = "scan"
-        else:
-            msmd = msmetadata()
-            msmd.open(msname)
-            scan = np.unique(msmd.scannumbers())[0]
-            times = msmd.timesforspws(0)
-            msmd.close()
-            total_time = np.nanmax(times) - np.nanmin(times)
-            timeres = np.nanmin(np.diff(times))
-            ntime = float(total_time / nchunk)
-            if ntime < timeres:
-                ntime = timeres
-        with suppress_casa_output():
-            flagdata(
-                vis=msname,
-                mode=mode,
-                uvrange=uvrange,
-                datacolumn=datacolumn,
-                flagbackup=False,
-                ntime=ntime,
-            )
-        drop_cache(msname)
-        return
-    finally:
-        limit_threads(n_threads=1)
-
+    nchunk = get_chunk_size(msname, memory_limit=memory_limit)
+    if nchunk <= 1:
+        ntime = "scan"
+    else:
+        msmd = msmetadata()
+        msmd.open(msname)
+        scan = np.unique(msmd.scannumbers())[0]
+        times = msmd.timesforspws(0)
+        msmd.close()
+        total_time = np.nanmax(times) - np.nanmin(times)
+        timeres = np.nanmin(np.diff(times))
+        ntime = float(total_time / nchunk)
+        if ntime < timeres:
+            ntime = timeres
+    with suppress_casa_output():
+        flagdata(
+            vis=msname,
+            mode=mode,
+            uvrange=uvrange,
+            datacolumn=datacolumn,
+            flagbackup=False,
+            ntime=ntime,
+        )
+    drop_cache(msname)
+    return
+    
 
 def single_round_cal_and_flag(
     msname,
@@ -594,13 +559,14 @@ def single_round_cal_and_flag(
         ##############################
         if len(fluxcal_mslist) > 0:
             delaycal_mslist = fluxcal_mslist
+            n_threads = max(1,int(total_cpu/len(delaycal_mslist)))
             delaycal_tasks = [
                 delayed(run_delaycal)(
                     sub_msname,
                     uvrange=uvrange,
                     refant=refant,
                     solint="inf",
-                    n_threads=1,
+                    n_threads=n_threads,
                 )
                 for sub_msname in delaycal_mslist
             ]
@@ -610,7 +576,6 @@ def single_round_cal_and_flag(
             )
             wait_for_dask_workers(dask_client, min_worker=2, timeout=60)
             delay_caltable = str(dask_client.gather(dask_client.compute(merged)))
-            time.sleep(1)
 
             if delay_caltable is not None and os.path.exists(delay_caltable):
                 tb = table()
@@ -628,6 +593,7 @@ def single_round_cal_and_flag(
         # Bandpass calibration
         ##############################
         if len(fluxcal_mslist) > 0:
+            n_threads = max(1,int(total_cpu/len(fluxcal_mslist)))
             bandpass_tasks = [
                 delayed(run_bandpass)(
                     sub_msname,
@@ -636,7 +602,7 @@ def single_round_cal_and_flag(
                     solint="inf",
                     gaintable=applycal_gaintable,
                     interp=applycal_interp,
-                    n_threads=1,
+                    n_threads=n_threads,
                 )
                 for sub_msname in fluxcal_mslist
             ]
@@ -646,7 +612,6 @@ def single_round_cal_and_flag(
             )
             wait_for_dask_workers(dask_client, min_worker=2, timeout=60)
             bpass_caltable = str(dask_client.gather(dask_client.compute(merged)))
-            time.sleep(1)
 
             if bpass_caltable is not None and os.path.exists(bpass_caltable):
                 applycal_gaintable.append(bpass_caltable)
@@ -666,6 +631,7 @@ def single_round_cal_and_flag(
         if do_polcal and len(polcal_mslist) > 0 and npol == 4:
             gaincal_mslist = fluxcal_mslist + polcal_mslist
         if len(gaincal_mslist) > 0:
+            n_threads = max(1,int(total_cpu/len(gaincal_mslist)))
             gaincal_tasks = [
                 delayed(run_gaincal)(
                     sub_msname,
@@ -676,7 +642,7 @@ def single_round_cal_and_flag(
                     calmode="ap",
                     gaintable=applycal_gaintable,
                     interp=applycal_interp,
-                    n_threads=1,
+                    n_threads=n_threads,
                 )
                 for sub_msname in gaincal_mslist
             ]
@@ -686,7 +652,6 @@ def single_round_cal_and_flag(
             )
             wait_for_dask_workers(dask_client, min_worker=2, timeout=60)
             gain_caltable = str(dask_client.gather(dask_client.compute(merged)))
-            time.sleep(1)
 
         ######################################
         # Gain calibrations on phasecals
@@ -711,6 +676,7 @@ def single_round_cal_and_flag(
                 applycal_gainfield.append("")
                 applycal_interp.append("nearest")
             else:
+                n_threads = max(1,int(total_cpu/len(phasecal_mslist)))
                 gaincal_tasks = [
                     delayed(run_gaincal)(
                         sub_msname,
@@ -722,7 +688,7 @@ def single_round_cal_and_flag(
                         smodel=[1, 0, 0, 0],
                         gaintable=applycal_gaintable,
                         interp=applycal_interp,
-                        n_threads=1,
+                        n_threads=n_threads,
                     )
                     for sub_msname in phasecal_mslist
                 ]
@@ -732,7 +698,6 @@ def single_round_cal_and_flag(
                 )
                 wait_for_dask_workers(dask_client, min_worker=2, timeout=60)
                 gain_caltable = str(dask_client.gather(dask_client.compute(merged)))
-                time.sleep(1)
 
                 #################################
                 # Flux scaling
@@ -790,6 +755,7 @@ def single_round_cal_and_flag(
                     "Measurement set is not full-polar. Not performing leakage calibration."
                 )
             elif len(fluxcal_mslist) > 0:
+                n_threads = max(1,int(total_cpu/len(fluxcal_mslist)))
                 leakage_tasks = [
                     delayed(run_leakagecal)(
                         sub_msname,
@@ -798,7 +764,7 @@ def single_round_cal_and_flag(
                         gaintable=applycal_gaintable,
                         gainfield=["", "", ",".join(fluxcal_fields)],
                         interp=applycal_interp,
-                        n_threads=1,
+                        n_threads=n_threads,
                     )
                     for sub_msname in fluxcal_mslist
                 ]
@@ -808,7 +774,6 @@ def single_round_cal_and_flag(
                 )
                 wait_for_dask_workers(dask_client, min_worker=2, timeout=60)
                 leakage_caltable = str(dask_client.gather(dask_client.compute(merged)))
-                time.sleep(1)
 
                 if leakage_caltable is not None and os.path.exists(leakage_caltable):
                     applycal_gaintable.append(leakage_caltable)
@@ -828,6 +793,7 @@ def single_round_cal_and_flag(
             elif os.path.exists(leakage_caltable) == False:
                 print("Leakage solutions are not present.")
             else:
+                n_threads = max(1,int(total_cpu/len(polcal_mslist)))
                 tasks = [
                     delayed(run_polcal)(
                         sub_msname,
@@ -842,7 +808,7 @@ def single_round_cal_and_flag(
                             ",".join(fluxcal_fields),
                         ],
                         interp=applycal_interp,
-                        n_threads=1,
+                        n_threads=n_threads,
                     )
                     for sub_msname in polcal_mslist
                 ]
@@ -851,7 +817,6 @@ def single_round_cal_and_flag(
                 )
                 wait_for_dask_workers(dask_client, min_worker=2, timeout=60)
                 results = list(dask_client.gather(dask_client.compute(tasks)))
-                time.sleep(1)
 
                 kcross_tables = []
                 crossphase_tables = []
@@ -913,6 +878,7 @@ def single_round_cal_and_flag(
             all_mslist += polcal_mslist
         if len(all_mslist) > 0:
             do_flag_backup(msname, flagtype="applycal")
+            n_threads = max(1,int(total_cpu/len(all_mslist)))
             tasks = [
                 delayed(run_applycal)(
                     sub_msname,
@@ -922,14 +888,13 @@ def single_round_cal_and_flag(
                     interp=applycal_interp,
                     calwt=[False] * len(applycal_gainfield),
                     parang=parang,
-                    n_threads=1,
+                    n_threads=n_threads,
                 )
                 for sub_msname in all_mslist
             ]
             print(f"Applying calibrations on: {msname}")
             wait_for_dask_workers(dask_client, min_worker=2, timeout=60)
             results = list(dask_client.gather(dask_client.compute(tasks)))
-            time.sleep(1)
 
         ##############################
         # Post calibration flagging
@@ -941,6 +906,7 @@ def single_round_cal_and_flag(
             mem_limit = total_mem / njobs
             if len(all_mslist) > 0:
                 tasks = []
+                n_threads = max(1,int(total_cpu/njobs))
                 for sub_msname in all_mslist:
                     if sub_msname in fluxcal_mslist:
                         datacolumn = "residual"
@@ -952,14 +918,13 @@ def single_round_cal_and_flag(
                             datacolumn=datacolumn,
                             uvrange=uvrange,
                             mode="rflag",
-                            n_threads=1,
+                            n_threads=n_threads,
                             memory_limit=mem_limit,
                         )
                     )
             print(f"Performing post-calibration flagging on: {msname}")
             wait_for_dask_workers(dask_client, min_worker=2, timeout=60)
             results = list(dask_client.gather(dask_client.compute(tasks)))
-            time.sleep(1)
 
         ###############################
         # Finished calibration round
@@ -1246,7 +1211,7 @@ def main(
         and os.path.exists(f"{workdir}/jobname_password.npy")
         and logfile is not None
     ):
-        time.sleep(5)
+        time.sleep(1)
         jobname, password = np.load(
             f"{workdir}/jobname_password.npy", allow_pickle=True
         )
@@ -1303,7 +1268,7 @@ def main(
         traceback.print_exc()
         msg = 1
     finally:
-        time.sleep(5)
+        time.sleep(1)
         drop_cache(msname)
         drop_cache(workdir)
         drop_cache(caldir)

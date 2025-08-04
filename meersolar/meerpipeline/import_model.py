@@ -185,7 +185,11 @@ def import_fluxcal_models(mslist, fluxcal_fields, fluxcal_scans, ncpus=1, mem_fr
                     cmd = ["crystalball"] + crys_cmd_args
                     cmd = " ".join(cmd)
                     print(f"Running: {cmd}")
-                    msg = os.system(cmd)
+                    tmpfile=f"tmp_{os.path.basename(sub_msname)}"
+                    with suppress_casa_output():
+                        msg = os.system(f"{cmd} > {tmpfile}")
+                    if os.path.exists(tmpfile):
+                        os.remove(tmpfile)
                     if msg == 0:
                         print(f"Fluxcal model is imported successfully for scan: {s}.")
                     else:
@@ -203,6 +207,7 @@ def import_phasecal_models(
     phasecal_fields,
     phasecal_scans,
     workdir,
+    cpu_frac=0.8,
 ):
     """
     Import model visibilities for phasecal
@@ -219,6 +224,8 @@ def import_phasecal_models(
         Phasecal scans
     workdir : str
         Work directory
+    cpu_frac : float, optional
+        CPU fraction to use
 
     Returns
     -------
@@ -226,6 +233,9 @@ def import_phasecal_models(
         Success message
     """
     try:
+        if cpu_frac > 0.8:
+            cpu_frac = 0.8
+        total_cpu = int(psutil.cpu_count() * cpu_frac)
         print("##########################")
         print("Import phasecal models")
         print("##########################")
@@ -235,6 +245,13 @@ def import_phasecal_models(
             for s in ms_scans:
                 scans.append(s)
         tasks = []
+        total_scans=0
+        for phasecal in phasecal_fields:
+            ph_scan = phasecal_scans[phasecal]
+            for s in ph_scan:
+                if s in scans:
+                    total_scans+=1
+        n_threads = max(1,int(total_cpu/total_scans))
         for phasecal in phasecal_fields:
             ph_scan = phasecal_scans[phasecal]
             for s in ph_scan:
@@ -246,7 +263,7 @@ def import_phasecal_models(
                             sub_msname,
                             field=phasecal,
                             ismms=True,
-                            n_threads=1,
+                            n_threads=n_threads,
                         )
                     )
         wait_for_dask_workers(dask_client, min_worker=2, timeout=60)
@@ -265,6 +282,7 @@ def import_polcal_models(
     polcal_fields,
     polcal_scans,
     workdir,
+    cpu_frac=0.8,
 ):
     """
     Import model for polarization calibrators (3C286 or 3C138)
@@ -281,6 +299,8 @@ def import_polcal_models(
         Polcal scans
     workdir : str
         Work directory
+    cpu_frac : float, optional
+        CPU fraction to use
 
     Returns
     -------
@@ -288,6 +308,9 @@ def import_polcal_models(
         Success message
     """
     try:
+        if cpu_frac > 0.8:
+            cpu_frac = 0.8
+        total_cpu = int(psutil.cpu_count() * cpu_frac)
         if len(polcal_scans) == 0:
             print("No polarization calibrator scans is present.")
             return 1
@@ -297,6 +320,13 @@ def import_polcal_models(
             for s in ms_scans:
                 scans.append(s)
         tasks = []
+        total_scans=0
+        for polcal_field in polcal_fields:
+            p_scan = polcal_scans[polcal_field]
+            for s in p_scan:
+                if s in scans:
+                    total_scans+=1
+        n_threads=max(1,int(total_cpu/total_scans))
         for polcal_field in polcal_fields:
             p_scan = polcal_scans[polcal_field]
             for s in p_scan:
@@ -305,7 +335,7 @@ def import_polcal_models(
                     sub_msname = mslist[pos]
                     tasks.append(
                         delayed(polcal_setjy)(
-                            sub_msname, polcal_field, ismms=True, n_threads=1
+                            sub_msname, polcal_field, ismms=True, n_threads=n_threads
                         )
                     )
         wait_for_dask_workers(dask_client, min_worker=2, timeout=60)
@@ -356,32 +386,41 @@ def import_all_models(msname, dask_client, workdir, cpu_frac=0.8, mem_frac=0.8):
         fluxcal_fields, fluxcal_scans = get_fluxcals(msname)
         phasecal_fields, phasecal_scans, phasecal_flux_list = get_phasecals(msname)
         polcal_fields, polcal_scans = get_polcals(msname)
-        fluxcal_result = import_fluxcal_models(
+        fluxcal_task = delayed(import_fluxcal_models)(
             mslist, fluxcal_fields, fluxcal_scans, ncpus=ncpu, mem_frac=mem_frac
         )
-        if fluxcal_result != 0:
-            print("##################")
-            print("Total time taken : " + str(time.time() - start_time) + "s")
-            print("##################\n")
-            return fluxcal_result, 1, 1
-        phasecal_result = import_phasecal_models(
+        phasecal_task = delayed(import_phasecal_models)(
             mslist,
             dask_client,
             phasecal_fields,
             phasecal_scans,
             workdir,
+            cpu_frac=cpu_frac,
         )
-        polcal_result = import_polcal_models(
+        polcal_task = delayed(import_polcal_models)(
             mslist,
             dask_client,
             polcal_fields,
             polcal_scans,
             workdir,
+            cpu_frac=cpu_frac,
         )
+        futures = dask_client.compute([fluxcal_task, phasecal_task, polcal_task])
+        results = dask_client.gather(futures)
+       
+        fluxcal_result, phasecal_result, polcal_result = results
+        
+        if fluxcal_result != 0:
+            print("##################")
+            print("Total time taken : " + str(time.time() - start_time) + "s")
+            print("##################\n")
+            return fluxcal_result, 1, 1
+            
         if phasecal_result != 0:
             print(
                 "Phasecal model was not import, but fluxcal model import is successful."
             )
+            
         if polcal_result != 0:
             print(
                 "Polcal model was not imported, but fluxcal model import is successful."

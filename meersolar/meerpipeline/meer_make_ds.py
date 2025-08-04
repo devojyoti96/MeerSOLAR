@@ -140,7 +140,6 @@ def make_solar_DS(
         batch = tasks[i : i + n_jobs]
         wait_for_dask_workers(dask_client, min_worker=2, timeout=60)
         futures = dask_client.compute(batch)
-        wait(futures)
         results.extend(dask_client.gather(futures))
     results = list(results)
 

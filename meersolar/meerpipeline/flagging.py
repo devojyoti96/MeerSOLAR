@@ -405,7 +405,6 @@ def do_flagging(
             batch = tasks[i : i + n_jobs]
             wait_for_dask_workers(dask_client, min_worker=2, timeout=60)
             futures = dask_client.compute(batch)
-            wait(futures)
             results.extend(dask_client.gather(futures))
         results = list(results)
 
@@ -500,7 +499,7 @@ def main(
         and os.path.exists(f"{workdir}/jobname_password.npy")
         and logfile is not None
     ):
-        time.sleep(5)
+        time.sleep(1)
         jobname, password = np.load(
             f"{workdir}/jobname_password.npy", allow_pickle=True
         )
@@ -551,7 +550,7 @@ def main(
         traceback.print_exc()
         msg = 1
     finally:
-        time.sleep(5)
+        time.sleep(1)
         drop_cache(msname)
         drop_cache(workdir)
         clean_shutdown(observer)

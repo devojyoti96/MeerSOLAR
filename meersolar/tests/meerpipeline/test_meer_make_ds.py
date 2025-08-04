@@ -26,9 +26,7 @@ from meersolar.meerpipeline.meer_make_ds import *
 )
 @patch("meersolar.meerpipeline.meer_make_ds.os.makedirs")
 @patch("meersolar.meerpipeline.meer_make_ds.get_ms_scan_size", return_value=1.0)
-@patch("meersolar.meerpipeline.meer_make_ds.wait")
 def test_make_solar_DS(
-    mock_wait,
     mock_get_scan_size,
     mock_makedirs,
     mock_get_scans,

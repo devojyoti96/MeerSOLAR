@@ -23,9 +23,7 @@ def test_split_casatask(dummy_msname):
     "meersolar.meerpipeline.do_fluxcal.delayed",
     side_effect=lambda f: lambda *args, **kwargs: f(*args, **kwargs),
 )
-@patch("meersolar.meerpipeline.do_fluxcal.wait")
 def test_split_autocorr(
-    mock_wait,
     mock_delayed,
     mock_get_column_size,
     mock_wait_dask,
@@ -214,9 +212,7 @@ def test_get_power_diff(
 @patch("meersolar.meerpipeline.do_fluxcal.os.makedirs")
 @patch("meersolar.meerpipeline.do_fluxcal.wait_for_dask_workers", return_value=True)
 @patch("meersolar.meerpipeline.do_fluxcal.get_column_size", return_value=0.01)
-@patch("meersolar.meerpipeline.do_fluxcal.wait")
 def test_estimate_att(
-    mock_wait,
     mock_get_column_size,
     mock_wait_dask,
     mock_makedirs,

@@ -39,7 +39,7 @@ def test_run_delaycal(
         uvrange=uvrange,
     )
 
-    expected_calls = [call(n_threads=1), call(n_threads=1)]
+    expected_calls = [call(n_threads=1)]
     mock_limit_threads.assert_has_calls(expected_calls)
     # Determine which function to assert based on which was used
     if mock_gaincal.called:
@@ -106,7 +106,7 @@ def test_run_bandpass(
         n_threads=2,
     )
 
-    expected_calls = [call(n_threads=2), call(n_threads=1)]
+    expected_calls = [call(n_threads=2)]
     mock_limit_threads.assert_has_calls(expected_calls)
     mock_bandpass.assert_called_once_with(
         vis=msname,
@@ -159,7 +159,7 @@ def test_run_gaincal(mock_gaincal, mock_suppress_output, mock_limit_threads):
         n_threads=4,
     )
 
-    expected_calls = [call(n_threads=4), call(n_threads=1)]
+    expected_calls = [call(n_threads=4)]
     mock_limit_threads.assert_has_calls(expected_calls)
     mock_gaincal.assert_called_once_with(
         vis=msname,
@@ -211,7 +211,7 @@ def test_run_leakagecal(
         n_threads=2,
     )
 
-    expected_calls = [call(n_threads=2), call(n_threads=1)]
+    expected_calls = [call(n_threads=2)]
     mock_limit_threads.assert_has_calls(expected_calls)
     mock_polcal.assert_called_once_with(
         vis=msname,
@@ -343,7 +343,7 @@ def test_run_postcal_flag(
         n_threads=2,
         memory_limit=4,
     )
-    expected_calls = [call(n_threads=2), call(n_threads=1)]
+    expected_calls = [call(n_threads=2)]
     mock_limit_threads.assert_has_calls(expected_calls)
     mock_flagdata.assert_called_once()
     mock_suppress_output.assert_called_once()

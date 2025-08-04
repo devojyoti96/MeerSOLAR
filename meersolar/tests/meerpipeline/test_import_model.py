@@ -204,6 +204,7 @@ def test_import_polcal_models(dummy_submsname):
     assert result == 1
 
 
+@patch("meersolar.meerpipeline.import_model.delayed")
 @patch("meersolar.meerpipeline.import_model.time.sleep")
 @patch("meersolar.meerpipeline.import_model.drop_cache")
 @patch("meersolar.meerpipeline.import_model.import_polcal_models")
@@ -225,7 +226,9 @@ def test_import_all_models(
     mock_pol_import,
     mock_drop_cache,
     mock_sleep,
+    mock_delayed,
 ):
+    # Setup mock return values
     msname = "test.ms"
     workdir = "/mock/work"
     mock_get_scans.return_value = (["ms1.ms", "ms2.ms"], ["1", "2"])
@@ -236,17 +239,52 @@ def test_import_all_models(
         {"J1331+3030": 1},
     )
     mock_get_polcals.return_value = (["3C286"], {"3C286": ["1"]})
-    mock_flux_import.return_value = 0
-    mock_phase_import.return_value = 0
-    mock_pol_import.return_value = 0
+
+    # Create delayed mock return values
+    mock_flux_result = MagicMock(name="fluxcal_result")
+    mock_phase_result = MagicMock(name="phasecal_result")
+    mock_pol_result = MagicMock(name="polcal_result")
+
+    # Define delayed(fn)(*args, **kwargs) behavior
+    def delayed_side_effect(fn):
+        def wrapper(*args, **kwargs):
+            if fn == mock_flux_import:
+                return mock_flux_result
+            elif fn == mock_phase_import:
+                return mock_phase_result
+            elif fn == mock_pol_import:
+                return mock_pol_result
+            else:
+                raise ValueError("Unexpected function in delayed")
+        return wrapper
+
+    mock_delayed.side_effect = delayed_side_effect
+
+    # Configure dask_client behavior
     dask_client = MagicMock()
+    dask_client.compute.return_value = [mock_flux_result, mock_phase_result, mock_pol_result]
+    dask_client.gather.return_value = [0, 0, 0]
+
+    # Call the function
     flux, phase, pol = import_all_models(msname, dask_client, workdir)
+
+    # Assertions
     assert (flux, phase, pol) == (0, 0, 0)
     assert mock_correct.called
     assert mock_get_scans.called
-    assert mock_flux_import.called
-    assert mock_phase_import.called
-    assert mock_pol_import.called
+    assert mock_get_fluxcals.called
+    assert mock_get_phasecals.called
+    assert mock_get_polcals.called
+
+    # Check delayed received correct function references
+    delayed_calls = [call[0][0] for call in mock_delayed.call_args_list]
+    assert mock_flux_import in delayed_calls
+    assert mock_phase_import in delayed_calls
+    assert mock_pol_import in delayed_calls
+
+    # Check Dask client execution
+    assert dask_client.compute.called
+    assert dask_client.gather.called
 
 
 @pytest.mark.parametrize(

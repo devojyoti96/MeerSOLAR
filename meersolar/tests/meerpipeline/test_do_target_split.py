@@ -42,11 +42,9 @@ def test_chanlist_to_str():
 @patch(
     "meersolar.meerpipeline.do_target_split.wait_for_dask_workers", return_value=True
 )
-@patch("meersolar.meerpipeline.do_target_split.wait")
 @patch("meersolar.meerpipeline.do_target_split.get_ms_scan_size", return_value=1.0)
 def test_split_target_scans(
     mock_get_ms_scan_size,
-    mock_wait,
     mock_wait_dask,
     mock_chdir,
     mock_msmetadata,

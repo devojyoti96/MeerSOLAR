@@ -30,10 +30,7 @@ def test_single_ms_flag(dummy_submsname):
         os.path.exists(f"{dummy_submsname}/SUBMSS/test_subms.ms.0000.ms.flagversions")
         == False
     )
-
-
-@patch("meersolar.meerpipeline.flagging.wait")
-def test_do_flagging(mock_wait, dummy_submsname):
+def test_do_flagging(dummy_submsname):
     workdir = os.getcwd()
     dask_client = MagicMock()
     result = do_flagging(
@@ -62,7 +59,6 @@ def test_do_flagging(mock_wait, dummy_submsname):
     os.system(f"rm -rf {dummy_submsname}.flagversions")
     os.system(f"rm -rf {workdir}/dask-scratch-space {workdir}/tmp")
     assert os.path.exists(f"{dummy_submsname}.flagversions") == False
-    mock_wait.assert_called()
 
 
 @pytest.mark.parametrize(
