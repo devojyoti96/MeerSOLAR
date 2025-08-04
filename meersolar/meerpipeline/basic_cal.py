@@ -414,6 +414,7 @@ def single_round_cal_and_flag(
     do_phasecal=False,
     do_leakagecal=False,
     do_polcal=False,
+    applysol=True,
     do_postcal_flag=True,
     cpu_frac=0.8,
     mem_frac=0.8,
@@ -456,6 +457,8 @@ def single_round_cal_and_flag(
     do_phasecal : bool, optional
         Perform calibration using polcal fields
         (Note: leakage calibration is always done using unpolarized fluxcal. This is for crossphase and polarization angle calibration)
+    applysol : bool, optional
+        Apply solutions for post-calibration flagging
     do_postcal_flag : bool, optional
         Peform post-calibration flagging
     cpu_frac : float, optional
@@ -871,60 +874,61 @@ def single_round_cal_and_flag(
         ##############################
         # Apply calibration
         ##############################
-        all_mslist = copy.deepcopy(fluxcal_mslist)
-        if len(phasecal_mslist) > 0:
-            all_mslist += phasecal_mslist
-        if len(polcal_mslist) > 0:
-            all_mslist += polcal_mslist
-        if len(all_mslist) > 0:
-            do_flag_backup(msname, flagtype="applycal")
-            n_threads = max(1,int(total_cpu/len(all_mslist)))
-            tasks = [
-                delayed(run_applycal)(
-                    sub_msname,
-                    flagbackup=False,
-                    gaintable=applycal_gaintable,
-                    gainfield=applycal_gainfield,
-                    interp=applycal_interp,
-                    calwt=[False] * len(applycal_gainfield),
-                    parang=parang,
-                    n_threads=n_threads,
-                )
-                for sub_msname in all_mslist
-            ]
-            print(f"Applying calibrations on: {msname}")
-            wait_for_dask_workers(dask_client, min_worker=2, timeout=60)
-            results = list(dask_client.gather(dask_client.compute(tasks)))
-
-        ##############################
-        # Post calibration flagging
-        ##############################
-        if do_postcal_flag and len(all_mslist) > 0:
-            do_flag_backup(msname, flagtype="flagdata")
-            tasks = []
-            njobs = min(total_cpu, len(all_mslist))
-            mem_limit = total_mem / njobs
+        if applysol and do_postcal_flag:
+            all_mslist = copy.deepcopy(fluxcal_mslist)
+            if len(phasecal_mslist) > 0:
+                all_mslist += phasecal_mslist
+            if len(polcal_mslist) > 0:
+                all_mslist += polcal_mslist
             if len(all_mslist) > 0:
-                tasks = []
-                n_threads = max(1,int(total_cpu/njobs))
-                for sub_msname in all_mslist:
-                    if sub_msname in fluxcal_mslist:
-                        datacolumn = "residual"
-                    else:
-                        datacolumn = "corrected"
-                    tasks.append(
-                        delayed(run_postcal_flag)(
-                            sub_msname,
-                            datacolumn=datacolumn,
-                            uvrange=uvrange,
-                            mode="rflag",
-                            n_threads=n_threads,
-                            memory_limit=mem_limit,
-                        )
+                do_flag_backup(msname, flagtype="applycal")
+                n_threads = max(1,int(total_cpu/len(all_mslist)))
+                tasks = [
+                    delayed(run_applycal)(
+                        sub_msname,
+                        flagbackup=False,
+                        gaintable=applycal_gaintable,
+                        gainfield=applycal_gainfield,
+                        interp=applycal_interp,
+                        calwt=[False] * len(applycal_gainfield),
+                        parang=parang,
+                        n_threads=n_threads,
                     )
-            print(f"Performing post-calibration flagging on: {msname}")
-            wait_for_dask_workers(dask_client, min_worker=2, timeout=60)
-            results = list(dask_client.gather(dask_client.compute(tasks)))
+                    for sub_msname in all_mslist
+                ]
+                print(f"Applying calibrations on: {msname}")
+                wait_for_dask_workers(dask_client, min_worker=2, timeout=60)
+                results = list(dask_client.gather(dask_client.compute(tasks)))
+
+            ##############################
+            # Post calibration flagging
+            ##############################
+            if do_postcal_flag and len(all_mslist) > 0:
+                do_flag_backup(msname, flagtype="flagdata")
+                tasks = []
+                njobs = min(total_cpu, len(all_mslist))
+                mem_limit = total_mem / njobs
+                if len(all_mslist) > 0:
+                    tasks = []
+                    n_threads = max(1,int(total_cpu/njobs))
+                    for sub_msname in all_mslist:
+                        if sub_msname in fluxcal_mslist:
+                            datacolumn = "residual"
+                        else:
+                            datacolumn = "corrected"
+                        tasks.append(
+                            delayed(run_postcal_flag)(
+                                sub_msname,
+                                datacolumn=datacolumn,
+                                uvrange=uvrange,
+                                mode="rflag",
+                                n_threads=n_threads,
+                                memory_limit=mem_limit,
+                            )
+                        )
+                print(f"Performing post-calibration flagging on: {msname}")
+                wait_for_dask_workers(dask_client, min_worker=2, timeout=60)
+                results = list(dask_client.gather(dask_client.compute(tasks)))
 
         ###############################
         # Finished calibration round
@@ -1042,6 +1046,7 @@ def run_basic_cal_rounds(
         do_polcal = False
         do_leakagecal = False
         do_postcal_flag = True
+        applysol=True
         ###################################################
         # Determining what calibrations will be done or not
         ###################################################
@@ -1077,6 +1082,7 @@ def run_basic_cal_rounds(
             print("#################################")
             if cal_round == n_rounds:
                 do_postcal_flag = False
+                applysol=False
             if cal_round > 1:
                 if perform_phasecal:
                     do_phasecal = True
@@ -1100,6 +1106,7 @@ def run_basic_cal_rounds(
                 do_phasecal=do_phasecal,
                 do_leakagecal=do_leakagecal,
                 do_polcal=do_polcal,
+                applysol=applysol,
                 do_postcal_flag=do_postcal_flag,
                 cpu_frac=cpu_frac,
                 mem_frac=mem_frac,
