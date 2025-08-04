@@ -386,10 +386,16 @@ def import_all_models(msname, dask_client, workdir, cpu_frac=0.8, mem_frac=0.8):
         fluxcal_fields, fluxcal_scans = get_fluxcals(msname)
         phasecal_fields, phasecal_scans, phasecal_flux_list = get_phasecals(msname)
         polcal_fields, polcal_scans = get_polcals(msname)
-        fluxcal_task = delayed(import_fluxcal_models)(
+        fluxcal_result = import_fluxcal_models(
             mslist, fluxcal_fields, fluxcal_scans, ncpus=ncpu, mem_frac=mem_frac
         )
-        phasecal_task = delayed(import_phasecal_models)(
+        if fluxcal_result != 0:
+            print("##################")
+            print("Total time taken : " + str(time.time() - start_time) + "s")
+            print("##################\n")
+            return fluxcal_result, 1, 1
+            
+        phasecal_result = import_phasecal_models(
             mslist,
             dask_client,
             phasecal_fields,
@@ -397,7 +403,8 @@ def import_all_models(msname, dask_client, workdir, cpu_frac=0.8, mem_frac=0.8):
             workdir,
             cpu_frac=cpu_frac,
         )
-        polcal_task = delayed(import_polcal_models)(
+        
+        polcal_result = import_polcal_models(
             mslist,
             dask_client,
             polcal_fields,
@@ -405,16 +412,6 @@ def import_all_models(msname, dask_client, workdir, cpu_frac=0.8, mem_frac=0.8):
             workdir,
             cpu_frac=cpu_frac,
         )
-        futures = dask_client.compute([fluxcal_task, phasecal_task, polcal_task])
-        results = dask_client.gather(futures)
-       
-        fluxcal_result, phasecal_result, polcal_result = results
-        
-        if fluxcal_result != 0:
-            print("##################")
-            print("Total time taken : " + str(time.time() - start_time) + "s")
-            print("##################\n")
-            return fluxcal_result, 1, 1
             
         if phasecal_result != 0:
             print(
