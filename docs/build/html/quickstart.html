@@ -321,13 +321,18 @@ conda<span class="w"> </span>activate<span class="w"> </span>meersolar_env
 </pre></div>
 </div>
 </li>
-<li><p>To see <code class="docutils literal notranslate"><span class="pre">prefect</span></code> dashboard:</p>
+<li><p>To see <code class="docutils literal notranslate"><span class="pre">prefect</span></code> dashboard, if <code class="docutils literal notranslate"><span class="pre">prefect</span></code> server is running:</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>run-meer-meerlogger
 </pre></div>
 </div>
 </li>
 <li><p>If <code class="docutils literal notranslate"><span class="pre">prefect</span></code> dashboard is not showing logs, use local log of any job using the &lt;jobid&gt;:</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>run-meer-meerlogger<span class="w"> </span>--jobid<span class="w"> </span>&lt;jobid&gt;
+</pre></div>
+</div>
+</li>
+<li><p>If <code class="docutils literal notranslate"><span class="pre">prefect</span></code> dashboard is running, to see local log of any job using the &lt;jobid&gt;:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>run-meer-meerlogger<span class="w"> </span>--jobid<span class="w"> </span>&lt;jobid&gt;<span class="w"> </span>--no-prefect
 </pre></div>
 </div>
 </li>

@@ -37,7 +37,7 @@ That’s all. You started MeerSOLAR pipeline for analysing your MeerKAT solar ob
       show-meersolar-status --show
       
        
-6. To see ``prefect`` dashboard:
+6. To see ``prefect`` dashboard, if ``prefect`` server is running:
 
    .. code-block :: bash
     
@@ -49,5 +49,11 @@ That’s all. You started MeerSOLAR pipeline for analysing your MeerKAT solar ob
     
       run-meer-meerlogger --jobid <jobid>
       
-8. Output products will be saved in : ``<path of output products directory>``.
+8. If ``prefect`` dashboard is running, to see local log of any job using the <jobid>:
+
+   .. code-block :: bash
+    
+      run-meer-meerlogger --jobid <jobid> --no-prefect
+      
+9. Output products will be saved in : ``<path of output products directory>``.
 

@@ -362,7 +362,7 @@
 <span class="sd">        Splited ms list</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">msname</span> <span class="o">=</span> <span class="n">msname</span><span class="o">.</span><span class="n">rstrip</span><span class="p">(</span><span class="s2">&quot;/&quot;</span><span class="p">)</span>
-    <span class="n">scan_size_list</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="n">scan_sizes</span><span class="o">=</span> <span class="p">[</span>
         <span class="n">get_ms_scan_size</span><span class="p">(</span><span class="n">msname</span><span class="p">,</span> <span class="n">scan</span><span class="p">,</span> <span class="n">only_autocorr</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span> <span class="k">for</span> <span class="n">scan</span> <span class="ow">in</span> <span class="n">scan_list</span>
     <span class="p">]</span>
     <span class="n">tasks</span> <span class="o">=</span> <span class="p">[]</span>
@@ -376,7 +376,7 @@
     <span class="c1">########################################</span>
     <span class="c1"># Number of worker limit based on memory</span>
     <span class="c1">########################################</span>
-    <span class="n">mem_limit</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">total_mem</span><span class="p">,</span> <span class="nb">max</span><span class="p">(</span><span class="n">scan_size_list</span><span class="p">))</span>
+    <span class="n">mem_limit</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">total_mem</span><span class="p">,</span> <span class="nb">max</span><span class="p">(</span><span class="n">scan_sizes</span><span class="p">))</span>
     <span class="n">n_jobs</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="nb">min</span><span class="p">(</span><span class="n">total_cpu</span><span class="p">,</span> <span class="nb">int</span><span class="p">(</span><span class="n">total_mem</span> <span class="o">/</span> <span class="n">mem_limit</span><span class="p">)))</span>
     <span class="n">n_threads</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="nb">int</span><span class="p">(</span><span class="n">total_cpu</span> <span class="o">/</span> <span class="n">n_jobs</span><span class="p">))</span>
 
@@ -422,7 +422,6 @@
             <span class="n">batch</span> <span class="o">=</span> <span class="n">tasks</span><span class="p">[</span><span class="n">i</span> <span class="p">:</span> <span class="n">i</span> <span class="o">+</span> <span class="n">n_jobs</span><span class="p">]</span>
             <span class="n">wait_for_dask_workers</span><span class="p">(</span><span class="n">dask_client</span><span class="p">,</span> <span class="n">min_worker</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=</span><span class="mi">60</span><span class="p">)</span>
             <span class="n">futures</span> <span class="o">=</span> <span class="n">dask_client</span><span class="o">.</span><span class="n">compute</span><span class="p">(</span><span class="n">batch</span><span class="p">)</span>
-            <span class="n">wait</span><span class="p">(</span><span class="n">futures</span><span class="p">)</span>
             <span class="n">results</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">dask_client</span><span class="o">.</span><span class="n">gather</span><span class="p">(</span><span class="n">futures</span><span class="p">))</span>
         <span class="n">autocorr_mslist</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">results</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
@@ -760,7 +759,6 @@
             <span class="n">batch</span> <span class="o">=</span> <span class="n">tasks</span><span class="p">[</span><span class="n">i</span> <span class="p">:</span> <span class="n">i</span> <span class="o">+</span> <span class="n">n_jobs</span><span class="p">]</span>
             <span class="n">wait_for_dask_workers</span><span class="p">(</span><span class="n">dask_client</span><span class="p">,</span> <span class="n">min_worker</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=</span><span class="mi">60</span><span class="p">)</span>
             <span class="n">futures</span> <span class="o">=</span> <span class="n">dask_client</span><span class="o">.</span><span class="n">compute</span><span class="p">(</span><span class="n">batch</span><span class="p">)</span>
-            <span class="n">wait</span><span class="p">(</span><span class="n">futures</span><span class="p">)</span>
             <span class="n">results</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">dask_client</span><span class="o">.</span><span class="n">gather</span><span class="p">(</span><span class="n">futures</span><span class="p">))</span>
         <span class="n">results</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">results</span><span class="p">)</span>
 
@@ -771,7 +769,7 @@
         <span class="c1"># Calculating per scan level</span>
         <span class="c1">########################################</span>
         <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Calculating noise-diode power difference ...&quot;</span><span class="p">)</span>
-        <span class="n">scan_sizes</span> <span class="o">=</span> <span class="p">[</span><span class="n">get_column_size</span><span class="p">(</span><span class="n">ms</span><span class="p">)</span> <span class="k">for</span> <span class="n">ms</span> <span class="ow">in</span> <span class="n">autocorr_mslist</span><span class="p">]</span>
+        <span class="n">scan_sizes</span> <span class="o">=</span> <span class="p">[</span><span class="n">get_column_size</span><span class="p">(</span><span class="n">ms</span><span class="p">,</span><span class="n">only_autocorr</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span> <span class="k">for</span> <span class="n">ms</span> <span class="ow">in</span> <span class="n">autocorr_mslist</span><span class="p">]</span>
         <span class="c1">########################################</span>
         <span class="c1"># Number of worker limit based on memory</span>
         <span class="c1">########################################</span>
@@ -810,7 +808,6 @@
             <span class="n">batch</span> <span class="o">=</span> <span class="n">tasks</span><span class="p">[</span><span class="n">i</span> <span class="p">:</span> <span class="n">i</span> <span class="o">+</span> <span class="n">n_jobs</span><span class="p">]</span>
             <span class="n">wait_for_dask_workers</span><span class="p">(</span><span class="n">dask_client</span><span class="p">,</span> <span class="n">min_worker</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=</span><span class="mi">60</span><span class="p">)</span>
             <span class="n">futures</span> <span class="o">=</span> <span class="n">dask_client</span><span class="o">.</span><span class="n">compute</span><span class="p">(</span><span class="n">batch</span><span class="p">)</span>
-            <span class="n">wait</span><span class="p">(</span><span class="n">futures</span><span class="p">)</span>
             <span class="n">results</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">dask_client</span><span class="o">.</span><span class="n">gather</span><span class="p">(</span><span class="n">futures</span><span class="p">))</span>
         <span class="n">results</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">results</span><span class="p">)</span>
 

@@ -1458,7 +1458,7 @@ Default is “”.</p></li>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="meersolar.meerpipeline.import_model.import_phasecal_models">
-<span class="sig-prename descclassname"><span class="pre">meersolar.meerpipeline.import_model.</span></span><span class="sig-name descname"><span class="pre">import_phasecal_models</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mslist</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dask_client</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">phasecal_fields</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">phasecal_scans</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">workdir</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/meersolar/meerpipeline/import_model.html#import_phasecal_models"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#meersolar.meerpipeline.import_model.import_phasecal_models" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">meersolar.meerpipeline.import_model.</span></span><span class="sig-name descname"><span class="pre">import_phasecal_models</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mslist</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dask_client</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">phasecal_fields</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">phasecal_scans</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">workdir</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cpu_frac</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.8</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/meersolar/meerpipeline/import_model.html#import_phasecal_models"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#meersolar.meerpipeline.import_model.import_phasecal_models" title="Link to this definition">¶</a></dt>
 <dd><p>Import model visibilities for phasecal</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -1468,6 +1468,7 @@ Default is “”.</p></li>
 <li><p><strong>phasecal_fields</strong> (<em>list</em>) – Phasecal fields</p></li>
 <li><p><strong>phasecal_scans</strong> (<em>list</em>) – Phasecal scans</p></li>
 <li><p><strong>workdir</strong> (<em>str</em>) – Work directory</p></li>
+<li><p><strong>cpu_frac</strong> (<em>float</em><em>, </em><em>optional</em>) – CPU fraction to use</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
@@ -1481,7 +1482,7 @@ Default is “”.</p></li>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="meersolar.meerpipeline.import_model.import_polcal_models">
-<span class="sig-prename descclassname"><span class="pre">meersolar.meerpipeline.import_model.</span></span><span class="sig-name descname"><span class="pre">import_polcal_models</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mslist</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dask_client</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">polcal_fields</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">polcal_scans</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">workdir</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/meersolar/meerpipeline/import_model.html#import_polcal_models"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#meersolar.meerpipeline.import_model.import_polcal_models" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">meersolar.meerpipeline.import_model.</span></span><span class="sig-name descname"><span class="pre">import_polcal_models</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mslist</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dask_client</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">polcal_fields</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">polcal_scans</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">workdir</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cpu_frac</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.8</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/meersolar/meerpipeline/import_model.html#import_polcal_models"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#meersolar.meerpipeline.import_model.import_polcal_models" title="Link to this definition">¶</a></dt>
 <dd><p>Import model for polarization calibrators (3C286 or 3C138)</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -1491,6 +1492,7 @@ Default is “”.</p></li>
 <li><p><strong>polcal_fields</strong> (<em>list</em>) – Polcal fields</p></li>
 <li><p><strong>polcal_scans</strong> (<em>list</em>) – Polcal scans</p></li>
 <li><p><strong>workdir</strong> (<em>str</em>) – Work directory</p></li>
+<li><p><strong>cpu_frac</strong> (<em>float</em><em>, </em><em>optional</em>) – CPU fraction to use</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
