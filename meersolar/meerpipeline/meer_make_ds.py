@@ -114,7 +114,8 @@ def make_solar_DS(
     # Number of worker limit based on memory
     ########################################
     mem_limit = min(total_mem, max(scan_size_list))
-    njobs = max(1, min(total_cpu, int(total_mem / mem_limit)))
+    njobs=min(len(scans),int(total_mem / mem_limit))
+    njobs = max(1, min(total_cpu,njobs))
     n_threads = max(1, int(total_cpu / njobs))
 
     print("#################################")
