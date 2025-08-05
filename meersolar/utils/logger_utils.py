@@ -220,7 +220,8 @@ def get_logid(logfile):
     """
     name = os.path.basename(logfile)
     logmap = {
-        "apply_basiccal.log": "Applying basic calibration solutions",
+        "apply_basiccal_target.log": "Applying basic calibration solutions on targets",
+        "apply_basiccal_selfcal.log":"Applying basic calibration solutions for self-calibration",
         "apply_pbcor.log": "Applying primary beam corrections",
         "apply_selfcal.log": "Applying self-calibration solutions",
         "basic_cal.log": "Basic calibration",
@@ -230,8 +231,6 @@ def get_logid(logfile):
         "modeling_calibrator.log": "Simulating visibilities of calibrators",
         "split_targets.log": "Spliting target scans",
         "split_selfcals.log": "Spliting for self-calibration",
-        "selfcal_targets.mainlog": "All self-calibrations main log",
-        "imaging_targets.mainlog": "All imaging main log",
         "selfcal_targets.log": "All self-calibrations",
         "imaging_targets.log": "All imaging",
         "noise_cal.log": "Flux calibration using noise-diode",

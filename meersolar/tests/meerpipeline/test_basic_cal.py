@@ -395,9 +395,7 @@ def test_run_postcal_flag(
 @patch("meersolar.meerpipeline.basic_cal.os.system")
 @patch("meersolar.meerpipeline.basic_cal.os.makedirs")
 @patch("meersolar.meerpipeline.basic_cal.table")
-@patch("meersolar.meerpipeline.basic_cal.wait_for_dask_workers", return_value=True)
 def test_single_round_cal_and_flag(
-    mock_wait,
     mock_table,
     mock_makedirs,
     mock_system,
@@ -479,9 +477,6 @@ def test_single_round_cal_and_flag(
         call([None, None, None]),
     ]
     fake_client.gather.assert_has_calls(expected_calls, any_order=False)
-    assert mock_wait.call_count == 8
-    for call_args in mock_wait.call_args_list:
-        assert call_args == call(fake_client, min_worker=2, timeout=60)
 
 
 @patch("meersolar.meerpipeline.basic_cal.drop_cache")

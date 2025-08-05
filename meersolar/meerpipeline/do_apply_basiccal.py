@@ -201,10 +201,6 @@ def applysol(
     """
     limit_threads(n_threads=n_threads)
     from casatasks import applycal, flagdata, split, clearcal
-
-    print(
-        f"Applying solutions on ms: {os.path.basename(msname)} from caltables: {','.join([os.path.basename(i) for i in gaintable])}\n"
-    )
     if soltype == "basic":
         check_file = "/.applied_sol"
     else:
@@ -232,7 +228,6 @@ def applysol(
                     flagbackup=False,
                 )
         if overwrite_datacolumn:
-            print(f"Spliting corrected data for ms: {msname}.")
             outputvis = msname.split(".ms")[0] + "_cor.ms"
             if os.path.exists(outputvis):
                 os.system(f"rm -rf {outputvis}")
@@ -247,7 +242,6 @@ def applysol(
             for t in touch_file_names:
                 os.system(f"touch {msname}/{t}")
         if do_post_flag:
-            print(f"Post calibration flagging on: {msname}")
             if overwrite_datacolumn:
                 datacolumn = "data"
             else:
@@ -267,8 +261,8 @@ def applysol(
     except Exception as e:
         traceback.print_exc()
         return 1
-
-
+    
+    
 def run_all_applysol(
     mslist,
     dask_client,
@@ -315,11 +309,10 @@ def run_all_applysol(
     list
         Calibrated target scans
     """
-    start_time = time.time()
     try:
         if cpu_frac > 0.8:
             cpu_frac = 0.8
-        total_cpu = int(psutil.cpu_count() * cpu_frac)
+        total_cpu = max(1,int(psutil.cpu_count() * cpu_frac))
         if mem_frac > 0.8:
             mem_frac = 0.8
         total_mem = (psutil.virtual_memory().available * mem_frac) / (1024**3)  # In GB
@@ -399,14 +392,12 @@ def run_all_applysol(
         mslist = filtered_mslist
         if len(mslist) == 0:
             print("No valid measurement set.")
-            print(f"Total time taken: {round(time.time()-start_time,2)}s")
             return 1
 
         ####################################
         # Applycal jobs
         ####################################
         print(f"Total ms list: {len(mslist)}")
-        wait_for_dask_workers(dask_client, min_worker=2, timeout=60)
         tasks = []
         if scaled_bandpass_table != "" and os.path.exists(scaled_bandpass_table):
             bpass_table = scaled_bandpass_table
@@ -420,8 +411,15 @@ def run_all_applysol(
             os.system(f"touch {workdir}/.noattcal")
             bpass_table = bandpass_table[0]
         njobs = min(total_cpu, len(mslist))
-        mem_limit = total_mem / njobs
         n_threads=max(1,int(total_cpu/njobs))
+        mem_limit = total_mem / njobs
+        
+        print("#################################")
+        print(f"Total dask worker: {njobs}")
+        print(f"CPU per worker: {n_threads}")
+        print(f"Memory per worker: {round(mem_limit,2)} GB")
+        print("#################################")
+        
         for ms in mslist:
             interp = []
             final_gaintable = gaintable + [bpass_table]
@@ -446,23 +444,21 @@ def run_all_applysol(
                     force_apply=force_apply,
                 )
             )
-        futures = dask_client.compute(tasks)
-        results = list(dask_client.gather(futures))
+        print (f"Applying solutions from caltables: {','.join([os.path.basename(i) for i in final_gaintable])}")
+        results = list(dask_client.gather(dask_client.compute(tasks)))
         if np.nansum(results) == 0:
             print("##################")
             print(
                 "Applying basic calibration solutions for target scans are done successfully."
             )
-            print("Total time taken : ", time.time() - start_time)
-            print("##################\n")
+            print("##################")
             return 0
         else:
             print("##################")
             print(
                 "Applying basic calibration solutions for target scans are not done successfully."
             )
-            print("Total time taken : ", time.time() - start_time)
-            print("##################\n")
+            print("##################")
             return 1
     except Exception as e:
         traceback.print_exc()
@@ -471,8 +467,7 @@ def run_all_applysol(
         print(
             "Applying basic calibration solutions for target scans are not done successfully."
         )
-        print("Total time taken : ", time.time() - start_time)
-        print("##################\n")
+        print("##################")
         return 1
 
 
@@ -562,23 +557,18 @@ def main(
     dask_cluster = None
     if dask_client is None:
         dask_client, dask_cluster, dask_dir = get_local_dask_cluster(
-            1,
+            2,
             dask_dir=workdir,
             cpu_frac=cpu_frac,
             mem_frac=mem_frac,
         )
         nworker = max(2, int(psutil.cpu_count() * cpu_frac))
-        usable_mem = (mem_frac * psutil.virtual_memory().total) / 1024**3
-        per_job_mem = usable_mem / nworker
-        if per_job_mem < 2:
-            nworker = max(2, int(usable_mem / 2))
-        print(f"Maximum dask workder: {nworker}")
-        dask_cluster.adapt(minimum=2, maximum=nworker)  # 2 worker will be required
-
+        scale_worker_and_wait(dask_cluster,nworker)
+        
     try:
-        print("\n###################################")
+        print("###################################")
         print("Starting applying solutions...")
-        print("###################################\n")
+        print("###################################")
 
         if caldir == "" or not os.path.exists(caldir):
             print("Provide existing caltable directory.")

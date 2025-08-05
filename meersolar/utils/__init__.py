@@ -15,3 +15,11 @@ from .sunpos_utils import *
 from .udocker_utils import *
 from .prefect_logger_utils import *
 from .prefect_setup_utils import *
+import os
+from casatasks import casalog
+
+try:
+    logfile = casalog.logfile()
+    os.remove(logfile)
+except BaseException:
+    pass

@@ -10,7 +10,6 @@ import sys
 import os
 from casatools import msmetadata, ms as casamstool, table
 from dask import delayed
-from dask.distributed import wait
 from meersolar.utils import *
 from meersolar.meerpipeline.flagging import single_ms_flag
 from meersolar.meerpipeline.import_model import import_fluxcal_models
@@ -78,31 +77,18 @@ def split_autocorr(
         Splited ms list
     """
     msname = msname.rstrip("/")
-    scan_sizes= [
-        get_ms_scan_size(msname, scan, only_autocorr=True) for scan in scan_list
-    ]
     tasks = []
     if cpu_frac > 0.8:
         cpu_frac = 0.8
-    total_cpu = int(psutil.cpu_count() * cpu_frac)
+    total_cpu = max(1,int(psutil.cpu_count() * cpu_frac))
     if mem_frac > 0.8:
         mem_frac = 0.8
     total_mem = (psutil.virtual_memory().available * mem_frac) / (1024**3)  # In GB
-
-    ########################################
-    # Number of worker limit based on memory
-    ########################################
-    mem_limit = min(total_mem, max(scan_sizes))
-    n_jobs = max(1, min(total_cpu, int(total_mem / mem_limit)))
-    n_threads = max(1, int(total_cpu / n_jobs))
-
-    print("#################################")
-    print(f"Total dask worker: {n_jobs}")
-    print(f"CPU per worker: {n_threads}")
-    print(f"Memory per worker: {mem_limit}GB")
-    print("#################################")
-    ###########################################
-
+    njobs = max(1, min(total_cpu, len(scan_list)))
+    n_threads = max(1, int(total_cpu / njobs))
+    if len(scan_list)==0:
+        print ("No scan to split.")
+        return []
     for scan in scan_list:
         if time_window > 0:
             tb = table()
@@ -132,16 +118,9 @@ def split_autocorr(
                 msname, outputvis, scan, time_range, n_threads=n_threads
             )
         )
-    if len(tasks) > 0:
-        results = []
-        for i in range(0, len(tasks), n_jobs):
-            batch = tasks[i : i + n_jobs]
-            wait_for_dask_workers(dask_client, min_worker=2, timeout=60)
-            futures = dask_client.compute(batch)
-            results.extend(dask_client.gather(futures))
-        autocorr_mslist = list(results)
-    else:
-        autocorr_mslist = []
+    print ("Starting spliting auto-correlations...")
+    futures = dask_client.compute(tasks)
+    autocorr_mslist = list(dask_client.gather(futures))
     return autocorr_mslist
 
 
@@ -274,9 +253,6 @@ def get_power_diff(
         memory_limit = psutil.virtual_memory().available / 1024**3  # GB
     cal_msname = cal_msname.rstrip("/")
     source_msname = source_msname.rstrip("/")
-    print(
-        f"Estimating power difference from {os.path.basename(cal_msname)} and {os.path.basename(source_msname)}....\n"
-    )
     # Get MS metadata
     msmd = msmetadata()
     msmd.open(source_msname)
@@ -394,7 +370,7 @@ def estimate_att(
     try:
         if cpu_frac > 0.8:
             cpu_frac = 0.8
-        total_cpu = int(psutil.cpu_count() * cpu_frac)
+        total_cpu = max(1,int(psutil.cpu_count() * cpu_frac))
         if mem_frac > 0.8:
             mem_frac = 0.8
         total_mem = (psutil.virtual_memory().available * mem_frac) / (1024**3)  # In GB
@@ -403,9 +379,9 @@ def estimate_att(
         # All auto-corr scans spliting
         ###########################################
         all_scans = [noise_diode_flux_scan] + valid_target_scans
-        scan_sizes = []
-        for scan in all_scans:
-            scan_sizes.append(get_ms_scan_size(msname, int(scan), only_autocorr=True))
+        if len(valid_target_scans)==0:
+            print ("No valid target scan is available.")
+            return 1, None, None 
         print("Spliting auto-correlation in different scans ...")
         autocorr_mslist = split_autocorr(
             msname,
@@ -418,7 +394,6 @@ def estimate_att(
         )
         if len(autocorr_mslist) == 0:
             print("No scans splited.")
-
             return 1, None, None
         ##########################################
         # Flagging on corrected data
@@ -431,14 +406,14 @@ def estimate_att(
         ########################################
         # Number of worker limit based on memory
         ########################################
-        mem_limit = min(total_mem, max(scan_sizes))
-        n_jobs = max(1, min(total_cpu, int(total_mem / mem_limit)))
-        n_threads = max(1, int(total_cpu / n_jobs))
+        njobs = max(1, min(total_cpu, len(autocorr_mslist)))
+        n_threads = max(1, int(total_cpu / njobs))
+        mem_limit = total_mem/njobs
 
         print("#################################")
-        print(f"Total dask worker: {n_jobs}")
+        print(f"Total dask worker: {njobs}")
         print(f"CPU per worker: {n_threads}")
-        print(f"Memory per worker: {mem_limit}GB")
+        print(f"Memory per worker: {round(mem_limit,2)} GB")
         print("#################################")
         ###########################################
 
@@ -458,33 +433,28 @@ def estimate_att(
                     memory_limit=mem_limit,
                 )
             )
-        results = []
-        for i in range(0, len(tasks), n_jobs):
-            batch = tasks[i : i + n_jobs]
-            wait_for_dask_workers(dask_client, min_worker=2, timeout=60)
-            futures = dask_client.compute(batch)
-            results.extend(dask_client.gather(futures))
-        results = list(results)
-
+        print ("Start flagging on auto-correlation ms...")
+        futures = dask_client.compute(tasks)
+        results = dask_client.gather(futures)
         for autocorr_msname in autocorr_mslist:
             drop_cache(autocorr_msname)
+            
         att_level = {}
         ########################################
         # Calculating per scan level
         ########################################
         print("Calculating noise-diode power difference ...")
-        scan_sizes = [get_column_size(ms,only_autocorr=True) for ms in autocorr_mslist]
         ########################################
         # Number of worker limit based on memory
         ########################################
-        mem_limit = min(total_mem, max(scan_sizes))
-        n_jobs = max(1, min(total_cpu, int(total_mem / mem_limit)))
-        n_threads = max(1, int(total_cpu / n_jobs))
+        njobs = max(1, min(total_cpu, len(autocorr_mslist)))
+        n_threads = max(1, int(total_cpu / njobs))
+        mem_limit = total_mem/njobs
 
         print("#################################")
-        print(f"Total dask worker: {n_jobs}")
+        print(f"Total dask worker: {njobs}")
         print(f"CPU per worker: {n_threads}")
-        print(f"Memory per worker: {mem_limit}GB")
+        print(f"Memory per worker: {round(mem_limit,2)}GB")
         print("#################################")
         ###########################################
 
@@ -506,15 +476,10 @@ def estimate_att(
                 )
             )
             filtered_scans.append(scan)
-
-        results = []
-        for i in range(0, len(tasks), n_jobs):
-            batch = tasks[i : i + n_jobs]
-            wait_for_dask_workers(dask_client, min_worker=2, timeout=60)
-            futures = dask_client.compute(batch)
-            results.extend(dask_client.gather(futures))
-        results = list(results)
-
+        print ("Estimating auto-correlation power differences...")
+        futures = dask_client.compute(tasks)
+        results=dask_client.gather(futures)
+        
         ##########################################
         # Determining frequencies
         ##########################################
@@ -607,7 +572,6 @@ def run_noise_cal(
     list
         File list saved attenuation values for different scans
     """
-    start_time = time.time()
     ncpus = int(psutil.cpu_count() * (1 - cpu_frac))
     limit_threads(n_threads=ncpus)
     from casatasks import split, bandpass
@@ -640,10 +604,9 @@ def run_noise_cal(
                 valid_target_scans.append(scan)
         if noise_diode_cal_scan == "":
             print("No noise diode cal scan is present.")
-            print("##################")
-            print("Total time taken : ", time.time() - start_time)
-            print("##################")
-
+            return 1, None, None
+        if len(valid_target_scans)==0:
+            print ("No valid target scan is present.")
             return 1, None, None
 
         ##############################
@@ -788,15 +751,9 @@ def run_noise_cal(
                 + workdir
                 + "/autocorr_scan_*.ms*"
             )
-        print("##################")
-        print("Total time taken : ", time.time() - start_time)
-        print("##################\n")
         return msg, att_level, all_scaling_files
     except Exception as e:
         traceback.print_exc()
-        print("##################")
-        print("Total time taken : ", time.time() - start_time)
-        print("##################\n")
         return 1, None, None
 
 
@@ -879,18 +836,13 @@ def main(
     dask_cluster = None
     if dask_client is None:
         dask_client, dask_cluster, dask_dir = get_local_dask_cluster(
-            1,
+            2,
             dask_dir=workdir,
             cpu_frac=cpu_frac,
             mem_frac=mem_frac,
         )
         nworker = max(2, int(psutil.cpu_count() * cpu_frac))
-        usable_mem = (mem_frac * psutil.virtual_memory().total) / 1024**3
-        per_job_mem = usable_mem / nworker
-        if per_job_mem < 2:
-            nworker = max(2, int(usable_mem / 2))
-        print(f"Maximum dask workder: {nworker}")
-        dask_cluster.adapt(minimum=2, maximum=nworker)  # 2 worker will be required
+        scale_worker_and_wait(dask_cluster,nworker)
 
     try:
         if os.path.exists(msname):
@@ -918,7 +870,7 @@ def main(
         traceback.print_exc()
         msg = 1
     finally:
-        time.sleep(5)
+        time.sleep(1)
         drop_cache(msname)
         drop_cache(workdir)
         drop_cache(caldir)

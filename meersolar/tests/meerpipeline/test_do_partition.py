@@ -12,13 +12,9 @@ from meersolar.meerpipeline.do_partition import *
 @patch("meersolar.meerpipeline.do_partition.os")
 @patch("meersolar.meerpipeline.do_partition.time.sleep")
 @patch("meersolar.meerpipeline.do_partition.drop_cache")
-@patch("meersolar.meerpipeline.do_partition.wait_for_dask_workers", return_value=True)
 @patch("casatasks.virtualconcat")
-@patch("meersolar.meerpipeline.do_partition.wait")
 def test_partion_ms(
-    mock_wait,
     mock_virtualconcat,
-    mock_wait_dask,
     mock_drop_cache,
     mock_sleep,
     mock_os,
@@ -34,7 +30,6 @@ def test_partion_ms(
     mock_msmd.scansforfield.return_value.tolist.return_value = [1]
     mock_msmd.fieldnames.return_value = ["Field1", "Field2"]
     mock_msmd.fieldsforscan.return_value = [0]
-    mock_msmetadata.return_value = mock_msmd
 
     # Simulate dask client
     mock_dask_client = MagicMock()
@@ -49,7 +44,7 @@ def test_partion_ms(
         outputms="final.ms",
         workdir="/mock/tmp",
         fields="",
-        scans="",
+        scans="1,2,3",
         width=1,
         timebin="5s",
         datacolumn="DATA",

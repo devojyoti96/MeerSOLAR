@@ -551,6 +551,7 @@ def main(
     keep_backup=False,
     cpu_frac=0.8,
     mem_frac=0.8,
+    logfile=None,
     jobid=0,
     start_remote_log=False,
     dask_client=None,
@@ -602,6 +603,8 @@ def main(
         Fraction of available CPUs to use per job. Default is 0.8.
     mem_frac : float, optional
         Fraction of available system memory to use per job. Default is 0.8.
+    logfile : str, optional
+        Log file name
     jobid : int, optional
         Identifier for job tracking and logging. Default is 0.
     start_remote_log : bool, optional
@@ -627,11 +630,6 @@ def main(
         caldir = f"{workdir}/caltables"
     os.makedirs(caldir, exist_ok=True)
 
-    os.makedirs(workdir + "/logs", exist_ok=True)
-    mainlog_file = workdir + "/logs/selfcal_targets.mainlog"
-    mainlogger, mainlog_file = create_logger(
-        os.path.basename(mainlog_file).split(".mainlog")[0], mainlog_file, verbose=False
-    )
     ############
     # Logger
     ############
@@ -639,15 +637,15 @@ def main(
     if (
         start_remote_log
         and os.path.exists(f"{workdir}/jobname_password.npy")
-        and mainlog_file is not None
+        and logfile is not None
     ):
         time.sleep(5)
         jobname, password = np.load(
             f"{workdir}/jobname_password.npy", allow_pickle=True
         )
-        if os.path.exists(mainlog_file):
+        if os.path.exists(logfile):
             observer = init_logger(
-                "all_selfcal", mainlog_file, jobname=jobname, password=password
+                "all_selfcal", logfile, jobname=jobname, password=password
             )
     if observer == None:
         print("Remote link or jobname is blank. Not transmiting to remote logger.")
@@ -655,18 +653,13 @@ def main(
     dask_cluster = None
     if dask_client is None:
         dask_client, dask_cluster, dask_dir = get_local_dask_cluster(
-            1,
+            2,
             dask_dir=workdir,
             cpu_frac=cpu_frac,
             mem_frac=mem_frac,
         )
         nworker = max(2, int(psutil.cpu_count() * cpu_frac))
-        usable_mem = (mem_frac * psutil.virtual_memory().total) / 1024**3
-        per_job_mem = usable_mem / nworker
-        if per_job_mem < 2:
-            nworker = max(2, int(usable_mem / 2))
-        print(f"Maximum dask workder: {nworker}")
-        dask_cluster.adapt(minimum=2, maximum=nworker)  # 2 worker will be required
+        scale_worker_and_wait(dask_cluster,nworker)
 
     ###########################
     # WSClean container
@@ -683,7 +676,7 @@ def main(
     org_mslist = copy.deepcopy(mslist)
     try:
         if len(mslist) == 0:
-            mainlogger.info("Please provide at-least one measurement set.")
+            print("Please provide at-least one measurement set.")
             msg = 1
         else:
             partial_do_selfcal = partial(
@@ -714,7 +707,7 @@ def main(
                 if checkcol:
                     filtered_mslist.append(ms)
                 else:
-                    mainlogger.info(f"Issue in : {ms}")
+                    print(f"Issue in : {ms}")
                     os.system("rm -rf {ms}")
             mslist = filtered_mslist
 
@@ -739,7 +732,7 @@ def main(
 
             num_fd_list = []
             if len(mslist) == 0:
-                mainlogger.error("No filtered ms to continue.")
+                print("No filtered ms to continue.")
                 return 1
             else:
                 for ms in mslist:
@@ -761,21 +754,25 @@ def main(
                         per_job_fd = 1
                     num_fd_list.append(per_job_fd)
                 total_fd = max(num_fd_list) * len(mslist)
-                n_jobs = max(1, int(new_soft_limit / total_fd))
-                n_jobs = min(len(mslist), n_jobs)
+                
+                if cpu_frac > 0.8:
+                    cpu_frac = 0.8
+                total_cpu = max(1,int(psutil.cpu_count() * cpu_frac))
+                if mem_frac > 0.8:
+                    mem_frac = 0.8
+                total_mem = (psutil.virtual_memory().available * mem_frac) / (1024**3)  # In GB
+                njobs = min(len(mslist),int(new_soft_limit / total_fd))
+                njobs = max(1, min(total_cpu, njobs))
 
                 #####################################
                 # Determining per jobs resource
                 #####################################
-                total_cpu = int(psutil.cpu_count() * cpu_frac)
-                n_threads = max(2, int(total_cpu / n_jobs))
-                n_jobs = max(1, int(total_cpu / n_threads))
-                total_mem = (psutil.virtual_memory().total * mem_frac) / 1024**3
-                mem_limit = total_mem / n_jobs
+                n_threads = max(1, int(total_cpu / njobs))
+                mem_limit = total_mem / njobs
                 print("#################################")
-                print(f"Total dask worker: {n_jobs}")
+                print(f"Total dask worker: {njobs}")
                 print(f"CPU per worker: {n_threads}")
-                print(f"Memory per worker: {mem_limit}GB")
+                print(f"Memory per worker: {round(mem_limit,2)} GB")
                 print("#################################")
 
                 #####################################
@@ -787,7 +784,7 @@ def main(
                         + os.path.basename(ms).split(".ms")[0]
                         + "_selfcal.log"
                     )
-                    mainlogger.info(f"MS name: {ms}, Log file: {logfile}\n")
+                    print(f"MS name: {ms}, Log file: {logfile}")
                     tasks.append(
                         delayed(partial_do_selfcal)(
                             ms,
@@ -801,6 +798,7 @@ def main(
                             logfile=logfile,
                         )
                     )
+                print ("Starting all self-calibration...")
                 results = list(dask_client.gather(dask_client.compute(tasks)))
 
                 gcal_list = []
@@ -808,7 +806,7 @@ def main(
                     r = results[i]
                     msg = r[0]
                     if msg != 0:
-                        mainlogger.info(
+                        print(
                             f"Self-calibration was not successful for ms: {mslist[i]}."
                         )
                     else:
@@ -830,10 +828,10 @@ def main(
                         )
                         os.system("rm -rf " + selfcaldir)
                 if len(gcal_list) > 0:
-                    mainlogger.info(f"Final selfcal caltables: {gcal_list}")
+                    print(f"Final selfcal caltables: {gcal_list}")
                     msg = 0
                 else:
-                    mainlogger.info("No self-calibration is successful.")
+                    print("No self-calibration is successful.")
                     msg = 1
     except Exception as e:
         traceback.print_exc()

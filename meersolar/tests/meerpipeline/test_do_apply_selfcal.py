@@ -21,11 +21,7 @@ from meersolar.meerpipeline.do_apply_selfcal import *
     "meersolar.meerpipeline.do_apply_selfcal.os.path.basename",
     side_effect=lambda x: x.split("/")[-1],
 )
-@patch(
-    "meersolar.meerpipeline.do_apply_selfcal.wait_for_dask_workers", return_value=True
-)
 def test_run_all_applysol(
-    mock_wait,
     mock_basename,
     mock_glob,
     mock_delayed,

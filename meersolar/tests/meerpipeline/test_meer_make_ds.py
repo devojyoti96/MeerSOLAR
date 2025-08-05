@@ -14,7 +14,6 @@ from meersolar.meerpipeline.meer_make_ds import *
     return_value="mockfile.npy",
 )
 @patch("meersolar.meerpipeline.meer_make_ds.delayed", side_effect=lambda f: f)
-@patch("meersolar.meerpipeline.meer_make_ds.wait_for_dask_workers", return_value=1)
 @patch("meersolar.meerpipeline.meer_make_ds.get_local_dask_cluster")
 @patch("meersolar.meerpipeline.meer_make_ds.check_datacolumn_valid", return_value=True)
 @patch("meersolar.meerpipeline.meer_make_ds.casamstool")
@@ -35,7 +34,6 @@ def test_make_solar_DS(
     mock_mstool_class,
     mock_check_col,
     mock_get_dask,
-    mock_wait_dask,
     mock_delayed,
     mock_make_ds_file,
     mock_plot,

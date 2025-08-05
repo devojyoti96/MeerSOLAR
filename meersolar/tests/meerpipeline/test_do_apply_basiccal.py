@@ -152,11 +152,7 @@ def mock_glob_pattern(pattern):
     "meersolar.meerpipeline.do_apply_basiccal.scale_bandpass",
     return_value="scaled.bcal",
 )
-@patch(
-    "meersolar.meerpipeline.do_apply_basiccal.wait_for_dask_workers", return_value=True
-)
 def test_run_all_applysol(
-    mock_wait,
     mock_scale,
     mock_applysol,
     mock_delayed,

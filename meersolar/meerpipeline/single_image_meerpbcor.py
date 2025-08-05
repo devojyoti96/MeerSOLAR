@@ -439,7 +439,6 @@ def get_image_beam(
     """
     if n_cpu > 8:
         n_cpu = 8
-    start_time = time.time()
     ##################################
     header = fits.getheader(image_file)
     if header["CTYPE3"] == "FREQ":
@@ -489,7 +488,7 @@ def get_image_beam(
         m_grid_flat = m_grid.flatten()
         grid_shape = l_grid.shape
         del l_grid, m_grid
-        with Parallel(n_jobs=n_cpu, backend="threading") as parallel:
+        with Parallel(njobs=n_cpu, backend="threading") as parallel:
             results = parallel(
                 [
                     joblid_delayed(j00_r)(l_grid_flat, m_grid_flat, grid=False),
@@ -548,8 +547,6 @@ def get_image_beam(
         # matrix
         jones_array = apply_parallactic_rotation(jones_array, p_angle).T
     jones_array = jones_array.reshape(jones_array.shape[0], jones_array.shape[1], 2, 2)
-    if verbose:
-        print(f"Beam calculated in : {round(time.time()-start_time,1)}s")
     return jones_array
 
 

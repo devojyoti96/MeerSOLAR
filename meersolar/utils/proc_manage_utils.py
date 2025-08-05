@@ -12,6 +12,7 @@ import os
 import subprocess
 import sys
 import tempfile
+import shutil
 from pathlib import Path
 from dask import delayed, compute, config
 from dask.distributed import Client, LocalCluster
@@ -234,25 +235,99 @@ def generate_activate_env(outfile="activate_env.sh"):
     print(f"Created activation script at: {outfile}")
     return outfile
 
+def get_total_worker(cluster):
+    """
+    Get total workers in the cluster
+    
+    Parameters
+    ----------
+    cluster : dask.cluster
+        Dask cluster
+        
+    Returns
+    -------
+    int
+        Number of workers
+    """
+    return len(cluster.workers)
+    
+def scale_worker_and_wait(dask_cluster,nworker,timeout=60, poll_interval=1):
+    """
+    Scale worker and wait until it is done
+    
+    Parameters
+    ----------
+    dask_cluster : dask.cluster
+        Dask cluster
+    nworker : int
+        Number of worker  
+    timeout : float, optional
+        Timeout, show a warning and move  
+    poll_interval : float, optional
+        Check interval in seconds 
+    """
+    print (f"Start scaling to {nworker} workers")
+    dask_cluster.scale(nworker)  
+    timeout=60
+    c=0
+    while c<timeout:
+        if get_total_worker(dask_cluster)==nworker:
+            print (f"Successfully scaled to {nworker} workers")
+            return 0
+        else:
+            time.sleep(poll_interval)
+            c+=poll_interval  
+    print (f"Dask cluster did not scale to {nworker} within {timeout} seconds.") 
+    return 1
 
 def wait_for_dask_workers(client, min_worker=1, timeout=60):
     """
-    Wait for dask worker
+    Wait until the Dask cluster has a minimum number of total and/or new workers.
 
     Parameters
     ----------
-    client : dask.client
+    client : dask.distributed.Client
         Dask client
     min_worker : int, optional
-        Minimum number of workers
+        Minimum new connected workers (default: 1)
     timeout : float, optional
-        Timeout in seconds
+        Maximum time to wait in seconds (default: 60)
+
+    Raises
+    ------
+    TimeoutError
+        If the required number of workers do not connect in time.
     """
     client.wait_for_workers(n_workers=min_worker, timeout=timeout)
-
-
+   
+def get_scheduler_name():
+    """
+    Get job scheduler available 
+    
+    Returns
+    -------
+    str
+        Scheduler name (local, pbs, slurm)
+    """
+    if shutil.which("sbatch"):
+        return "slurm"
+    elif shutil.which("bsub"):
+        return "lsf"
+    elif shutil.which("qhost"):
+        return "sge"
+    elif shutil.which("qsub"):
+        return "pbs"
+    elif shutil.which("condor_submit"):
+        return "htcondor"
+    elif shutil.which("msub"):
+        return "mab"
+    elif shutil.which("oarsub"):
+        return "oar"
+    else:
+        return "local"
+        
 def get_local_dask_cluster(
-    n_jobs,
+    njobs,
     dask_dir,
     cpu_frac=0.8,
     mem_frac=0.8,
@@ -266,7 +341,7 @@ def get_local_dask_cluster(
 
     Parameters
     ----------
-    n_jobs : int
+    njobs : int
         Number of MS tasks (ideally = number of MS files)
     dask_dir : str
         Dask temporary directory
@@ -293,7 +368,7 @@ def get_local_dask_cluster(
         Dask directory
     """
     logging.getLogger("distributed").setLevel(logging.ERROR)
-
+    print ("Creating local cluster on the current node.")
     # Set up Dask working directories
     dask_dir = os.path.join(dask_dir.rstrip("/"), f"dask_{int(time.time())}")
     dask_dir_tmp = os.path.join(dask_dir, "tmp")
@@ -353,6 +428,7 @@ def get_local_dask_cluster(
             "distributed.worker.memory.terminate": spill_frac + 0.25,
         }
     )
+    client.run_on_scheduler(gc.collect)
     if verbose:
         print("####################################################")
         print(f"Dask dashboard available at: {client.dashboard_link}")
@@ -361,7 +437,7 @@ def get_local_dask_cluster(
 
 
 def get_slurm_dask_cluster(
-    n_jobs,
+    njobs,
     config_yaml,
     dask_dir,
     cpu_frac=0.8,
@@ -376,7 +452,7 @@ def get_slurm_dask_cluster(
 
     Parameters
     ----------
-    n_jobs : int
+    njobs : int
         Number of expected tasks (used for worker scaling)
     config_yaml : str
         Path to Dask SLURMCluster YAML configuration
@@ -465,9 +541,9 @@ def get_slurm_dask_cluster(
     )
 
     # Scale workers (1 per task/MS file ideally)
-    cluster.scale(n_jobs)
+    cluster.scale(njobs)
     client = Client(cluster, heartbeat_interval="5s")
-
+    client.run_on_scheduler(gc.collect)
     if verbose:
         print("####################################################")
         print(f"Dask dashboard available at: {client.dashboard_link}")

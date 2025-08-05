@@ -12,6 +12,22 @@ from datetime import datetime, timezone, timedelta
 async def save_logs_by_task_id(
     task_run_id, task_name, logfile, poll_interval=5, stop_event=None
 ):
+    """
+    Fetch and save prefect flow logs to a file
+
+    Parameters
+    ----------
+    tak_run_id : str
+        The Prefect task run ID to monitor
+    taks_name : str
+        Task name
+    logfile : str
+        Output log file
+    poll_interval : int
+        How often to check for new logs (in seconds)
+    stop_event : threading.Event
+        Optional external signal to stop logging
+    """
     seen_ids = set()
     start_time = datetime.now(timezone.utc)
     while not (stop_event and stop_event.is_set()):

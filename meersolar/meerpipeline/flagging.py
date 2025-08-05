@@ -10,7 +10,6 @@ import sys
 import os
 from casatools import msmetadata
 from dask import delayed
-from dask.distributed import wait
 from meersolar.utils import *
 
 logging.getLogger("distributed").setLevel(logging.ERROR)
@@ -325,11 +324,10 @@ def do_flagging(
     int
         Success message
     """
-    start_time = time.time()
     try:
         if cpu_frac > 0.8:
             cpu_frac = 0.8
-        total_cpu = int(psutil.cpu_count() * cpu_frac)
+        total_cpu = max(1,int(psutil.cpu_count() * cpu_frac))
         if mem_frac > 0.8:
             mem_frac = 0.8
         total_mem = (psutil.virtual_memory().available * mem_frac) / (1024**3)  # In GB
@@ -341,7 +339,7 @@ def do_flagging(
         os.chdir(mspath)
         print("###########################")
         print("Flagging measurement set : ", msname)
-        print("###########################\n")
+        print("###########################")
         correct_missing_col_subms(msname)
         print("Restoring all previous flags...")
         with suppress_casa_output():
@@ -364,19 +362,15 @@ def do_flagging(
                 os.system(f"rm -rf {subms}/.flagversions")
         else:
             subms_list = [msname]
-        ms_size_list = [get_column_size(ms) for ms in subms_list]
 
-        ########################################
-        # Number of worker limit based on memory
-        ########################################
-        mem_limit = min(total_mem, max(ms_size_list))
-        n_jobs = max(1, min(total_cpu, int(total_mem / mem_limit)))
-        n_threads = max(1, int(total_cpu / n_jobs))
-
+        njobs = max(1, min(total_cpu, len(subms_list)))
+        n_threads = max(1, int(total_cpu / njobs))
+        mem_limit = total_mem/njobs
+        
         print("#################################")
-        print(f"Total dask worker: {n_jobs}")
+        print(f"Total dask worker: {njobs}")
         print(f"CPU per worker: {n_threads}")
-        print(f"Memory per worker: {mem_limit}GB")
+        print(f"Memory per worker: {round(mem_limit,2)} GB")
         print("#################################")
         ###########################################
 
@@ -397,26 +391,12 @@ def do_flagging(
             )
             for ms in subms_list
         ]
-
         print (f"Flagging mslist: {','.join(subms_list)}")
-
-        results = []
-        for i in range(0, len(tasks), n_jobs):
-            batch = tasks[i : i + n_jobs]
-            wait_for_dask_workers(dask_client, min_worker=2, timeout=60)
-            futures = dask_client.compute(batch)
-            results.extend(dask_client.gather(futures))
-        results = list(results)
-
-        print("##################")
-        print("Total time taken : ", time.time() - start_time)
-        print("##################\n")
+        futures = dask_client.compute(tasks)
+        results = list(dask_client.gather(futures))
         return 0
     except Exception as e:
         traceback.print_exc()
-        print("##################")
-        print("Total time taken : " + str(time.time() - start_time) + "s")
-        print("##################\n")
         return 1
 
 
@@ -513,18 +493,13 @@ def main(
     dask_cluster = None
     if dask_client is None:
         dask_client, dask_cluster, dask_dir = get_local_dask_cluster(
-            1,
+            2,
             dask_dir=workdir,
             cpu_frac=cpu_frac,
             mem_frac=mem_frac,
         )
         nworker = max(2, int(psutil.cpu_count() * cpu_frac))
-        usable_mem = (mem_frac * psutil.virtual_memory().total) / 1024**3
-        per_job_mem = usable_mem / nworker
-        if per_job_mem < 2:
-            nworker = max(2, int(usable_mem / 2))
-        print(f"Maximum dask workder: {nworker}")
-        dask_cluster.adapt(minimum=2, maximum=nworker)  # 2 worker will be required
+        scale_worker_and_wait(dask_cluster,nworker)
 
     try:
         if msname and os.path.exists(msname):
@@ -544,7 +519,7 @@ def main(
                 mem_frac=mem_frac,
             )
         else:
-            print("Please provide correct measurement set.\n")
+            print("Please provide correct measurement set.")
             msg = 1
     except Exception as e:
         traceback.print_exc()
@@ -659,6 +634,7 @@ def cli():
 
 if __name__ == "__main__":
     result = cli()
-    print(f"Final msg : {result}")
-    print("\n###################\nBasic flagging is finished.\n###################\n")
+    print(
+        "\n###################\nFlagging is done.\n###################\n"
+    )
     os._exit(result)

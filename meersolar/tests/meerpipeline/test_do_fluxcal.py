@@ -17,7 +17,6 @@ def test_split_casatask(dummy_msname):
 @patch("meersolar.meerpipeline.do_fluxcal.split_casatask")
 @patch("meersolar.meerpipeline.do_fluxcal.get_local_dask_cluster")
 @patch("meersolar.meerpipeline.do_fluxcal.os.path.exists", return_value=False)
-@patch("meersolar.meerpipeline.do_fluxcal.wait_for_dask_workers", return_value=True)
 @patch("meersolar.meerpipeline.do_fluxcal.get_ms_scan_size")
 @patch(
     "meersolar.meerpipeline.do_fluxcal.delayed",
@@ -26,7 +25,6 @@ def test_split_casatask(dummy_msname):
 def test_split_autocorr(
     mock_delayed,
     mock_get_column_size,
-    mock_wait_dask,
     mock_exists,
     mock_get_dask_client,
     mock_split_casatask,
@@ -210,11 +208,9 @@ def test_get_power_diff(
 @patch("meersolar.meerpipeline.do_fluxcal.np.save")
 @patch("meersolar.meerpipeline.do_fluxcal.os.path.exists", return_value=True)
 @patch("meersolar.meerpipeline.do_fluxcal.os.makedirs")
-@patch("meersolar.meerpipeline.do_fluxcal.wait_for_dask_workers", return_value=True)
 @patch("meersolar.meerpipeline.do_fluxcal.get_column_size", return_value=0.01)
 def test_estimate_att(
     mock_get_column_size,
-    mock_wait_dask,
     mock_makedirs,
     mock_exists,
     mock_save,

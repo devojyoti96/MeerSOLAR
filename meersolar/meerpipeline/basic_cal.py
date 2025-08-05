@@ -73,7 +73,6 @@ def run_delaycal(
                 gainfield=gainfield,
                 interp=interp,
             )
-        drop_cache(msname)
     return caltable_prefix + ".kcal"
 
 
@@ -118,7 +117,6 @@ def run_bandpass(
             datacolumn="CPARAM",
             flagbackup=False,
         )
-    drop_cache(msname)
     return caltable_prefix + ".bcal"
 
 
@@ -169,7 +167,6 @@ def run_gaincal(
             gainfield=gainfield,
             interp=interp,
         )
-    drop_cache(msname)
     return caltable_prefix + ".gcal"
         
 
@@ -212,7 +209,6 @@ def run_leakagecal(
             datacolumn="CPARAM",
             flagbackup=False,
         )
-    drop_cache(msname)
     return caltable_prefix + ".dcal"
 
 
@@ -289,7 +285,6 @@ def run_polcal(
                     gainfield=gainfield,
                     interp=interp,
                 )
-    drop_cache(msname)
     return (
         caltable_prefix + ".kcrosscal",
         caltable_prefix + ".xfcal",
@@ -328,7 +323,6 @@ def run_applycal(
             flagbackup=flagbackup,
             parang=parang,
         )
-    drop_cache(msname)
     return
 
 
@@ -393,7 +387,6 @@ def run_postcal_flag(
             flagbackup=False,
             ntime=ntime,
         )
-    drop_cache(msname)
     return
     
 
@@ -476,7 +469,7 @@ def single_round_cal_and_flag(
     try:
         if cpu_frac > 0.8:
             cpu_frac = 0.8
-        total_cpu = int(psutil.cpu_count() * cpu_frac)
+        total_cpu = max(1,int(psutil.cpu_count() * cpu_frac))
         if mem_frac > 0.8:
             mem_frac = 0.8
         total_mem = (psutil.virtual_memory().available * mem_frac) / (1024**3)  # In GB
@@ -573,11 +566,10 @@ def single_round_cal_and_flag(
                 )
                 for sub_msname in delaycal_mslist
             ]
-            print(f"Performing delay calibrations on: {msname}")
             merged = delayed(merge_caltables)(
                 delaycal_tasks, delay_caltable, keepcopy=False
             )
-            wait_for_dask_workers(dask_client, min_worker=2, timeout=60)
+            print(f"Performing delay calibrations on: {msname}")
             delay_caltable = str(dask_client.gather(dask_client.compute(merged)))
 
             if delay_caltable is not None and os.path.exists(delay_caltable):
@@ -609,11 +601,10 @@ def single_round_cal_and_flag(
                 )
                 for sub_msname in fluxcal_mslist
             ]
-            print(f"Performing bandpass calibrations on: {msname}")
             merged = delayed(merge_caltables)(
                 bandpass_tasks, bpass_caltable, keepcopy=False
             )
-            wait_for_dask_workers(dask_client, min_worker=2, timeout=60)
+            print(f"Performing bandpass calibrations on: {msname}")
             bpass_caltable = str(dask_client.gather(dask_client.compute(merged)))
 
             if bpass_caltable is not None and os.path.exists(bpass_caltable):
@@ -649,11 +640,10 @@ def single_round_cal_and_flag(
                 )
                 for sub_msname in gaincal_mslist
             ]
-            print(f"Performing gain calibrations on: {msname}")
             merged = delayed(merge_caltables)(
                 gaincal_tasks, gain_caltable, keepcopy=False
             )
-            wait_for_dask_workers(dask_client, min_worker=2, timeout=60)
+            print(f"Performing gain calibrations on: {msname}")
             gain_caltable = str(dask_client.gather(dask_client.compute(merged)))
 
         ######################################
@@ -666,7 +656,7 @@ def single_round_cal_and_flag(
             applycal_gainfield.append("")
             applycal_interp.append("nearest")
         else:
-            print("##############################")
+            print("###############################")
             print("Calibrating phasecal fields ....")
             print("###############################")
             ##############################
@@ -695,11 +685,10 @@ def single_round_cal_and_flag(
                     )
                     for sub_msname in phasecal_mslist
                 ]
-                print(f"Performing gain calibrations on: {msname}")
                 merged = delayed(merge_caltables)(
                     gaincal_tasks, gain_caltable, append=True, keepcopy=False
                 )
-                wait_for_dask_workers(dask_client, min_worker=2, timeout=60)
+                print(f"Performing gain calibrations on: {msname}")
                 gain_caltable = str(dask_client.gather(dask_client.compute(merged)))
 
                 #################################
@@ -771,11 +760,10 @@ def single_round_cal_and_flag(
                     )
                     for sub_msname in fluxcal_mslist
                 ]
-                print(f"Performing relative leakage calibrations on: {msname}")
                 merged = delayed(merge_caltables)(
                     leakage_tasks, leakage_caltable, keepcopy=False
                 )
-                wait_for_dask_workers(dask_client, min_worker=2, timeout=60)
+                print(f"Performing relative leakage calibrations on: {msname}")
                 leakage_caltable = str(dask_client.gather(dask_client.compute(merged)))
 
                 if leakage_caltable is not None and os.path.exists(leakage_caltable):
@@ -818,7 +806,6 @@ def single_round_cal_and_flag(
                 print(
                     f"Performing cross-phase and polarization angle calibrations on: {msname}"
                 )
-                wait_for_dask_workers(dask_client, min_worker=2, timeout=60)
                 results = list(dask_client.gather(dask_client.compute(tasks)))
 
                 kcross_tables = []
@@ -897,7 +884,6 @@ def single_round_cal_and_flag(
                     for sub_msname in all_mslist
                 ]
                 print(f"Applying calibrations on: {msname}")
-                wait_for_dask_workers(dask_client, min_worker=2, timeout=60)
                 results = list(dask_client.gather(dask_client.compute(tasks)))
 
             ##############################
@@ -907,10 +893,14 @@ def single_round_cal_and_flag(
                 do_flag_backup(msname, flagtype="flagdata")
                 tasks = []
                 njobs = min(total_cpu, len(all_mslist))
+                n_threads = max(1,int(total_cpu/njobs))
                 mem_limit = total_mem / njobs
+                print("#################################")
+                print(f"Total dask worker: {njobs}")
+                print(f"CPU per worker: {n_threads}")
+                print(f"Memory per worker: {round(mem_limit,2)} GB")
+                print("#################################")
                 if len(all_mslist) > 0:
-                    tasks = []
-                    n_threads = max(1,int(total_cpu/njobs))
                     for sub_msname in all_mslist:
                         if sub_msname in fluxcal_mslist:
                             datacolumn = "residual"
@@ -927,7 +917,6 @@ def single_round_cal_and_flag(
                             )
                         )
                 print(f"Performing post-calibration flagging on: {msname}")
-                wait_for_dask_workers(dask_client, min_worker=2, timeout=60)
                 results = list(dask_client.gather(dask_client.compute(tasks)))
 
         ###############################
@@ -980,6 +969,9 @@ def single_round_cal_and_flag(
     except Exception as e:
         traceback.print_exc()
         return 1, []
+    finally:
+        time.sleep(1)
+        drop_cache(msname)
 
 
 def run_basic_cal_rounds(
@@ -1024,7 +1016,6 @@ def run_basic_cal_rounds(
     list
         Caltables
     """
-    start_time = time.time()
     try:
         os.chdir(workdir)
         print(f"Measurement set : {msname}")
@@ -1090,7 +1081,6 @@ def run_basic_cal_rounds(
                     do_polcal = True
                 if perform_leakagecal:
                     do_leakagecal = True
-            wait_for_dask_workers(dask_client, min_worker=2, timeout=60)
             msg, caltables = single_round_cal_and_flag(
                 msname,
                 dask_client,
@@ -1129,19 +1119,14 @@ def run_basic_cal_rounds(
             if msg == 1:
                 print("##################")
                 print("Basic calibration is not successful.")
-                print(f"Total time taken : {time.time() - start_time}")
                 print("##################")
                 return 1, []
         print("##################")
         print("Basic calibration is done successfully.")
-        print(f"Total time taken : {time.time() - start_time}")
         print("##################")
         return 0, caltables
     except Exception as e:
         traceback.print_exc()
-        print("##################")
-        print(f"Total time taken : {time.time() - start_time}")
-        print("##################")
         return 1, []
 
 
@@ -1232,18 +1217,13 @@ def main(
     dask_cluster = None
     if dask_client is None:
         dask_client, dask_cluster, dask_dir = get_local_dask_cluster(
-            1,
+            2,
             dask_dir=workdir,
             cpu_frac=cpu_frac,
             mem_frac=mem_frac,
         )
         nworker = max(2, int(psutil.cpu_count() * cpu_frac))
-        usable_mem = (mem_frac * psutil.virtual_memory().total) / 1024**3
-        per_job_mem = usable_mem / nworker
-        if per_job_mem < 2:
-            nworker = max(2, int(usable_mem / 2))
-        print(f"Maximum dask workder: {nworker}")
-        dask_cluster.adapt(minimum=2, maximum=nworker)  # 2 worker will be required
+        scale_worker_and_wait(dask_cluster,nworker)
 
     try:
         if msname != "" and os.path.exists(msname):
@@ -1269,7 +1249,7 @@ def main(
                         os.system("rm -rf " + dest)
                     os.system("mv " + caltable + " " + caldir)
         else:
-            print("Please provide a valid measurement set.\n")
+            print("Please provide a valid measurement set.")
             msg = 1
     except Exception as e:
         traceback.print_exc()

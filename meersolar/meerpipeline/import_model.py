@@ -152,7 +152,7 @@ def import_fluxcal_models(mslist, fluxcal_fields, fluxcal_scans, ncpus=1, mem_fr
     """
     try:
         if len(fluxcal_fields) == 0:
-            print("No flux calibrator scan is present.\n")
+            print("No flux calibrator scan is present.")
             return 1
         print("##############################")
         print("Import fluxcal models")
@@ -235,7 +235,7 @@ def import_phasecal_models(
     try:
         if cpu_frac > 0.8:
             cpu_frac = 0.8
-        total_cpu = int(psutil.cpu_count() * cpu_frac)
+        total_cpu = max(1,int(psutil.cpu_count() * cpu_frac))
         print("##########################")
         print("Import phasecal models")
         print("##########################")
@@ -266,9 +266,9 @@ def import_phasecal_models(
                             n_threads=n_threads,
                         )
                     )
-        wait_for_dask_workers(dask_client, min_worker=2, timeout=60)
+        print ("Start importing phasecal models...")
         results = list(dask_client.gather(dask_client.compute(tasks)))
-        print("Phasecal models are initiated.\n")
+        print("Phasecal models are initiated.")
         return 0
     except Exception as e:
         print("Error in initiaing phasecal models.")
@@ -310,7 +310,7 @@ def import_polcal_models(
     try:
         if cpu_frac > 0.8:
             cpu_frac = 0.8
-        total_cpu = int(psutil.cpu_count() * cpu_frac)
+        total_cpu = max(1,int(psutil.cpu_count() * cpu_frac))
         if len(polcal_scans) == 0:
             print("No polarization calibrator scans is present.")
             return 1
@@ -338,8 +338,9 @@ def import_polcal_models(
                             sub_msname, polcal_field, ismms=True, n_threads=n_threads
                         )
                     )
-        wait_for_dask_workers(dask_client, min_worker=2, timeout=60)
+        print ("Start importing polcal models...")
         results = list(dask_client.gather(dask_client.compute(tasks)))
+        print ("Polcal models imports are done.")
         return 0
     except Exception as e:
         traceback.print_exc()
@@ -368,7 +369,6 @@ def import_all_models(msname, dask_client, workdir, cpu_frac=0.8, mem_frac=0.8):
     int
         Success message
     """
-    start_time = time.time()
     cpu_threads = psutil.cpu_count()
     ncpu = int(cpu_threads * cpu_frac)
     mem_frac = 1 - mem_frac
@@ -390,9 +390,6 @@ def import_all_models(msname, dask_client, workdir, cpu_frac=0.8, mem_frac=0.8):
             mslist, fluxcal_fields, fluxcal_scans, ncpus=ncpu, mem_frac=mem_frac
         )
         if fluxcal_result != 0:
-            print("##################")
-            print("Total time taken : " + str(time.time() - start_time) + "s")
-            print("##################\n")
             return fluxcal_result, 1, 1
             
         phasecal_result = import_phasecal_models(
@@ -422,14 +419,8 @@ def import_all_models(msname, dask_client, workdir, cpu_frac=0.8, mem_frac=0.8):
             print(
                 "Polcal model was not imported, but fluxcal model import is successful."
             )
-        print("##################")
-        print("Total time taken : " + str(time.time() - start_time) + "s")
-        print("##################\n")
         return fluxcal_result, phasecal_result, polcal_result
     except Exception as e:
-        print("##################")
-        print("Total time taken : " + str(time.time() - start_time) + "s")
-        print("##################\n")
         traceback.print_exc()
         return 1, 1, 1
 
@@ -502,18 +493,13 @@ def main(
     dask_cluster = None
     if dask_client is None:
         dask_client, dask_cluster, dask_dir = get_local_dask_cluster(
-            1,
+            2,
             dask_dir=workdir,
             cpu_frac=cpu_frac,
             mem_frac=mem_frac,
         )
         nworker = max(2, int(psutil.cpu_count() * cpu_frac))
-        usable_mem = (mem_frac * psutil.virtual_memory().total) / 1024**3
-        per_job_mem = usable_mem / nworker
-        if per_job_mem < 2:
-            nworker = max(2, int(usable_mem / 2))
-        print(f"Maximum dask workder: {nworker}")
-        dask_cluster.adapt(minimum=2, maximum=nworker)  # 2 worker will be required
+        scale_worker_and_wait(dask_cluster,nworker)
 
     try:
         if msname and os.path.exists(msname):
@@ -534,7 +520,7 @@ def main(
             else:
                 msg = 0
         else:
-            print("Please provide correct measurement set.\n")
+            print("Please provide correct measurement set.")
             msg = 1
     except Exception as e:
         traceback.print_exc()

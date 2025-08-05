@@ -58,11 +58,10 @@ def run_all_applysol(
     list
         Calibrated target scans
     """
-    start_time = time.time()
     try:
         if cpu_frac > 0.8:
             cpu_frac = 0.8
-        total_cpu = int(psutil.cpu_count() * cpu_frac)
+        total_cpu = max(1,int(psutil.cpu_count() * cpu_frac))
         if mem_frac > 0.8:
             mem_frac = 0.8
         total_mem = (psutil.virtual_memory().available * mem_frac) / (1024**3)  # In GB
@@ -70,7 +69,7 @@ def run_all_applysol(
         mslist = np.unique(mslist).tolist()
         parang = False
         selfcal_tables = glob.glob(caldir + "/selfcal_scan*.gcal")
-        print(f"Selfcal caltables: {selfcal_tables}\n")
+        print(f"Selfcal caltables: {selfcal_tables}")
         if len(selfcal_tables) == 0:
             print(f"No self-cal caltable is present in {caldir}.")
             return 1
@@ -94,19 +93,22 @@ def run_all_applysol(
         mslist = filtered_mslist
         if len(mslist) == 0:
             print("No valid measurement set.")
-            print(f"Total time taken: {round(time.time()-start_time,2)}s")
             return 1
 
         ####################################
         # Applycal jobs
         ####################################
         print(f"Total ms list: {len(mslist)}")
-        wait_for_dask_workers(dask_client, min_worker=2, timeout=60)
         tasks = []
         msmd = msmetadata()
         njobs = min(total_cpu, len(mslist))
-        mem_limit = total_mem / njobs
         n_threads=max(1,int(total_cpu/njobs))
+        mem_limit = total_mem / njobs
+        print("#################################")
+        print(f"Total dask worker: {njobs}")
+        print(f"CPU per worker: {n_threads}")
+        print(f"Memory per worker: {round(mem_limit,2)} GB")
+        print("#################################")
         for ms in mslist:
             msmd.open(ms)
             ms_scan = msmd.scannumbers()[0]
@@ -131,23 +133,21 @@ def run_all_applysol(
                     soltype="selfcal",
                 )
             )
-        futures = dask_client.compute(tasks)
-        results = list(dask_client.gather(futures))
+        print ("Applying solutions...")
+        results = list(dask_client.gather(dask_client.compute(tasks)))
         if np.nansum(results) == 0:
             print("##################")
             print(
                 "Applying self-calibration solutions for target scans are done successfully."
             )
-            print("Total time taken : ", time.time() - start_time)
-            print("##################\n")
+            print("##################")
             return 0
         else:
             print("##################")
             print(
                 "Applying self-calibration solutions for target scans are not done successfully."
             )
-            print("Total time taken : ", time.time() - start_time)
-            print("##################\n")
+            print("##################")
             return 1
     except Exception as e:
         traceback.print_exc()
@@ -156,8 +156,7 @@ def run_all_applysol(
         print(
             "Applying self-calibration solutions for target scans are not done successfully."
         )
-        print("Total time taken : ", time.time() - start_time)
-        print("##################\n")
+        print("##################")
         return 1
 
 
@@ -243,23 +242,18 @@ def main(
     dask_cluster = None
     if dask_client is None:
         dask_client, dask_cluster, dask_dir = get_local_dask_cluster(
-            1,
+            2,
             dask_dir=workdir,
             cpu_frac=cpu_frac,
             mem_frac=mem_frac,
         )
         nworker = max(2, int(psutil.cpu_count() * cpu_frac))
-        usable_mem = (mem_frac * psutil.virtual_memory().total) / 1024**3
-        per_job_mem = usable_mem / nworker
-        if per_job_mem < 2:
-            nworker = max(2, int(usable_mem / 2))
-        print(f"Maximum dask workder: {nworker}")
-        dask_cluster.adapt(minimum=2, maximum=nworker)  # 2 worker will be required
+        scale_worker_and_wait(dask_cluster,nworker)
 
     try:
-        print("\n###################################")
+        print("###################################")
         print("Starting applying solutions...")
-        print("###################################\n")
+        print("###################################")
 
         if caldir == "" or not os.path.exists(caldir):
             print("Provide existing caltable directory.")

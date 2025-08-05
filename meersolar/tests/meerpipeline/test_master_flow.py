@@ -407,7 +407,7 @@ def test_run_apply_basiccal_sol(
 
     mock_ctx = MagicMock()
     mock_ctx.task_run.id = "task-id"
-    mock_ctx.task_run.name = "apply_basiccal"
+    mock_ctx.task_run.name = "apply_basiccal_target"
     mock_get_ctx.return_value = mock_ctx
 
     mock_thread = MagicMock()
@@ -437,7 +437,7 @@ def test_run_apply_basiccal_sol(
         result = run_apply_basiccal_sol.fn(**kwargs)
         assert result == 0
 
-    expected_log = "/mock/workdir/logs/apply_basiccal.log"
+    expected_log = "/mock/workdir/logs/apply_basiccal_target.log"
     mock_makedirs.assert_called_once_with("/mock/workdir/logs", exist_ok=True)
     mock_remove.assert_called_once_with(expected_log)
     mock_log_saver.assert_called_once()
@@ -622,6 +622,7 @@ def test_run_selfcal_jobs(
         mem_frac=0.7,
         jobid=101,
         start_remote_log=True,
+        logfile="/mock/workdir/logs/selfcal_targets.log",
         dask_client=mock_client.return_value.__enter__.return_value,
     )
 
@@ -771,7 +772,6 @@ def test_run_imaging_jobs(
         assert result == 0
 
     expected_log = "/mock/workdir/logs/imaging_targets.log"
-    mock_makedirs.assert_called_once_with("/mock/workdir/logs", exist_ok=True)
     mock_remove.assert_called_once_with(expected_log)
     mock_log_saver.assert_called_once()
     mock_thread.join.assert_called_once_with(timeout=5)
@@ -800,6 +800,7 @@ def test_run_imaging_jobs(
         cpu_frac=0.6,
         mem_frac=0.7,
         jobid=202,
+        logfile="/mock/workdir/logs/imaging_targets.log",
         dask_client=mock_client.return_value.__enter__.return_value,
     )
 

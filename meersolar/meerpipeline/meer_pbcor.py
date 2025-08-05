@@ -12,7 +12,6 @@ import subprocess
 from astropy.io import fits
 from astropy.wcs import FITSFixedWarning
 from dask import delayed
-from dask.distributed import wait
 from meersolar.meerpipeline.single_image_meerpbcor import get_pbcor_image
 from meersolar.utils import *
 
@@ -137,7 +136,7 @@ def pbcor_all_images(
     """
     if cpu_frac > 0.8:
         cpu_frac = 0.8
-    total_cpu = int(psutil.cpu_count() * cpu_frac)
+    total_cpu = max(1,int(psutil.cpu_count() * cpu_frac))
     if mem_frac > 0.8:
         mem_frac = 0.8
     total_mem = (psutil.virtual_memory().available * mem_frac) / (1024**3)  # In GB
@@ -173,13 +172,13 @@ def pbcor_all_images(
         mem_limit = (
             16 * max([os.path.getsize(image) for image in images]) / 1024**3
         )  # In GB
-        n_jobs = max(1, min(total_cpu, int(total_mem / mem_limit)))
-        n_threads = max(1, int(total_cpu / n_jobs))
+        njobs = max(1, min(total_cpu, int(total_mem / mem_limit)))
+        n_threads = max(1, int(total_cpu / njobs))
 
         print("#################################")
-        print(f"Total dask worker: {n_jobs}")
+        print(f"Total dask worker: {njobs}")
         print(f"CPU per worker: {n_threads}")
-        print(f"Memory per worker: {mem_limit}GB")
+        print(f"Memory per worker: {round(mem_limit,2)} GB")
         print("#################################")
         ###########################################
 
@@ -192,9 +191,9 @@ def pbcor_all_images(
                 tasks.append(task)
 
             results = []
-            for i in range(0, len(tasks), n_jobs):
-                batch = tasks[i : i + n_jobs]
-                wait_for_dask_workers(dask_client, min_worker=2, timeout=60)
+            print ("Start correcting first set of images...")
+            for i in range(0, len(tasks), njobs):
+                batch = tasks[i : i + njobs]
                 futures = dask_client.compute(batch)
                 results.extend(dask_client.gather(futures))
             results = list(results)
@@ -204,7 +203,6 @@ def pbcor_all_images(
                     successful_pbcor += 1
 
         if len(remaining_set) > 0:
-            print(f"Correcting remaining images of different timestamps.")
             tasks = []
             for image in remaining_set:
                 task = delayed(run_pbcor)(
@@ -213,9 +211,9 @@ def pbcor_all_images(
                 tasks.append(task)
 
             results = []
-            for i in range(0, len(tasks), n_jobs):
-                batch = tasks[i : i + n_jobs]
-                wait_for_dask_workers(dask_client, min_worker=2, timeout=60)
+            print("Correcting remaining images of different timestamps.")
+            for i in range(0, len(tasks), njobs):
+                batch = tasks[i : i + njobs]
                 futures = dask_client.compute(batch)
                 results.extend(dask_client.gather(futures))
             results = list(results)
@@ -295,7 +293,6 @@ def pbcor_all_images(
                 print(f"Total brightness temperatures maps: {len(tb_images)}")
         else:
             print(f"Total corrected images: 0")
-        os.system(f"rm -rf {pbdir}/dask-scratch-space")
         return 0
     except Exception as e:
         traceback.print_exc()
@@ -379,18 +376,13 @@ def main(
     dask_cluster = None
     if dask_client is None:
         dask_client, dask_cluster, dask_dir = get_local_dask_cluster(
-            1,
+            2,
             dask_dir=workdir,
             cpu_frac=cpu_frac,
             mem_frac=mem_frac,
         )
         nworker = max(2, int(psutil.cpu_count() * cpu_frac))
-        usable_mem = (mem_frac * psutil.virtual_memory().total) / 1024**3
-        per_job_mem = usable_mem / nworker
-        if per_job_mem < 2:
-            nworker = max(2, int(usable_mem / 2))
-        print(f"Maximum dask workder: {nworker}")
-        dask_cluster.adapt(minimum=2, maximum=nworker)  # 2 worker will be required
+        scale_worker_and_wait(dask_cluster,nworker)
 
     try:
         if os.path.exists(imagedir):

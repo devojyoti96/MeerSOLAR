@@ -9,7 +9,6 @@ import sys
 import os
 from casatools import msmetadata
 from dask import delayed
-from dask.distributed import wait
 from meersolar.utils import *
 
 logging.getLogger("distributed").setLevel(logging.ERROR)
@@ -99,11 +98,10 @@ def split_target_scans(
     list
         Splited ms list
     """
-    start_time = time.time()
     try:
         if cpu_frac > 0.8:
             cpu_frac = 0.8
-        total_cpu = int(psutil.cpu_count() * cpu_frac)
+        total_cpu = max(1, int(psutil.cpu_count() * cpu_frac))
         if mem_frac > 0.8:
             mem_frac = 0.8
         total_mem = (psutil.virtual_memory().available * mem_frac) / (1024**3)  # In GB
@@ -221,25 +219,10 @@ def split_target_scans(
             total_chunks = len(chanlist) * len(filtered_scan_list)
         else:
             total_chunks = len(filtered_scan_list)
-
-        scan_size_list = [
-            get_ms_scan_size(msname, scan, only_autocorr=True) / len(chanlist)
-            for scan in filtered_scan_list
-        ]
-        ########################################
-        # Number of worker limit based on memory
-        ########################################
-        mem_limit = min(total_mem, max(scan_size_list))
-        n_jobs = max(1, min(total_cpu, int(total_mem / mem_limit)))
-        n_threads = max(1, int(total_cpu / n_jobs))
-
-        print("#################################")
-        print(f"Total dask worker: {n_jobs}")
-        print(f"CPU per worker: {n_threads}")
-        print(f"Memory per worker: {mem_limit}GB")
-        print("#################################")
-        ###########################################
-
+ 
+        njobs = max(1, min(total_cpu, total_chunks))
+        n_threads = max(1, int(total_cpu / njobs))
+        
         tasks = []
         splited_ms_list = []
         for scan in filtered_scan_list:
@@ -276,26 +259,25 @@ def split_target_scans(
                         n_threads=n_threads,
                     )
                     tasks.append(task)
-        results = []
-        for i in range(0, len(tasks), n_jobs):
-            batch = tasks[i : i + n_jobs]
-            wait_for_dask_workers(dask_client, min_worker=2, timeout=60)
-            futures = dask_client.compute(batch)
-            results.extend(dask_client.gather(futures))
-        splited_ms_list = list(results)
-
+        if len(tasks):
+            print ("Start spliting..")
+            futures = dask_client.compute(tasks)
+            results = list(dask_client.gather(futures))
+            for splited_ms in results:
+                splited_ms_list.append(splited_ms)
         print("##################")
         print("Spliting of target scans are done successfully.")
-        print("Total time taken : ", time.time() - start_time)
-        print("##################\n")
+        print("##################")
         return 0, splited_ms_list
     except Exception as e:
         traceback.print_exc()
         print("##################")
         print("Spliting of target scans are unsuccessful.")
-        print("Total time taken : ", time.time() - start_time)
-        print("##################\n")
+        print("##################")
         return 1, []
+    finally:
+        time.sleep(1)
+        drop_cache(msname)
 
 
 def main(
@@ -402,24 +384,19 @@ def main(
     dask_cluster = None
     if dask_client is None:
         dask_client, dask_cluster, dask_dir = get_local_dask_cluster(
-            1,
+            2,
             dask_dir=workdir,
             cpu_frac=cpu_frac,
             mem_frac=mem_frac,
         )
         nworker = max(2, int(psutil.cpu_count() * cpu_frac))
-        usable_mem = (mem_frac * psutil.virtual_memory().total) / 1024**3
-        per_job_mem = usable_mem / nworker
-        if per_job_mem < 2:
-            nworker = max(2, int(usable_mem / 2))
-        print(f"Maximum dask workder: {nworker}")
-        dask_cluster.adapt(minimum=2, maximum=nworker)  # 2 worker will be required
+        scale_worker_and_wait(dask_cluster,nworker)
 
     try:
         if msname and os.path.exists(msname):
-            print("\n###################################")
+            print("###################################")
             print("Start spliting target scans.")
-            print("###################################\n")
+            print("###################################")
             scans = [int(i) for i in scans.split(",")] if scans else []
             msg, final_target_mslist = split_target_scans(
                 msname,
@@ -441,7 +418,7 @@ def main(
                 mem_frac=float(mem_frac),
             )
         else:
-            print("Please provide correct measurement set.\n")
+            print("Please provide correct measurement set.")
             msg = 1
     except Exception as e:
         traceback.print_exc()
@@ -579,20 +556,6 @@ def cli():
         help="Memory fraction to use",
         metavar="Float",
     )
-    hard_args.add_argument(
-        "--max_cpu_frac",
-        type=float,
-        default=0.8,
-        help="Maximum CPU fraction to use",
-        metavar="Float",
-    )
-    hard_args.add_argument(
-        "--max_mem_frac",
-        type=float,
-        default=0.8,
-        help="Maximum memory fraction to use",
-        metavar="Float",
-    )
     hard_args.add_argument("--logfile", type=str, default=None, help="Log file")
     hard_args.add_argument("--jobid", type=int, default=0, help="Job ID")
 
@@ -619,8 +582,6 @@ def cli():
         merge_spws=args.merge_spws,
         cpu_frac=args.cpu_frac,
         mem_frac=args.mem_frac,
-        max_cpu_frac=args.max_cpu_frac,
-        max_mem_frac=args.max_mem_frac,
         logfile=args.logfile,
         jobid=args.jobid,
         start_remote_log=args.start_remote_log,

@@ -76,29 +76,29 @@ def kill_meerjob():
         workdir = str(results[3])
         outdir = str(results[4])
     except Exception as e:
-        print(f"[ERROR] Could not read job file: {e}")
+        print(f"Could not read job file: {e}")
         return
 
-    print(f"[INFO] Attempting to terminate main PID: {main_pid}")
+    print(f"Attempting to terminate main PID: {main_pid}")
     terminate_process_and_children(main_pid)
 
     pid_file = f"{cachedir}/pids/pids_{args.jobid}.txt"
     if os.path.exists(pid_file):
         try:
             pids = np.loadtxt(pid_file, unpack=True, dtype="int")
-            print(f"[INFO] Terminating worker PIDs: {pids}")
+            print(f"Terminating worker PIDs: {pids}")
             force_kill_pids_with_children(pids)
         except Exception as e:
-            print(f"[WARNING] Could not read or terminate PIDs from {pid_file}: {e}")
+            print(f"Could not read or terminate PIDs from {pid_file}: {e}")
 
     os.system(f"rm -rf {workdir}/tmp_meersolar_*")
 
-    print("[INFO] Dropping caches...")
+    print("Dropping caches...")
     drop_cache(msname)
     drop_cache(workdir)
     drop_cache(outdir)
     drop_cache(cachedir)
-    print("[INFO] Cleanup complete.")
+    print("Cleanup complete.")
 
 
 if __name__ == "__main__":

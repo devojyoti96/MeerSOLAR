@@ -106,7 +106,8 @@ def get_logid(logfile):
     """
     name = os.path.basename(logfile)
     logmap = {
-        "apply_basiccal.log": "Applying basic calibration solutions",
+        "apply_basiccal_target.log": "Applying basic calibration solutions on targets",
+        "apply_basiccal_selfcal.log":"Applying basic calibration solutions for self-calibration",
         "apply_pbcor.log": "Applying primary beam corrections",
         "apply_selfcal.log": "Applying self-calibration solutions",
         "basic_cal.log": "Basic calibration",

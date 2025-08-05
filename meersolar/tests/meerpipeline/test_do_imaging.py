@@ -128,9 +128,7 @@ def test_perform_imaging(
 @patch("meersolar.meerpipeline.do_imaging.get_local_dask_cluster")
 @patch("meersolar.meerpipeline.do_imaging.np.load", return_value=["job", "pass"])
 @patch("meersolar.meerpipeline.do_imaging.perform_imaging")
-@patch("meersolar.meerpipeline.do_imaging.wait_for_dask_workers", return_value=True)
 def test_run_all_imaging(
-    mock_wait,
     mock_perform_imaging,
     mock_npload,
     mock_get_dask,
@@ -175,7 +173,7 @@ def test_run_all_imaging(
     # Dask client
     client = MagicMock()
     cluster = MagicMock()
-    mock_get_dask.return_value = (client, cluster, 2, 2, 4.0, "/mock/dask_dir")
+    mock_get_dask.return_value = (client, cluster, "/mock/dask_dir")
 
     # Imaging result
     client.compute.return_value = [MagicMock()]
@@ -196,7 +194,8 @@ def test_run_all_imaging(
         timeres=timeres,
         pol="IQUV",
     )
-    client.compute.assert_called()
+    if not corrupted_ms:
+        client.compute.assert_called()
 
     assert result == expected
 
@@ -204,13 +203,6 @@ def test_run_all_imaging(
         mock_init_container.assert_not_called()
     else:
         mock_init_container.assert_called_once()
-
-    if corrupted_ms:
-        logger.warning.assert_any_call("Issue in : mock.ms")
-    else:
-        logger.info.assert_any_call(
-            "Imaging successfully done for: 1 measurement sets."
-        )
 
 
 @pytest.mark.parametrize(

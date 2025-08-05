@@ -42,11 +42,7 @@ from meersolar.meerpipeline.do_sidereal_cor import *
 )
 @patch("meersolar.meerpipeline.do_sidereal_cor.check_udocker_container")
 @patch("meersolar.meerpipeline.do_sidereal_cor.os.path.exists")
-@patch(
-    "meersolar.meerpipeline.do_sidereal_cor.wait_for_dask_workers", return_value=True
-)
 def test_cor_sidereal_motion(
-    mock_wait,
     mock_exists,
     mock_check_container,
     mock_init_container,
@@ -149,8 +145,6 @@ def test_main_sidereal(
         workdir="/mock/workdir",
         cpu_frac=0.7,
         mem_frac=0.6,
-        max_cpu_frac=0.8,
-        max_mem_frac=0.8,
         logfile=None,
         jobid=5,
         start_remote_log=False,

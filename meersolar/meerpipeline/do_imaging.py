@@ -500,7 +500,6 @@ def perform_imaging(
 def run_all_imaging(
     mslist,
     dask_client,
-    mainlogger=None,
     workdir="",
     outdir="",
     freqrange="",
@@ -535,8 +534,6 @@ def run_all_imaging(
         Measurement set list
     dask_client : dask.client
         Dask client
-    mainlogger : str
-        Python logger
     workdir : str
         Work directory
     outdir : str
@@ -589,31 +586,7 @@ def run_all_imaging(
     int
         Success message
     """
-    start_time = time.time()
     mslist = sorted(mslist)
-    observer = None
-    if mainlogger is None:
-        mainlog_file = workdir + "/logs/imaging_targets.log"
-        mainlogger, mainlog_file = create_logger(
-            os.path.basename(mainlog_file).split(".log")[0],
-            mainlog_file,
-            verbose=False,
-            get_print=True,
-        )
-        observer = None
-        if (
-            os.path.exists(f"{workdir}/jobname_password.npy")
-            and mainlog_file is not None
-        ):
-            time.sleep(5)
-            jobname, password = np.load(
-                f"{workdir}/jobname_password.npy", allow_pickle=True
-            )
-            if os.path.exists(mainlog_file):
-                print(f"Starting remote logger. Remote logger password: {password}")
-                observer = init_logger(
-                    "all_imaging", mainlog_file, jobname=jobname, password=password
-                )
     ###########################
     # WSClean container
     ###########################
@@ -628,7 +601,7 @@ def run_all_imaging(
             return 1
     try:
         if len(mslist) == 0:
-            mainlogger.error("Provide valid measurement set list.")
+            print("Provide valid measurement set list.")
             time.sleep(5)
             clean_shutdown(observer)
             return 1
@@ -655,9 +628,12 @@ def run_all_imaging(
             if checkcol:
                 filtered_mslist.append(ms)
             else:
-                mainlogger.warning(f"Issue in : {ms}")
+                print(f"Issue in : {ms}")
                 os.system(f"rm -rf {ms}")
         mslist = filtered_mslist
+        if len(mslist)==0:
+            print ("No valid measurement set is found.")
+            return 1 
 
         #####################################
         # Determining spectro-temporal chunks
@@ -707,25 +683,25 @@ def run_all_imaging(
         if total_fd <= 0:
             total_fd = 1
 
-        #################################
-        # Determining per worker resource
-        #################################
-        n_jobs = int(new_soft_limit / total_fd)
-        n_jobs = max(1, min(len(mslist), n_jobs))
         if cpu_frac > 0.8:
             cpu_frac = 0.8
-        total_cpu = int(psutil.cpu_count() * cpu_frac)
-        n_threads = max(2, int(total_cpu / n_jobs))
-        n_jobs = max(1, int(total_cpu / n_threads))
+        total_cpu = max(1,int(psutil.cpu_count() * cpu_frac))
         if mem_frac > 0.8:
             mem_frac = 0.8
         total_mem = (psutil.virtual_memory().available * mem_frac) / (1024**3)  # In GB
-        mem_limit = total_mem / n_jobs
+        
+        #################################
+        # Determining per worker resource
+        #################################
+        njobs = min(len(mslist),int(new_soft_limit / total_fd))
+        njobs = max(1, min(total_cpu, njobs))
+        n_threads = max(1, int(total_cpu / njobs))
+        mem_limit = total_mem / njobs
 
         print("#################################")
-        print(f"Total dask worker: {n_jobs}")
+        print(f"Total dask worker: {njobs}")
         print(f"CPU per worker: {n_threads}")
-        print(f"Memory per worker: {mem_limit}GB")
+        print(f"Memory per worker: {round(mem_limit,2)} GB")
         print("#################################")
         #########################################
 
@@ -767,9 +743,6 @@ def run_all_imaging(
                 + os.path.basename(ms).split(".ms")[0]
                 + ".log"
             )
-            mainlogger.info(
-                f"Starting imaging for ms : {ms}, Log file : {logfile}\n",
-            )
             tasks.append(
                 delayed(perform_imaging)(
                     msname=ms,
@@ -800,46 +773,38 @@ def run_all_imaging(
                     logfile=logfile,
                 )
             )
-        wait_for_dask_workers(dask_client, min_worker=2, timeout=60)
+        print(
+                f"Starting imaging for ms : {ms}, Log file : {logfile}",
+            )
         results = list(dask_client.gather(dask_client.compute(tasks)))
         all_image_list = []
         all_imaged_ms_list = []
         for i in range(len(results)):
             r = results[i][1]
             if len(r) == 0:
-                mainlogger.info(
+                print(
                     f"Imaging failed for ms : {mslist[i]}",
                 )
             else:
                 image_list = r["image"]
                 if len(image_list) == 0:
-                    mainlogger.info(
+                    print(
                         f"No image is made for ms : {mslist[i]}",
                     )
                 else:
                     all_imaged_ms_list.append(mslist[i])
                     for image in image_list:
                         all_image_list.append(image)
-        mainlogger.info(
+        print(
             f"Numbers of input measurement sets : {len(mslist)}.",
         )
-        mainlogger.info(
+        print(
             f"Imaging successfully done for: {len(all_imaged_ms_list)} measurement sets.",
         )
-        mainlogger.info(f"Total images made: {len(all_image_list)}.")
-        mainlogger.info(
-            f"Total time taken: {round(time.time()-start_time,2)}s",
-        )
-        time.sleep(5)
-        clean_shutdown(observer)
+        print(f"Total images made: {len(all_image_list)}.")
         return 0
     except Exception as e:
         traceback.print_exc()
-        mainlogger.info(
-            f"Total time taken: {round(time.time()-start_time,2)}s",
-        )
-        time.sleep(5)
-        clean_shutdown(observer)
         return 1
 
 
@@ -868,6 +833,7 @@ def main(
     start_remote_log=False,
     cpu_frac=0.8,
     mem_frac=0.8,
+    logfile=None,
     jobid=0,
     dask_client=None,
 ):
@@ -924,6 +890,8 @@ def main(
         Fraction of total CPUs to use per task. Default is 0.8.
     mem_frac : float, optional
         Fraction of total system memory to use per task. Default is 0.8.
+    logfile : str, optional
+        Log file
     jobid : int, optional
         Unique job identifier for logging and PID tracking. Default is 0.
     dask_client : dask.client, optional
@@ -948,16 +916,6 @@ def main(
         outdir = workdir
     os.makedirs(outdir, exist_ok=True)
 
-    os.makedirs(workdir + "/logs/", exist_ok=True)
-
-    mainlog_file = workdir + "/logs/imaging_targets.log"
-    mainlogger, mainlog_file = create_logger(
-        os.path.basename(mainlog_file).split(".log")[0],
-        mainlog_file,
-        get_print=True,
-        verbose=False,
-    )
-
     ############
     # Logger
     ############
@@ -965,15 +923,15 @@ def main(
     if (
         start_remote_log
         and os.path.exists(f"{workdir}/jobname_password.npy")
-        and mainlog_file is not None
+        and logfile is not None
     ):
         time.sleep(5)
         jobname, password = np.load(
             f"{workdir}/jobname_password.npy", allow_pickle=True
         )
-        if os.path.exists(mainlog_file):
+        if os.path.exists(logfile):
             observer = init_logger(
-                "all_imaging", mainlog_file, jobname=jobname, password=password
+                "all_imaging", logfile, jobname=jobname, password=password
             )
     if observer == None:
         print("Remote link or jobname is blank. Not transmiting to remote logger.")
@@ -981,28 +939,22 @@ def main(
     dask_cluster = None
     if dask_client is None:
         dask_client, dask_cluster, dask_dir = get_local_dask_cluster(
-            1,
+            2,
             dask_dir=workdir,
             cpu_frac=cpu_frac,
             mem_frac=mem_frac,
         )
         nworker = max(2, int(psutil.cpu_count() * cpu_frac))
-        usable_mem = (mem_frac * psutil.virtual_memory().total) / 1024**3
-        per_job_mem = usable_mem / nworker
-        if per_job_mem < 2:
-            nworker = max(2, int(usable_mem / 2))
-        print(f"Maximum dask workder: {nworker}")
-        dask_cluster.adapt(minimum=2, maximum=nworker)  # 2 worker will be required
+        scale_worker_and_wait(dask_cluster,nworker)
 
     try:
         if len(mslist) == 0:
-            mainlogger.info("Please provide a valid measurement set list.")
+            print("Please provide a valid measurement set list.")
             msg = 1
         else:
             msg = run_all_imaging(
                 mslist,
                 dask_client,
-                mainlogger=mainlogger,
                 workdir=workdir,
                 outdir=outdir,
                 freqrange=freqrange,

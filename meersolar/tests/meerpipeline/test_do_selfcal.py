@@ -189,9 +189,7 @@ def test_do_selfcal(
     "meersolar.meerpipeline.do_selfcal.resource.getrlimit", return_value=(1024, 4096)
 )
 @patch("meersolar.meerpipeline.do_selfcal.resource.setrlimit")
-@patch("meersolar.meerpipeline.do_selfcal.wait_for_dask_workers", return_value=True)
 def test_main_selfcal(
-    mock_wait,
     mock_setrlimit,
     mock_getrlimit,
     mock_virtual_memory,
@@ -306,7 +304,6 @@ def test_main_selfcal(
     # Directories should be created
     mock_makedirs.assert_any_call(workdir, exist_ok=True)
     mock_makedirs.assert_any_call(caldir, exist_ok=True)
-    mock_makedirs.assert_any_call(workdir + "/logs", exist_ok=True)
     # Ensure drop_cache is called on all MSs and workdir
     if container_ok and valid_cols:
         for ms in mslist:

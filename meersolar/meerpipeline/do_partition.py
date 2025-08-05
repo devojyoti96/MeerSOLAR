@@ -9,7 +9,6 @@ import sys
 import os
 from casatools import msmetadata
 from dask import delayed
-from dask.distributed import wait
 from meersolar.utils import *
 
 logging.getLogger("distributed").setLevel(logging.ERROR)
@@ -65,7 +64,7 @@ def partion_ms(
     """
     print("##################")
     print("Paritioning measurement set: " + msname)
-    print("##################\n")
+    print("##################")
     print("Determining valid scan list ....")
     if mem_frac > 0.8:
         mem_frac = 0.8
@@ -73,9 +72,8 @@ def partion_ms(
 
     if cpu_frac > 0.8:
         cpu_frac = 0.8
-    total_cpu = int(psutil.cpu_count() * cpu_frac)  # In GB
+    total_cpu = max(1,int(psutil.cpu_count() * cpu_frac))  # In GB
 
-    start_time = time.time()
     valid_scans = get_valid_scans(msname, min_scan_time=1)
     msmd = msmetadata()
     msname = os.path.abspath(msname.rstrip("/"))
@@ -109,6 +107,7 @@ def partion_ms(
                 backup_scan_list.remove(s)
         scan_list = copy.deepcopy(backup_scan_list)
     msmd.close()
+    
     if len(scan_list) == 0:
         print("Please provide at-least one valid scan to split.")
         return
@@ -124,24 +123,20 @@ def partion_ms(
     msmd.done()
     field = ",".join(field_list)
 
-    scan_sizes = []
-    for scan in scan_list:
-        scan_sizes.append(get_ms_scan_size(msname, int(scan)))
     ########################################
     # Number of worker limit based on memory
     ########################################
-    mem_limit = min(total_mem, max(scan_sizes))
-    n_jobs = max(1, min(total_cpu, int(total_mem / mem_limit)))
-    n_threads = max(1, int(total_cpu / n_jobs))
+    njobs = max(1, min(total_cpu, len(scan_list)))
+    n_threads = max(1, int(total_cpu / njobs))
 
     print("#################################")
-    print(f"Total dask worker: {n_jobs}")
+    print(f"Total dask worker: {njobs}")
     print(f"CPU per worker: {n_threads}")
-    print(f"Memory per worker: {mem_limit}GB")
     print("#################################")
     ###########################################
-
+    
     tasks = []
+    results = []
     for i in range(len(scan_list)):
         scan = scan_list[i]
         outputvis = f"{workdir}/scan_{scan}.ms"
@@ -156,15 +151,9 @@ def partion_ms(
             numsubms=1,
         )
         tasks.append(task)
-    wait_for_dask_workers(dask_client, min_worker=2, timeout=60)
-    results = []
-    for i in range(0, len(tasks), n_jobs):
-        batch = tasks[i : i + n_jobs]
-        futures = dask_client.compute(batch)
-        wait(futures)
-        results.extend(dask_client.gather(futures))
-    splited_ms_list = list(results)
-
+    print ("Partitioning start...")
+    futures = dask_client.compute(tasks)
+    splited_ms_list = list(dask_client.gather(futures))
     splited_ms_list_copy = copy.deepcopy(splited_ms_list)
     for ms in splited_ms_list:
         if ms is None:
@@ -177,6 +166,7 @@ def partion_ms(
         os.system("rm -rf " + outputms + ".flagversions")
     if len(splited_ms_list) == 0:
         print("No splited ms to concat.")
+        return 
     elif len(splited_ms_list) == 1:
         os.system(f"mv {splited_ms_list[0]} {outputms}")
     else:
@@ -185,9 +175,6 @@ def partion_ms(
 
         with suppress_casa_output():
             virtualconcat(vis=splited_ms_list, concatvis=outputms)
-    print("##################")
-    print("Total time taken : " + str(time.time() - start_time) + "s")
-    print("##################\n")
     return outputms
 
 
@@ -277,18 +264,13 @@ def main(
     dask_cluster = None
     if dask_client is None:
         dask_client, dask_cluster, dask_dir = get_local_dask_cluster(
-            1,
+            2,
             dask_dir=workdir,
             cpu_frac=cpu_frac,
             mem_frac=mem_frac,
         )
         nworker = max(2, int(psutil.cpu_count() * cpu_frac))
-        usable_mem = (mem_frac * psutil.virtual_memory().total) / 1024**3
-        per_job_mem = usable_mem / nworker
-        if per_job_mem < 2:
-            nworker = max(2, int(usable_mem / 2))
-        print(f"Maximum dask workder: {nworker}")
-        dask_cluster.adapt(minimum=2, maximum=nworker)  # 2 worker will be required
+        scale_worker_and_wait(dask_cluster,nworker)
 
     try:
         if os.path.exists(msname):
@@ -312,7 +294,7 @@ def main(
                 print("Partitioned multi-MS is created at:", outputms)
                 msg = 0
         else:
-            print("Please provide a valid measurement set.\n")
+            print("Please provide a valid measurement set.")
             msg = 1
     except Exception:
         traceback.print_exc()

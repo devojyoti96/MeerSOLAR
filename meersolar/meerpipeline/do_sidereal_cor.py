@@ -38,7 +38,6 @@ def cor_sidereal_motion(
     list
         List of sidereal motion corrected measurement sets
     """
-    start_time = time.time()
     try:
         container_name = "meerwsclean"
         container_present = check_udocker_container(container_name)
@@ -53,8 +52,7 @@ def cor_sidereal_motion(
         tasks = []
         for ms in mslist:
             tasks.append(delayed(correct_solar_sidereal_motion)(ms))
-
-        wait_for_dask_workers(dask_client, min_worker=1, timeout=60)
+        print ("Starting sidereal motion correction jobs...")
         results = list(dask_client.gather(dask_client.compute(tasks)))
 
         splited_ms_list_phaserotated = []
@@ -69,21 +67,18 @@ def cor_sidereal_motion(
             print(
                 "Sidereal motion correction is not successful for any measurement set."
             )
-            print("Total time taken : ", time.time() - start_time)
-            print("##################\n")
+            print("##################")
             return 1, []
         else:
             print("##################")
             print("Sidereal motion corrections are done successfully.")
-            print("Total time taken : ", time.time() - start_time)
-            print("##################\n")
+            print("##################")
             return 0, splited_ms_list_phaserotated
     except Exception as e:
         traceback.print_exc()
         print("##################")
         print("Sidereal motion correction is not successful for any measurement set.")
-        print("Total time taken : ", time.time() - start_time)
-        print("##################\n")
+        print("##################")
         return 1, []
 
 
@@ -92,8 +87,6 @@ def main(
     workdir="",
     cpu_frac=0.8,
     mem_frac=0.8,
-    max_cpu_frac=0.8,
-    max_mem_frac=0.8,
     logfile=None,
     jobid=0,
     start_remote_log=False,
@@ -114,10 +107,6 @@ def main(
         Fraction of total CPU cores to allocate per task. Default is 0.8.
     mem_frac : float, optional
         Fraction of total system memory to allocate per task. Default is 0.8.
-    max_cpu_frac : float, optional
-        Maximum fraction of total CPU cores to use across all tasks. Default is 0.8.
-    max_mem_frac : float, optional
-        Maximum fraction of total system memory to use across all tasks. Default is 0.8.
     logfile : str or None, optional
         Path to the log file for capturing logs. If None, logging to file is disabled. Default is None.
     jobid : int, optional
@@ -164,18 +153,13 @@ def main(
     dask_cluster = None
     if dask_client is None:
         dask_client, dask_cluster, dask_dir = get_local_dask_cluster(
-            1,
+            2,
             dask_dir=workdir,
             cpu_frac=cpu_frac,
             mem_frac=mem_frac,
         )
         nworker = max(2, int(psutil.cpu_count() * cpu_frac))
-        usable_mem = (mem_frac * psutil.virtual_memory().total) / 1024**3
-        per_job_mem = usable_mem / nworker
-        if per_job_mem < 2:
-            nworker = max(2, int(usable_mem / 2))
-        print(f"Maximum dask workder: {nworker}")
-        dask_cluster.adapt(minimum=2, maximum=nworker)  # 2 worker will be required
+        scale_worker_and_wait(dask_cluster,nworker)
 
     try:
         if len(mslist) == 0:
@@ -246,20 +230,6 @@ def cli():
         help="Memory fraction to use",
         metavar="Float",
     )
-    hard_args.add_argument(
-        "--max_cpu_frac",
-        type=float,
-        default=0.8,
-        help="Maximum CPU fraction to use",
-        metavar="Float",
-    )
-    hard_args.add_argument(
-        "--max_mem_frac",
-        type=float,
-        default=0.8,
-        help="Maximum memory fraction to use",
-        metavar="Float",
-    )
     hard_args.add_argument("--logfile", type=str, default=None, help="Log file")
     hard_args.add_argument("--jobid", type=int, default=0, help="Job ID")
 
@@ -274,8 +244,6 @@ def cli():
         workdir=args.workdir,
         cpu_frac=args.cpu_frac,
         mem_frac=args.mem_frac,
-        max_cpu_frac=args.max_cpu_frac,
-        max_mem_frac=args.max_mem_frac,
         logfile=args.logfile,
         jobid=args.jobid,
         start_remote_log=args.start_remote_log,
@@ -286,6 +254,6 @@ def cli():
 if __name__ == "__main__":
     result = cli()
     print(
-        "\n###################\\Sidereal motion corrections are done.\n###################\n"
+        "\n###################\nSidereal motion corrections are done.\n###################\n"
     )
     os._exit(result)

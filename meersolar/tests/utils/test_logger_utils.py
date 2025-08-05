@@ -221,8 +221,8 @@ def test_create_logger():
 @pytest.mark.parametrize(
     "logfile, expected",
     [
-        ("apply_basiccal.log", "Applying basic calibration solutions"),
-        ("selfcal_targets.mainlog", "All self-calibrations main log"),
+        ("apply_basiccal_target.log", "Applying basic calibration solutions on targets"),
+        ("selfcal_targets.log", "All self-calibrations"),
         (
             "selfcals_scan_2_spw_0_selfcal.log",
             "Self-calibration for: Scan : 2, Spectral window: 0",
