@@ -136,7 +136,7 @@ def pbcor_all_images(
     """
     if cpu_frac > 0.8:
         cpu_frac = 0.8
-    total_cpu = max(1,int(psutil.cpu_count() * cpu_frac))
+    total_cpu = max(1, int(psutil.cpu_count() * cpu_frac))
     if mem_frac > 0.8:
         mem_frac = 0.8
     total_mem = (psutil.virtual_memory().available * mem_frac) / (1024**3)  # In GB
@@ -191,7 +191,7 @@ def pbcor_all_images(
                 tasks.append(task)
 
             results = []
-            print ("Start correcting first set of images...")
+            print("Start correcting first set of images...")
             for i in range(0, len(tasks), njobs):
                 batch = tasks[i : i + njobs]
                 futures = dask_client.compute(batch)
@@ -382,7 +382,7 @@ def main(
             mem_frac=mem_frac,
         )
         nworker = max(2, int(psutil.cpu_count() * cpu_frac))
-        scale_worker_and_wait(dask_cluster,nworker)
+        scale_worker_and_wait(dask_cluster, nworker)
 
     try:
         if os.path.exists(imagedir):

@@ -8,7 +8,7 @@ from meersolar.meerpipeline.do_partition import *
 @patch("meersolar.meerpipeline.do_partition.get_pol_names", return_value=["XX", "YY"])
 @patch("meersolar.meerpipeline.do_partition.get_ms_scan_size", return_value=1.0)
 @patch("meersolar.meerpipeline.do_partition.single_mstransform")
-@patch("meersolar.meerpipeline.do_partition.suppress_casa_output")
+@patch("meersolar.meerpipeline.do_partition.suppress_output")
 @patch("meersolar.meerpipeline.do_partition.os")
 @patch("meersolar.meerpipeline.do_partition.time.sleep")
 @patch("meersolar.meerpipeline.do_partition.drop_cache")

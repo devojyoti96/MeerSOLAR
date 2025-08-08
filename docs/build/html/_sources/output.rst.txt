@@ -49,6 +49,8 @@ All final data products will be saved in ``<outputdir>``.
 
        graph LR
            WD["Output directory:<br>{outdir}"] --> CALTABLE["Caltable directory:<br>caltables"]
+           WD --> DP["`Diagnostic plots:<br>diagnostic_plots`"]
+           DP --> DPPDF["`Diagnostic plots of ms and caltables in PDF:<br>*.pdf`"]
            WD --> DS["`Dynamic spectra:<br>dynamic_spectra`"]
            DS --> DSNPY["`Dynamic spectrum numpy files:<br>*.npy`"]
            DS --> DSPNG["`Dynamic spectrum plots in PNG:<br>*.png`"]
@@ -78,6 +80,10 @@ Dynamic spectrum
 ~~~~~~~~~~~~~~~~
 Dynamic spectra for all (or the ones selected) target scans are available in ``dynamic_spectra`` directory inside the output directory ``<outputdir>``.
 
+Diagnostic plots
+~~~~~~~~~~~~~~~~
+Diagnostic plots for all measurement sets and calibration tables in pdf format in ``diagnostic_plots`` directory inside the output directory ``<outputdir>``.
+
 Calibrated visibilities
 ~~~~~~~~~~~~~~~~~~~~~~~
 Calibrated measurements sets for all (or the ones selected) target scans will be available in work directory ``<workdir>`` with naming format, ``targets_scan_<scan_number>_spw_<channel_range>.ms``. Calibrated measurement sets will not be saved in output directory ``<outputdir>`` (unless same as ``<workdir>``) to save space.
@@ -88,36 +94,36 @@ Imaging products are available in ``imagedir_f_<freqres>_t_<timeres>_w_<weight>_
 
 1. **Image fits in RA/DEC** - Fits images in RA/DEC coordinate are available in ``imagedir_f_<freqres>_t_<timeres>_w_<weight>_<robust>/images`` directory inside work directory. These are not primary beam corrected.
 
-    .. note ::
+.. note ::
+    
+   All fits images have some MeerSOLAR specific metadata in the header and some image statistics.
+   
+   .. admonition:: Click here to see details of these metadata
+       :class: dropdown
+                           
+        PIPELINE= 'MeerSOLAR' # Pipeline name
         
-       All fits images have some MeerSOLAR specific metadata in the header and some image statistics.
-       
-       .. admonition:: Click here to see details of these metadata
-           :class: dropdown
-                               
-            PIPELINE= 'MeerSOLAR' # Pipeline name
-            
-            AUTHOR  = 'DevojyotiKansabanik,DeepanPatra' # Pipeline developer  
-                                              
-            BAND    = 'U' # MeerKAT band name, required for proper primary beam correction     
-                                                                   
-            MAX     =  ``<maxval>`` # Maximum value on the solar disc       
-                                                       
-            MIN     =  ``<minval>`` # Minimum value on the solar disc      
-                                                       
-            RMS     =  ``<rms>`` # RMS value outside solar disc       
-                                                    
-            SUM     =  ``<sum>`` # Total sum on the solar disc  
-                                                    
-            MEAN    =  ``<mean>`` # Mean value on the solar disc   
-                                                          
-            MEDIAN  =  ``<median>`` # Median value on the solar disc  
-                                                         
-            RMSDYN  =  ``<rmsdyn>`` # RMS based dynamic range, ``<maxval/rms>``
-                                                            
-            MIMADYN =  ``<minmaxdyn>`` # Min-max based dynamic range, ``<maxval/abs(minval)>``  
-            
-            ATTCAL  =   ``<attcal>`` # Whether solar attenuation is calibrated or not
+        AUTHOR  = 'DevojyotiKansabanik,DeepanPatra' # Pipeline developer  
+                                          
+        BAND    = 'U' # MeerKAT band name, required for proper primary beam correction     
+                                                               
+        MAX     =  ``<maxval>`` # Maximum value on the solar disc       
+                                                   
+        MIN     =  ``<minval>`` # Minimum value on the solar disc      
+                                                   
+        RMS     =  ``<rms>`` # RMS value outside solar disc       
+                                                
+        SUM     =  ``<sum>`` # Total sum on the solar disc  
+                                                
+        MEAN    =  ``<mean>`` # Mean value on the solar disc   
+                                                      
+        MEDIAN  =  ``<median>`` # Median value on the solar disc  
+                                                     
+        RMSDYN  =  ``<rmsdyn>`` # RMS based dynamic range, ``<maxval/rms>``
+                                                        
+        MIMADYN =  ``<minmaxdyn>`` # Min-max based dynamic range, ``<maxval/abs(minval)>``  
+        
+        ATTCAL  =   ``<attcal>`` # Whether solar attenuation is calibrated or not
  
 2. **Primary beam corrected image fits** - Primary beam corrected fits images are available in ``imagedir_f_<freqres>_t_<timeres>_w_<weight>_<robust>/pbcor_images`` directory inside work directory.
 
@@ -127,9 +133,9 @@ Imaging products are available in ``imagedir_f_<freqres>_t_<timeres>_w_<weight>_
 
 5. **Radio images in helioprojective coordinates** - Directory names ``hpcs`` inside directories like, ``images, pbcor_images, tb_images`` inside the image directory will have the FITS images in helioprojective coordinates. Images in PNG and PDF formats are also available in ``pngs`` and ``pdfs`` directories inside the parent directories.
 
-    .. note ::
-      
-       Header of helioprojective maps have wavelength information in unit of ``centimeter`` or ``meter``.  
+.. note ::
+  
+   Header of helioprojective maps have wavelength information in unit of ``centimeter`` or ``meter``.  
 
 6. **Overlays on GOES-SUVI EUV images** - Overlays on GOES SUVI EUV (193 Å) images are saved in PNG and PDF formats in ``imagedir_f_<freqres>_t_<timeres>_w_<weight>_<robust>/overlays_pngs`` and ``imagedir_f_<freqres>_t_<timeres>_w_<weight>_<robust>/overlays_pngs``, respectively.
 

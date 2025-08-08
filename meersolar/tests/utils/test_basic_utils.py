@@ -4,8 +4,8 @@ from unittest.mock import patch, MagicMock, mock_open, call
 from meersolar.utils.basic_utils import *
 
 
-def test_suppress_casa_output_fd():
-    with suppress_casa_output():
+def test_suppress_output_fd():
+    with suppress_output():
         os.write(1, b"This should not appear\n")
         os.write(2, b"This error should not appear\n")
 

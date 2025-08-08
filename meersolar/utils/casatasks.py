@@ -206,7 +206,7 @@ def single_mstransform(
             msmd.open(msname)
             field = str(msmd.fieldsforscan(int(scan))[0])
             msmd.close()
-        with suppress_casa_output():
+        with suppress_output():
             mstransform(
                 vis=msname,
                 outputvis=outputms,
@@ -227,7 +227,7 @@ def single_mstransform(
             )
             time.sleep(5)
         if os.path.exists(outputms):
-            with suppress_casa_output():
+            with suppress_output():
                 initweights(vis=outputms, wtmode="ones", dowtsp=True)
                 flagdata(
                     vis=outputms,

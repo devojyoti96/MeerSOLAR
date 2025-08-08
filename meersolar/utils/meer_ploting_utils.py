@@ -19,8 +19,10 @@ from astropy.io import fits
 from astropy.time import Time
 from astropy.coordinates import EarthLocation, SkyCoord
 from astropy.wcs import FITSFixedWarning
-from casatools import msmetadata, ms as casamstool
+from casatools import msmetadata, ms as casamstool, table
 from datetime import datetime as dt, timedelta
+from dask import delayed
+from PIL import Image
 from .basic_utils import *
 from .proc_manage_utils import *
 from .ms_metadata import *
@@ -32,6 +34,367 @@ warnings.simplefilter("ignore", category=FITSFixedWarning)
 #################################
 # Plotting related functions
 #################################
+def plot_ms_diagnostics(
+    msname, outdir="", dask_client=None, cpu_frac=0.8, mem_frac=0.8
+):
+    """
+    Plot diagonistics plots for measurement set
+
+    Parameters
+    ----------
+    msname : str
+        Measurement set
+    outdir : str, optional
+        Output directory
+    dask_client : dask.client
+        Dask client
+    cpu_frac : float, optional
+        CPU fraction
+    mem_frac : float, optional
+        Memory fraction
+
+    Returns
+    -------
+    int
+        Success message
+    str
+        Output plot file
+    """
+    if outdir == "":
+        outdir = os.getcwd()
+    os.makedirs(outdir, exist_ok=True)
+    output_pdf = f"{outdir}/{os.path.basename(msname).split('.ms')[0]}_plots.pdf"
+    if os.path.exists(output_pdf):
+        return 0, output_pdf
+        
+    msname = msname.rstrip("/")
+    mstool = casamstool()
+    mstool.open(msname)
+    nrow = mstool.nrow()
+    mstool.close()
+    msmd=msmetadata()
+    msmd.open(msname)
+    npol=msmd.ncorrforpol()[0]
+    scan_list=msmd.scannumbers()
+    msmd.close() 
+    scan_sizes=[get_ms_scan_size(msname,scan) for scan in scan_list]  
+    
+    if cpu_frac > 0.8:
+        cpu_frac = 0.8
+    total_cpu = max(1, int(psutil.cpu_count() * cpu_frac))
+    if mem_frac > 0.8:
+        mem_frac = 0.8
+    total_mem = (psutil.virtual_memory().available * mem_frac) / (1024**3)  # In GB
+    if npol==4:
+        njobs = min(total_cpu, 12)
+    else:
+        njobs = min(total_cpu, 6)
+   
+    ncpu = max(1, int(total_cpu / njobs))
+    per_job_mem = total_mem / njobs
+    max_scan_size=max(scan_sizes)      
+    frac_chunk=min(1,per_job_mem/max_scan_size)
+    nchunk=int(nrow*frac_chunk)
+    
+    #########################
+    # Preparing parallel runs
+    #########################
+    dask_cluster = None
+    if dask_client is None:
+        workdir = os.path.dirname(os.path.abspath(msname))
+        dask_client, dask_cluster, dask_dir = get_local_dask_cluster(
+            2,
+            dask_dir=workdir,
+            cpu_frac=cpu_frac,
+            mem_frac=mem_frac,
+        )
+        nworker = max(2, min(njobs, int(psutil.cpu_count() * cpu_frac)))
+        scale_worker_and_wait(dask_cluster, nworker)
+
+    try:
+        #######################
+        # Commands to run
+        ######################
+        cmds = []
+        ############################
+        # Amplitude of parallel hand
+        ############################
+        cmds.append(
+            f"shadems --no-lim-save --xaxis uv --yaxis amp --col CORRECTED_DATA -j {ncpu} -z {nchunk} --xlabel 'UV(m)' --ylabel 'Amplitude' --corr XX,YY --colour-by CORR --iter-scan --iter-field --dmap tab10 {msname}"
+        )
+        cmds.append(
+            f"shadems --no-lim-save --xaxis FREQ --yaxis amp --col CORRECTED_DATA -j {ncpu} -z {nchunk} --xlabel 'Frequency (GHz)' --ylabel 'Amplitude' --corr XX,YY --colour-by CORR --iter-scan --iter-field --dmap tab10 {msname}"
+        )
+        cmds.append(
+            f"shadems --no-lim-save --xaxis TIME --yaxis amp --col CORRECTED_DATA -j {ncpu} -z {nchunk} --xlabel 'Time' --ylabel 'Amplitude' --corr XX,YY --colour-by CORR --iter-scan --iter-field --dmap tab10 {msname}"
+        )
+        
+        ############################
+        # Amplitude of cross hand
+        ############################
+        if npol==4:
+            cmds.append(
+                f"shadems --no-lim-save --xaxis uv --yaxis amp --col CORRECTED_DATA -j {ncpu} -z {nchunk} --xlabel 'UV(m)' --ylabel 'Amplitude' --corr XY,YX --colour-by CORR --iter-scan --iter-field --dmap tab10 {msname}"
+            )
+            cmds.append(
+                f"shadems --no-lim-save --xaxis FREQ --yaxis amp --col CORRECTED_DATA -j {ncpu} -z {nchunk} --xlabel 'Frequency (GHz)' --ylabel 'Amplitude' --corr XY,YX --colour-by CORR --iter-scan --iter-field --dmap tab10 {msname}"
+            )
+            cmds.append(
+                f"shadems --no-lim-save --xaxis TIME --yaxis amp --col CORRECTED_DATA -j {ncpu} -z {nchunk} --xlabel 'Time' --ylabel 'Amplitude' --corr XY,YX --colour-by CORR --iter-scan --iter-field --dmap tab10 {msname}"
+            )
+            
+        ################################
+        # Phase plots of parallel hands
+        ################################
+        cmds.append(
+            f"shadems --no-lim-save --xaxis uv --yaxis phase --col CORRECTED_DATA -j {ncpu} -z {nchunk} --xlabel 'UV(m)' --ylabel 'Phase (deg)' --corr XX,YY --colour-by CORR --iter-scan --iter-field --dmap tab10 {msname}"
+        )
+        cmds.append(
+            f"shadems --no-lim-save --xaxis FREQ --yaxis phase --col CORRECTED_DATA -j {ncpu} -z {nchunk} --xlabel 'Frequency (GHz)' --ylabel 'Phase (deg)' --corr XX,YY --colour-by CORR --iter-scan --iter-field --dmap tab10 {msname}"
+        )
+        cmds.append(
+            f"shadems --no-lim-save --xaxis TIME --yaxis phase --col CORRECTED_DATA -j {ncpu} -z {nchunk} --xlabel 'Time' --ylabel 'Phase (deg)' --corr XX,YY --colour-by CORR --iter-scan --iter-field --dmap tab10 {msname}"
+        )
+        
+        if npol==4:
+            cmds.append(
+                f"shadems --no-lim-save --xaxis uv --yaxis phase --col CORRECTED_DATA -j {ncpu} -z {nchunk} --xlabel 'UV(m)' --ylabel 'Phase (deg)' --corr XY,YX --colour-by CORR --iter-scan --iter-field --dmap tab10 {msname}"
+            )
+            cmds.append(
+                f"shadems --no-lim-save --xaxis FREQ --yaxis phase --col CORRECTED_DATA -j {ncpu} -z {nchunk} --xlabel 'Frequency (GHz)' --ylabel 'Phase (deg)' --corr XY,YX --colour-by CORR --iter-scan --iter-field --dmap tab10 {msname}"
+            )
+            cmds.append(
+                f"shadems --no-lim-save --xaxis TIME --yaxis phase --col CORRECTED_DATA -j {ncpu} -z {nchunk} --xlabel 'Time' --ylabel 'Phase (deg)' --corr XY,YX --colour-by CORR --iter-scan --iter-field --dmap tab10 {msname}"
+            )          
+        tasks = []
+        for cmd in cmds:
+            tasks.append(delayed(run_shadems)(cmd, verbose=False))
+        futures = dask_client.compute(tasks)
+        results = list(dask_client.gather(futures))
+        amp_pngs = glob.glob("*amp*.png")
+        phase_pngs = glob.glob("*phase*.png")
+        images = []
+        for image in amp_pngs:
+            images.append(Image.open(image).convert("RGB"))
+        for image in phase_pngs:
+            images.append(Image.open(image).convert("RGB"))
+        images[0].save(output_pdf, save_all=True, append_images=images[1:])
+        return 0, output_pdf
+    except Exception:
+        traceback.print_exc()
+    finally:
+        drop_cache(msname)
+        os.system(f"rm -rf log-shadems.txt")
+        amp_pngs = glob.glob("*amp*.png")
+        phase_pngs = glob.glob("*phase*.png")
+        for png in amp_pngs:
+            os.system(f"rm -rf {png}")
+        for png in phase_pngs:
+            os.system(f"rm -rf {png}")
+        if dask_cluster is not None:
+            dask_client.close()
+            dask_cluster.close()
+            os.system(f"rm -rf {dask_dir}")
+
+
+def plot_caltable_diagnostics(caltable, outdir=""):
+    """
+    Plot diagonistic plot of a caltable
+
+    Parameters
+    ----------
+    caltable : str
+        Caltable name
+    outdir : str, optional
+        Output directory
+
+    Returns
+    -------
+    int
+        Success messsage
+    str
+        Output file
+    """
+    caltable = caltable.rstrip("/")
+    if outdir == "":
+        outdir = os.getcwd()
+    os.makedirs(outdir, exist_ok=True)
+    output_pdf = f"{outdir}/{os.path.basename(caltable)}_plots.pdf"
+    if os.path.exists(output_pdf):
+        return 0, output_pdf
+    pols = ["X", "Y"]
+    ncols = 3
+    nrows = 3
+    plots_per_fig = ncols * nrows
+    out_files = []
+    try:
+        tb = table()
+        tb.open(f"{caltable}/SPECTRAL_WINDOW")
+        freqs = tb.getcol("CHAN_FREQ") / 10**9  # In GHz
+        tb.close()
+        tb.open(caltable)
+        cal_type = tb.getkeywords()["VisCal"]
+        if cal_type == "K Jones":
+            gain = tb.getcol("FPARAM")
+            flag = tb.getcol("FLAG")
+        else:
+            gain = tb.getcol("CPARAM")
+            flag = tb.getcol("FLAG")
+        gain[flag] = np.nan
+        ants = np.unique(tb.getcol("ANTENNA1"))
+        times = np.unique(tb.getcol("TIME"))
+        nant = np.nanmax(ants) + 1
+        tb.close()
+        print(f"Ploting {cal_type}")
+        if cal_type == "K Jones":
+            plt.figure(figsize=(15, 10))
+            gain = np.nanmean(gain, axis=1)
+            for i in range(2):
+                plt.scatter(
+                    range(gain.shape[-1]), gain[i, ...], label=f"Pol: {pols[i]}"
+                )
+            plt.xlabel("Antenna index", fontsize=14)
+            plt.ylabel("Delay (ns)", fontsize=14)
+            plt.title("Antenna vs Delay", fontsize=14)
+            plt.legend()
+            plt.tight_layout()
+            savefile = f"{caltable}.png"
+            plt.savefig(savefile)
+            plt.clf()
+            out_files.append(savefile)
+        else:
+            if cal_type == "G Jones":
+                ntime = int(gain.shape[-1] / nant)
+                gain = gain.reshape(gain.shape[0], gain.shape[1], nant, ntime)
+                gain = gain[:, 0, ...]
+            elif cal_type == "T Jones":
+                ntime = int(gain.shape[-1] / nant)
+                gain = gain.reshape(gain.shape[0], gain.shape[1], nant, ntime)
+                gain = gain[0, 0, ...]
+            elif cal_type == "B Jones" or cal_type == "Df Jones":
+                ntime = int(gain.shape[-1] / nant)
+                gain = gain.reshape(gain.shape[0], gain.shape[1], nant, ntime)
+                gain = np.nanmean(gain, axis=-1)
+            else:
+                print(f"{cal_type} is not implemented yet.")
+                return
+            for quantity in ["amp", "phase"]:
+                if cal_type == "G Jones":
+                    for idx in range(0, len(ants), plots_per_fig):
+                        fig, axes = plt.subplots(nrows, ncols, figsize=(15, 10))
+                        if quantity == "amp":
+                            fig.suptitle("Time vs Gain Amplitude", fontsize=14)
+                        else:
+                            fig.suptitle("Time vs Gain Phase", fontsize=14)
+                        axes = axes.flatten()
+                        for i, ant in enumerate(ants[idx : idx + plots_per_fig]):
+                            ax = axes[i]
+                            for j in range(2):  # loop over polarizations
+                                if quantity == "amp":
+                                    ax.scatter(
+                                        times - np.nanmin(times),
+                                        np.abs(gain[j, ant, :]),
+                                        label=f"Pol: {pols[j]}",
+                                        s=14,
+                                    )
+                                    ax.set_ylabel("Gain Amplitude", fontsize=14)
+                                else:
+                                    ax.scatter(
+                                        times - np.nanmin(times),
+                                        np.angle(gain[j, ant, :], deg=True),
+                                        label=f"Pol: {pols[j]}",
+                                        s=14,
+                                    )
+                                    ax.set_ylabel("Gain Phase (degree)", fontsize=14)
+                            ax.set_title(f"Antenna {ant+1}", fontsize=14)
+                            ax.set_xlabel("Time (s)", fontsize=14)
+                            ax.legend(fontsize=10)
+                        for j in range(i + 1, plots_per_fig):
+                            fig.delaxes(axes[j])
+                        plt.tight_layout(rect=[0, 0, 1, 0.99])
+                        savefile = f"{caltable}_gain_{quantity}_batch_{idx // plots_per_fig + 1}.png"
+                        plt.savefig(savefile)
+                        plt.close()
+                        out_files.append(savefile)
+                elif cal_type == "T Jones":
+                    for idx in range(0, len(ants), plots_per_fig):
+                        fig, axes = plt.subplots(nrows, ncols, figsize=(15, 10))
+                        if quantity == "amp":
+                            fig.suptitle("Time vs Gain Amplitude", fontsize=14)
+                        else:
+                            fig.suptitle("Time vs Gain Phase", fontsize=14)
+                        axes = axes.flatten()
+                        for i, ant in enumerate(ants[idx : idx + plots_per_fig]):
+                            ax = axes[i]
+                            if quantity == "amp":
+                                ax.scatter(
+                                    times - np.nanmin(times), np.abs(gain[ant, :])
+                                )
+                                ax.set_ylabel("Gain Amplitude", fontsize=14)
+                            else:
+                                ax.scatter(
+                                    times - np.nanmin(times),
+                                    np.angle(gain[ant, :], deg=True),
+                                )
+                                ax.set_ylabel("Gain Phase", fontsize=14)
+                            ax.set_title(f"Antenna {ant+1}", fontsize=14)
+                            ax.set_xlabel("Time (s)", fontsize=14)
+                        for j in range(i + 1, plots_per_fig):
+                            fig.delaxes(axes[j])
+                        plt.tight_layout(rect=[0, 0, 1, 0.99])
+                        savefile = f"{caltable}_gain_{quantity}_batch_{idx // plots_per_fig + 1}.png"
+                        plt.savefig(savefile)
+                        plt.close()
+                        out_files.append(savefile)
+                elif cal_type == "B Jones" or cal_type == "Df Jones":
+                    for idx in range(0, len(ants), plots_per_fig):
+                        fig, axes = plt.subplots(nrows, ncols, figsize=(15, 10))
+                        if quantity == "amp":
+                            fig.suptitle("Frequency vs Gain Amplitude", fontsize=14)
+                        else:
+                            fig.suptitle("Frequency vs Gain Phase", fontsize=14)
+                        axes = axes.flatten()
+                        for i, ant in enumerate(ants[idx : idx + plots_per_fig]):
+                            ax = axes[i]
+                            for j in range(2):
+                                if quantity == "amp":
+                                    ax.scatter(
+                                        freqs,
+                                        np.abs(gain[j, :, ant]),
+                                        label=f"Pol: {pols[j]}",
+                                        s=14,
+                                    )
+                                    ax.set_ylabel("Gain Amplitude", fontsize=14)
+                                else:
+                                    ax.scatter(
+                                        freqs,
+                                        np.angle(gain[j, :, ant], deg=True),
+                                        label=f"Pol: {pols[j]}",
+                                        s=14,
+                                    )
+                                    ax.set_ylabel("Gain Phase (degree)", fontsize=14)
+                            ax.set_title(f"Antenna {ant+1}", fontsize=14)
+                            ax.set_xlabel("Frequency (GHz)", fontsize=14)
+                            ax.legend(fontsize=10)
+                        for j in range(i + 1, plots_per_fig):
+                            fig.delaxes(axes[j])
+                        plt.tight_layout(rect=[0, 0, 1, 0.99])
+                        savefile = f"{caltable}_gain_{quantity}_batch_{idx // plots_per_fig + 1}.png"
+                        plt.savefig(savefile)
+                        plt.close()
+                        out_files.append(savefile)
+        images = []
+        for image in out_files:
+            images.append(Image.open(image).convert("RGB"))
+        images[0].save(output_pdf, save_all=True, append_images=images[1:])
+        return 0, output_pdf
+    except Exception:
+        traceback.print_exc()
+        return 1, ""
+    finally:
+        drop_cache(caltable)
+        for png in out_files:
+            os.system(f"rm -rf {png}")
 
 
 def get_meermap(fits_image, band="", do_sharpen=False):

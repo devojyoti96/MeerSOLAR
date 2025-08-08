@@ -69,6 +69,7 @@ def has_space(path, required_gb):
     except BaseException:
         return False
 
+
 @contextmanager
 def shm_or_tmp(required_gb, workdir, prefix="solar_", verbose=False):
     """
@@ -131,8 +132,8 @@ def shm_or_tmp(required_gb, workdir, prefix="solar_", verbose=False):
             shutil.rmtree(temp_dir)
         except Exception as e:
             print(f"[cleanup] Warning: could not delete {temp_dir}: {e}")
-            
-            
+
+
 @contextmanager
 def tmp_with_cache_rel(required_gb, workdir, prefix="solar_", verbose=False):
     """

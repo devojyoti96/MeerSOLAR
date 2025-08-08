@@ -30,6 +30,8 @@ def test_single_ms_flag(dummy_submsname):
         os.path.exists(f"{dummy_submsname}/SUBMSS/test_subms.ms.0000.ms.flagversions")
         == False
     )
+
+
 def test_do_flagging(dummy_submsname):
     workdir = os.getcwd()
     dask_client = MagicMock()

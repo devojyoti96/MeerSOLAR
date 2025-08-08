@@ -291,6 +291,7 @@
 <span class="kn">import</span> <span class="nn">subprocess</span>
 <span class="kn">import</span> <span class="nn">sys</span>
 <span class="kn">import</span> <span class="nn">tempfile</span>
+<span class="kn">import</span> <span class="nn">shutil</span>
 <span class="kn">from</span> <span class="nn">pathlib</span> <span class="kn">import</span> <span class="n">Path</span>
 <span class="kn">from</span> <span class="nn">dask</span> <span class="kn">import</span> <span class="n">delayed</span><span class="p">,</span> <span class="n">compute</span><span class="p">,</span> <span class="n">config</span>
 <span class="kn">from</span> <span class="nn">dask.distributed</span> <span class="kn">import</span> <span class="n">Client</span><span class="p">,</span> <span class="n">LocalCluster</span>
@@ -529,35 +530,123 @@
 
 
 
+<div class="viewcode-block" id="get_total_worker">
+<a class="viewcode-back" href="../../../meersolar.utils.html#meersolar.utils.proc_manage_utils.get_total_worker">[docs]</a>
+<span class="k">def</span> <span class="nf">get_total_worker</span><span class="p">(</span><span class="n">cluster</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Get total workers in the cluster</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    cluster : dask.cluster</span>
+<span class="sd">        Dask cluster</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    int</span>
+<span class="sd">        Number of workers</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="n">cluster</span><span class="o">.</span><span class="n">workers</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="scale_worker_and_wait">
+<a class="viewcode-back" href="../../../meersolar.utils.html#meersolar.utils.proc_manage_utils.scale_worker_and_wait">[docs]</a>
+<span class="k">def</span> <span class="nf">scale_worker_and_wait</span><span class="p">(</span><span class="n">dask_cluster</span><span class="p">,</span> <span class="n">nworker</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=</span><span class="mi">60</span><span class="p">,</span> <span class="n">poll_interval</span><span class="o">=</span><span class="mi">1</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Scale worker and wait until it is done</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    dask_cluster : dask.cluster</span>
+<span class="sd">        Dask cluster</span>
+<span class="sd">    nworker : int</span>
+<span class="sd">        Number of worker</span>
+<span class="sd">    timeout : float, optional</span>
+<span class="sd">        Timeout, show a warning and move</span>
+<span class="sd">    poll_interval : float, optional</span>
+<span class="sd">        Check interval in seconds</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Start scaling to </span><span class="si">{</span><span class="n">nworker</span><span class="si">}</span><span class="s2"> workers&quot;</span><span class="p">)</span>
+    <span class="n">dask_cluster</span><span class="o">.</span><span class="n">scale</span><span class="p">(</span><span class="n">nworker</span><span class="p">)</span>
+    <span class="n">timeout</span> <span class="o">=</span> <span class="mi">60</span>
+    <span class="n">c</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="k">while</span> <span class="n">c</span> <span class="o">&lt;</span> <span class="n">timeout</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">get_total_worker</span><span class="p">(</span><span class="n">dask_cluster</span><span class="p">)</span> <span class="o">==</span> <span class="n">nworker</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Successfully scaled to </span><span class="si">{</span><span class="n">nworker</span><span class="si">}</span><span class="s2"> workers&quot;</span><span class="p">)</span>
+            <span class="k">return</span> <span class="mi">0</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="n">poll_interval</span><span class="p">)</span>
+            <span class="n">c</span> <span class="o">+=</span> <span class="n">poll_interval</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Dask cluster did not scale to </span><span class="si">{</span><span class="n">nworker</span><span class="si">}</span><span class="s2"> within </span><span class="si">{</span><span class="n">timeout</span><span class="si">}</span><span class="s2"> seconds.&quot;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="mi">1</span></div>
+
+
+
 <div class="viewcode-block" id="wait_for_dask_workers">
 <a class="viewcode-back" href="../../../meersolar.utils.html#meersolar.utils.proc_manage_utils.wait_for_dask_workers">[docs]</a>
 <span class="k">def</span> <span class="nf">wait_for_dask_workers</span><span class="p">(</span><span class="n">client</span><span class="p">,</span> <span class="n">min_worker</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=</span><span class="mi">60</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Wait for dask worker</span>
+<span class="sd">    Wait until the Dask cluster has a minimum number of total and/or new workers.</span>
 
 <span class="sd">    Parameters</span>
 <span class="sd">    ----------</span>
-<span class="sd">    client : dask.client</span>
+<span class="sd">    client : dask.distributed.Client</span>
 <span class="sd">        Dask client</span>
 <span class="sd">    min_worker : int, optional</span>
-<span class="sd">        Minimum number of workers</span>
+<span class="sd">        Minimum new connected workers (default: 1)</span>
 <span class="sd">    timeout : float, optional</span>
-<span class="sd">        Timeout in seconds</span>
+<span class="sd">        Maximum time to wait in seconds (default: 60)</span>
+
+<span class="sd">    Raises</span>
+<span class="sd">    ------</span>
+<span class="sd">    TimeoutError</span>
+<span class="sd">        If the required number of workers do not connect in time.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">client</span><span class="o">.</span><span class="n">wait_for_workers</span><span class="p">(</span><span class="n">n_workers</span><span class="o">=</span><span class="n">min_worker</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=</span><span class="n">timeout</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="get_scheduler_name">
+<a class="viewcode-back" href="../../../meersolar.utils.html#meersolar.utils.proc_manage_utils.get_scheduler_name">[docs]</a>
+<span class="k">def</span> <span class="nf">get_scheduler_name</span><span class="p">():</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Get job scheduler available</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    str</span>
+<span class="sd">        Scheduler name (local, pbs, slurm)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">shutil</span><span class="o">.</span><span class="n">which</span><span class="p">(</span><span class="s2">&quot;sbatch&quot;</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s2">&quot;slurm&quot;</span>
+    <span class="k">elif</span> <span class="n">shutil</span><span class="o">.</span><span class="n">which</span><span class="p">(</span><span class="s2">&quot;bsub&quot;</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s2">&quot;lsf&quot;</span>
+    <span class="k">elif</span> <span class="n">shutil</span><span class="o">.</span><span class="n">which</span><span class="p">(</span><span class="s2">&quot;qhost&quot;</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s2">&quot;sge&quot;</span>
+    <span class="k">elif</span> <span class="n">shutil</span><span class="o">.</span><span class="n">which</span><span class="p">(</span><span class="s2">&quot;qsub&quot;</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s2">&quot;pbs&quot;</span>
+    <span class="k">elif</span> <span class="n">shutil</span><span class="o">.</span><span class="n">which</span><span class="p">(</span><span class="s2">&quot;condor_submit&quot;</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s2">&quot;htcondor&quot;</span>
+    <span class="k">elif</span> <span class="n">shutil</span><span class="o">.</span><span class="n">which</span><span class="p">(</span><span class="s2">&quot;msub&quot;</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s2">&quot;mab&quot;</span>
+    <span class="k">elif</span> <span class="n">shutil</span><span class="o">.</span><span class="n">which</span><span class="p">(</span><span class="s2">&quot;oarsub&quot;</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s2">&quot;oar&quot;</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="s2">&quot;local&quot;</span></div>
 
 
 
 <div class="viewcode-block" id="get_local_dask_cluster">
 <a class="viewcode-back" href="../../../meersolar.utils.html#meersolar.utils.proc_manage_utils.get_local_dask_cluster">[docs]</a>
 <span class="k">def</span> <span class="nf">get_local_dask_cluster</span><span class="p">(</span>
-    <span class="n">n_jobs</span><span class="p">,</span>
+    <span class="n">njobs</span><span class="p">,</span>
     <span class="n">dask_dir</span><span class="p">,</span>
     <span class="n">cpu_frac</span><span class="o">=</span><span class="mf">0.8</span><span class="p">,</span>
     <span class="n">mem_frac</span><span class="o">=</span><span class="mf">0.8</span><span class="p">,</span>
     <span class="n">ncpu</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span>
     <span class="n">mem</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span>
-    <span class="n">spill_frac</span><span class="o">=</span><span class="mf">0.6</span><span class="p">,</span>
+    <span class="n">spill_frac</span><span class="o">=</span><span class="mf">0.7</span><span class="p">,</span>
     <span class="n">verbose</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
 <span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
@@ -565,7 +654,7 @@
 
 <span class="sd">    Parameters</span>
 <span class="sd">    ----------</span>
-<span class="sd">    n_jobs : int</span>
+<span class="sd">    njobs : int</span>
 <span class="sd">        Number of MS tasks (ideally = number of MS files)</span>
 <span class="sd">    dask_dir : str</span>
 <span class="sd">        Dask temporary directory</span>
@@ -592,7 +681,7 @@
 <span class="sd">        Dask directory</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="s2">&quot;distributed&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">setLevel</span><span class="p">(</span><span class="n">logging</span><span class="o">.</span><span class="n">ERROR</span><span class="p">)</span>
-
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Creating local cluster on the current node.&quot;</span><span class="p">)</span>
     <span class="c1"># Set up Dask working directories</span>
     <span class="n">dask_dir</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">dask_dir</span><span class="o">.</span><span class="n">rstrip</span><span class="p">(</span><span class="s2">&quot;/&quot;</span><span class="p">),</span> <span class="sa">f</span><span class="s2">&quot;dask_</span><span class="si">{</span><span class="nb">int</span><span class="p">(</span><span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">())</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
     <span class="n">dask_dir_tmp</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">dask_dir</span><span class="p">,</span> <span class="s2">&quot;tmp&quot;</span><span class="p">)</span>
@@ -612,20 +701,20 @@
     <span class="n">usable_cpus</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">total_cpus</span> <span class="o">*</span> <span class="n">cpu_frac</span><span class="p">)</span>
     <span class="n">n_workers</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">usable_cpus</span><span class="p">)</span>
 
-    <span class="c1"># Adjust memory spill behavior based on swap</span>
-    <span class="n">swap_gb</span> <span class="o">=</span> <span class="n">psutil</span><span class="o">.</span><span class="n">swap_memory</span><span class="p">()</span><span class="o">.</span><span class="n">total</span> <span class="o">/</span> <span class="mi">1024</span><span class="o">**</span><span class="mi">3</span>
-    <span class="k">if</span> <span class="n">swap_gb</span> <span class="o">&lt;=</span> <span class="mi">4</span><span class="p">:</span>
-        <span class="n">spill_frac</span> <span class="o">=</span> <span class="mf">0.5</span>
-    <span class="k">elif</span> <span class="n">swap_gb</span> <span class="o">&lt;=</span> <span class="mi">16</span><span class="p">:</span>
-        <span class="n">spill_frac</span> <span class="o">=</span> <span class="mf">0.6</span>
-    <span class="n">spill_frac</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">spill_frac</span><span class="p">,</span> <span class="mf">0.7</span><span class="p">)</span>
-
     <span class="c1"># Raise file descriptor limit</span>
     <span class="n">soft</span><span class="p">,</span> <span class="n">hard</span> <span class="o">=</span> <span class="n">resource</span><span class="o">.</span><span class="n">getrlimit</span><span class="p">(</span><span class="n">resource</span><span class="o">.</span><span class="n">RLIMIT_NOFILE</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">soft</span> <span class="o">&lt;</span> <span class="nb">int</span><span class="p">(</span><span class="n">hard</span> <span class="o">*</span> <span class="mf">0.8</span><span class="p">):</span>
         <span class="n">resource</span><span class="o">.</span><span class="n">setrlimit</span><span class="p">(</span><span class="n">resource</span><span class="o">.</span><span class="n">RLIMIT_NOFILE</span><span class="p">,</span> <span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">hard</span> <span class="o">*</span> <span class="mf">0.8</span><span class="p">),</span> <span class="n">hard</span><span class="p">))</span>
 
-    <span class="n">dask</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">set</span><span class="p">({</span><span class="s2">&quot;temporary-directory&quot;</span><span class="p">:</span> <span class="n">dask_dir</span><span class="p">})</span>
+    <span class="n">dask</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">set</span><span class="p">(</span>
+        <span class="p">{</span>
+            <span class="s2">&quot;temporary-directory&quot;</span><span class="p">:</span> <span class="n">dask_dir</span><span class="p">,</span>
+            <span class="s2">&quot;distributed.worker.memory.target&quot;</span><span class="p">:</span> <span class="n">spill_frac</span><span class="p">,</span>
+            <span class="s2">&quot;distributed.worker.memory.spill&quot;</span><span class="p">:</span> <span class="n">spill_frac</span> <span class="o">+</span> <span class="mf">0.1</span><span class="p">,</span>
+            <span class="s2">&quot;distributed.worker.memory.pause&quot;</span><span class="p">:</span> <span class="n">spill_frac</span> <span class="o">+</span> <span class="mf">0.2</span><span class="p">,</span>
+            <span class="s2">&quot;distributed.worker.memory.terminate&quot;</span><span class="p">:</span> <span class="n">spill_frac</span> <span class="o">+</span> <span class="mf">0.25</span><span class="p">,</span>
+        <span class="p">}</span>
+    <span class="p">)</span>
 
     <span class="n">cluster</span> <span class="o">=</span> <span class="n">LocalCluster</span><span class="p">(</span>
         <span class="n">n_workers</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
@@ -644,14 +733,7 @@
         <span class="p">},</span>
     <span class="p">)</span>
     <span class="n">client</span> <span class="o">=</span> <span class="n">Client</span><span class="p">(</span><span class="n">cluster</span><span class="p">,</span> <span class="n">heartbeat_interval</span><span class="o">=</span><span class="s2">&quot;5s&quot;</span><span class="p">)</span>
-    <span class="n">dask</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">set</span><span class="p">(</span>
-        <span class="p">{</span>
-            <span class="s2">&quot;distributed.worker.memory.target&quot;</span><span class="p">:</span> <span class="n">spill_frac</span><span class="p">,</span>
-            <span class="s2">&quot;distributed.worker.memory.spill&quot;</span><span class="p">:</span> <span class="n">spill_frac</span> <span class="o">+</span> <span class="mf">0.1</span><span class="p">,</span>
-            <span class="s2">&quot;distributed.worker.memory.pause&quot;</span><span class="p">:</span> <span class="n">spill_frac</span> <span class="o">+</span> <span class="mf">0.2</span><span class="p">,</span>
-            <span class="s2">&quot;distributed.worker.memory.terminate&quot;</span><span class="p">:</span> <span class="n">spill_frac</span> <span class="o">+</span> <span class="mf">0.25</span><span class="p">,</span>
-        <span class="p">}</span>
-    <span class="p">)</span>
+    <span class="n">client</span><span class="o">.</span><span class="n">run_on_scheduler</span><span class="p">(</span><span class="n">gc</span><span class="o">.</span><span class="n">collect</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span>
         <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;####################################################&quot;</span><span class="p">)</span>
         <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Dask dashboard available at: </span><span class="si">{</span><span class="n">client</span><span class="o">.</span><span class="n">dashboard_link</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
@@ -663,14 +745,14 @@
 <div class="viewcode-block" id="get_slurm_dask_cluster">
 <a class="viewcode-back" href="../../../meersolar.utils.html#meersolar.utils.proc_manage_utils.get_slurm_dask_cluster">[docs]</a>
 <span class="k">def</span> <span class="nf">get_slurm_dask_cluster</span><span class="p">(</span>
-    <span class="n">n_jobs</span><span class="p">,</span>
+    <span class="n">njobs</span><span class="p">,</span>
     <span class="n">config_yaml</span><span class="p">,</span>
     <span class="n">dask_dir</span><span class="p">,</span>
     <span class="n">cpu_frac</span><span class="o">=</span><span class="mf">0.8</span><span class="p">,</span>
     <span class="n">mem_frac</span><span class="o">=</span><span class="mf">0.8</span><span class="p">,</span>
     <span class="n">ncpu</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span>
     <span class="n">mem</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span>
-    <span class="n">spill_frac</span><span class="o">=</span><span class="mf">0.6</span><span class="p">,</span>
+    <span class="n">spill_frac</span><span class="o">=</span><span class="mf">0.7</span><span class="p">,</span>
     <span class="n">verbose</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
 <span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
@@ -678,7 +760,7 @@
 
 <span class="sd">    Parameters</span>
 <span class="sd">    ----------</span>
-<span class="sd">    n_jobs : int</span>
+<span class="sd">    njobs : int</span>
 <span class="sd">        Number of expected tasks (used for worker scaling)</span>
 <span class="sd">    config_yaml : str</span>
 <span class="sd">        Path to Dask SLURMCluster YAML configuration</span>
@@ -725,14 +807,6 @@
     <span class="n">usable_mem</span> <span class="o">=</span> <span class="n">total_mem</span> <span class="o">*</span> <span class="n">mem_frac</span>
     <span class="n">usable_cpus</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">total_cpus</span> <span class="o">*</span> <span class="n">cpu_frac</span><span class="p">)</span>
 
-    <span class="c1"># Adjust memory spill behavior based on swap</span>
-    <span class="n">swap_gb</span> <span class="o">=</span> <span class="n">psutil</span><span class="o">.</span><span class="n">swap_memory</span><span class="p">()</span><span class="o">.</span><span class="n">total</span> <span class="o">/</span> <span class="mi">1024</span><span class="o">**</span><span class="mi">3</span>
-    <span class="k">if</span> <span class="n">swap_gb</span> <span class="o">&lt;=</span> <span class="mi">4</span><span class="p">:</span>
-        <span class="n">spill_frac</span> <span class="o">=</span> <span class="mf">0.5</span>
-    <span class="k">elif</span> <span class="n">swap_gb</span> <span class="o">&lt;=</span> <span class="mi">16</span><span class="p">:</span>
-        <span class="n">spill_frac</span> <span class="o">=</span> <span class="mf">0.6</span>
-    <span class="n">spill_frac</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">spill_frac</span><span class="p">,</span> <span class="mf">0.7</span><span class="p">)</span>
-
     <span class="c1"># Raise file descriptor limit</span>
     <span class="n">soft</span><span class="p">,</span> <span class="n">hard</span> <span class="o">=</span> <span class="n">resource</span><span class="o">.</span><span class="n">getrlimit</span><span class="p">(</span><span class="n">resource</span><span class="o">.</span><span class="n">RLIMIT_NOFILE</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">soft</span> <span class="o">&lt;</span> <span class="nb">int</span><span class="p">(</span><span class="n">hard</span> <span class="o">*</span> <span class="mf">0.8</span><span class="p">):</span>
@@ -767,9 +841,9 @@
     <span class="p">)</span>
 
     <span class="c1"># Scale workers (1 per task/MS file ideally)</span>
-    <span class="n">cluster</span><span class="o">.</span><span class="n">scale</span><span class="p">(</span><span class="n">n_jobs</span><span class="p">)</span>
+    <span class="n">cluster</span><span class="o">.</span><span class="n">scale</span><span class="p">(</span><span class="n">njobs</span><span class="p">)</span>
     <span class="n">client</span> <span class="o">=</span> <span class="n">Client</span><span class="p">(</span><span class="n">cluster</span><span class="p">,</span> <span class="n">heartbeat_interval</span><span class="o">=</span><span class="s2">&quot;5s&quot;</span><span class="p">)</span>
-
+    <span class="n">client</span><span class="o">.</span><span class="n">run_on_scheduler</span><span class="p">(</span><span class="n">gc</span><span class="o">.</span><span class="n">collect</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span>
         <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;####################################################&quot;</span><span class="p">)</span>
         <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Dask dashboard available at: </span><span class="si">{</span><span class="n">client</span><span class="o">.</span><span class="n">dashboard_link</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>

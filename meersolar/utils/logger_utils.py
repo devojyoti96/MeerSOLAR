@@ -8,6 +8,8 @@ import time
 import glob
 import sys
 import os
+import urllib.request
+import urllib.error
 from watchdog.events import FileSystemEventHandler
 from watchdog.observers import Observer
 from datetime import datetime as dt
@@ -46,24 +48,19 @@ def get_remote_logger_link():
     cachedir = get_cachedir()
     username = os.getlogin()
     link_file = os.path.join(cachedir, f"remotelink_{username}.txt")
-    for _ in range(5):
-        try:
-            if os.path.isfile(link_file):
-                with open(link_file, "r") as f:
-                    lines = [line.strip() for line in f if line.strip()]
-                if lines:
-                    remote_link = lines[0]
-                    if remote_link:
-                        try:
-                            res = requests.get(remote_link, timeout=2)
-                            if res.status_code == 200:
-                                return remote_link
-                        except Exception:
-                            pass
-        except Exception:
-            pass
-        time.sleep(2)
-    return ""
+    if os.path.isfile(link_file):
+        with open(link_file, "r") as f:
+            lines = [line.strip() for line in f if line.strip()]
+        remote_link = lines[0]
+    else:
+        return ""
+    try:
+        req = urllib.request.Request(remote_link, method="GET")
+        with urllib.request.urlopen(req, timeout=60) as response:
+            if response.status == 200:
+                return remote_link
+    except (urllib.error.URLError, urllib.error.HTTPError):
+        return ""
 
 
 def get_emails():
@@ -221,7 +218,7 @@ def get_logid(logfile):
     name = os.path.basename(logfile)
     logmap = {
         "apply_basiccal_target.log": "Applying basic calibration solutions on targets",
-        "apply_basiccal_selfcal.log":"Applying basic calibration solutions for self-calibration",
+        "apply_basiccal_selfcal.log": "Applying basic calibration solutions for self-calibration",
         "apply_pbcor.log": "Applying primary beam corrections",
         "apply_selfcal.log": "Applying self-calibration solutions",
         "basic_cal.log": "Basic calibration",

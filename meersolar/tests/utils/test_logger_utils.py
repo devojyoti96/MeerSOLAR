@@ -5,6 +5,7 @@ import logging
 import argparse
 import requests
 import os
+import urllib.error
 from watchdog.observers import Observer
 from meersolar.utils.logger_utils import *
 from unittest.mock import MagicMock, mock_open, patch
@@ -44,36 +45,39 @@ def test_generate_password_properties(length):
     assert pw1 != pw2  # Extremely unlikely to be the same
 
 
-@patch("meersolar.utils.logger_utils.time.sleep", return_value=None)  # skip delays
-@patch("meersolar.utils.logger_utils.requests.get")
-@patch(
-    "meersolar.utils.logger_utils.open",
-    new_callable=mock_open,
-    read_data="https://mock-logger.com\n",
+@pytest.mark.parametrize(
+    "isfile_exists, file_data, urlopen_status, urlopen_exception, expected_output",
+    [
+        (True, "https://test-render.com\n", 200, None, "https://test-render.com"),
+        (True, "https://test-render.com\n", None, urllib.error.URLError("Timeout"), ""),
+        (False, "", None, None, ""),
+    ],
 )
-@patch("meersolar.utils.logger_utils.os.path.isfile", return_value=True)
-@patch("meersolar.utils.logger_utils.os.getlogin", return_value="testuser")
-@patch(
-    "meersolar.utils.logger_utils.get_cachedir",
-    return_value="/mock/.meersolar",
-)
-def test_get_remote_logger_link_success(
-    mock_cachedir,
+@patch("os.getlogin", return_value="dummyuser")
+@patch("meersolar.utils.get_cachedir", return_value="/mock/cache")
+def test_get_remote_logger_link(
+    mock_get_cachedir,
     mock_getlogin,
-    mock_isfile,
-    mock_openfile,
-    mock_requests_get,
-    mock_sleep,
+    isfile_exists,
+    file_data,
+    urlopen_status,
+    urlopen_exception,
+    expected_output,
 ):
-    mock_response = MagicMock()
-    mock_response.status_code = 200
-    mock_requests_get.return_value = mock_response
-    result = get_remote_logger_link()
-    assert result == "https://mock-logger.com"
-    mock_openfile.assert_called_once_with(
-        "/mock/.meersolar/remotelink_testuser.txt", "r"
-    )
-    mock_requests_get.assert_called_once_with("https://mock-logger.com", timeout=2)
+    with (
+        patch("os.path.isfile", return_value=isfile_exists),
+        patch("builtins.open", mock_open(read_data=file_data)) as mock_file,
+        patch("urllib.request.urlopen") as mock_urlopen,
+    ):
+
+        if urlopen_exception:
+            mock_urlopen.side_effect = urlopen_exception
+        elif urlopen_status:
+            mock_response = MagicMock()
+            mock_response.__enter__.return_value.status = urlopen_status
+            mock_urlopen.return_value = mock_response
+        result = get_remote_logger_link()
+        assert result == expected_output
 
 
 @pytest.mark.parametrize(
@@ -221,7 +225,10 @@ def test_create_logger():
 @pytest.mark.parametrize(
     "logfile, expected",
     [
-        ("apply_basiccal_target.log", "Applying basic calibration solutions on targets"),
+        (
+            "apply_basiccal_target.log",
+            "Applying basic calibration solutions on targets",
+        ),
         ("selfcal_targets.log", "All self-calibrations"),
         (
             "selfcals_scan_2_spw_0_selfcal.log",

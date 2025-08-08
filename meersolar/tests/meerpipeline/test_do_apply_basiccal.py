@@ -57,7 +57,7 @@ def test_scale_bandpass(dummy_bpass, dummy_att_table):
 @patch("meersolar.meerpipeline.do_apply_basiccal.os.path.exists", return_value=False)
 @patch("meersolar.meerpipeline.do_apply_basiccal.os.system")
 @patch("meersolar.meerpipeline.do_apply_basiccal.glob.glob", return_value=[])
-@patch("meersolar.meerpipeline.do_apply_basiccal.suppress_casa_output")
+@patch("meersolar.meerpipeline.do_apply_basiccal.suppress_output")
 @patch("meersolar.meerpipeline.do_apply_basiccal.single_ms_flag")
 @patch("casatasks.applycal", return_value=None)
 @patch("casatasks.clearcal", return_value=None)

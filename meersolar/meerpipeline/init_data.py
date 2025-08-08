@@ -6,15 +6,7 @@ import sys
 import os
 from datetime import datetime as dt
 from parfive import Downloader
-from meersolar.utils import (
-    get_datadir,
-    get_cachedir,
-    create_datadir,
-    init_udocker,
-    initialize_wsclean_container,
-    SmartDefaultsHelpFormatter,
-    start_server,
-)
+from meersolar.utils import *
 
 logging.getLogger("distributed").setLevel(logging.ERROR)
 logging.getLogger("tornado.application").setLevel(logging.CRITICAL)
@@ -134,8 +126,25 @@ def main(
         init_meersolar_data(update=update, remote_link=link, emails=emails)
         print(f"MeerSOLAR data are initiated.")
         init_udocker()
-        initialize_wsclean_container()
-        print("uDOCKER inititalized")
+        print("uDOCKER is inititalized")
+        wsclean_container_name = initialize_wsclean_container(update=update)
+        if (
+            wsclean_container_name is not None
+            and wsclean_container_name == "solarwsclean"
+        ):
+            print("WSClean container is initialized")
+        else:
+            print("Error in initializing WSClean container.")
+            return 1
+        shadems_container_name = initialize_shadems_container(update=update)
+        if (
+            shadems_container_name is not None
+            and shadems_container_name == "solarshadems"
+        ):
+            print("Shadems container is initialized")
+        else:
+            print("Error in initializing shadems container.")
+            return 1
         if prefect_server:
             start_server()
         return 0
@@ -183,6 +192,8 @@ def cli():
         link=args.link,
         emails=args.emails,
     )
+    if msg != 0:
+        print("Error in initial setup.")
     return msg
 
 

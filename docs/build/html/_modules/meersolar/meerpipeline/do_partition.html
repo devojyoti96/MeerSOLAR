@@ -288,7 +288,6 @@
 <span class="kn">import</span> <span class="nn">os</span>
 <span class="kn">from</span> <span class="nn">casatools</span> <span class="kn">import</span> <span class="n">msmetadata</span>
 <span class="kn">from</span> <span class="nn">dask</span> <span class="kn">import</span> <span class="n">delayed</span>
-<span class="kn">from</span> <span class="nn">dask.distributed</span> <span class="kn">import</span> <span class="n">wait</span>
 <span class="kn">from</span> <span class="nn">meersolar.utils</span> <span class="kn">import</span> <span class="o">*</span>
 
 <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="s2">&quot;distributed&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">setLevel</span><span class="p">(</span><span class="n">logging</span><span class="o">.</span><span class="n">ERROR</span><span class="p">)</span>
@@ -346,7 +345,7 @@
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;##################&quot;</span><span class="p">)</span>
     <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Paritioning measurement set: &quot;</span> <span class="o">+</span> <span class="n">msname</span><span class="p">)</span>
-    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;##################</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;##################&quot;</span><span class="p">)</span>
     <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Determining valid scan list ....&quot;</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">mem_frac</span> <span class="o">&gt;</span> <span class="mf">0.8</span><span class="p">:</span>
         <span class="n">mem_frac</span> <span class="o">=</span> <span class="mf">0.8</span>
@@ -354,9 +353,8 @@
 
     <span class="k">if</span> <span class="n">cpu_frac</span> <span class="o">&gt;</span> <span class="mf">0.8</span><span class="p">:</span>
         <span class="n">cpu_frac</span> <span class="o">=</span> <span class="mf">0.8</span>
-    <span class="n">total_cpu</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">psutil</span><span class="o">.</span><span class="n">cpu_count</span><span class="p">()</span> <span class="o">*</span> <span class="n">cpu_frac</span><span class="p">)</span>  <span class="c1"># In GB</span>
+    <span class="n">total_cpu</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="nb">int</span><span class="p">(</span><span class="n">psutil</span><span class="o">.</span><span class="n">cpu_count</span><span class="p">()</span> <span class="o">*</span> <span class="n">cpu_frac</span><span class="p">))</span>  <span class="c1"># In GB</span>
 
-    <span class="n">start_time</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
     <span class="n">valid_scans</span> <span class="o">=</span> <span class="n">get_valid_scans</span><span class="p">(</span><span class="n">msname</span><span class="p">,</span> <span class="n">min_scan_time</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
     <span class="n">msmd</span> <span class="o">=</span> <span class="n">msmetadata</span><span class="p">()</span>
     <span class="n">msname</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="n">msname</span><span class="o">.</span><span class="n">rstrip</span><span class="p">(</span><span class="s2">&quot;/&quot;</span><span class="p">))</span>
@@ -390,6 +388,7 @@
                 <span class="n">backup_scan_list</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">s</span><span class="p">)</span>
         <span class="n">scan_list</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="n">backup_scan_list</span><span class="p">)</span>
     <span class="n">msmd</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+
     <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">scan_list</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
         <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Please provide at-least one valid scan to split.&quot;</span><span class="p">)</span>
         <span class="k">return</span>
@@ -405,24 +404,20 @@
     <span class="n">msmd</span><span class="o">.</span><span class="n">done</span><span class="p">()</span>
     <span class="n">field</span> <span class="o">=</span> <span class="s2">&quot;,&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">field_list</span><span class="p">)</span>
 
-    <span class="n">scan_sizes</span> <span class="o">=</span> <span class="p">[]</span>
-    <span class="k">for</span> <span class="n">scan</span> <span class="ow">in</span> <span class="n">scan_list</span><span class="p">:</span>
-        <span class="n">scan_sizes</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">get_ms_scan_size</span><span class="p">(</span><span class="n">msname</span><span class="p">,</span> <span class="nb">int</span><span class="p">(</span><span class="n">scan</span><span class="p">)))</span>
     <span class="c1">########################################</span>
     <span class="c1"># Number of worker limit based on memory</span>
     <span class="c1">########################################</span>
-    <span class="n">mem_limit</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">total_mem</span><span class="p">,</span> <span class="nb">max</span><span class="p">(</span><span class="n">scan_sizes</span><span class="p">))</span>
-    <span class="n">n_jobs</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="nb">min</span><span class="p">(</span><span class="n">total_cpu</span><span class="p">,</span> <span class="nb">int</span><span class="p">(</span><span class="n">total_mem</span> <span class="o">/</span> <span class="n">mem_limit</span><span class="p">)))</span>
-    <span class="n">n_threads</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="nb">int</span><span class="p">(</span><span class="n">total_cpu</span> <span class="o">/</span> <span class="n">n_jobs</span><span class="p">))</span>
+    <span class="n">njobs</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="nb">min</span><span class="p">(</span><span class="n">total_cpu</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">scan_list</span><span class="p">)))</span>
+    <span class="n">n_threads</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="nb">int</span><span class="p">(</span><span class="n">total_cpu</span> <span class="o">/</span> <span class="n">njobs</span><span class="p">))</span>
 
     <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;#################################&quot;</span><span class="p">)</span>
-    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Total dask worker: </span><span class="si">{</span><span class="n">n_jobs</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Total dask worker: </span><span class="si">{</span><span class="n">njobs</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
     <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;CPU per worker: </span><span class="si">{</span><span class="n">n_threads</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Memory per worker: </span><span class="si">{</span><span class="n">mem_limit</span><span class="si">}</span><span class="s2">GB&quot;</span><span class="p">)</span>
     <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;#################################&quot;</span><span class="p">)</span>
     <span class="c1">###########################################</span>
 
     <span class="n">tasks</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">results</span> <span class="o">=</span> <span class="p">[]</span>
     <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">scan_list</span><span class="p">)):</span>
         <span class="n">scan</span> <span class="o">=</span> <span class="n">scan_list</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
         <span class="n">outputvis</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">workdir</span><span class="si">}</span><span class="s2">/scan_</span><span class="si">{</span><span class="n">scan</span><span class="si">}</span><span class="s2">.ms&quot;</span>
@@ -437,15 +432,9 @@
             <span class="n">numsubms</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
         <span class="p">)</span>
         <span class="n">tasks</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">task</span><span class="p">)</span>
-    <span class="n">wait_for_dask_workers</span><span class="p">(</span><span class="n">dask_client</span><span class="p">,</span> <span class="n">min_worker</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=</span><span class="mi">60</span><span class="p">)</span>
-    <span class="n">results</span> <span class="o">=</span> <span class="p">[]</span>
-    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">tasks</span><span class="p">),</span> <span class="n">n_jobs</span><span class="p">):</span>
-        <span class="n">batch</span> <span class="o">=</span> <span class="n">tasks</span><span class="p">[</span><span class="n">i</span> <span class="p">:</span> <span class="n">i</span> <span class="o">+</span> <span class="n">n_jobs</span><span class="p">]</span>
-        <span class="n">futures</span> <span class="o">=</span> <span class="n">dask_client</span><span class="o">.</span><span class="n">compute</span><span class="p">(</span><span class="n">batch</span><span class="p">)</span>
-        <span class="n">wait</span><span class="p">(</span><span class="n">futures</span><span class="p">)</span>
-        <span class="n">results</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">dask_client</span><span class="o">.</span><span class="n">gather</span><span class="p">(</span><span class="n">futures</span><span class="p">))</span>
-    <span class="n">splited_ms_list</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">results</span><span class="p">)</span>
-
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Partitioning start...&quot;</span><span class="p">)</span>
+    <span class="n">futures</span> <span class="o">=</span> <span class="n">dask_client</span><span class="o">.</span><span class="n">compute</span><span class="p">(</span><span class="n">tasks</span><span class="p">)</span>
+    <span class="n">splited_ms_list</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">dask_client</span><span class="o">.</span><span class="n">gather</span><span class="p">(</span><span class="n">futures</span><span class="p">))</span>
     <span class="n">splited_ms_list_copy</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="n">splited_ms_list</span><span class="p">)</span>
     <span class="k">for</span> <span class="n">ms</span> <span class="ow">in</span> <span class="n">splited_ms_list</span><span class="p">:</span>
         <span class="k">if</span> <span class="n">ms</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
@@ -458,17 +447,15 @@
         <span class="n">os</span><span class="o">.</span><span class="n">system</span><span class="p">(</span><span class="s2">&quot;rm -rf &quot;</span> <span class="o">+</span> <span class="n">outputms</span> <span class="o">+</span> <span class="s2">&quot;.flagversions&quot;</span><span class="p">)</span>
     <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">splited_ms_list</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
         <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;No splited ms to concat.&quot;</span><span class="p">)</span>
+        <span class="k">return</span>
     <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="n">splited_ms_list</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
         <span class="n">os</span><span class="o">.</span><span class="n">system</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;mv </span><span class="si">{</span><span class="n">splited_ms_list</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">outputms</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
         <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Making multi-MS ....&quot;</span><span class="p">)</span>
         <span class="kn">from</span> <span class="nn">casatasks</span> <span class="kn">import</span> <span class="n">virtualconcat</span>
 
-        <span class="k">with</span> <span class="n">suppress_casa_output</span><span class="p">():</span>
+        <span class="k">with</span> <span class="n">suppress_output</span><span class="p">():</span>
             <span class="n">virtualconcat</span><span class="p">(</span><span class="n">vis</span><span class="o">=</span><span class="n">splited_ms_list</span><span class="p">,</span> <span class="n">concatvis</span><span class="o">=</span><span class="n">outputms</span><span class="p">)</span>
-    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;##################&quot;</span><span class="p">)</span>
-    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Total time taken : &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span> <span class="o">-</span> <span class="n">start_time</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot;s&quot;</span><span class="p">)</span>
-    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;##################</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">outputms</span></div>
 
 
@@ -561,18 +548,13 @@
     <span class="n">dask_cluster</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="k">if</span> <span class="n">dask_client</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
         <span class="n">dask_client</span><span class="p">,</span> <span class="n">dask_cluster</span><span class="p">,</span> <span class="n">dask_dir</span> <span class="o">=</span> <span class="n">get_local_dask_cluster</span><span class="p">(</span>
-            <span class="mi">1</span><span class="p">,</span>
+            <span class="mi">2</span><span class="p">,</span>
             <span class="n">dask_dir</span><span class="o">=</span><span class="n">workdir</span><span class="p">,</span>
             <span class="n">cpu_frac</span><span class="o">=</span><span class="n">cpu_frac</span><span class="p">,</span>
             <span class="n">mem_frac</span><span class="o">=</span><span class="n">mem_frac</span><span class="p">,</span>
         <span class="p">)</span>
         <span class="n">nworker</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="nb">int</span><span class="p">(</span><span class="n">psutil</span><span class="o">.</span><span class="n">cpu_count</span><span class="p">()</span> <span class="o">*</span> <span class="n">cpu_frac</span><span class="p">))</span>
-        <span class="n">usable_mem</span> <span class="o">=</span> <span class="p">(</span><span class="n">mem_frac</span> <span class="o">*</span> <span class="n">psutil</span><span class="o">.</span><span class="n">virtual_memory</span><span class="p">()</span><span class="o">.</span><span class="n">total</span><span class="p">)</span> <span class="o">/</span> <span class="mi">1024</span><span class="o">**</span><span class="mi">3</span>
-        <span class="n">per_job_mem</span> <span class="o">=</span> <span class="n">usable_mem</span> <span class="o">/</span> <span class="n">nworker</span>
-        <span class="k">if</span> <span class="n">per_job_mem</span> <span class="o">&lt;</span> <span class="mi">2</span><span class="p">:</span>
-            <span class="n">nworker</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="nb">int</span><span class="p">(</span><span class="n">usable_mem</span> <span class="o">/</span> <span class="mi">2</span><span class="p">))</span>
-        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Maximum dask workder: </span><span class="si">{</span><span class="n">nworker</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-        <span class="n">dask_cluster</span><span class="o">.</span><span class="n">adapt</span><span class="p">(</span><span class="n">minimum</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">maximum</span><span class="o">=</span><span class="n">nworker</span><span class="p">)</span>  <span class="c1"># 2 worker will be required</span>
+        <span class="n">scale_worker_and_wait</span><span class="p">(</span><span class="n">dask_cluster</span><span class="p">,</span> <span class="n">nworker</span><span class="p">)</span>
 
     <span class="k">try</span><span class="p">:</span>
         <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">msname</span><span class="p">):</span>
@@ -596,7 +578,7 @@
                 <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Partitioned multi-MS is created at:&quot;</span><span class="p">,</span> <span class="n">outputms</span><span class="p">)</span>
                 <span class="n">msg</span> <span class="o">=</span> <span class="mi">0</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Please provide a valid measurement set.</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Please provide a valid measurement set.&quot;</span><span class="p">)</span>
             <span class="n">msg</span> <span class="o">=</span> <span class="mi">1</span>
     <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
         <span class="n">traceback</span><span class="o">.</span><span class="n">print_exc</span><span class="p">()</span>

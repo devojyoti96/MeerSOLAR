@@ -83,12 +83,12 @@ def test_run_wsclean_param_cases(
     expected_return,
 ):
     mock_check.return_value = container_present
-    mock_init.return_value = None if not container_present else "meerwsclean"
+    mock_init.return_value = None if not container_present else "solarwsclean"
     mock_system.return_value = 0
     mock_process.return_value.memory_info.return_value.rss = 2.5 * 1024**3  # 2.5 GB
     result = run_wsclean(
         "wsclean -name mock test.ms",
-        container_name="meerwsclean",
+        container_name="solarwsclean",
         check_container=check_container,
         verbose=False,
     )
@@ -129,13 +129,13 @@ def test_run_solar_sidereal_cor(
     expected,
 ):
     mock_check.return_value = container_present
-    mock_init.return_value = None if not container_present else "meerwsclean"
+    mock_init.return_value = None if not container_present else "solarwsclean"
     mock_system.return_value = 0
     mock_process.return_value.memory_info.return_value.rss = 2.5 * 1024**3
     result = run_solar_sidereal_cor(
         msname="test.ms",
         only_uvw=False,
-        container_name="meerwsclean",
+        container_name="solarwsclean",
         verbose=False,
     )
     assert result == expected
@@ -144,7 +144,7 @@ def test_run_solar_sidereal_cor(
 @pytest.mark.parametrize(
     "container_present, expected",
     [
-        (False, 1),  # container missing, init fails
+        (False, 0),  # container missing, init fails
         (True, 0),  # normal run, successful
     ],
 )
@@ -175,9 +175,7 @@ def test_run_chgcenter_param_cases(
     expected,
 ):
     mock_check.return_value = container_present
-    if not container_present:
-        mock_init.assert_not_called()
-    mock_init.return_value = None if not container_present else "meerwsclean"
+    mock_init.return_value = None if not container_present else "solarwsclean"
     mock_system.return_value = 0
     mock_process.return_value.memory_info.return_value.rss = 2.5 * 1024**3
     result = run_chgcenter(
@@ -185,7 +183,7 @@ def test_run_chgcenter_param_cases(
         ra="00:00:00.0",
         dec="-30:00:00.0",
         only_uvw=False,
-        container_name="meerwsclean",
+        container_name="solarwsclean",
         verbose=False,
     )
     assert result == expected

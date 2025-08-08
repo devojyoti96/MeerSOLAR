@@ -201,6 +201,7 @@ def applysol(
     """
     limit_threads(n_threads=n_threads)
     from casatasks import applycal, flagdata, split, clearcal
+
     if soltype == "basic":
         check_file = "/.applied_sol"
     else:
@@ -211,12 +212,12 @@ def applysol(
             return 0
         else:
             if os.path.exists(msname + check_file) and force_apply:
-                with suppress_casa_output():
+                with suppress_output():
                     clearcal(vis=msname)
                     flagdata(vis=msname, mode="unflag", spw="0", flagbackup=False)
                 if os.path.exists(msname + ".flagversions"):
                     os.system("rm -rf " + msname + ".flagversions")
-            with suppress_casa_output():
+            with suppress_output():
                 applycal(
                     vis=msname,
                     gaintable=gaintable,
@@ -234,7 +235,7 @@ def applysol(
             touch_file_names = glob.glob(f"{msname}/.*")
             if len(touch_file_names) > 0:
                 touch_file_names = [os.path.basename(f) for f in touch_file_names]
-            with suppress_casa_output():
+            with suppress_output():
                 split(vis=msname, outputvis=outputvis, datacolumn="corrected")
             if os.path.exists(outputvis):
                 os.system(f"rm -rf {msname} {msname}.flagversions")
@@ -261,8 +262,8 @@ def applysol(
     except Exception as e:
         traceback.print_exc()
         return 1
-    
-    
+
+
 def run_all_applysol(
     mslist,
     dask_client,
@@ -312,7 +313,7 @@ def run_all_applysol(
     try:
         if cpu_frac > 0.8:
             cpu_frac = 0.8
-        total_cpu = max(1,int(psutil.cpu_count() * cpu_frac))
+        total_cpu = max(1, int(psutil.cpu_count() * cpu_frac))
         if mem_frac > 0.8:
             mem_frac = 0.8
         total_mem = (psutil.virtual_memory().available * mem_frac) / (1024**3)  # In GB
@@ -411,15 +412,15 @@ def run_all_applysol(
             os.system(f"touch {workdir}/.noattcal")
             bpass_table = bandpass_table[0]
         njobs = min(total_cpu, len(mslist))
-        n_threads=max(1,int(total_cpu/njobs))
+        n_threads = max(1, int(total_cpu / njobs))
         mem_limit = total_mem / njobs
-        
+
         print("#################################")
         print(f"Total dask worker: {njobs}")
         print(f"CPU per worker: {n_threads}")
         print(f"Memory per worker: {round(mem_limit,2)} GB")
         print("#################################")
-        
+
         for ms in mslist:
             interp = []
             final_gaintable = gaintable + [bpass_table]
@@ -444,7 +445,9 @@ def run_all_applysol(
                     force_apply=force_apply,
                 )
             )
-        print (f"Applying solutions from caltables: {','.join([os.path.basename(i) for i in final_gaintable])}")
+        print(
+            f"Applying solutions from caltables: {','.join([os.path.basename(i) for i in final_gaintable])}"
+        )
         results = list(dask_client.gather(dask_client.compute(tasks)))
         if np.nansum(results) == 0:
             print("##################")
@@ -563,8 +566,8 @@ def main(
             mem_frac=mem_frac,
         )
         nworker = max(2, int(psutil.cpu_count() * cpu_frac))
-        scale_worker_and_wait(dask_cluster,nworker)
-        
+        scale_worker_and_wait(dask_cluster, nworker)
+
     try:
         print("###################################")
         print("Starting applying solutions...")

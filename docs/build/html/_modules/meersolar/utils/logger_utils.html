@@ -287,6 +287,8 @@
 <span class="kn">import</span> <span class="nn">glob</span>
 <span class="kn">import</span> <span class="nn">sys</span>
 <span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">urllib.request</span>
+<span class="kn">import</span> <span class="nn">urllib.error</span>
 <span class="kn">from</span> <span class="nn">watchdog.events</span> <span class="kn">import</span> <span class="n">FileSystemEventHandler</span>
 <span class="kn">from</span> <span class="nn">watchdog.observers</span> <span class="kn">import</span> <span class="n">Observer</span>
 <span class="kn">from</span> <span class="nn">datetime</span> <span class="kn">import</span> <span class="n">datetime</span> <span class="k">as</span> <span class="n">dt</span>
@@ -336,24 +338,19 @@
     <span class="n">cachedir</span> <span class="o">=</span> <span class="n">get_cachedir</span><span class="p">()</span>
     <span class="n">username</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">getlogin</span><span class="p">()</span>
     <span class="n">link_file</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">cachedir</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;remotelink_</span><span class="si">{</span><span class="n">username</span><span class="si">}</span><span class="s2">.txt&quot;</span><span class="p">)</span>
-    <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">5</span><span class="p">):</span>
-        <span class="k">try</span><span class="p">:</span>
-            <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isfile</span><span class="p">(</span><span class="n">link_file</span><span class="p">):</span>
-                <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">link_file</span><span class="p">,</span> <span class="s2">&quot;r&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
-                    <span class="n">lines</span> <span class="o">=</span> <span class="p">[</span><span class="n">line</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span> <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">f</span> <span class="k">if</span> <span class="n">line</span><span class="o">.</span><span class="n">strip</span><span class="p">()]</span>
-                <span class="k">if</span> <span class="n">lines</span><span class="p">:</span>
-                    <span class="n">remote_link</span> <span class="o">=</span> <span class="n">lines</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
-                    <span class="k">if</span> <span class="n">remote_link</span><span class="p">:</span>
-                        <span class="k">try</span><span class="p">:</span>
-                            <span class="n">res</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">remote_link</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
-                            <span class="k">if</span> <span class="n">res</span><span class="o">.</span><span class="n">status_code</span> <span class="o">==</span> <span class="mi">200</span><span class="p">:</span>
-                                <span class="k">return</span> <span class="n">remote_link</span>
-                        <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
-                            <span class="k">pass</span>
-        <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
-            <span class="k">pass</span>
-        <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
-    <span class="k">return</span> <span class="s2">&quot;&quot;</span></div>
+    <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isfile</span><span class="p">(</span><span class="n">link_file</span><span class="p">):</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">link_file</span><span class="p">,</span> <span class="s2">&quot;r&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+            <span class="n">lines</span> <span class="o">=</span> <span class="p">[</span><span class="n">line</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span> <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">f</span> <span class="k">if</span> <span class="n">line</span><span class="o">.</span><span class="n">strip</span><span class="p">()]</span>
+        <span class="n">remote_link</span> <span class="o">=</span> <span class="n">lines</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="s2">&quot;&quot;</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">req</span> <span class="o">=</span> <span class="n">urllib</span><span class="o">.</span><span class="n">request</span><span class="o">.</span><span class="n">Request</span><span class="p">(</span><span class="n">remote_link</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="s2">&quot;GET&quot;</span><span class="p">)</span>
+        <span class="k">with</span> <span class="n">urllib</span><span class="o">.</span><span class="n">request</span><span class="o">.</span><span class="n">urlopen</span><span class="p">(</span><span class="n">req</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=</span><span class="mi">60</span><span class="p">)</span> <span class="k">as</span> <span class="n">response</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">response</span><span class="o">.</span><span class="n">status</span> <span class="o">==</span> <span class="mi">200</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">remote_link</span>
+    <span class="k">except</span> <span class="p">(</span><span class="n">urllib</span><span class="o">.</span><span class="n">error</span><span class="o">.</span><span class="n">URLError</span><span class="p">,</span> <span class="n">urllib</span><span class="o">.</span><span class="n">error</span><span class="o">.</span><span class="n">HTTPError</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s2">&quot;&quot;</span></div>
 
 
 
@@ -543,7 +540,8 @@
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">name</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">logfile</span><span class="p">)</span>
     <span class="n">logmap</span> <span class="o">=</span> <span class="p">{</span>
-        <span class="s2">&quot;apply_basiccal.log&quot;</span><span class="p">:</span> <span class="s2">&quot;Applying basic calibration solutions&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;apply_basiccal_target.log&quot;</span><span class="p">:</span> <span class="s2">&quot;Applying basic calibration solutions on targets&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;apply_basiccal_selfcal.log&quot;</span><span class="p">:</span> <span class="s2">&quot;Applying basic calibration solutions for self-calibration&quot;</span><span class="p">,</span>
         <span class="s2">&quot;apply_pbcor.log&quot;</span><span class="p">:</span> <span class="s2">&quot;Applying primary beam corrections&quot;</span><span class="p">,</span>
         <span class="s2">&quot;apply_selfcal.log&quot;</span><span class="p">:</span> <span class="s2">&quot;Applying self-calibration solutions&quot;</span><span class="p">,</span>
         <span class="s2">&quot;basic_cal.log&quot;</span><span class="p">:</span> <span class="s2">&quot;Basic calibration&quot;</span><span class="p">,</span>
@@ -553,8 +551,6 @@
         <span class="s2">&quot;modeling_calibrator.log&quot;</span><span class="p">:</span> <span class="s2">&quot;Simulating visibilities of calibrators&quot;</span><span class="p">,</span>
         <span class="s2">&quot;split_targets.log&quot;</span><span class="p">:</span> <span class="s2">&quot;Spliting target scans&quot;</span><span class="p">,</span>
         <span class="s2">&quot;split_selfcals.log&quot;</span><span class="p">:</span> <span class="s2">&quot;Spliting for self-calibration&quot;</span><span class="p">,</span>
-        <span class="s2">&quot;selfcal_targets.mainlog&quot;</span><span class="p">:</span> <span class="s2">&quot;All self-calibrations main log&quot;</span><span class="p">,</span>
-        <span class="s2">&quot;imaging_targets.mainlog&quot;</span><span class="p">:</span> <span class="s2">&quot;All imaging main log&quot;</span><span class="p">,</span>
         <span class="s2">&quot;selfcal_targets.log&quot;</span><span class="p">:</span> <span class="s2">&quot;All self-calibrations&quot;</span><span class="p">,</span>
         <span class="s2">&quot;imaging_targets.log&quot;</span><span class="p">:</span> <span class="s2">&quot;All imaging&quot;</span><span class="p">,</span>
         <span class="s2">&quot;noise_cal.log&quot;</span><span class="p">:</span> <span class="s2">&quot;Flux calibration using noise-diode&quot;</span><span class="p">,</span>

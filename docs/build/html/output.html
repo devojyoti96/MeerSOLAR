@@ -328,6 +328,8 @@ Note down the Job ID to view the logger.</p>
 <pre  class="mermaid">
         graph LR
     WD[&quot;Output directory:&lt;br&gt;{outdir}&quot;] --&gt; CALTABLE[&quot;Caltable directory:&lt;br&gt;caltables&quot;]
+    WD --&gt; DP[&quot;`Diagnostic plots:&lt;br&gt;diagnostic_plots`&quot;]
+    DP --&gt; DPPDF[&quot;`Diagnostic plots of ms and caltables in PDF:&lt;br&gt;*.pdf`&quot;]
     WD --&gt; DS[&quot;`Dynamic spectra:&lt;br&gt;dynamic_spectra`&quot;]
     DS --&gt; DSNPY[&quot;`Dynamic spectrum numpy files:&lt;br&gt;*.npy`&quot;]
     DS --&gt; DSPNG[&quot;`Dynamic spectrum plots in PNG:&lt;br&gt;*.png`&quot;]
@@ -357,6 +359,10 @@ Note down the Job ID to view the logger.</p>
 <h3>Dynamic spectrum<a class="headerlink" href="#dynamic-spectrum" title="Link to this heading">¶</a></h3>
 <p>Dynamic spectra for all (or the ones selected) target scans are available in <code class="docutils literal notranslate"><span class="pre">dynamic_spectra</span></code> directory inside the output directory <code class="docutils literal notranslate"><span class="pre">&lt;outputdir&gt;</span></code>.</p>
 </section>
+<section id="diagnostic-plots">
+<h3>Diagnostic plots<a class="headerlink" href="#diagnostic-plots" title="Link to this heading">¶</a></h3>
+<p>Diagnostic plots for all measurement sets and calibration tables in pdf format in <code class="docutils literal notranslate"><span class="pre">diagnostic_plots</span></code> directory inside the output directory <code class="docutils literal notranslate"><span class="pre">&lt;outputdir&gt;</span></code>.</p>
+</section>
 <section id="calibrated-visibilities">
 <h3>Calibrated visibilities<a class="headerlink" href="#calibrated-visibilities" title="Link to this heading">¶</a></h3>
 <p>Calibrated measurements sets for all (or the ones selected) target scans will be available in work directory <code class="docutils literal notranslate"><span class="pre">&lt;workdir&gt;</span></code> with naming format, <code class="docutils literal notranslate"><span class="pre">targets_scan_&lt;scan_number&gt;_spw_&lt;channel_range&gt;.ms</span></code>. Calibrated measurement sets will not be saved in output directory <code class="docutils literal notranslate"><span class="pre">&lt;outputdir&gt;</span></code> (unless same as <code class="docutils literal notranslate"><span class="pre">&lt;workdir&gt;</span></code>) to save space.</p>
@@ -364,10 +370,10 @@ Note down the Job ID to view the logger.</p>
 <section id="imaging-products">
 <h3>Imaging products<a class="headerlink" href="#imaging-products" title="Link to this heading">¶</a></h3>
 <p>Imaging products are available in <code class="docutils literal notranslate"><span class="pre">imagedir_f_&lt;freqres&gt;_t_&lt;timeres&gt;_w_&lt;weight&gt;_&lt;robust&gt;</span></code> directory inside output directory <code class="docutils literal notranslate"><span class="pre">&lt;outputdir&gt;</span></code>. If imaging is performed with different time and frequency resolutions or different weighting schemes, seperate image directories with corresponding parameters will have the corresponding images.</p>
-<ol class="arabic">
-<li><p><strong>Image fits in RA/DEC</strong> - Fits images in RA/DEC coordinate are available in <code class="docutils literal notranslate"><span class="pre">imagedir_f_&lt;freqres&gt;_t_&lt;timeres&gt;_w_&lt;weight&gt;_&lt;robust&gt;/images</span></code> directory inside work directory. These are not primary beam corrected.</p>
-<blockquote>
-<div><div class="admonition note">
+<ol class="arabic simple">
+<li><p><strong>Image fits in RA/DEC</strong> - Fits images in RA/DEC coordinate are available in <code class="docutils literal notranslate"><span class="pre">imagedir_f_&lt;freqres&gt;_t_&lt;timeres&gt;_w_&lt;weight&gt;_&lt;robust&gt;/images</span></code> directory inside work directory. These are not primary beam corrected.</p></li>
+</ol>
+<div class="admonition note">
 <p class="admonition-title">Note</p>
 <p>All fits images have some MeerSOLAR specific metadata in the header and some image statistics.</p>
 <div class="dropdown admonition">
@@ -388,19 +394,17 @@ Note down the Job ID to view the logger.</p>
 </div></blockquote>
 </div>
 </div>
-</div></blockquote>
-</li>
+<ol class="arabic simple" start="2">
 <li><p><strong>Primary beam corrected image fits</strong> - Primary beam corrected fits images are available in <code class="docutils literal notranslate"><span class="pre">imagedir_f_&lt;freqres&gt;_t_&lt;timeres&gt;_w_&lt;weight&gt;_&lt;robust&gt;/pbcor_images</span></code> directory inside work directory.</p></li>
 <li><p><strong>Brightness temperature image fits</strong> - Brightness temperature fits images are available in <code class="docutils literal notranslate"><span class="pre">imagedir_f_&lt;freqres&gt;_t_&lt;timeres&gt;_w_&lt;weight&gt;_&lt;robust&gt;/tb_images</span></code> directory inside work directory.</p></li>
 <li><p><strong>CLEAN model and residual fits</strong> - CLEAN model and residual images are available in <code class="docutils literal notranslate"><span class="pre">imagedir_f_&lt;freqres&gt;_t_&lt;timeres&gt;_w_&lt;weight&gt;_&lt;robust&gt;/models</span></code> and <code class="docutils literal notranslate"><span class="pre">imagedir_f_&lt;freqres&gt;_t_&lt;timeres&gt;_w_&lt;weight&gt;_&lt;robust&gt;/residuals</span></code> directory inside work directory. These are not saved only if <code class="docutils literal notranslate"><span class="pre">keep_backup</span></code> option is switched on.</p></li>
-<li><p><strong>Radio images in helioprojective coordinates</strong> - Directory names <code class="docutils literal notranslate"><span class="pre">hpcs</span></code> inside directories like, <code class="docutils literal notranslate"><span class="pre">images,</span> <span class="pre">pbcor_images,</span> <span class="pre">tb_images</span></code> inside the image directory will have the FITS images in helioprojective coordinates. Images in PNG and PDF formats are also available in <code class="docutils literal notranslate"><span class="pre">pngs</span></code> and <code class="docutils literal notranslate"><span class="pre">pdfs</span></code> directories inside the parent directories.</p>
-<blockquote>
-<div><div class="admonition note">
+<li><p><strong>Radio images in helioprojective coordinates</strong> - Directory names <code class="docutils literal notranslate"><span class="pre">hpcs</span></code> inside directories like, <code class="docutils literal notranslate"><span class="pre">images,</span> <span class="pre">pbcor_images,</span> <span class="pre">tb_images</span></code> inside the image directory will have the FITS images in helioprojective coordinates. Images in PNG and PDF formats are also available in <code class="docutils literal notranslate"><span class="pre">pngs</span></code> and <code class="docutils literal notranslate"><span class="pre">pdfs</span></code> directories inside the parent directories.</p></li>
+</ol>
+<div class="admonition note">
 <p class="admonition-title">Note</p>
 <p>Header of helioprojective maps have wavelength information in unit of <code class="docutils literal notranslate"><span class="pre">centimeter</span></code> or <code class="docutils literal notranslate"><span class="pre">meter</span></code>.</p>
 </div>
-</div></blockquote>
-</li>
+<ol class="arabic simple" start="6">
 <li><p><strong>Overlays on GOES-SUVI EUV images</strong> - Overlays on GOES SUVI EUV (193 Å) images are saved in PNG and PDF formats in <code class="docutils literal notranslate"><span class="pre">imagedir_f_&lt;freqres&gt;_t_&lt;timeres&gt;_w_&lt;weight&gt;_&lt;robust&gt;/overlays_pngs</span></code> and <code class="docutils literal notranslate"><span class="pre">imagedir_f_&lt;freqres&gt;_t_&lt;timeres&gt;_w_&lt;weight&gt;_&lt;robust&gt;/overlays_pngs</span></code>, respectively.</p></li>
 </ol>
 </section>
@@ -466,6 +470,7 @@ Note down the Job ID to view the logger.</p>
 <li><a class="reference internal" href="#directory-structure">Directory structure</a></li>
 <li><a class="reference internal" href="#data-products">Data products</a><ul>
 <li><a class="reference internal" href="#dynamic-spectrum">Dynamic spectrum</a></li>
+<li><a class="reference internal" href="#diagnostic-plots">Diagnostic plots</a></li>
 <li><a class="reference internal" href="#calibrated-visibilities">Calibrated visibilities</a></li>
 <li><a class="reference internal" href="#imaging-products">Imaging products</a></li>
 </ul>

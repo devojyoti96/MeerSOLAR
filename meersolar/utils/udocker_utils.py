@@ -54,14 +54,16 @@ def check_udocker_container(name):
         return True
 
 
-def initialize_wsclean_container(name="solarwsclean"):
+def initialize_wsclean_container(name="solarwsclean", update=False):
     """
     Initialize WSClean container
 
     Parameters
     ----------
-    name : str
+    name : str, optional
         Name of the container
+    update : bool, optional
+        Update container
 
     Returns
     -------
@@ -73,12 +75,74 @@ def initialize_wsclean_container(name="solarwsclean"):
     check_cmd = f"udocker images | grep -q '{image_name}'"
     image_exists = os.system(check_cmd) == 0
     if not image_exists:
-        a = os.system(f"udocker pull {image_name}")
+        with suppress_output():
+            a = os.system(f"udocker pull {image_name}")
     else:
-        print(f"Image '{image_name}' already present.")
-        a = 0
+        if update:
+            with suppress_output():
+                os.system(f"udocker rm {name}")
+                os.system(f"udocker rmi {image_name}")
+                print("Re-downloading docker image.")
+                a = os.system(f"udocker pull {image_name}")
+                if a == 0:
+                    print("Re-downloaded docker image.")
+                else:
+                    print("Re-downloading container image is failed.")
+                    return
+        else:
+            print(f"Image '{image_name}' already present.")
+            a = 0
     if a == 0:
-        a = os.system(f"udocker create --name={name} {image_name}")
+        with suppress_output():
+            a = os.system(f"udocker create --name={name} {image_name}")
+        print(f"Container started with name : {name}")
+        return name
+    else:
+        print(f"Container could not be created with name : {name}")
+        return
+
+
+def initialize_shadems_container(name="solarshadems", update=False):
+    """
+    Initialize shadems container
+
+    Parameters
+    ----------
+    name : str, optional
+        Name of the container
+    update : bool, optional
+        Update container
+
+    Returns
+    -------
+    bool
+        Whether initialized successfully or not
+    """
+    set_udocker_env()
+    image_name = "devojyoti96/shadems:v0.5.4"
+    check_cmd = f"udocker images | grep -q '{image_name}'"
+    image_exists = os.system(check_cmd) == 0
+    if not image_exists:
+        with suppress_output():
+            a = os.system(f"udocker pull {image_name}")
+    else:
+        if update:
+            with suppress_output():
+                os.system(f"udocker rm {name}")
+                os.system(f"udocker rmi {image_name}")
+                print("Re-downloading docker image.")
+                a = os.system(f"udocker pull {image_name}")
+                if a == 0:
+                    print("Re-downloaded docker image.")
+                else:
+                    print("Re-downloading container image is failed.")
+                    return
+        else:
+            print(f"Image '{image_name}' already present.")
+            a = 0
+    if a == 0:
+        with suppress_output():
+            a = os.system(f"udocker create --name={name} {image_name}")
         print(f"Container started with name : {name}")
         return name
     else:
@@ -170,7 +234,7 @@ def run_wsclean(
         + os.path.basename(msname)
     )
     try:
-        full_command = f"udocker run --nobanner --volume={mspath}:{temp_docker_path} --workdir {temp_docker_path} solarwsclean {wsclean_cmd}"
+        full_command = f"udocker run --nobanner --volume={mspath}:{temp_docker_path} --workdir {temp_docker_path} {container_name} {wsclean_cmd}"
         if not verbose:
             full_command += f" >> {mspath}/{tmp1} "
         else:
@@ -256,7 +320,7 @@ def run_solar_sidereal_cor(
             full_command += f" >> {tmp1} >> {tmp2}"
         else:
             print(cmd)
-        with suppress_casa_output():
+        with suppress_output():
             exit_code = os.system(full_command)
         os.system(f"rm -rf {temp_docker_path} {tmp1} {tmp2}")
         return 0 if exit_code == 0 else 1
@@ -272,6 +336,7 @@ def run_chgcenter(
     dec,
     only_uvw=False,
     container_name="solarwsclean",
+    check_container=False,
     verbose=False,
 ):
     """
@@ -289,6 +354,8 @@ def run_chgcenter(
         Update only UVW values
         Note: This is required when visibilities are properly phase rotated in correlator,
         but while creating the MS, UVW values are estimated using a wrong phase center.
+    check_container : bool, optional
+        Check container
     container_name : str, optional
         Container name
     verbose : bool, optional
@@ -304,14 +371,15 @@ def run_chgcenter(
     timestamp = int(time.time() * 1000)
     tmp1 = f"tmp1_{pid}_{timestamp}.txt"
     tmp2 = f"tmp2_{pid}_{timestamp}.txt"
-    container_present = check_udocker_container(container_name)
-    if not container_present:
-        container_name = initialize_wsclean_container(name=container_name)
-        if container_name is None:
-            print(
-                f"Container {container_name} is not initiated. First initiate container and then run."
-            )
-            return 1
+    if check_container:
+        container_present = check_udocker_container(container_name)
+        if not container_present:
+            container_name = initialize_wsclean_container(name=container_name)
+            if container_name is None:
+                print(
+                    f"Container {container_name} is not initiated. First initiate container and then run."
+                )
+                return 1
     msname = os.path.abspath(msname)
     mspath = os.path.dirname(msname)
     temp_docker_path = tempfile.mkdtemp(prefix="chgcenter_udocker_", dir=mspath)
@@ -338,7 +406,7 @@ def run_chgcenter(
             + dec
         )
     try:
-        full_command = f"udocker --quiet run --nobanner --volume={mspath}:{temp_docker_path} --workdir {temp_docker_path} solarwsclean {cmd}"
+        full_command = f"udocker --quiet run --nobanner --volume={mspath}:{temp_docker_path} --workdir {temp_docker_path} {container_name} {cmd}"
         if not verbose:
             full_command += f" >> {tmp1} >> {tmp2}"
         else:
@@ -350,6 +418,68 @@ def run_chgcenter(
         os.system(f"rm -rf {temp_docker_path} {tmp1} {tmp2}")
         traceback.print_exc()
         return 1
+
+
+def run_shadems(
+    cmd,
+    container_name="solarshadems",
+    check_container=False,
+    verbose=False,
+):
+    """
+    Run shadems inside a udocker container (no root permission required).
+
+    Parameters
+    ----------
+    cmd : str
+        Shadems command
+    container_name : str, optional
+        Container name
+    check_container : bool, optional
+        Check container
+    verbose : bool, optional
+        Verbose output
+
+    Returns
+    -------
+    int
+        Success message
+    """
+    set_udocker_env()
+    pid = os.getpid()
+    if check_container:
+        container_present = check_udocker_container(container_name)
+        if not container_present:
+            container_name = initialize_shadems_container(name=container_name)
+            if container_name is None:
+                print(
+                    f"Container {container_name} is not initiated. First initiate container and then run."
+                )
+                return 1
+    splited_cmd = cmd.split(" ")
+    if splited_cmd[-1] in ["-h", "--help"]:
+        verbose = True
+        datapath = os.getcwd()
+    else:
+        msname = splited_cmd[-1]
+        datapath = os.path.dirname(os.path.abspath(msname))
+    temp_docker_path = tempfile.mkdtemp(prefix="shadems_udocker_", dir=datapath)
+    if splited_cmd[-1] not in ["-h", "--help"]:
+        cmd = f"{' '.join(splited_cmd[:-1])} {temp_docker_path}/{os.path.basename(msname)}"
+    try:
+        full_command = f"udocker --quiet run --nobanner --volume={datapath}:{temp_docker_path} --workdir {temp_docker_path} {container_name} {cmd}"
+        if not verbose:
+            with suppress_output():
+                exit_code = os.system(full_command)
+        else:
+            print(cmd)
+            exit_code = os.system(full_command)
+        return 0 if exit_code == 0 else 1
+    except Exception as e:
+        traceback.print_exc()
+        return 1
+    finally:
+        os.system(f"rm -rf {temp_docker_path}")
     return
 
 

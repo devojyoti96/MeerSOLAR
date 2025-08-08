@@ -572,6 +572,49 @@ def get_refant(
     return str(referenceant)
 
 
+def get_uvrange_exclude(uvrange):
+    """
+    Get uv-range(s) excluding the given uv-range
+
+    Parameters
+    ----------
+    uvrange : str
+        UV-range in CASA format
+
+    Returns
+    -------
+    list
+        List of uvranges excluding the given uv-range
+    """
+    uvrange = uvrange.strip().lower()
+    if "lambda" not in uvrange:
+        raise ValueError("uvrange must contain 'lambda' units")
+    if uvrange.startswith(">"):
+        val = uvrange[1:].replace("lambda", "").strip()
+        return [f"<{val}lambda"]
+    elif uvrange.startswith("<"):
+        val = uvrange[1:].replace("lambda", "").strip()
+        return [f">{val}lambda"]
+    elif "~" in uvrange:
+        parts = uvrange.replace("lambda", "").split("~")
+        if len(parts) != 2:
+            raise ValueError("Invalid uvrange format with '~'")
+        low, high = parts[0].strip(), parts[1].strip()
+        try:
+            low_val = float(low)
+            high_val = float(high)
+        except ValueError:
+            raise ValueError("uvrange bounds must be numeric")
+        if low_val > high_val:
+            raise ValueError(
+                f"Lower bound {low_val} > upper bound {high_val} in uvrange"
+            )
+        return [f"<{low}lambda", f">{high}lambda"]
+
+    else:
+        raise ValueError(f"Unsupported uvrange format: '{uvrange}'")
+
+
 def get_ms_scans(msname):
     """
     Get scans of the measurement set

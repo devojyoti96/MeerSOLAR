@@ -14,7 +14,7 @@ from contextlib import contextmanager
 # Basic utility funactions
 ##########################
 @contextmanager
-def suppress_casa_output():
+def suppress_output():
     """
     Supress CASA terminal output
     """

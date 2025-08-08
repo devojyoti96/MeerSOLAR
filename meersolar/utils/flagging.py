@@ -77,7 +77,7 @@ def get_unflagged_antennas(
     msname = msname.rstrip("/")
     mspath = os.path.dirname(os.path.abspath(msname))
     os.chdir(mspath)
-    with suppress_casa_output():
+    with suppress_output():
         flag_summary = flagdata(vis=msname, scan=str(scan), mode="summary")
     antenna_flags = flag_summary["antenna"]
     unflagged_antenna_names = []
@@ -120,7 +120,7 @@ def get_chans_flag(
     msname = msname.rstrip("/")
     mspath = os.path.dirname(os.path.abspath(msname))
     os.chdir(mspath)
-    with suppress_casa_output():
+    with suppress_output():
         summary = flagdata(vis=msname, field=field, mode="summary", spwchan=True)
     unflag_chans = []
     flag_chans = []
@@ -164,7 +164,7 @@ def calc_flag_fraction(
     msname = msname.rstrip("/")
     mspath = os.path.dirname(os.path.abspath(msname))
     os.chdir(mspath)
-    with suppress_casa_output():
+    with suppress_output():
         summary = flagdata(vis=msname, field=field, scan=scan, mode="summary")
     flagged_fraction = summary["flagged"] / summary["total"]
     return flagged_fraction

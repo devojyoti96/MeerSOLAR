@@ -27,7 +27,7 @@ def split_casatask(
     n_threads=-1,
 ):
     limit_threads(n_threads=n_threads)
-    with suppress_casa_output():
+    with suppress_output():
         from casatasks import split
 
         split(
@@ -80,14 +80,14 @@ def split_autocorr(
     tasks = []
     if cpu_frac > 0.8:
         cpu_frac = 0.8
-    total_cpu = max(1,int(psutil.cpu_count() * cpu_frac))
+    total_cpu = max(1, int(psutil.cpu_count() * cpu_frac))
     if mem_frac > 0.8:
         mem_frac = 0.8
     total_mem = (psutil.virtual_memory().available * mem_frac) / (1024**3)  # In GB
     njobs = max(1, min(total_cpu, len(scan_list)))
     n_threads = max(1, int(total_cpu / njobs))
-    if len(scan_list)==0:
-        print ("No scan to split.")
+    if len(scan_list) == 0:
+        print("No scan to split.")
         return []
     for scan in scan_list:
         if time_window > 0:
@@ -118,7 +118,7 @@ def split_autocorr(
                 msname, outputvis, scan, time_range, n_threads=n_threads
             )
         )
-    print ("Starting spliting auto-correlations...")
+    print("Starting spliting auto-correlations...")
     futures = dask_client.compute(tasks)
     autocorr_mslist = list(dask_client.gather(futures))
     return autocorr_mslist
@@ -370,7 +370,7 @@ def estimate_att(
     try:
         if cpu_frac > 0.8:
             cpu_frac = 0.8
-        total_cpu = max(1,int(psutil.cpu_count() * cpu_frac))
+        total_cpu = max(1, int(psutil.cpu_count() * cpu_frac))
         if mem_frac > 0.8:
             mem_frac = 0.8
         total_mem = (psutil.virtual_memory().available * mem_frac) / (1024**3)  # In GB
@@ -379,9 +379,9 @@ def estimate_att(
         # All auto-corr scans spliting
         ###########################################
         all_scans = [noise_diode_flux_scan] + valid_target_scans
-        if len(valid_target_scans)==0:
-            print ("No valid target scan is available.")
-            return 1, None, None 
+        if len(valid_target_scans) == 0:
+            print("No valid target scan is available.")
+            return 1, None, None
         print("Spliting auto-correlation in different scans ...")
         autocorr_mslist = split_autocorr(
             msname,
@@ -408,7 +408,7 @@ def estimate_att(
         ########################################
         njobs = max(1, min(total_cpu, len(autocorr_mslist)))
         n_threads = max(1, int(total_cpu / njobs))
-        mem_limit = total_mem/njobs
+        mem_limit = total_mem / njobs
 
         print("#################################")
         print(f"Total dask worker: {njobs}")
@@ -433,12 +433,12 @@ def estimate_att(
                     memory_limit=mem_limit,
                 )
             )
-        print ("Start flagging on auto-correlation ms...")
+        print("Start flagging on auto-correlation ms...")
         futures = dask_client.compute(tasks)
         results = dask_client.gather(futures)
         for autocorr_msname in autocorr_mslist:
             drop_cache(autocorr_msname)
-            
+
         att_level = {}
         ########################################
         # Calculating per scan level
@@ -449,7 +449,7 @@ def estimate_att(
         ########################################
         njobs = max(1, min(total_cpu, len(autocorr_mslist)))
         n_threads = max(1, int(total_cpu / njobs))
-        mem_limit = total_mem/njobs
+        mem_limit = total_mem / njobs
 
         print("#################################")
         print(f"Total dask worker: {njobs}")
@@ -476,10 +476,10 @@ def estimate_att(
                 )
             )
             filtered_scans.append(scan)
-        print ("Estimating auto-correlation power differences...")
+        print("Estimating auto-correlation power differences...")
         futures = dask_client.compute(tasks)
-        results=dask_client.gather(futures)
-        
+        results = dask_client.gather(futures)
+
         ##########################################
         # Determining frequencies
         ##########################################
@@ -605,8 +605,8 @@ def run_noise_cal(
         if noise_diode_cal_scan == "":
             print("No noise diode cal scan is present.")
             return 1, None, None
-        if len(valid_target_scans)==0:
-            print ("No valid target scan is present.")
+        if len(valid_target_scans) == 0:
+            print("No valid target scan is present.")
             return 1, None, None
 
         ##############################
@@ -619,7 +619,7 @@ def run_noise_cal(
         if os.path.exists(noisecal_ms + ".flagversions"):
             os.system("rm -rf " + noisecal_ms + ".flagversions")
 
-        with suppress_casa_output():
+        with suppress_output():
             split(
                 vis=msname,
                 outputvis=noisecal_ms,
@@ -691,7 +691,7 @@ def run_noise_cal(
         oncal = noisecal_ms.split(".ms")[0] + "_on.bcal"
         offcal = noisecal_ms.split(".ms")[0] + "_off.bcal"
 
-        with suppress_casa_output():
+        with suppress_output():
             bandpass(
                 vis=noisecal_ms,
                 caltable=oncal,
@@ -842,7 +842,7 @@ def main(
             mem_frac=mem_frac,
         )
         nworker = max(2, int(psutil.cpu_count() * cpu_frac))
-        scale_worker_and_wait(dask_cluster,nworker)
+        scale_worker_and_wait(dask_cluster, nworker)
 
     try:
         if os.path.exists(msname):

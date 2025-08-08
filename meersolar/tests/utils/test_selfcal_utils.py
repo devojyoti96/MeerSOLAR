@@ -22,7 +22,7 @@ from meersolar.utils.selfcal_utils import *
 @patch("meersolar.utils.selfcal_utils.limit_threads")
 @patch("meersolar.utils.selfcal_utils.psutil.cpu_count", return_value=4)
 @patch("meersolar.utils.selfcal_utils.psutil.virtual_memory")
-@patch("meersolar.utils.selfcal_utils.suppress_casa_output")
+@patch("meersolar.utils.selfcal_utils.suppress_output")
 @patch("meersolar.utils.selfcal_utils.msmetadata")
 @patch("meersolar.utils.selfcal_utils.table")
 @patch("casatasks.bandpass")

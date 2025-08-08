@@ -72,7 +72,7 @@ def partion_ms(
 
     if cpu_frac > 0.8:
         cpu_frac = 0.8
-    total_cpu = max(1,int(psutil.cpu_count() * cpu_frac))  # In GB
+    total_cpu = max(1, int(psutil.cpu_count() * cpu_frac))  # In GB
 
     valid_scans = get_valid_scans(msname, min_scan_time=1)
     msmd = msmetadata()
@@ -107,7 +107,7 @@ def partion_ms(
                 backup_scan_list.remove(s)
         scan_list = copy.deepcopy(backup_scan_list)
     msmd.close()
-    
+
     if len(scan_list) == 0:
         print("Please provide at-least one valid scan to split.")
         return
@@ -134,7 +134,7 @@ def partion_ms(
     print(f"CPU per worker: {n_threads}")
     print("#################################")
     ###########################################
-    
+
     tasks = []
     results = []
     for i in range(len(scan_list)):
@@ -151,7 +151,7 @@ def partion_ms(
             numsubms=1,
         )
         tasks.append(task)
-    print ("Partitioning start...")
+    print("Partitioning start...")
     futures = dask_client.compute(tasks)
     splited_ms_list = list(dask_client.gather(futures))
     splited_ms_list_copy = copy.deepcopy(splited_ms_list)
@@ -166,14 +166,14 @@ def partion_ms(
         os.system("rm -rf " + outputms + ".flagversions")
     if len(splited_ms_list) == 0:
         print("No splited ms to concat.")
-        return 
+        return
     elif len(splited_ms_list) == 1:
         os.system(f"mv {splited_ms_list[0]} {outputms}")
     else:
         print("Making multi-MS ....")
         from casatasks import virtualconcat
 
-        with suppress_casa_output():
+        with suppress_output():
             virtualconcat(vis=splited_ms_list, concatvis=outputms)
     return outputms
 
@@ -270,7 +270,7 @@ def main(
             mem_frac=mem_frac,
         )
         nworker = max(2, int(psutil.cpu_count() * cpu_frac))
-        scale_worker_and_wait(dask_cluster,nworker)
+        scale_worker_and_wait(dask_cluster, nworker)
 
     try:
         if os.path.exists(msname):

@@ -35,7 +35,7 @@ def test_correct_missing_col_subms(dummy_submsname):
 @patch("casatasks.flagdata")
 @patch("casatasks.initweights")
 @patch("casatasks.mstransform")
-@patch("meersolar.utils.casatasks.suppress_casa_output")
+@patch("meersolar.utils.casatasks.suppress_output")
 @patch("meersolar.utils.casatasks.limit_threads")
 @patch("meersolar.utils.casatasks.os.system")
 @patch("meersolar.utils.casatasks.os.path.exists", return_value=False)

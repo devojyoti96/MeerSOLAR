@@ -631,9 +631,9 @@ def run_all_imaging(
                 print(f"Issue in : {ms}")
                 os.system(f"rm -rf {ms}")
         mslist = filtered_mslist
-        if len(mslist)==0:
-            print ("No valid measurement set is found.")
-            return 1 
+        if len(mslist) == 0:
+            print("No valid measurement set is found.")
+            return 1
 
         #####################################
         # Determining spectro-temporal chunks
@@ -685,15 +685,15 @@ def run_all_imaging(
 
         if cpu_frac > 0.8:
             cpu_frac = 0.8
-        total_cpu = max(1,int(psutil.cpu_count() * cpu_frac))
+        total_cpu = max(1, int(psutil.cpu_count() * cpu_frac))
         if mem_frac > 0.8:
             mem_frac = 0.8
         total_mem = (psutil.virtual_memory().available * mem_frac) / (1024**3)  # In GB
-        
+
         #################################
         # Determining per worker resource
         #################################
-        njobs = min(len(mslist),int(new_soft_limit / total_fd))
+        njobs = min(len(mslist), int(new_soft_limit / total_fd))
         njobs = max(1, min(total_cpu, njobs))
         n_threads = max(1, int(total_cpu / njobs))
         mem_limit = total_mem / njobs
@@ -774,8 +774,8 @@ def run_all_imaging(
                 )
             )
         print(
-                f"Starting imaging for ms : {ms}, Log file : {logfile}",
-            )
+            f"Starting imaging for ms : {ms}, Log file : {logfile}",
+        )
         results = list(dask_client.gather(dask_client.compute(tasks)))
         all_image_list = []
         all_imaged_ms_list = []
@@ -945,7 +945,7 @@ def main(
             mem_frac=mem_frac,
         )
         nworker = max(2, int(psutil.cpu_count() * cpu_frac))
-        scale_worker_and_wait(dask_cluster,nworker)
+        scale_worker_and_wait(dask_cluster, nworker)
 
     try:
         if len(mslist) == 0:

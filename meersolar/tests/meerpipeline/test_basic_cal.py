@@ -11,7 +11,7 @@ from meersolar.meerpipeline.basic_cal import *
     ],
 )
 @patch("meersolar.meerpipeline.basic_cal.limit_threads")
-@patch("meersolar.meerpipeline.basic_cal.suppress_casa_output")
+@patch("meersolar.meerpipeline.basic_cal.suppress_output")
 @patch("casatasks.gaincal")
 @patch("meersolar.utils.calibration.delaycal")
 def test_run_delaycal(
@@ -78,7 +78,7 @@ def test_run_delaycal(
 
 
 @patch("meersolar.meerpipeline.basic_cal.limit_threads")
-@patch("meersolar.meerpipeline.basic_cal.suppress_casa_output")
+@patch("meersolar.meerpipeline.basic_cal.suppress_output")
 @patch("casatasks.flagdata")
 @patch("casatasks.bandpass")
 def test_run_bandpass(
@@ -132,7 +132,7 @@ def test_run_bandpass(
 
 
 @patch("meersolar.meerpipeline.basic_cal.limit_threads")
-@patch("meersolar.meerpipeline.basic_cal.suppress_casa_output")
+@patch("meersolar.meerpipeline.basic_cal.suppress_output")
 @patch("casatasks.gaincal")
 def test_run_gaincal(mock_gaincal, mock_suppress_output, mock_limit_threads):
     msname = "/mock/data/flux.ms"
@@ -186,7 +186,7 @@ def test_run_gaincal(mock_gaincal, mock_suppress_output, mock_limit_threads):
 
 
 @patch("meersolar.meerpipeline.basic_cal.limit_threads")
-@patch("meersolar.meerpipeline.basic_cal.suppress_casa_output")
+@patch("meersolar.meerpipeline.basic_cal.suppress_output")
 @patch("casatasks.polcal")
 @patch("casatasks.flagdata")
 def test_run_leakagecal(
@@ -239,7 +239,7 @@ def test_run_leakagecal(
 @patch("meersolar.meerpipeline.basic_cal.os.path.exists")
 @patch("casatasks.polcal")
 @patch("casatasks.gaincal")
-@patch("meersolar.meerpipeline.basic_cal.suppress_casa_output")
+@patch("meersolar.meerpipeline.basic_cal.suppress_output")
 @patch("meersolar.meerpipeline.basic_cal.limit_threads")
 def test_run_polcal(
     mock_limit_threads,
@@ -276,7 +276,7 @@ def test_run_polcal(
 
 
 @patch("casatasks.applycal")
-@patch("meersolar.meerpipeline.basic_cal.suppress_casa_output")
+@patch("meersolar.meerpipeline.basic_cal.suppress_output")
 @patch("meersolar.meerpipeline.basic_cal.limit_threads")
 def test_run_applycal(
     mock_limit_threads,
@@ -308,7 +308,7 @@ def test_run_applycal(
 
 
 @patch("meersolar.meerpipeline.basic_cal.traceback")
-@patch("meersolar.meerpipeline.basic_cal.suppress_casa_output")
+@patch("meersolar.meerpipeline.basic_cal.suppress_output")
 @patch("meersolar.meerpipeline.basic_cal.msmetadata")
 @patch("meersolar.meerpipeline.basic_cal.get_chunk_size", return_value=2)
 @patch("meersolar.meerpipeline.basic_cal.check_datacolumn_valid", return_value=True)
@@ -384,7 +384,7 @@ def test_run_postcal_flag(
     "meersolar.meerpipeline.basic_cal.run_polcal",
     return_value=("mocked.kcrosscal", "mocked.xfcal", "mocked.panglecal"),
 )
-@patch("meersolar.meerpipeline.basic_cal.suppress_casa_output")
+@patch("meersolar.meerpipeline.basic_cal.suppress_output")
 @patch(
     "casatasks.fluxscale",
     return_value={
@@ -502,7 +502,9 @@ def test_single_round_cal_and_flag(
 @patch("meersolar.meerpipeline.basic_cal.correct_missing_col_subms")
 @patch("meersolar.meerpipeline.basic_cal.get_refant", return_value="ant1")
 @patch("meersolar.meerpipeline.basic_cal.single_round_cal_and_flag")
+@patch("casatasks.flagdata")
 def test_run_basic_cal_rounds(
+    mock_flagdata,
     mock_single_round,
     mock_get_refant,
     mock_correct_subms,
@@ -548,6 +550,7 @@ def test_run_basic_cal_rounds(
         keep_backup=False,
         perform_polcal=True,
     )
+    assert mock_flagdata.call_count >= 1
     assert status_fail == 1
     assert caltables_fail == []
 

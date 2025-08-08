@@ -890,6 +890,52 @@
 
 
 
+<div class="viewcode-block" id="get_uvrange_exclude">
+<a class="viewcode-back" href="../../../meersolar.utils.html#meersolar.utils.ms_metadata.get_uvrange_exclude">[docs]</a>
+<span class="k">def</span> <span class="nf">get_uvrange_exclude</span><span class="p">(</span><span class="n">uvrange</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Get uv-range(s) excluding the given uv-range</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    uvrange : str</span>
+<span class="sd">        UV-range in CASA format</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    list</span>
+<span class="sd">        List of uvranges excluding the given uv-range</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">uvrange</span> <span class="o">=</span> <span class="n">uvrange</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+    <span class="k">if</span> <span class="s2">&quot;lambda&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">uvrange</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;uvrange must contain &#39;lambda&#39; units&quot;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">uvrange</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;&gt;&quot;</span><span class="p">):</span>
+        <span class="n">val</span> <span class="o">=</span> <span class="n">uvrange</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;lambda&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+        <span class="k">return</span> <span class="p">[</span><span class="sa">f</span><span class="s2">&quot;&lt;</span><span class="si">{</span><span class="n">val</span><span class="si">}</span><span class="s2">lambda&quot;</span><span class="p">]</span>
+    <span class="k">elif</span> <span class="n">uvrange</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;&lt;&quot;</span><span class="p">):</span>
+        <span class="n">val</span> <span class="o">=</span> <span class="n">uvrange</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;lambda&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+        <span class="k">return</span> <span class="p">[</span><span class="sa">f</span><span class="s2">&quot;&gt;</span><span class="si">{</span><span class="n">val</span><span class="si">}</span><span class="s2">lambda&quot;</span><span class="p">]</span>
+    <span class="k">elif</span> <span class="s2">&quot;~&quot;</span> <span class="ow">in</span> <span class="n">uvrange</span><span class="p">:</span>
+        <span class="n">parts</span> <span class="o">=</span> <span class="n">uvrange</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;lambda&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;~&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">parts</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Invalid uvrange format with &#39;~&#39;&quot;</span><span class="p">)</span>
+        <span class="n">low</span><span class="p">,</span> <span class="n">high</span> <span class="o">=</span> <span class="n">parts</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">strip</span><span class="p">(),</span> <span class="n">parts</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">low_val</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">low</span><span class="p">)</span>
+            <span class="n">high_val</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">high</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;uvrange bounds must be numeric&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">low_val</span> <span class="o">&gt;</span> <span class="n">high_val</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;Lower bound </span><span class="si">{</span><span class="n">low_val</span><span class="si">}</span><span class="s2"> &gt; upper bound </span><span class="si">{</span><span class="n">high_val</span><span class="si">}</span><span class="s2"> in uvrange&quot;</span>
+            <span class="p">)</span>
+        <span class="k">return</span> <span class="p">[</span><span class="sa">f</span><span class="s2">&quot;&lt;</span><span class="si">{</span><span class="n">low</span><span class="si">}</span><span class="s2">lambda&quot;</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;&gt;</span><span class="si">{</span><span class="n">high</span><span class="si">}</span><span class="s2">lambda&quot;</span><span class="p">]</span>
+
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Unsupported uvrange format: &#39;</span><span class="si">{</span><span class="n">uvrange</span><span class="si">}</span><span class="s2">&#39;&quot;</span><span class="p">)</span></div>
+
+
+
 <div class="viewcode-block" id="get_ms_scans">
 <a class="viewcode-back" href="../../../meersolar.utils.html#meersolar.utils.ms_metadata.get_ms_scans">[docs]</a>
 <span class="k">def</span> <span class="nf">get_ms_scans</span><span class="p">(</span><span class="n">msname</span><span class="p">):</span>

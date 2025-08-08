@@ -219,7 +219,7 @@ def get_valid_scans(msname, field="", min_scan_time=1, n_threads=-1):
         msmd = msmetadata()
         msmd.open(msname)
         for f in field:
-            with suppress_casa_output():
+            with suppress_output():
                 try:
                     field_id = msmd.fieldsforname(f)[0]
                 except Exception as e:

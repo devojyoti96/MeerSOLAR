@@ -2,7 +2,7 @@ Acknowledging
 ---------------
 
 MeerSOLAR is developed by Devojyoti Kansabanik (CPAESS-UCAR, Boulder, USA) and Deepan Patra (NCRA-TIFR, Pune, India). If you use **MeerSOLAR** for analysing your MeerKAT solar observations, include the following statement in your paper : **This MeerKAT solar observations are analysed using MeerSOLAR pipeline.**
-and cite the Zenodo version: https://doi.org/10.5281/zenodo.16590564
+and cite the Zenodo version: https://doi.org/10.5281/zenodo.16040507
 
 Third-party software
 ^^^^^^^^^^^^^^^^^^^^

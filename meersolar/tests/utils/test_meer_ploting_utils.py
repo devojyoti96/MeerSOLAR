@@ -1,9 +1,95 @@
 import pytest
 import sunpy
 import os
+import numpy as np
 from astropy.io import fits
 from unittest.mock import patch, MagicMock
 from meersolar.utils.meer_ploting_utils import *
+
+
+@patch("meersolar.utils.meer_ploting_utils.glob.glob")
+@patch("meersolar.utils.meer_ploting_utils.Image.open")
+@patch("meersolar.utils.meer_ploting_utils.delayed")
+@patch("meersolar.utils.meer_ploting_utils.get_local_dask_cluster")
+@patch("meersolar.utils.meer_ploting_utils.psutil")
+@patch("meersolar.utils.meer_ploting_utils.get_ms_scan_size")
+@patch("meersolar.utils.meer_ploting_utils.casamstool")
+@patch("meersolar.utils.meer_ploting_utils.msmetadata")
+def test_plot_ms_diagnostics(
+    mock_msmd,
+    mock_casamstool,
+    mock_scan_size,
+    mock_psutil,
+    mock_get_cluster,
+    mock_delayed,
+    mock_image_open,
+    mock_glob,
+    tmp_path,
+):
+    def mock_glob_side_effect(pattern):
+        if "amp" in pattern:
+            return ["amp1.png"]
+        elif "phase" in pattern:
+            return ["phase1.png"]
+        return []
+    mock_psutil.cpu_count.return_value = 4
+    mock_psutil.virtual_memory.return_value.available = 8 * 1024**3  # 8 GB
+    mock_client = MagicMock()
+    mock_cluster = MagicMock()
+    mock_get_cluster.return_value = (mock_client, mock_cluster, tmp_path)
+    mock_mstool = MagicMock()
+    mock_mstool.nrow.return_value = 1000
+    mock_casamstool.return_value = mock_mstool
+    mock_msmd_inst = MagicMock()
+    mock_msmd_inst.ncorrforpol.return_value = [4]
+    mock_msmd_inst.scannumbers.return_value = [1, 2, 3]
+    mock_msmd.return_value = mock_msmd_inst
+    mock_scan_size.side_effect = [300, 400, 300]
+    mock_delayed.side_effect = lambda func: func
+    mock_client.compute.return_value = [MagicMock()]
+    mock_client.gather.return_value = [0] * 6
+    mock_glob.side_effect = mock_glob_side_effect
+    mock_img = MagicMock()
+    mock_image_open.return_value.convert.return_value = mock_img
+    output_dir = tmp_path / "output"
+    output_dir.mkdir()
+    code, output_pdf = plot_ms_diagnostics(
+        "test.ms", str(output_dir), dask_client=mock_client
+    )
+    assert code == 0
+    assert str(output_pdf).endswith("_plots.pdf")
+    mock_img.save.assert_called_once()
+
+
+@patch("meersolar.utils.meer_ploting_utils.Image.open")
+@patch("meersolar.utils.meer_ploting_utils.table")
+@patch("meersolar.utils.meer_ploting_utils.os")
+@patch("meersolar.utils.meer_ploting_utils.plt")
+def test_plot_caltable_diagnostics(
+    mock_plt, mock_os, mock_table, mock_image_open, tmp_path
+):
+    # Mock CASA table structure
+    mock_tb = MagicMock()
+    mock_table.return_value = mock_tb
+    mock_tb.getkeywords.return_value = {"VisCal": "K Jones"}
+    mock_tb.getcol.side_effect = [
+        np.array([[1e9, 1.1e9]]),  # CHAN_FREQ (GHz)
+        np.random.rand(2, 10, 1),  # FPARAM
+        np.zeros((2, 10, 1), dtype=bool),  # FLAG
+        np.array([0]),  # ANTENNA1
+        np.array([1.0]),  # TIME
+    ]
+    mock_tb.close = MagicMock()
+    mock_img = MagicMock()
+    mock_image_open.return_value.convert.return_value = mock_img
+    mock_img.save = MagicMock()
+    mock_plt.savefig = MagicMock()
+    mock_plt.close = MagicMock()
+    output_dir = tmp_path / "output"
+    output_dir.mkdir()
+    code, output_pdf = plot_caltable_diagnostics("mockcal.G", str(output_dir))
+    assert code == 0
+    assert output_pdf.endswith("_plots.pdf")
 
 
 def test_get_meermap(dummy_image):

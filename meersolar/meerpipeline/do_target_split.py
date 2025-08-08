@@ -219,10 +219,10 @@ def split_target_scans(
             total_chunks = len(chanlist) * len(filtered_scan_list)
         else:
             total_chunks = len(filtered_scan_list)
- 
+
         njobs = max(1, min(total_cpu, total_chunks))
         n_threads = max(1, int(total_cpu / njobs))
-        
+
         tasks = []
         splited_ms_list = []
         for scan in filtered_scan_list:
@@ -260,7 +260,7 @@ def split_target_scans(
                     )
                     tasks.append(task)
         if len(tasks):
-            print ("Start spliting..")
+            print("Start spliting..")
             futures = dask_client.compute(tasks)
             results = list(dask_client.gather(futures))
             for splited_ms in results:
@@ -390,7 +390,7 @@ def main(
             mem_frac=mem_frac,
         )
         nworker = max(2, int(psutil.cpu_count() * cpu_frac))
-        scale_worker_and_wait(dask_cluster,nworker)
+        scale_worker_and_wait(dask_cluster, nworker)
 
     try:
         if msname and os.path.exists(msname):

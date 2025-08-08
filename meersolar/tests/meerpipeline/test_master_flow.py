@@ -389,7 +389,7 @@ def test_run_basic_cal_jobs(
 @patch("meersolar.meerpipeline.master_flow.os.path.exists")
 @patch("meersolar.meerpipeline.master_flow.os.remove")
 @patch("meersolar.meerpipeline.do_apply_basiccal.main")
-@patch("meersolar.meerpipeline.master_flow.get_dask_client",return_value=MagicMock())
+@patch("meersolar.meerpipeline.master_flow.get_dask_client", return_value=MagicMock())
 def test_run_apply_basiccal_sol(
     mock_client,
     mock_main,
@@ -413,7 +413,7 @@ def test_run_apply_basiccal_sol(
     mock_thread = MagicMock()
     mock_log_saver.return_value = mock_thread
 
-    dask_client=MagicMock()
+    dask_client = MagicMock()
     # Test input arguments
     kwargs = dict(
         target_mslist=["ms1.ms", "ms2.ms"],

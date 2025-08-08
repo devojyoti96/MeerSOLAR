@@ -784,7 +784,6 @@
 <span class="k">def</span> <span class="nf">run_all_imaging</span><span class="p">(</span>
     <span class="n">mslist</span><span class="p">,</span>
     <span class="n">dask_client</span><span class="p">,</span>
-    <span class="n">mainlogger</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
     <span class="n">workdir</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span>
     <span class="n">outdir</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span>
     <span class="n">freqrange</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span>
@@ -819,8 +818,6 @@
 <span class="sd">        Measurement set list</span>
 <span class="sd">    dask_client : dask.client</span>
 <span class="sd">        Dask client</span>
-<span class="sd">    mainlogger : str</span>
-<span class="sd">        Python logger</span>
 <span class="sd">    workdir : str</span>
 <span class="sd">        Work directory</span>
 <span class="sd">    outdir : str</span>
@@ -873,31 +870,7 @@
 <span class="sd">    int</span>
 <span class="sd">        Success message</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">start_time</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
     <span class="n">mslist</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">mslist</span><span class="p">)</span>
-    <span class="n">observer</span> <span class="o">=</span> <span class="kc">None</span>
-    <span class="k">if</span> <span class="n">mainlogger</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="n">mainlog_file</span> <span class="o">=</span> <span class="n">workdir</span> <span class="o">+</span> <span class="s2">&quot;/logs/imaging_targets.log&quot;</span>
-        <span class="n">mainlogger</span><span class="p">,</span> <span class="n">mainlog_file</span> <span class="o">=</span> <span class="n">create_logger</span><span class="p">(</span>
-            <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">mainlog_file</span><span class="p">)</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;.log&quot;</span><span class="p">)[</span><span class="mi">0</span><span class="p">],</span>
-            <span class="n">mainlog_file</span><span class="p">,</span>
-            <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-            <span class="n">get_print</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-        <span class="p">)</span>
-        <span class="n">observer</span> <span class="o">=</span> <span class="kc">None</span>
-        <span class="k">if</span> <span class="p">(</span>
-            <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">workdir</span><span class="si">}</span><span class="s2">/jobname_password.npy&quot;</span><span class="p">)</span>
-            <span class="ow">and</span> <span class="n">mainlog_file</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
-        <span class="p">):</span>
-            <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mi">5</span><span class="p">)</span>
-            <span class="n">jobname</span><span class="p">,</span> <span class="n">password</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">load</span><span class="p">(</span>
-                <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">workdir</span><span class="si">}</span><span class="s2">/jobname_password.npy&quot;</span><span class="p">,</span> <span class="n">allow_pickle</span><span class="o">=</span><span class="kc">True</span>
-            <span class="p">)</span>
-            <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">mainlog_file</span><span class="p">):</span>
-                <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Starting remote logger. Remote logger password: </span><span class="si">{</span><span class="n">password</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-                <span class="n">observer</span> <span class="o">=</span> <span class="n">init_logger</span><span class="p">(</span>
-                    <span class="s2">&quot;all_imaging&quot;</span><span class="p">,</span> <span class="n">mainlog_file</span><span class="p">,</span> <span class="n">jobname</span><span class="o">=</span><span class="n">jobname</span><span class="p">,</span> <span class="n">password</span><span class="o">=</span><span class="n">password</span>
-                <span class="p">)</span>
     <span class="c1">###########################</span>
     <span class="c1"># WSClean container</span>
     <span class="c1">###########################</span>
@@ -912,7 +885,7 @@
             <span class="k">return</span> <span class="mi">1</span>
     <span class="k">try</span><span class="p">:</span>
         <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">mslist</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
-            <span class="n">mainlogger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">&quot;Provide valid measurement set list.&quot;</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Provide valid measurement set list.&quot;</span><span class="p">)</span>
             <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mi">5</span><span class="p">)</span>
             <span class="n">clean_shutdown</span><span class="p">(</span><span class="n">observer</span><span class="p">)</span>
             <span class="k">return</span> <span class="mi">1</span>
@@ -939,9 +912,12 @@
             <span class="k">if</span> <span class="n">checkcol</span><span class="p">:</span>
                 <span class="n">filtered_mslist</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">ms</span><span class="p">)</span>
             <span class="k">else</span><span class="p">:</span>
-                <span class="n">mainlogger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Issue in : </span><span class="si">{</span><span class="n">ms</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Issue in : </span><span class="si">{</span><span class="n">ms</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
                 <span class="n">os</span><span class="o">.</span><span class="n">system</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;rm -rf </span><span class="si">{</span><span class="n">ms</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
         <span class="n">mslist</span> <span class="o">=</span> <span class="n">filtered_mslist</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">mslist</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;No valid measurement set is found.&quot;</span><span class="p">)</span>
+            <span class="k">return</span> <span class="mi">1</span>
 
         <span class="c1">#####################################</span>
         <span class="c1"># Determining spectro-temporal chunks</span>
@@ -991,25 +967,25 @@
         <span class="k">if</span> <span class="n">total_fd</span> <span class="o">&lt;=</span> <span class="mi">0</span><span class="p">:</span>
             <span class="n">total_fd</span> <span class="o">=</span> <span class="mi">1</span>
 
-        <span class="c1">#################################</span>
-        <span class="c1"># Determining per worker resource</span>
-        <span class="c1">#################################</span>
-        <span class="n">n_jobs</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">new_soft_limit</span> <span class="o">/</span> <span class="n">total_fd</span><span class="p">)</span>
-        <span class="n">n_jobs</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="nb">min</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">mslist</span><span class="p">),</span> <span class="n">n_jobs</span><span class="p">))</span>
         <span class="k">if</span> <span class="n">cpu_frac</span> <span class="o">&gt;</span> <span class="mf">0.8</span><span class="p">:</span>
             <span class="n">cpu_frac</span> <span class="o">=</span> <span class="mf">0.8</span>
-        <span class="n">total_cpu</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">psutil</span><span class="o">.</span><span class="n">cpu_count</span><span class="p">()</span> <span class="o">*</span> <span class="n">cpu_frac</span><span class="p">)</span>
-        <span class="n">n_threads</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="nb">int</span><span class="p">(</span><span class="n">total_cpu</span> <span class="o">/</span> <span class="n">n_jobs</span><span class="p">))</span>
-        <span class="n">n_jobs</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="nb">int</span><span class="p">(</span><span class="n">total_cpu</span> <span class="o">/</span> <span class="n">n_threads</span><span class="p">))</span>
+        <span class="n">total_cpu</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="nb">int</span><span class="p">(</span><span class="n">psutil</span><span class="o">.</span><span class="n">cpu_count</span><span class="p">()</span> <span class="o">*</span> <span class="n">cpu_frac</span><span class="p">))</span>
         <span class="k">if</span> <span class="n">mem_frac</span> <span class="o">&gt;</span> <span class="mf">0.8</span><span class="p">:</span>
             <span class="n">mem_frac</span> <span class="o">=</span> <span class="mf">0.8</span>
         <span class="n">total_mem</span> <span class="o">=</span> <span class="p">(</span><span class="n">psutil</span><span class="o">.</span><span class="n">virtual_memory</span><span class="p">()</span><span class="o">.</span><span class="n">available</span> <span class="o">*</span> <span class="n">mem_frac</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="mi">1024</span><span class="o">**</span><span class="mi">3</span><span class="p">)</span>  <span class="c1"># In GB</span>
-        <span class="n">mem_limit</span> <span class="o">=</span> <span class="n">total_mem</span> <span class="o">/</span> <span class="n">n_jobs</span>
+
+        <span class="c1">#################################</span>
+        <span class="c1"># Determining per worker resource</span>
+        <span class="c1">#################################</span>
+        <span class="n">njobs</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">mslist</span><span class="p">),</span> <span class="nb">int</span><span class="p">(</span><span class="n">new_soft_limit</span> <span class="o">/</span> <span class="n">total_fd</span><span class="p">))</span>
+        <span class="n">njobs</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="nb">min</span><span class="p">(</span><span class="n">total_cpu</span><span class="p">,</span> <span class="n">njobs</span><span class="p">))</span>
+        <span class="n">n_threads</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="nb">int</span><span class="p">(</span><span class="n">total_cpu</span> <span class="o">/</span> <span class="n">njobs</span><span class="p">))</span>
+        <span class="n">mem_limit</span> <span class="o">=</span> <span class="n">total_mem</span> <span class="o">/</span> <span class="n">njobs</span>
 
         <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;#################################&quot;</span><span class="p">)</span>
-        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Total dask worker: </span><span class="si">{</span><span class="n">n_jobs</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Total dask worker: </span><span class="si">{</span><span class="n">njobs</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
         <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;CPU per worker: </span><span class="si">{</span><span class="n">n_threads</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Memory per worker: </span><span class="si">{</span><span class="n">mem_limit</span><span class="si">}</span><span class="s2">GB&quot;</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Memory per worker: </span><span class="si">{</span><span class="nb">round</span><span class="p">(</span><span class="n">mem_limit</span><span class="p">,</span><span class="mi">2</span><span class="p">)</span><span class="si">}</span><span class="s2"> GB&quot;</span><span class="p">)</span>
         <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;#################################&quot;</span><span class="p">)</span>
         <span class="c1">#########################################</span>
 
@@ -1051,9 +1027,6 @@
                 <span class="o">+</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">ms</span><span class="p">)</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;.ms&quot;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
                 <span class="o">+</span> <span class="s2">&quot;.log&quot;</span>
             <span class="p">)</span>
-            <span class="n">mainlogger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
-                <span class="sa">f</span><span class="s2">&quot;Starting imaging for ms : </span><span class="si">{</span><span class="n">ms</span><span class="si">}</span><span class="s2">, Log file : </span><span class="si">{</span><span class="n">logfile</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
-            <span class="p">)</span>
             <span class="n">tasks</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
                 <span class="n">delayed</span><span class="p">(</span><span class="n">perform_imaging</span><span class="p">)(</span>
                     <span class="n">msname</span><span class="o">=</span><span class="n">ms</span><span class="p">,</span>
@@ -1084,46 +1057,38 @@
                     <span class="n">logfile</span><span class="o">=</span><span class="n">logfile</span><span class="p">,</span>
                 <span class="p">)</span>
             <span class="p">)</span>
-        <span class="n">wait_for_dask_workers</span><span class="p">(</span><span class="n">dask_client</span><span class="p">,</span> <span class="n">min_worker</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=</span><span class="mi">60</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;Starting imaging for ms : </span><span class="si">{</span><span class="n">ms</span><span class="si">}</span><span class="s2">, Log file : </span><span class="si">{</span><span class="n">logfile</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
         <span class="n">results</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">dask_client</span><span class="o">.</span><span class="n">gather</span><span class="p">(</span><span class="n">dask_client</span><span class="o">.</span><span class="n">compute</span><span class="p">(</span><span class="n">tasks</span><span class="p">)))</span>
         <span class="n">all_image_list</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="n">all_imaged_ms_list</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">results</span><span class="p">)):</span>
             <span class="n">r</span> <span class="o">=</span> <span class="n">results</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span>
             <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">r</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
-                <span class="n">mainlogger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+                <span class="nb">print</span><span class="p">(</span>
                     <span class="sa">f</span><span class="s2">&quot;Imaging failed for ms : </span><span class="si">{</span><span class="n">mslist</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
                 <span class="p">)</span>
             <span class="k">else</span><span class="p">:</span>
                 <span class="n">image_list</span> <span class="o">=</span> <span class="n">r</span><span class="p">[</span><span class="s2">&quot;image&quot;</span><span class="p">]</span>
                 <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">image_list</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
-                    <span class="n">mainlogger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+                    <span class="nb">print</span><span class="p">(</span>
                         <span class="sa">f</span><span class="s2">&quot;No image is made for ms : </span><span class="si">{</span><span class="n">mslist</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
                     <span class="p">)</span>
                 <span class="k">else</span><span class="p">:</span>
                     <span class="n">all_imaged_ms_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">mslist</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
                     <span class="k">for</span> <span class="n">image</span> <span class="ow">in</span> <span class="n">image_list</span><span class="p">:</span>
                         <span class="n">all_image_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">image</span><span class="p">)</span>
-        <span class="n">mainlogger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+        <span class="nb">print</span><span class="p">(</span>
             <span class="sa">f</span><span class="s2">&quot;Numbers of input measurement sets : </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">mslist</span><span class="p">)</span><span class="si">}</span><span class="s2">.&quot;</span><span class="p">,</span>
         <span class="p">)</span>
-        <span class="n">mainlogger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+        <span class="nb">print</span><span class="p">(</span>
             <span class="sa">f</span><span class="s2">&quot;Imaging successfully done for: </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">all_imaged_ms_list</span><span class="p">)</span><span class="si">}</span><span class="s2"> measurement sets.&quot;</span><span class="p">,</span>
         <span class="p">)</span>
-        <span class="n">mainlogger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Total images made: </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">all_image_list</span><span class="p">)</span><span class="si">}</span><span class="s2">.&quot;</span><span class="p">)</span>
-        <span class="n">mainlogger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
-            <span class="sa">f</span><span class="s2">&quot;Total time taken: </span><span class="si">{</span><span class="nb">round</span><span class="p">(</span><span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span><span class="o">-</span><span class="n">start_time</span><span class="p">,</span><span class="mi">2</span><span class="p">)</span><span class="si">}</span><span class="s2">s&quot;</span><span class="p">,</span>
-        <span class="p">)</span>
-        <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mi">5</span><span class="p">)</span>
-        <span class="n">clean_shutdown</span><span class="p">(</span><span class="n">observer</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Total images made: </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">all_image_list</span><span class="p">)</span><span class="si">}</span><span class="s2">.&quot;</span><span class="p">)</span>
         <span class="k">return</span> <span class="mi">0</span>
     <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
         <span class="n">traceback</span><span class="o">.</span><span class="n">print_exc</span><span class="p">()</span>
-        <span class="n">mainlogger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
-            <span class="sa">f</span><span class="s2">&quot;Total time taken: </span><span class="si">{</span><span class="nb">round</span><span class="p">(</span><span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span><span class="o">-</span><span class="n">start_time</span><span class="p">,</span><span class="mi">2</span><span class="p">)</span><span class="si">}</span><span class="s2">s&quot;</span><span class="p">,</span>
-        <span class="p">)</span>
-        <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mi">5</span><span class="p">)</span>
-        <span class="n">clean_shutdown</span><span class="p">(</span><span class="n">observer</span><span class="p">)</span>
         <span class="k">return</span> <span class="mi">1</span></div>
 
 
@@ -1155,6 +1120,7 @@
     <span class="n">start_remote_log</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
     <span class="n">cpu_frac</span><span class="o">=</span><span class="mf">0.8</span><span class="p">,</span>
     <span class="n">mem_frac</span><span class="o">=</span><span class="mf">0.8</span><span class="p">,</span>
+    <span class="n">logfile</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
     <span class="n">jobid</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
     <span class="n">dask_client</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
 <span class="p">):</span>
@@ -1211,6 +1177,8 @@
 <span class="sd">        Fraction of total CPUs to use per task. Default is 0.8.</span>
 <span class="sd">    mem_frac : float, optional</span>
 <span class="sd">        Fraction of total system memory to use per task. Default is 0.8.</span>
+<span class="sd">    logfile : str, optional</span>
+<span class="sd">        Log file</span>
 <span class="sd">    jobid : int, optional</span>
 <span class="sd">        Unique job identifier for logging and PID tracking. Default is 0.</span>
 <span class="sd">    dask_client : dask.client, optional</span>
@@ -1235,16 +1203,6 @@
         <span class="n">outdir</span> <span class="o">=</span> <span class="n">workdir</span>
     <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">outdir</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 
-    <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">workdir</span> <span class="o">+</span> <span class="s2">&quot;/logs/&quot;</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-
-    <span class="n">mainlog_file</span> <span class="o">=</span> <span class="n">workdir</span> <span class="o">+</span> <span class="s2">&quot;/logs/imaging_targets.log&quot;</span>
-    <span class="n">mainlogger</span><span class="p">,</span> <span class="n">mainlog_file</span> <span class="o">=</span> <span class="n">create_logger</span><span class="p">(</span>
-        <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">mainlog_file</span><span class="p">)</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;.log&quot;</span><span class="p">)[</span><span class="mi">0</span><span class="p">],</span>
-        <span class="n">mainlog_file</span><span class="p">,</span>
-        <span class="n">get_print</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-        <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-    <span class="p">)</span>
-
     <span class="c1">############</span>
     <span class="c1"># Logger</span>
     <span class="c1">############</span>
@@ -1252,15 +1210,15 @@
     <span class="k">if</span> <span class="p">(</span>
         <span class="n">start_remote_log</span>
         <span class="ow">and</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">workdir</span><span class="si">}</span><span class="s2">/jobname_password.npy&quot;</span><span class="p">)</span>
-        <span class="ow">and</span> <span class="n">mainlog_file</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+        <span class="ow">and</span> <span class="n">logfile</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
     <span class="p">):</span>
         <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mi">5</span><span class="p">)</span>
         <span class="n">jobname</span><span class="p">,</span> <span class="n">password</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">load</span><span class="p">(</span>
             <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">workdir</span><span class="si">}</span><span class="s2">/jobname_password.npy&quot;</span><span class="p">,</span> <span class="n">allow_pickle</span><span class="o">=</span><span class="kc">True</span>
         <span class="p">)</span>
-        <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">mainlog_file</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">logfile</span><span class="p">):</span>
             <span class="n">observer</span> <span class="o">=</span> <span class="n">init_logger</span><span class="p">(</span>
-                <span class="s2">&quot;all_imaging&quot;</span><span class="p">,</span> <span class="n">mainlog_file</span><span class="p">,</span> <span class="n">jobname</span><span class="o">=</span><span class="n">jobname</span><span class="p">,</span> <span class="n">password</span><span class="o">=</span><span class="n">password</span>
+                <span class="s2">&quot;all_imaging&quot;</span><span class="p">,</span> <span class="n">logfile</span><span class="p">,</span> <span class="n">jobname</span><span class="o">=</span><span class="n">jobname</span><span class="p">,</span> <span class="n">password</span><span class="o">=</span><span class="n">password</span>
             <span class="p">)</span>
     <span class="k">if</span> <span class="n">observer</span> <span class="o">==</span> <span class="kc">None</span><span class="p">:</span>
         <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Remote link or jobname is blank. Not transmiting to remote logger.&quot;</span><span class="p">)</span>
@@ -1268,28 +1226,22 @@
     <span class="n">dask_cluster</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="k">if</span> <span class="n">dask_client</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
         <span class="n">dask_client</span><span class="p">,</span> <span class="n">dask_cluster</span><span class="p">,</span> <span class="n">dask_dir</span> <span class="o">=</span> <span class="n">get_local_dask_cluster</span><span class="p">(</span>
-            <span class="mi">1</span><span class="p">,</span>
+            <span class="mi">2</span><span class="p">,</span>
             <span class="n">dask_dir</span><span class="o">=</span><span class="n">workdir</span><span class="p">,</span>
             <span class="n">cpu_frac</span><span class="o">=</span><span class="n">cpu_frac</span><span class="p">,</span>
             <span class="n">mem_frac</span><span class="o">=</span><span class="n">mem_frac</span><span class="p">,</span>
         <span class="p">)</span>
         <span class="n">nworker</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="nb">int</span><span class="p">(</span><span class="n">psutil</span><span class="o">.</span><span class="n">cpu_count</span><span class="p">()</span> <span class="o">*</span> <span class="n">cpu_frac</span><span class="p">))</span>
-        <span class="n">usable_mem</span> <span class="o">=</span> <span class="p">(</span><span class="n">mem_frac</span> <span class="o">*</span> <span class="n">psutil</span><span class="o">.</span><span class="n">virtual_memory</span><span class="p">()</span><span class="o">.</span><span class="n">total</span><span class="p">)</span> <span class="o">/</span> <span class="mi">1024</span><span class="o">**</span><span class="mi">3</span>
-        <span class="n">per_job_mem</span> <span class="o">=</span> <span class="n">usable_mem</span> <span class="o">/</span> <span class="n">nworker</span>
-        <span class="k">if</span> <span class="n">per_job_mem</span> <span class="o">&lt;</span> <span class="mi">2</span><span class="p">:</span>
-            <span class="n">nworker</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="nb">int</span><span class="p">(</span><span class="n">usable_mem</span> <span class="o">/</span> <span class="mi">2</span><span class="p">))</span>
-        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Maximum dask workder: </span><span class="si">{</span><span class="n">nworker</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-        <span class="n">dask_cluster</span><span class="o">.</span><span class="n">adapt</span><span class="p">(</span><span class="n">minimum</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">maximum</span><span class="o">=</span><span class="n">nworker</span><span class="p">)</span>  <span class="c1"># 2 worker will be required</span>
+        <span class="n">scale_worker_and_wait</span><span class="p">(</span><span class="n">dask_cluster</span><span class="p">,</span> <span class="n">nworker</span><span class="p">)</span>
 
     <span class="k">try</span><span class="p">:</span>
         <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">mslist</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
-            <span class="n">mainlogger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Please provide a valid measurement set list.&quot;</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Please provide a valid measurement set list.&quot;</span><span class="p">)</span>
             <span class="n">msg</span> <span class="o">=</span> <span class="mi">1</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="n">msg</span> <span class="o">=</span> <span class="n">run_all_imaging</span><span class="p">(</span>
                 <span class="n">mslist</span><span class="p">,</span>
                 <span class="n">dask_client</span><span class="p">,</span>
-                <span class="n">mainlogger</span><span class="o">=</span><span class="n">mainlogger</span><span class="p">,</span>
                 <span class="n">workdir</span><span class="o">=</span><span class="n">workdir</span><span class="p">,</span>
                 <span class="n">outdir</span><span class="o">=</span><span class="n">outdir</span><span class="p">,</span>
                 <span class="n">freqrange</span><span class="o">=</span><span class="n">freqrange</span><span class="p">,</span>

@@ -61,7 +61,7 @@ def run_all_applysol(
     try:
         if cpu_frac > 0.8:
             cpu_frac = 0.8
-        total_cpu = max(1,int(psutil.cpu_count() * cpu_frac))
+        total_cpu = max(1, int(psutil.cpu_count() * cpu_frac))
         if mem_frac > 0.8:
             mem_frac = 0.8
         total_mem = (psutil.virtual_memory().available * mem_frac) / (1024**3)  # In GB
@@ -102,7 +102,7 @@ def run_all_applysol(
         tasks = []
         msmd = msmetadata()
         njobs = min(total_cpu, len(mslist))
-        n_threads=max(1,int(total_cpu/njobs))
+        n_threads = max(1, int(total_cpu / njobs))
         mem_limit = total_mem / njobs
         print("#################################")
         print(f"Total dask worker: {njobs}")
@@ -133,7 +133,7 @@ def run_all_applysol(
                     soltype="selfcal",
                 )
             )
-        print ("Applying solutions...")
+        print("Applying solutions...")
         results = list(dask_client.gather(dask_client.compute(tasks)))
         if np.nansum(results) == 0:
             print("##################")
@@ -248,7 +248,7 @@ def main(
             mem_frac=mem_frac,
         )
         nworker = max(2, int(psutil.cpu_count() * cpu_frac))
-        scale_worker_and_wait(dask_cluster,nworker)
+        scale_worker_and_wait(dask_cluster, nworker)
 
     try:
         print("###################################")

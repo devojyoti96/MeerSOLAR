@@ -407,7 +407,7 @@ def intensity_selfcal(
         # Restoring flags if applymode is calflag
         #########################################
         if applymode == "calflag":
-            with suppress_casa_output():
+            with suppress_output():
                 flags = flagmanager(vis=msname, mode="list")
             keys = flags.keys()
             for k in keys:
@@ -417,7 +417,7 @@ def intensity_selfcal(
                     version = flags[0]["name"]
                     if "applycal" in version:
                         try:
-                            with suppress_casa_output():
+                            with suppress_output():
                                 flagmanager(
                                     vis=msname, mode="restore", versionname=version
                                 )
@@ -477,7 +477,7 @@ def intensity_selfcal(
         logger.info(
             f"bandpass(vis='{msname}',caltable='{bpass_caltable}',uvrange='{uvrange}',refant='{refant}',solint='{solint},10MHz',minsnr=1,solnorm=True)\n"
         )
-        with suppress_casa_output():
+        with suppress_output():
             bandpass(
                 vis=msname,
                 caltable=bpass_caltable,
@@ -494,7 +494,7 @@ def intensity_selfcal(
         #########################################
         # Flagging bad gains
         #########################################
-        with suppress_casa_output():
+        with suppress_output():
             flagdata(
                 vis=bpass_caltable, mode="rflag", datacolumn="CPARAM", flagbackup=False
             )
@@ -516,7 +516,7 @@ def intensity_selfcal(
         logger.info(
             f"applycal(vis={msname},gaintable=[{bpass_caltable}],interp=['linear,linearflag'],applymode='{applymode}',calwt=[False])\n"
         )
-        with suppress_casa_output():
+        with suppress_output():
             applycal(
                 vis=msname,
                 gaintable=[bpass_caltable],
@@ -528,7 +528,7 @@ def intensity_selfcal(
         #####################################
         # Flag zeros
         #####################################
-        with suppress_casa_output():
+        with suppress_output():
             flagdata(
                 vis=msname,
                 mode="clip",

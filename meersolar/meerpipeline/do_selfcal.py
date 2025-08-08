@@ -131,7 +131,7 @@ def do_selfcal(
         ##############################
         # Restoring any previous flags
         ##############################
-        with suppress_casa_output():
+        with suppress_output():
             flags = flagmanager(vis=msname, mode="list")
         keys = flags.keys()
         for k in keys:
@@ -140,7 +140,7 @@ def do_selfcal(
             else:
                 version = flags[0]["name"]
                 try:
-                    with suppress_casa_output():
+                    with suppress_output():
                         flagmanager(vis=msname, mode="restore", versionname=version)
                         flagmanager(vis=msname, mode="delete", versionname=version)
                 except BaseException:
@@ -160,7 +160,7 @@ def do_selfcal(
         msmd.close()
         if hascor:
             logger.info(f"Spliting corrected data to ms : {selfcalms}")
-            with suppress_casa_output():
+            with suppress_output():
                 split(
                     vis=msname,
                     field=str(field),
@@ -170,7 +170,7 @@ def do_selfcal(
                 )
         else:
             logger.info(f"Spliting data to ms : {selfcalms}")
-            with suppress_casa_output():
+            with suppress_output():
                 split(
                     vis=msname,
                     field=str(field),
@@ -183,7 +183,7 @@ def do_selfcal(
         ##########################################
         # Initiate proper weighting
         ##########################################
-        with suppress_casa_output():
+        with suppress_output():
             flagdata(
                 vis=msname,
                 mode="clip",
@@ -659,7 +659,7 @@ def main(
             mem_frac=mem_frac,
         )
         nworker = max(2, int(psutil.cpu_count() * cpu_frac))
-        scale_worker_and_wait(dask_cluster,nworker)
+        scale_worker_and_wait(dask_cluster, nworker)
 
     ###########################
     # WSClean container
@@ -754,14 +754,16 @@ def main(
                         per_job_fd = 1
                     num_fd_list.append(per_job_fd)
                 total_fd = max(num_fd_list) * len(mslist)
-                
+
                 if cpu_frac > 0.8:
                     cpu_frac = 0.8
-                total_cpu = max(1,int(psutil.cpu_count() * cpu_frac))
+                total_cpu = max(1, int(psutil.cpu_count() * cpu_frac))
                 if mem_frac > 0.8:
                     mem_frac = 0.8
-                total_mem = (psutil.virtual_memory().available * mem_frac) / (1024**3)  # In GB
-                njobs = min(len(mslist),int(new_soft_limit / total_fd))
+                total_mem = (psutil.virtual_memory().available * mem_frac) / (
+                    1024**3
+                )  # In GB
+                njobs = min(len(mslist), int(new_soft_limit / total_fd))
                 njobs = max(1, min(total_cpu, njobs))
 
                 #####################################
@@ -798,7 +800,7 @@ def main(
                             logfile=logfile,
                         )
                     )
-                print ("Starting all self-calibration...")
+                print("Starting all self-calibration...")
                 results = list(dask_client.gather(dask_client.compute(tasks)))
 
                 gcal_list = []

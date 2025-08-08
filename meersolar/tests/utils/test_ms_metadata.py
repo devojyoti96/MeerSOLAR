@@ -4,6 +4,30 @@ from unittest.mock import patch
 from meersolar.utils.ms_metadata import *
 
 
+@pytest.mark.parametrize(
+    "uvrange_input, expected_output, expect_error",
+    [
+        (">200lambda", ["<200lambda"], False),
+        ("<100lambda", [">100lambda"], False),
+        ("10~1000lambda", ["<10lambda", ">1000lambda"], False),
+        ("   >300lambda  ", ["<300lambda"], False),
+        ("50~500lambda", ["<50lambda", ">500lambda"], False),
+        ("500", None, True),
+        ("20-100lambda", None, True),
+        ("100~lambda", None, True),
+        ("lambda~200", None, True),
+        ("", None, True),
+        ("300~10lambda", None, True),
+    ],
+)
+def test_get_uvrange_exclude(uvrange_input, expected_output, expect_error):
+    if expect_error:
+        with pytest.raises(ValueError):
+            get_uvrange_exclude(uvrange_input)
+    else:
+        assert get_uvrange_exclude(uvrange_input) == expected_output
+
+
 def test_get_phasecenter(dummy_msname):
     ra, dec = get_phasecenter(dummy_msname, "0")
     assert ra == 62.08492

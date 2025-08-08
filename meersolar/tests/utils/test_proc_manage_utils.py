@@ -12,16 +12,20 @@ from unittest.mock import patch, MagicMock, mock_open, call
 from itertools import chain, repeat
 from meersolar.utils.proc_manage_utils import *
 
+
 def test_get_total_worker():
     mock_cluster = MagicMock()
     mock_cluster.workers = {"worker-1": {}, "worker-2": {}}
     assert get_total_worker(mock_cluster) == 2
 
 
-@pytest.mark.parametrize("current_workers,expected_result,description", [
-    ([0, 1, 2], 0, "successfully scaled within timeout"),
-    ([0, 0, 0], 1, "failed to scale within timeout"),
-])
+@pytest.mark.parametrize(
+    "current_workers,expected_result,description",
+    [
+        ([0, 1, 2], 0, "successfully scaled within timeout"),
+        ([0, 0, 0], 1, "failed to scale within timeout"),
+    ],
+)
 def test_scale_worker_and_wait(current_workers, expected_result, description):
     mock_cluster = MagicMock()
     mock_cluster.workers = {}
@@ -31,15 +35,24 @@ def test_scale_worker_and_wait(current_workers, expected_result, description):
         count = current_workers.pop(0) if current_workers else 0
         return {f"worker-{i}": {} for i in range(count)}
 
-    with patch("meersolar.utils.proc_manage_utils.get_total_worker") as mock_get_total_worker, \
-         patch("meersolar.utils.proc_manage_utils.time.sleep", return_value=None):
+    with (
+        patch(
+            "meersolar.utils.proc_manage_utils.get_total_worker"
+        ) as mock_get_total_worker,
+        patch("meersolar.utils.proc_manage_utils.time.sleep", return_value=None),
+    ):
 
-        mock_get_total_worker.side_effect = lambda cluster: len(get_workers_side_effect())
+        mock_get_total_worker.side_effect = lambda cluster: len(
+            get_workers_side_effect()
+        )
         result = scale_worker_and_wait(mock_cluster, 2, timeout=3, poll_interval=1)
 
-        assert result == expected_result, f"Expected {expected_result} but got {result} for: {description}"
+        assert (
+            result == expected_result
+        ), f"Expected {expected_result} but got {result} for: {description}"
         mock_cluster.scale.assert_called_with(2)
-        
+
+
 def test_save_pid():
     os.system("rm -rf /tmp/test_pid.txt")
     save_pid(10, "/tmp/test_pid.txt")
@@ -145,7 +158,7 @@ def test_get_local_dask_cluster():
     cluster.close()
     assert results == expected_results
     assert os.path.exists(dask_dir)
-    os.system(f"rm -rf {dask_dir}")
+    os.system(f"rm -rf /tmp/test_dask")
     assert os.path.exists(dask_dir) == False
 
 

@@ -58,7 +58,7 @@ def test_get_polmodel_coeff(mock_loadtxt):
     ],
 )
 @patch("meersolar.meerpipeline.import_model.traceback.print_exc")
-@patch("meersolar.meerpipeline.import_model.suppress_casa_output")
+@patch("meersolar.meerpipeline.import_model.suppress_output")
 @patch("casatasks.setjy")
 @patch("meersolar.meerpipeline.import_model.get_polmodel_coeff")
 @patch("meersolar.meerpipeline.import_model.psutil.Process")
@@ -100,7 +100,7 @@ def test_polcal_setjy(
     ],
 )
 @patch("meersolar.meerpipeline.import_model.traceback.print_exc")
-@patch("meersolar.meerpipeline.import_model.suppress_casa_output")
+@patch("meersolar.meerpipeline.import_model.suppress_output")
 @patch("casatasks.setjy")
 @patch("meersolar.meerpipeline.import_model.psutil.Process")
 @patch("meersolar.meerpipeline.import_model.limit_threads")
@@ -131,7 +131,7 @@ def test_phasecal_setjy(
     ],
 )
 @patch("meersolar.meerpipeline.import_model.os.system")
-@patch("meersolar.meerpipeline.import_model.suppress_casa_output")
+@patch("meersolar.meerpipeline.import_model.suppress_output")
 @patch("meersolar.meerpipeline.import_model.get_band_name")
 @patch("meersolar.meerpipeline.import_model.get_ms_scans")
 @patch("meersolar.meerpipeline.import_model.psutil.cpu_count", return_value=8)
@@ -239,7 +239,7 @@ def test_import_all_models(
     mock_flux_import.return_value = 0
     mock_phase_import.return_value = 0
     mock_pol_import.return_value = 0
-    dask_client=MagicMock()
+    dask_client = MagicMock()
     flux, phase, pol = import_all_models(msname, dask_client, workdir)
     assert (flux, phase, pol) == (0, 0, 0)
     assert mock_correct.called

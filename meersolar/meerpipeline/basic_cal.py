@@ -40,8 +40,9 @@ def run_delaycal(
     limit_threads(n_threads=n_threads)
     from meersolar.utils.calibration import delaycal
     from casatasks import gaincal
+
     caltable_prefix = os.path.basename(msname).split(".ms")[0]
-    with suppress_casa_output():
+    with suppress_output():
         if uvrange == "":
             gaincal(
                 vis=msname,
@@ -95,8 +96,9 @@ def run_bandpass(
     """
     limit_threads(n_threads=n_threads)
     from casatasks import bandpass, flagdata
+
     caltable_prefix = os.path.basename(msname).split(".ms")[0]
-    with suppress_casa_output():
+    with suppress_output():
         bandpass(
             vis=msname,
             caltable=caltable_prefix + ".bcal",
@@ -145,8 +147,9 @@ def run_gaincal(
     """
     limit_threads(n_threads=n_threads)
     from casatasks import gaincal, flagdata
+
     caltable_prefix = os.path.basename(msname).split(".ms")[0]
-    with suppress_casa_output():
+    with suppress_output():
         gaincal(
             vis=msname,
             caltable=caltable_prefix + ".gcal",
@@ -168,7 +171,7 @@ def run_gaincal(
             interp=interp,
         )
     return caltable_prefix + ".gcal"
-        
+
 
 def run_leakagecal(
     msname="",
@@ -187,8 +190,9 @@ def run_leakagecal(
     """
     limit_threads(n_threads=n_threads)
     from casatasks import polcal, flagdata
+
     caltable_prefix = os.path.basename(msname).split(".ms")[0]
-    with suppress_casa_output():
+    with suppress_output():
         polcal(
             vis=msname,
             caltable=caltable_prefix + ".dcal",
@@ -229,8 +233,9 @@ def run_polcal(
     """
     limit_threads(n_threads=n_threads)
     from casatasks import gaincal, polcal
+
     caltable_prefix = os.path.basename(msname).split(".ms")[0]
-    with suppress_casa_output():
+    with suppress_output():
         gaincal(
             vis=msname,
             caltable=caltable_prefix + ".kcrosscal",
@@ -250,7 +255,7 @@ def run_polcal(
         gaintable.append(caltable_prefix + ".kcrosscal")
         gainfield.append(str(field))
         interp.append("")
-        with suppress_casa_output():
+        with suppress_output():
             polcal(
                 vis=msname,
                 caltable=caltable_prefix + ".xfcal",
@@ -269,7 +274,7 @@ def run_polcal(
             gaintable.append(caltable_prefix + ".xfcal")
             gainfield.append(str(field))
             interp.append("")
-            with suppress_casa_output():
+            with suppress_output():
                 polcal(
                     vis=msname,
                     caltable=caltable_prefix + ".panglecal",
@@ -290,7 +295,7 @@ def run_polcal(
         caltable_prefix + ".xfcal",
         caltable_prefix + ".panglecal",
     )
-    
+
 
 def run_applycal(
     msname="",
@@ -310,7 +315,8 @@ def run_applycal(
     """
     limit_threads(n_threads=n_threads)
     from casatasks import applycal
-    with suppress_casa_output():
+
+    with suppress_output():
         applycal(
             vis=msname,
             field=str(field),
@@ -339,6 +345,7 @@ def run_postcal_flag(
     """
     limit_threads(n_threads=n_threads)
     from casatasks import flagdata
+
     ncol = 3
     ####################################################
     # Check if required columns are present for residual
@@ -378,7 +385,7 @@ def run_postcal_flag(
         ntime = float(total_time / nchunk)
         if ntime < timeres:
             ntime = timeres
-    with suppress_casa_output():
+    with suppress_output():
         flagdata(
             vis=msname,
             mode=mode,
@@ -388,7 +395,7 @@ def run_postcal_flag(
             ntime=ntime,
         )
     return
-    
+
 
 def single_round_cal_and_flag(
     msname,
@@ -469,7 +476,7 @@ def single_round_cal_and_flag(
     try:
         if cpu_frac > 0.8:
             cpu_frac = 0.8
-        total_cpu = max(1,int(psutil.cpu_count() * cpu_frac))
+        total_cpu = max(1, int(psutil.cpu_count() * cpu_frac))
         if mem_frac > 0.8:
             mem_frac = 0.8
         total_mem = (psutil.virtual_memory().available * mem_frac) / (1024**3)  # In GB
@@ -555,7 +562,7 @@ def single_round_cal_and_flag(
         ##############################
         if len(fluxcal_mslist) > 0:
             delaycal_mslist = fluxcal_mslist
-            n_threads = max(1,int(total_cpu/len(delaycal_mslist)))
+            n_threads = max(1, int(total_cpu / len(delaycal_mslist)))
             delaycal_tasks = [
                 delayed(run_delaycal)(
                     sub_msname,
@@ -588,7 +595,7 @@ def single_round_cal_and_flag(
         # Bandpass calibration
         ##############################
         if len(fluxcal_mslist) > 0:
-            n_threads = max(1,int(total_cpu/len(fluxcal_mslist)))
+            n_threads = max(1, int(total_cpu / len(fluxcal_mslist)))
             bandpass_tasks = [
                 delayed(run_bandpass)(
                     sub_msname,
@@ -625,7 +632,7 @@ def single_round_cal_and_flag(
         if do_polcal and len(polcal_mslist) > 0 and npol == 4:
             gaincal_mslist = fluxcal_mslist + polcal_mslist
         if len(gaincal_mslist) > 0:
-            n_threads = max(1,int(total_cpu/len(gaincal_mslist)))
+            n_threads = max(1, int(total_cpu / len(gaincal_mslist)))
             gaincal_tasks = [
                 delayed(run_gaincal)(
                     sub_msname,
@@ -669,7 +676,7 @@ def single_round_cal_and_flag(
                 applycal_gainfield.append("")
                 applycal_interp.append("nearest")
             else:
-                n_threads = max(1,int(total_cpu/len(phasecal_mslist)))
+                n_threads = max(1, int(total_cpu / len(phasecal_mslist)))
                 gaincal_tasks = [
                     delayed(run_gaincal)(
                         sub_msname,
@@ -703,7 +710,7 @@ def single_round_cal_and_flag(
                         "Gain calibration was not successful and did not produce gain caltable."
                     )
                 else:
-                    with suppress_casa_output():
+                    with suppress_output():
                         fluxscale_result = fluxscale(
                             vis=msname,
                             caltable=gain_caltable,
@@ -747,7 +754,7 @@ def single_round_cal_and_flag(
                     "Measurement set is not full-polar. Not performing leakage calibration."
                 )
             elif len(fluxcal_mslist) > 0:
-                n_threads = max(1,int(total_cpu/len(fluxcal_mslist)))
+                n_threads = max(1, int(total_cpu / len(fluxcal_mslist)))
                 leakage_tasks = [
                     delayed(run_leakagecal)(
                         sub_msname,
@@ -784,7 +791,7 @@ def single_round_cal_and_flag(
             elif os.path.exists(leakage_caltable) == False:
                 print("Leakage solutions are not present.")
             else:
-                n_threads = max(1,int(total_cpu/len(polcal_mslist)))
+                n_threads = max(1, int(total_cpu / len(polcal_mslist)))
                 tasks = [
                     delayed(run_polcal)(
                         sub_msname,
@@ -869,7 +876,7 @@ def single_round_cal_and_flag(
                 all_mslist += polcal_mslist
             if len(all_mslist) > 0:
                 do_flag_backup(msname, flagtype="applycal")
-                n_threads = max(1,int(total_cpu/len(all_mslist)))
+                n_threads = max(1, int(total_cpu / len(all_mslist)))
                 tasks = [
                     delayed(run_applycal)(
                         sub_msname,
@@ -893,7 +900,7 @@ def single_round_cal_and_flag(
                 do_flag_backup(msname, flagtype="flagdata")
                 tasks = []
                 njobs = min(total_cpu, len(all_mslist))
-                n_threads = max(1,int(total_cpu/njobs))
+                n_threads = max(1, int(total_cpu / njobs))
                 mem_limit = total_mem / njobs
                 print("#################################")
                 print(f"Total dask worker: {njobs}")
@@ -1017,6 +1024,8 @@ def run_basic_cal_rounds(
         Caltables
     """
     try:
+        from casatasks import flagdata
+
         os.chdir(workdir)
         print(f"Measurement set : {msname}")
         print("Extracting metadata from measurement set ....")
@@ -1028,16 +1037,14 @@ def run_basic_cal_rounds(
         msmd.open(msname)
         npol = msmd.ncorrforpol()[0]
         msmd.close()
-        if npol == 4 or len(polcal_fields) > 0 or len(phasecal_fields) > 0:
+        if npol == 4 or len(polcal_fields) > 0:
+            n_rounds = 4
+        elif len(phasecal_fields) > 0:
             n_rounds = 3
         else:
             n_rounds = 2
         print(f"Total calibration rounds: {n_rounds}")
-        do_phasecal = False
-        do_polcal = False
-        do_leakagecal = False
-        do_postcal_flag = True
-        applysol=True
+
         ###################################################
         # Determining what calibrations will be done or not
         ###################################################
@@ -1059,11 +1066,24 @@ def run_basic_cal_rounds(
             )
             perform_leakagecal = False
             perform_polcal = False
-        #####################################################
+
+        #################
+        # Initial values
+        #################
+        do_phasecal = False
+        do_polcal = False
+        do_leakagecal = False
+        do_postcal_flag = True
+        applysol = True
         if refant == "":
             refant = get_refant(msname)
         if uvrange == "":
             uvrange = ">200lambda"
+        flag_uvranges = get_uvrange_exclude(uvrange)
+        print(f"Flagging un-wanted uv-range: {flag_uvranges}")
+        for flag_uvrange in flag_uvranges:
+            flagdata(vis=msname, mode="manual", uvrange=flag_uvrange, flagbackup=False)
+
         print("#########################################")
         print(f"Using UV-range for calibration: {uvrange}")
         print("#########################################")
@@ -1073,7 +1093,7 @@ def run_basic_cal_rounds(
             print("#################################")
             if cal_round == n_rounds:
                 do_postcal_flag = False
-                applysol=False
+                applysol = False
             if cal_round > 1:
                 if perform_phasecal:
                     do_phasecal = True
@@ -1223,7 +1243,7 @@ def main(
             mem_frac=mem_frac,
         )
         nworker = max(2, int(psutil.cpu_count() * cpu_frac))
-        scale_worker_and_wait(dask_cluster,nworker)
+        scale_worker_and_wait(dask_cluster, nworker)
 
     try:
         if msname != "" and os.path.exists(msname):

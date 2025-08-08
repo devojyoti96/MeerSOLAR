@@ -60,7 +60,7 @@ def make_solar_DS(
     """
     if cpu_frac > 0.8:
         cpu_frac = 0.8
-    total_cpu = max(1,int(psutil.cpu_count() * cpu_frac))
+    total_cpu = max(1, int(psutil.cpu_count() * cpu_frac))
     if mem_frac > 0.8:
         mem_frac = 0.8
     total_mem = (psutil.virtual_memory().available * mem_frac) / (1024**3)  # In GB
@@ -114,8 +114,8 @@ def make_solar_DS(
     # Number of worker limit based on memory
     ########################################
     mem_limit = min(total_mem, max(scan_size_list))
-    njobs=min(len(scans),int(total_mem / mem_limit))
-    njobs = max(1, min(total_cpu,njobs))
+    njobs = min(len(scans), int(total_mem / mem_limit))
+    njobs = max(1, min(total_cpu, njobs))
     n_threads = max(1, int(total_cpu / njobs))
 
     print("#################################")
@@ -136,7 +136,7 @@ def make_solar_DS(
             )
         )
     results = []
-    print ("Start making dynamic spectra...")
+    print("Start making dynamic spectra...")
     for i in range(0, len(tasks), njobs):
         batch = tasks[i : i + njobs]
         futures = dask_client.compute(batch)
@@ -334,7 +334,7 @@ def main(
             mem_frac=mem_frac,
         )
         nworker = max(2, int(psutil.cpu_count() * cpu_frac))
-        scale_worker_and_wait(dask_cluster,nworker)
+        scale_worker_and_wait(dask_cluster, nworker)
 
     try:
         if msname != "" and os.path.exists(msname):

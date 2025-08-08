@@ -52,7 +52,7 @@ def cor_sidereal_motion(
         tasks = []
         for ms in mslist:
             tasks.append(delayed(correct_solar_sidereal_motion)(ms))
-        print ("Starting sidereal motion correction jobs...")
+        print("Starting sidereal motion correction jobs...")
         results = list(dask_client.gather(dask_client.compute(tasks)))
 
         splited_ms_list_phaserotated = []
@@ -159,7 +159,7 @@ def main(
             mem_frac=mem_frac,
         )
         nworker = max(2, int(psutil.cpu_count() * cpu_frac))
-        scale_worker_and_wait(dask_cluster,nworker)
+        scale_worker_and_wait(dask_cluster, nworker)
 
     try:
         if len(mslist) == 0:

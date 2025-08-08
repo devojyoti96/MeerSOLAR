@@ -65,7 +65,7 @@ def single_ms_flag(
         ##############################
         if badspw != "":
             try:
-                with suppress_casa_output():
+                with suppress_output():
                     flagdata(
                         vis=msname,
                         mode="manual",
@@ -81,7 +81,7 @@ def single_ms_flag(
         ##############################
         if bad_ants_str != "":
             try:
-                with suppress_casa_output():
+                with suppress_output():
                     flagdata(
                         vis=msname,
                         mode="manual",
@@ -96,7 +96,7 @@ def single_ms_flag(
         # Clip zero amplitude data points
         #################################
         try:
-            with suppress_casa_output():
+            with suppress_output():
                 flagdata(
                     vis=msname,
                     mode="clip",
@@ -113,7 +113,7 @@ def single_ms_flag(
         #################################
         if flag_autocorr:
             try:
-                with suppress_casa_output():
+                with suppress_output():
                     flagdata(
                         vis=msname,
                         mode="manual",
@@ -194,7 +194,7 @@ def single_ms_flag(
         ##############
         if use_tfcrop:
             try:
-                with suppress_casa_output():
+                with suppress_output():
                     flagdata(
                         vis=msname,
                         mode="tfcrop",
@@ -220,7 +220,7 @@ def single_ms_flag(
         # Rflag flag
         #############
         try:
-            with suppress_casa_output():
+            with suppress_output():
                 flagdata(
                     vis=msname,
                     mode="rflag",
@@ -245,7 +245,7 @@ def single_ms_flag(
         # Extend flag
         ##############
         try:
-            with suppress_casa_output():
+            with suppress_output():
                 flagdata(
                     vis=msname,
                     mode="extend",
@@ -327,7 +327,7 @@ def do_flagging(
     try:
         if cpu_frac > 0.8:
             cpu_frac = 0.8
-        total_cpu = max(1,int(psutil.cpu_count() * cpu_frac))
+        total_cpu = max(1, int(psutil.cpu_count() * cpu_frac))
         if mem_frac > 0.8:
             mem_frac = 0.8
         total_mem = (psutil.virtual_memory().available * mem_frac) / (1024**3)  # In GB
@@ -342,7 +342,7 @@ def do_flagging(
         print("###########################")
         correct_missing_col_subms(msname)
         print("Restoring all previous flags...")
-        with suppress_casa_output():
+        with suppress_output():
             flagdata(vis=msname, mode="unflag", spw="0", flagbackup=False)
         fluxcal_field, fluxcal_scans = get_fluxcals(msname)
         if len(fluxcal_field) == 0:
@@ -365,8 +365,8 @@ def do_flagging(
 
         njobs = max(1, min(total_cpu, len(subms_list)))
         n_threads = max(1, int(total_cpu / njobs))
-        mem_limit = total_mem/njobs
-        
+        mem_limit = total_mem / njobs
+
         print("#################################")
         print(f"Total dask worker: {njobs}")
         print(f"CPU per worker: {n_threads}")
@@ -391,7 +391,7 @@ def do_flagging(
             )
             for ms in subms_list
         ]
-        print (f"Flagging mslist: {','.join(subms_list)}")
+        print(f"Flagging mslist: {','.join(subms_list)}")
         futures = dask_client.compute(tasks)
         results = list(dask_client.gather(futures))
         return 0
@@ -499,7 +499,7 @@ def main(
             mem_frac=mem_frac,
         )
         nworker = max(2, int(psutil.cpu_count() * cpu_frac))
-        scale_worker_and_wait(dask_cluster,nworker)
+        scale_worker_and_wait(dask_cluster, nworker)
 
     try:
         if msname and os.path.exists(msname):
@@ -634,7 +634,5 @@ def cli():
 
 if __name__ == "__main__":
     result = cli()
-    print(
-        "\n###################\nFlagging is done.\n###################\n"
-    )
+    print("\n###################\nFlagging is done.\n###################\n")
     os._exit(result)

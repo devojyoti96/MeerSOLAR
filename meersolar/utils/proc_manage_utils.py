@@ -235,50 +235,53 @@ def generate_activate_env(outfile="activate_env.sh"):
     print(f"Created activation script at: {outfile}")
     return outfile
 
+
 def get_total_worker(cluster):
     """
     Get total workers in the cluster
-    
+
     Parameters
     ----------
     cluster : dask.cluster
         Dask cluster
-        
+
     Returns
     -------
     int
         Number of workers
     """
     return len(cluster.workers)
-    
-def scale_worker_and_wait(dask_cluster,nworker,timeout=60, poll_interval=1):
+
+
+def scale_worker_and_wait(dask_cluster, nworker, timeout=60, poll_interval=1):
     """
     Scale worker and wait until it is done
-    
+
     Parameters
     ----------
     dask_cluster : dask.cluster
         Dask cluster
     nworker : int
-        Number of worker  
+        Number of worker
     timeout : float, optional
-        Timeout, show a warning and move  
+        Timeout, show a warning and move
     poll_interval : float, optional
-        Check interval in seconds 
+        Check interval in seconds
     """
-    print (f"Start scaling to {nworker} workers")
-    dask_cluster.scale(nworker)  
-    timeout=60
-    c=0
-    while c<timeout:
-        if get_total_worker(dask_cluster)==nworker:
-            print (f"Successfully scaled to {nworker} workers")
+    print(f"Start scaling to {nworker} workers")
+    dask_cluster.scale(nworker)
+    timeout = 60
+    c = 0
+    while c < timeout:
+        if get_total_worker(dask_cluster) == nworker:
+            print(f"Successfully scaled to {nworker} workers")
             return 0
         else:
             time.sleep(poll_interval)
-            c+=poll_interval  
-    print (f"Dask cluster did not scale to {nworker} within {timeout} seconds.") 
+            c += poll_interval
+    print(f"Dask cluster did not scale to {nworker} within {timeout} seconds.")
     return 1
+
 
 def wait_for_dask_workers(client, min_worker=1, timeout=60):
     """
@@ -299,11 +302,12 @@ def wait_for_dask_workers(client, min_worker=1, timeout=60):
         If the required number of workers do not connect in time.
     """
     client.wait_for_workers(n_workers=min_worker, timeout=timeout)
-   
+
+
 def get_scheduler_name():
     """
-    Get job scheduler available 
-    
+    Get job scheduler available
+
     Returns
     -------
     str
@@ -325,7 +329,8 @@ def get_scheduler_name():
         return "oar"
     else:
         return "local"
-        
+
+
 def get_local_dask_cluster(
     njobs,
     dask_dir,
@@ -333,7 +338,7 @@ def get_local_dask_cluster(
     mem_frac=0.8,
     ncpu=-1,
     mem=-1,
-    spill_frac=0.6,
+    spill_frac=0.7,
     verbose=True,
 ):
     """
@@ -368,7 +373,7 @@ def get_local_dask_cluster(
         Dask directory
     """
     logging.getLogger("distributed").setLevel(logging.ERROR)
-    print ("Creating local cluster on the current node.")
+    print("Creating local cluster on the current node.")
     # Set up Dask working directories
     dask_dir = os.path.join(dask_dir.rstrip("/"), f"dask_{int(time.time())}")
     dask_dir_tmp = os.path.join(dask_dir, "tmp")
@@ -388,20 +393,20 @@ def get_local_dask_cluster(
     usable_cpus = int(total_cpus * cpu_frac)
     n_workers = max(1, usable_cpus)
 
-    # Adjust memory spill behavior based on swap
-    swap_gb = psutil.swap_memory().total / 1024**3
-    if swap_gb <= 4:
-        spill_frac = 0.5
-    elif swap_gb <= 16:
-        spill_frac = 0.6
-    spill_frac = min(spill_frac, 0.7)
-
     # Raise file descriptor limit
     soft, hard = resource.getrlimit(resource.RLIMIT_NOFILE)
     if soft < int(hard * 0.8):
         resource.setrlimit(resource.RLIMIT_NOFILE, (int(hard * 0.8), hard))
 
-    dask.config.set({"temporary-directory": dask_dir})
+    dask.config.set(
+        {
+            "temporary-directory": dask_dir,
+            "distributed.worker.memory.target": spill_frac,
+            "distributed.worker.memory.spill": spill_frac + 0.1,
+            "distributed.worker.memory.pause": spill_frac + 0.2,
+            "distributed.worker.memory.terminate": spill_frac + 0.25,
+        }
+    )
 
     cluster = LocalCluster(
         n_workers=1,
@@ -420,14 +425,6 @@ def get_local_dask_cluster(
         },
     )
     client = Client(cluster, heartbeat_interval="5s")
-    dask.config.set(
-        {
-            "distributed.worker.memory.target": spill_frac,
-            "distributed.worker.memory.spill": spill_frac + 0.1,
-            "distributed.worker.memory.pause": spill_frac + 0.2,
-            "distributed.worker.memory.terminate": spill_frac + 0.25,
-        }
-    )
     client.run_on_scheduler(gc.collect)
     if verbose:
         print("####################################################")
@@ -444,7 +441,7 @@ def get_slurm_dask_cluster(
     mem_frac=0.8,
     ncpu=-1,
     mem=-1,
-    spill_frac=0.6,
+    spill_frac=0.7,
     verbose=True,
 ):
     """
@@ -498,14 +495,6 @@ def get_slurm_dask_cluster(
     mem_frac = min(mem_frac, 0.8)
     usable_mem = total_mem * mem_frac
     usable_cpus = int(total_cpus * cpu_frac)
-
-    # Adjust memory spill behavior based on swap
-    swap_gb = psutil.swap_memory().total / 1024**3
-    if swap_gb <= 4:
-        spill_frac = 0.5
-    elif swap_gb <= 16:
-        spill_frac = 0.6
-    spill_frac = min(spill_frac, 0.7)
 
     # Raise file descriptor limit
     soft, hard = resource.getrlimit(resource.RLIMIT_NOFILE)
