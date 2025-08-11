@@ -2040,7 +2040,7 @@ def master_control(
                     mem_frac=mem_frac,
                 )
                 if msg == 0:
-                    print("Calibrator diagnostic plots are saved in : {ms_diag_plot}")
+                    print(f"Calibrator diagnostic plots are saved in : {ms_diag_plot}")
                 else:
                     print(
                         "Error in creating diagnostic plots for calibrator measurement set."
@@ -2052,11 +2052,11 @@ def master_control(
                     )
                     if msg == 0:
                         print(
-                            "Diagnostic plots for caltable {caltable} are saved in : {caltable_diag_plot}."
+                            f"Diagnostic plots for caltable {caltable} are saved in : {caltable_diag_plot}."
                         )
                     else:
                         print(
-                            "Error in creating diagnostic plots for caltable {caltable}."
+                            f"Error in creating diagnostic plots for caltable {caltable}."
                         )
             except Exception as e:
                 print(
