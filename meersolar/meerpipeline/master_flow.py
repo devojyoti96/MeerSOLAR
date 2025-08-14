@@ -436,6 +436,7 @@ def run_target_split_jobs(
 def run_flag(
     msname,
     workdir,
+    outdir,
     flag_calibrators=True,
     jobid=0,
     cpu_frac=0.8,
@@ -451,6 +452,8 @@ def run_flag(
         Name of the measurement set
     workdir : str
         Working directory
+    outdir : str
+        Output directory
     flag_calibrators : bool, optional
         Flag calibrator fields
     jobid : int, optional
@@ -501,6 +504,7 @@ def run_flag(
             msg = flagging.main(
                 msname,
                 workdir=workdir,
+                outdir=outdir,
                 datacolumn="DATA",
                 flag_bad_ants=True,
                 flag_bad_spw=True,
@@ -606,7 +610,7 @@ def run_import_model(
 def run_basic_cal_jobs(
     msname,
     workdir,
-    caldir,
+    outdir,
     perform_polcal=False,
     jobid=0,
     cpu_frac=0.8,
@@ -623,8 +627,8 @@ def run_basic_cal_jobs(
         Name of the measurement set
     workdir : str
         Working directory
-    caldir : str
-        Caltable directory
+    outdir : str
+        Output directory
     perform_polcal : bool, optional
         Perform full polarization calibration
     cpu_frac : float, optional
@@ -667,7 +671,7 @@ def run_basic_cal_jobs(
             msg = basic_cal.main(
                 msname,
                 workdir,
-                caldir,
+                outdir,
                 perform_polcal=perform_polcal,
                 keep_backup=keep_backup,
                 start_remote_log=remote_log,
@@ -1529,7 +1533,7 @@ def master_control(
     if outdir == "":
         outdir = workdir
     outdir = outdir.rstrip("/")
-    caldir = outdir + "/caltables"
+    caldir = f"{outdir}/caltables"
     caldir = caldir.rstrip("/")
     os.makedirs(workdir, exist_ok=True)
     os.makedirs(outdir, exist_ok=True)
@@ -1953,6 +1957,7 @@ def master_control(
             ).submit(
                 calibrator_msname,
                 workdir,
+                outdir,
                 flag_calibrators=True,
                 jobid=jobid,
                 cpu_frac=round(cpu_frac, 2),
@@ -2022,7 +2027,7 @@ def master_control(
             ).submit(
                 calibrator_msname,
                 workdir,
-                caldir,
+                outdir,
                 perform_polcal=do_polcal,
                 jobid=jobid,
                 cpu_frac=round(cpu_frac, 2),
@@ -2488,23 +2493,24 @@ def master_control(
         #####################################
         # Target ms diagnostic plots
         #####################################
-        if len(target_mslist) > 0:
-            for targetms in target_mslist:
-                msg, ms_diag_plot = plot_ms_diagnostics(
-                    targetms,
-                    outdir=f"{outdir}/diagnostic_plots",
-                    dask_client=dask_client,
-                    cpu_frac=cpu_frac,
-                    mem_frac=mem_frac,
-                )
-                if msg == 0:
-                    print(
-                        "Diagnostic plots for target measurement set {targetms} are saved in : {ms_diag_plot}"
+        if do_apply_selfcal or do_imaging: 
+            if len(target_mslist) > 0:
+                for targetms in target_mslist:
+                    msg, ms_diag_plot = plot_ms_diagnostics(
+                        targetms,
+                        outdir=f"{outdir}/diagnostic_plots",
+                        dask_client=dask_client,
+                        cpu_frac=cpu_frac,
+                        mem_frac=mem_frac,
                     )
-                else:
-                    print(
-                        "Error in creating diagnostic plots for target measurement set {targetms}."
-                    )
+                    if msg == 0:
+                        print(
+                            "Diagnostic plots for target measurement set {targetms} are saved in : {ms_diag_plot}"
+                        )
+                    else:
+                        print(
+                            "Error in creating diagnostic plots for target measurement set {targetms}."
+                        )
 
         ######################################
         # Imaging
