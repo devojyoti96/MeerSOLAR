@@ -26,6 +26,7 @@ def single_ms_flag(
     use_rflag=False,
     flagdimension="freqtime",
     flag_autocorr=True,
+    threshold=5.0,
     n_threads=-1,
     memory_limit=-1,
 ):
@@ -50,10 +51,17 @@ def single_ms_flag(
         Flag dimension (only applicable for tfcrop)
     flag_autocorr : bool, optional
         Flag autocorrelations or not
+    threshold : float, optional
+        Flagging threshold
     n_threads : int, optional
         Number of OpenMP threads
     memory_limit : float, optional
         Memory limit in GB
+        
+    Returns
+    -------
+    int
+        Success message
     """
     limit_threads(n_threads=n_threads)
     from casatasks import flagdata
@@ -155,7 +163,7 @@ def single_ms_flag(
                 print(
                     "Corrected data column is chosen for flagging, but it is not present."
                 )
-                return
+                return 1
             else:
                 datacolumn = "corrected"
 
@@ -166,28 +174,9 @@ def single_ms_flag(
             datacolumn_present = check_datacolumn_valid(msname, datacolumn="DATA")
             if not datacolumn_present:
                 print("Data column is chosen for flagging, but it is not present.")
-                return
+                return 1
             else:
                 datacolumn = "data"
-
-        ###########################
-        # Determinign time chunking
-        ############################
-        if use_tfcrop or use_rflag:
-            nchunk = get_chunk_size(msname, memory_limit=memory_limit)
-            if nchunk <= 1:
-                ntime = "scan"
-            else:
-                msmd = msmetadata()
-                msmd.open(msname)
-                scan = np.unique(msmd.scannumbers())[0]
-                times = msmd.timesforspws(0)
-                msmd.close()
-                total_time = np.nanmax(times) - np.nanmin(times)
-                timeres = np.nanmin(np.diff(times))
-                ntime = float(total_time / nchunk)
-                if ntime < timeres:
-                    ntime = timeres
 
         ##############
         # Tfcrop flag
@@ -199,19 +188,17 @@ def single_ms_flag(
                         vis=msname,
                         mode="tfcrop",
                         timefit="line",
-                        freqfit="line",
-                        extendflags=False,
+                        freqfit="poly",
+                        extendflags=True,
                         flagdimension=flagdimension,
-                        timecutoff=5.0,
-                        freqcutoff=5.0,
-                        extendpols=True,
+                        timecutoff=max(4.0,threshold-1),
+                        freqcutoff=max(3.0,threshold-2),
                         growaround=False,
                         action="apply",
                         flagbackup=False,
                         overwrite=True,
                         writeflags=True,
                         datacolumn=datacolumn,
-                        ntime=ntime,
                     )
             except BaseException:
                 pass
@@ -219,53 +206,50 @@ def single_ms_flag(
         #############
         # Rflag flag
         #############
-        try:
-            with suppress_output():
-                flagdata(
-                    vis=msname,
-                    mode="rflag",
-                    timefit="line",
-                    freqfit="line",
-                    extendflags=False,
-                    timedevscale=5.0,
-                    freqdevscale=5.0,
-                    extendpols=True,
-                    growaround=False,
-                    action="apply",
-                    flagbackup=False,
-                    overwrite=True,
-                    writeflags=True,
-                    datacolumn=datacolumn,
-                    ntime=ntime,
-                )
-        except BaseException:
-            pass
+        if use_rflag:
+            try:
+                with suppress_output():
+                    flagdata(
+                        vis=msname,
+                        mode="rflag",
+                        extendflags=True,
+                        timedevscale=threshold,
+                        freqdevscale=threshold,
+                        growaround=False,
+                        action="apply",
+                        flagbackup=False,
+                        overwrite=True,
+                        writeflags=True,
+                        datacolumn=datacolumn,
+                    )
+            except BaseException:
+                pass
 
         ##############
         # Extend flag
         ##############
-        try:
-            with suppress_output():
-                flagdata(
-                    vis=msname,
-                    mode="extend",
-                    datacolumn="data",
-                    clipzeros=True,
-                    extendflags=False,
-                    extendpols=True,
-                    growtime=80.0,
-                    growfreq=80.0,
-                    growaround=False,
-                    flagneartime=False,
-                    flagnearfreq=False,
-                    action="apply",
-                    flagbackup=False,
-                    overwrite=True,
-                    writeflags=True,
-                    ntime=ntime,
-                )
-        except BaseException:
-            pass
+        if use_tfcrop or use_rflag:
+            try:
+                with suppress_output():
+                    flagdata(
+                        vis=msname,
+                        mode="extend",
+                        datacolumn=datacolumn,
+                        clipzeros=True,
+                        extendflags=True,
+                        extendpols=True,
+                        growtime=80.0,
+                        growfreq=80.0,
+                        growaround=False,
+                        flagneartime=False,
+                        flagnearfreq=False,
+                        action="apply",
+                        flagbackup=False,
+                        overwrite=True,
+                        writeflags=True,
+                    )
+            except BaseException:
+                pass
         return 0
     except Exception as e:
         traceback.print_exc()
@@ -276,6 +260,7 @@ def do_flagging(
     msname,
     dask_client,
     workdir,
+    outdir,
     datacolumn="data",
     flag_bad_ants=True,
     flag_bad_spw=True,
@@ -298,6 +283,8 @@ def do_flagging(
         Dask client
     workdir : str
         Work directory
+    outdir : str
+        Output directory
     datacolumn : str, optional
         Data column
     flag_bad_ants : bool, optional
@@ -386,6 +373,7 @@ def do_flagging(
                 use_rflag=use_rflag,
                 flagdimension=flagdimension,
                 flag_autocorr=flag_autocorr,
+                threshold=5.0,
                 n_threads=n_threads,
                 memory_limit=mem_limit,
             )
@@ -394,6 +382,12 @@ def do_flagging(
         print(f"Flagging mslist: {','.join(subms_list)}")
         futures = dask_client.compute(tasks)
         results = list(dask_client.gather(futures))
+        ###############
+        # Flag summary
+        ###############
+        summary_file=f"{outdir}/{os.path.basename(msname).split('.ms')[0]}_basicflag.summary"
+        print (f"Flag summary: {summary_file}")
+        flagsummary(msname, summary_file)
         return 0
     except Exception as e:
         traceback.print_exc()
@@ -403,6 +397,7 @@ def do_flagging(
 def main(
     msname,
     workdir="",
+    outdir="",
     datacolumn="DATA",
     flag_bad_ants=True,
     flag_bad_spw=True,
@@ -428,6 +423,8 @@ def main(
     workdir : str, optional
         Working directory to store logs and temporary files. If empty, defaults to
         `<msname>/workdir`. Default is "".
+    outdir : str, optional
+        Output directory. Default is: workdir
     datacolumn : str, optional
         Data column to be flagged (e.g., "DATA", "CORRECTED"). Default is "DATA".
     flag_bad_ants : bool, optional
@@ -469,7 +466,10 @@ def main(
     if workdir == "":
         workdir = os.path.dirname(os.path.abspath(msname)) + "/workdir"
     os.makedirs(workdir, exist_ok=True)
-
+    if outdir=="":
+        outdir=workdir
+    os.makedirs(outdir,exist_ok=True)
+    
     ############
     # Logger
     ############
@@ -507,6 +507,7 @@ def main(
                 msname,
                 dask_client,
                 workdir,
+                outdir,
                 datacolumn=datacolumn,
                 flag_bad_ants=flag_bad_ants,
                 flag_bad_spw=flag_bad_spw,
@@ -549,6 +550,9 @@ def cli():
     basic_args.add_argument("msname", type=str, help="Name of measurement set")
     basic_args.add_argument(
         "--workdir", type=str, default="", help="Name of work directory"
+    )
+    basic_args.add_argument(
+        "--outdir", type=str, default="", help="Name of output directory"
     )
     basic_args.add_argument(
         "--datacolumn", type=str, default="DATA", help="Name of the datacolumn"
@@ -615,6 +619,7 @@ def cli():
     msg = main(
         msname=args.msname,
         workdir=args.workdir,
+        outdir=args.outdir,
         datacolumn=args.datacolumn,
         flag_bad_ants=args.flag_bad_ants,
         flag_bad_spw=args.flag_bad_spw,

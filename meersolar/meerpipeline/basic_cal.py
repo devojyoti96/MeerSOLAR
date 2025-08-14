@@ -22,6 +22,7 @@ datadir = get_datadir()
 
 def run_delaycal(
     msname="",
+    spw="",
     field="",
     scan="",
     uvrange="",
@@ -47,6 +48,7 @@ def run_delaycal(
             gaincal(
                 vis=msname,
                 caltable=caltable_prefix + ".kcal",
+                spw=spw,
                 field=str(field),
                 scan=str(scan),
                 uvrange="",
@@ -63,6 +65,7 @@ def run_delaycal(
             delaycal(
                 vis=msname,
                 caltable=caltable_prefix + ".kcal",
+                spw=spw,
                 field=str(field),
                 scan=str(scan),
                 uvrange=uvrange,
@@ -124,6 +127,7 @@ def run_bandpass(
 
 def run_gaincal(
     msname="",
+    spw="",
     field="",
     scan="",
     uvrange="",
@@ -146,13 +150,14 @@ def run_gaincal(
     Perform gain calibration
     """
     limit_threads(n_threads=n_threads)
-    from casatasks import gaincal, flagdata
+    from casatasks import gaincal
 
     caltable_prefix = os.path.basename(msname).split(".ms")[0]
     with suppress_output():
         gaincal(
             vis=msname,
             caltable=caltable_prefix + ".gcal",
+            spw=spw,
             field=str(field),
             scan=str(scan),
             uvrange=uvrange,
@@ -200,8 +205,9 @@ def run_leakagecal(
             scan=str(scan),
             uvrange=uvrange,
             refant=refant,
-            solint="inf,10MHz",
+            solint="inf,5MHz",
             combine=combine,
+            preavg=60.0,
             poltype="Df",
             gaintable=gaintable,
             gainfield=gainfield,
@@ -244,8 +250,9 @@ def run_polcal(
             uvrange=uvrange,
             refant=refant,
             refantmode="flex",
-            solint="inf",
+            solint="inf,5MHz",
             combine=combine,
+            preavg=60.0,
             gaintype="KCROSS",
             gaintable=gaintable,
             gainfield=gainfield,
@@ -263,9 +270,10 @@ def run_polcal(
                 scan=str(scan),
                 uvrange=uvrange,
                 refant=refant,
-                solint="inf,10MHz",
+                solint="inf,5MHz",
                 combine=combine,
                 poltype="Xf",
+                preavg=60.0,
                 gaintable=gaintable,
                 gainfield=gainfield,
                 interp=interp,
@@ -283,9 +291,10 @@ def run_polcal(
                     uvrange=uvrange,
                     refant=refant,
                     refantmode="flex",
-                    solint="inf,10MHz",
+                    solint="inf,5MHz",
                     combine="obs,scan",
                     poltype="PosAng",
+                    preavg=60.0,
                     gaintable=gaintable,
                     gainfield=gainfield,
                     interp=interp,
@@ -334,66 +343,29 @@ def run_applycal(
 
 def run_postcal_flag(
     msname="",
-    datacolumn="corrected",
-    uvrange="",
-    mode="rflag",
+    datacolumn="residual",
+    threshold=5.0,
     n_threads=-1,
     memory_limit=-1,
 ):
     """
     Perform apply calibration
     """
-    limit_threads(n_threads=n_threads)
-    from casatasks import flagdata
-
-    ncol = 3
-    ####################################################
-    # Check if required columns are present for residual
-    ####################################################
-    if datacolumn == "residual" or datacolumn == "RESIDUAL":
-        modelcolumn_present = check_datacolumn_valid(msname, datacolumn="MODEL_DATA")
-        corcolumn_present = check_datacolumn_valid(msname, datacolumn="CORRECTED_DATA")
-        if modelcolumn_present == False or corcolumn_present == False:
-            datacolumn = "corrected"
-    elif datacolumn == "RESIDUAL_DATA":
-        modelcolumn_present = check_datacolumn_valid(msname, datacolumn="MODEL_DATA")
-        datacolumn_present = check_datacolumn_valid(msname, datacolumn="DATA")
-        if modelcolumn_present == False or datacolumn_present == False:
-            datacolumn = "corrected"
-
-    #################################################
-    # Whether corrected data column is present or not
-    #################################################
-    if datacolumn == "corrected" or datacolumn == "CORRECTED_DATA":
-        corcolumn_present = check_datacolumn_valid(msname, datacolumn="CORRECTED_DATA")
-        if not corcolumn_present:
-            print(
-                "Corrected data column is chosen for flagging, but it is not present."
-            )
-            return
-    nchunk = get_chunk_size(msname, memory_limit=memory_limit)
-    if nchunk <= 1:
-        ntime = "scan"
-    else:
-        msmd = msmetadata()
-        msmd.open(msname)
-        scan = np.unique(msmd.scannumbers())[0]
-        times = msmd.timesforspws(0)
-        msmd.close()
-        total_time = np.nanmax(times) - np.nanmin(times)
-        timeres = np.nanmin(np.diff(times))
-        ntime = float(total_time / nchunk)
-        if ntime < timeres:
-            ntime = timeres
-    with suppress_output():
-        flagdata(
-            vis=msname,
-            mode=mode,
-            uvrange=uvrange,
-            datacolumn=datacolumn,
-            flagbackup=False,
-            ntime=ntime,
-        )
+    msg = single_ms_flag(
+        msname=msname,
+        badspw="",
+        bad_ants_str="",
+        datacolumn=datacolumn,
+        use_tfcrop=True,
+        use_rflag=True,
+        flagdimension="freqtime",
+        flag_autocorr=False,
+        threshold=threshold,
+        n_threads=n_threads,
+        memory_limit=memory_limit,
+    )
+    if msg>0:
+        print (f"Issue in post-calibration flagging in ms: {msname}")
     return
 
 
@@ -416,6 +388,7 @@ def single_round_cal_and_flag(
     do_polcal=False,
     applysol=True,
     do_postcal_flag=True,
+    flag_threshold=5.0,
     cpu_frac=0.8,
     mem_frac=0.8,
 ):
@@ -461,6 +434,8 @@ def single_round_cal_and_flag(
         Apply solutions for post-calibration flagging
     do_postcal_flag : bool, optional
         Peform post-calibration flagging
+    flag_threshold : float, optional
+        Flag threshold 
     cpu_frac : float, optional
         CPU fraction to use
     mem_frac : float, optional
@@ -486,6 +461,7 @@ def single_round_cal_and_flag(
         npol = msmd.ncorrforpol()[0]
         msmd.close()
         parang = False
+        good_chans=get_good_chans(msname)
         ######################################
         # Removing previous rounds caltables
         ######################################
@@ -566,6 +542,7 @@ def single_round_cal_and_flag(
             delaycal_tasks = [
                 delayed(run_delaycal)(
                     sub_msname,
+                    spw=good_chans,
                     uvrange=uvrange,
                     refant=refant,
                     solint="inf",
@@ -617,7 +594,7 @@ def single_round_cal_and_flag(
             if bpass_caltable is not None and os.path.exists(bpass_caltable):
                 applycal_gaintable.append(bpass_caltable)
                 applycal_gainfield.append("")
-                applycal_interp.append("nearestflag")
+                applycal_interp.append("nearest,nearestflag")
             else:
                 print("Bandpass calibration is not successful.")
                 return 1, []
@@ -636,6 +613,7 @@ def single_round_cal_and_flag(
             gaincal_tasks = [
                 delayed(run_gaincal)(
                     sub_msname,
+                    spw=good_chans,
                     uvrange=uvrange,
                     refant=refant,
                     gaintype="T",
@@ -680,6 +658,7 @@ def single_round_cal_and_flag(
                 gaincal_tasks = [
                     delayed(run_gaincal)(
                         sub_msname,
+                        spw=good_chans,
                         uvrange=uvrange,
                         refant=refant,
                         gaintype="T",
@@ -908,8 +887,9 @@ def single_round_cal_and_flag(
                 print(f"Memory per worker: {round(mem_limit,2)} GB")
                 print("#################################")
                 if len(all_mslist) > 0:
+                    print(f"Performing post-calibration flagging - MS: {msname}, threshold: {flag_threshold}")
                     for sub_msname in all_mslist:
-                        if sub_msname in fluxcal_mslist:
+                        if sub_msname in fluxcal_mslist or (sub_msname in polcal_mslist and do_polcal):
                             datacolumn = "residual"
                         else:
                             datacolumn = "corrected"
@@ -917,13 +897,12 @@ def single_round_cal_and_flag(
                             delayed(run_postcal_flag)(
                                 sub_msname,
                                 datacolumn=datacolumn,
-                                uvrange=uvrange,
-                                mode="rflag",
+                                threshold=flag_threshold,
                                 n_threads=n_threads,
                                 memory_limit=mem_limit,
                             )
                         )
-                print(f"Performing post-calibration flagging on: {msname}")
+                
                 results = list(dask_client.gather(dask_client.compute(tasks)))
 
         ###############################
@@ -985,6 +964,7 @@ def run_basic_cal_rounds(
     msname,
     dask_client,
     workdir,
+    outdir="",
     refant="",
     uvrange="",
     keep_backup=False,
@@ -1003,6 +983,8 @@ def run_basic_cal_rounds(
         Dask client
     workdir : str
         Warking directory
+    outdir : str
+        Output directory
     refant : str, optional
         Reference antenna
     uvrange : str, optional
@@ -1025,7 +1007,6 @@ def run_basic_cal_rounds(
     """
     try:
         from casatasks import flagdata
-
         os.chdir(workdir)
         print(f"Measurement set : {msname}")
         print("Extracting metadata from measurement set ....")
@@ -1037,9 +1018,7 @@ def run_basic_cal_rounds(
         msmd.open(msname)
         npol = msmd.ncorrforpol()[0]
         msmd.close()
-        if npol == 4 or len(polcal_fields) > 0:
-            n_rounds = 4
-        elif len(phasecal_fields) > 0:
+        if len(phasecal_fields) > 0 or len(polcal_fields) > 0:
             n_rounds = 3
         else:
             n_rounds = 2
@@ -1075,12 +1054,13 @@ def run_basic_cal_rounds(
         do_leakagecal = False
         do_postcal_flag = True
         applysol = True
+        flag_threshold=6.0
         if refant == "":
             refant = get_refant(msname)
         if uvrange == "":
-            uvrange = ">200lambda"
+            uvrange = ">1klambda"
         flag_uvranges = get_uvrange_exclude(uvrange)
-        print(f"Flagging un-wanted uv-range: {flag_uvranges}")
+        print(f"Flagging un-wanted uv-range: {','.join(flag_uvranges)}")
         for flag_uvrange in flag_uvranges:
             flagdata(vis=msname, mode="manual", uvrange=flag_uvrange, flagbackup=False)
 
@@ -1091,9 +1071,6 @@ def run_basic_cal_rounds(
             print("#################################")
             print(f"Calibration round: {cal_round}")
             print("#################################")
-            if cal_round == n_rounds:
-                do_postcal_flag = False
-                applysol = False
             if cal_round > 1:
                 if perform_phasecal:
                     do_phasecal = True
@@ -1101,6 +1078,7 @@ def run_basic_cal_rounds(
                     do_polcal = True
                 if perform_leakagecal:
                     do_leakagecal = True
+                flag_threshold=5.0
             msg, caltables = single_round_cal_and_flag(
                 msname,
                 dask_client,
@@ -1118,6 +1096,7 @@ def run_basic_cal_rounds(
                 do_polcal=do_polcal,
                 applysol=applysol,
                 do_postcal_flag=do_postcal_flag,
+                flag_threshold=flag_threshold,
                 cpu_frac=cpu_frac,
                 mem_frac=mem_frac,
             )
@@ -1136,6 +1115,11 @@ def run_basic_cal_rounds(
                             + f".{cal_ext}"
                         )
                         os.system("cp -r " + caltable + " " + outputname)
+            ###############
+            # Flag summary
+            ###############
+            summary_file=f"{outdir}/{os.path.basename(msname).split('.ms')[0]}_calflag_{cal_round}.summary"
+            flagsummary(msname, summary_file)
             if msg == 1:
                 print("##################")
                 print("Basic calibration is not successful.")
@@ -1153,7 +1137,7 @@ def run_basic_cal_rounds(
 def main(
     msname,
     workdir,
-    caldir,
+    outdir,
     refant="1",
     uvrange="",
     perform_polcal=False,
@@ -1174,8 +1158,8 @@ def main(
         Measurement set
     workdir : str
         Work directory
-    caldir : str
-        Caltables directory
+    outdir : str
+        Output directory
     refant : str, optional
         Reference antenna
     uvrange : str, optional
@@ -1210,8 +1194,10 @@ def main(
         workdir = os.path.dirname(os.path.abspath(msname)) + "/workdir"
     os.makedirs(workdir, exist_ok=True)
 
-    if caldir == "" or not os.path.exists(caldir):
-        caldir = f"{workdir}/caltables"
+    if outdir == "":
+        outdir=workdir
+    os.makedirs(outdir,exist_ok=True)
+    caldir = f"{outdir}/caltables"
     os.makedirs(caldir, exist_ok=True)
 
     ############
@@ -1254,6 +1240,7 @@ def main(
                 msname,
                 dask_client,
                 workdir,
+                outdir,
                 refant=refant,
                 uvrange=uvrange,
                 perform_polcal=perform_polcal,
@@ -1310,11 +1297,11 @@ def cli():
         help="Working directory for calibration outputs (default: auto-created next to MS)",
     )
     basic_args.add_argument(
-        "--caldir",
+        "--outdir",
         type=str,
         default="",
         required=True,
-        help="Caltables directory (default: auto-created in the workdir MS)",
+        help="Output directory (default: auto-created in the workdir)",
     )
 
     # Advanced parameters
@@ -1366,7 +1353,7 @@ def cli():
     msg = main(
         args.msname,
         args.workdir,
-        args.caldir,
+        args.outdir,
         refant=args.refant,
         uvrange=args.uvrange,
         perform_polcal=args.perform_polcal,

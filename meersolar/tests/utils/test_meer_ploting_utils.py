@@ -7,58 +7,77 @@ from unittest.mock import patch, MagicMock
 from meersolar.utils.meer_ploting_utils import *
 
 
+@patch("meersolar.utils.meer_ploting_utils.os.system")
+@patch("meersolar.utils.meer_ploting_utils.drop_cache")
+@patch("meersolar.utils.meer_ploting_utils.run_shadems")
 @patch("meersolar.utils.meer_ploting_utils.glob.glob")
 @patch("meersolar.utils.meer_ploting_utils.Image.open")
-@patch("meersolar.utils.meer_ploting_utils.delayed")
-@patch("meersolar.utils.meer_ploting_utils.get_local_dask_cluster")
 @patch("meersolar.utils.meer_ploting_utils.psutil")
 @patch("meersolar.utils.meer_ploting_utils.get_ms_scan_size")
 @patch("meersolar.utils.meer_ploting_utils.casamstool")
 @patch("meersolar.utils.meer_ploting_utils.msmetadata")
 def test_plot_ms_diagnostics(
-    mock_msmd,
+    mock_msmetadata,
     mock_casamstool,
-    mock_scan_size,
+    mock_get_ms_scan_size,
     mock_psutil,
-    mock_get_cluster,
-    mock_delayed,
-    mock_image_open,
+    mock_Image_open,
     mock_glob,
+    mock_run_shadems,
+    mock_drop_cache,
+    mock_os_system,
     tmp_path,
 ):
-    def mock_glob_side_effect(pattern):
-        if "amp" in pattern:
-            return ["amp1.png"]
-        elif "phase" in pattern:
-            return ["phase1.png"]
-        return []
     mock_psutil.cpu_count.return_value = 4
-    mock_psutil.virtual_memory.return_value.available = 8 * 1024**3  # 8 GB
-    mock_client = MagicMock()
-    mock_cluster = MagicMock()
-    mock_get_cluster.return_value = (mock_client, mock_cluster, tmp_path)
-    mock_mstool = MagicMock()
-    mock_mstool.nrow.return_value = 1000
-    mock_casamstool.return_value = mock_mstool
-    mock_msmd_inst = MagicMock()
-    mock_msmd_inst.ncorrforpol.return_value = [4]
-    mock_msmd_inst.scannumbers.return_value = [1, 2, 3]
-    mock_msmd.return_value = mock_msmd_inst
-    mock_scan_size.side_effect = [300, 400, 300]
-    mock_delayed.side_effect = lambda func: func
-    mock_client.compute.return_value = [MagicMock()]
-    mock_client.gather.return_value = [0] * 6
-    mock_glob.side_effect = mock_glob_side_effect
-    mock_img = MagicMock()
-    mock_image_open.return_value.convert.return_value = mock_img
-    output_dir = tmp_path / "output"
-    output_dir.mkdir()
-    code, output_pdf = plot_ms_diagnostics(
-        "test.ms", str(output_dir), dask_client=mock_client
-    )
+    vm = MagicMock()
+    vm.available = 8 * 1024**3  
+    mock_psutil.virtual_memory.return_value = vm
+    mstool = MagicMock()
+    mstool.nrow.return_value = 1000
+    mock_casamstool.return_value = mstool
+    msmd = MagicMock()
+    msmd.ncorrforpol.return_value = [4]      
+    msmd.scannumbers.return_value = [1, 2, 3]
+    mock_msmetadata.return_value = msmd
+    mock_get_ms_scan_size.side_effect = [300, 400, 300]
+    def glob_side_effect(pattern):
+        if pattern.endswith("_plots*.pdf"):
+            return []
+        if "amp" in pattern and pattern.endswith("*.png"):
+            return ["amp1.png", "amp2.png"]
+        if "phase" in pattern and pattern.endswith("*.png"):
+            return ["phase1.png"]
+        if "real" in pattern and pattern.endswith("*.png"):
+            return []
+        if "imag" in pattern and pattern.endswith("*.png"):
+            return []
+        return []
+    mock_glob.side_effect = glob_side_effect
+    mock_img_converted_primary = MagicMock()   
+    mock_img_converted_extra = MagicMock()    
+    def image_open_side_effect(path):
+        m = MagicMock()
+        if os.path.basename(path) in {"amp1.png", "phase1.png"}:
+            m.convert.return_value = mock_img_converted_primary
+        else:
+            m.convert.return_value = mock_img_converted_extra
+        return m
+    mock_Image_open.side_effect = image_open_side_effect
+    outdir = tmp_path / "out"
+    outdir.mkdir()
+    code, output_pdf_list = plot_ms_diagnostics("test.ms", str(outdir), dask_client=None)
     assert code == 0
-    assert str(output_pdf).endswith("_plots.pdf")
-    mock_img.save.assert_called_once()
+    assert isinstance(output_pdf_list, list)
+    assert len(output_pdf_list) >= 1  
+    assert mock_img_converted_primary.save.call_count >= 1
+    assert mock_run_shadems.call_count > 0
+    rm_calls = [c for c in mock_os_system.call_args_list if "rm -rf" in c.args[0]]
+    assert len(rm_calls) == 4
+    mock_drop_cache.assert_called_once_with("test.ms")
+    mstool.open.assert_called_once_with("test.ms")
+    mstool.close.assert_called_once()
+    msmd.open.assert_called_once_with("test.ms")
+    msmd.close.assert_called_once()
 
 
 @patch("meersolar.utils.meer_ploting_utils.Image.open")

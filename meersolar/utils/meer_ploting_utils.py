@@ -57,145 +57,111 @@ def plot_ms_diagnostics(
     -------
     int
         Success message
-    str
-        Output plot file
+    list
+        Output plot file list
     """
     if outdir == "":
         outdir = os.getcwd()
     os.makedirs(outdir, exist_ok=True)
-    output_pdf = f"{outdir}/{os.path.basename(msname).split('.ms')[0]}_plots.pdf"
-    if os.path.exists(output_pdf):
-        return 0, output_pdf
-        
+    output_pdf = f"{outdir}/{os.path.basename(msname).split('.ms')[0]}_plots"
+    output_pdf_list=glob.glob(f"{output_pdf}*.pdf")
+    if len(output_pdf_list)>0:
+        return 0, output_pdf_list
+
     msname = msname.rstrip("/")
     mstool = casamstool()
     mstool.open(msname)
     nrow = mstool.nrow()
     mstool.close()
-    msmd=msmetadata()
+    msmd = msmetadata()
     msmd.open(msname)
-    npol=msmd.ncorrforpol()[0]
-    scan_list=msmd.scannumbers()
-    msmd.close() 
-    scan_sizes=[get_ms_scan_size(msname,scan) for scan in scan_list]  
-    
+    npol = msmd.ncorrforpol()[0]
+    scan_list = msmd.scannumbers()
+    msmd.close()
+    scan_sizes = [get_ms_scan_size(msname, scan) for scan in scan_list]
+
     if cpu_frac > 0.8:
         cpu_frac = 0.8
-    total_cpu = max(1, int(psutil.cpu_count() * cpu_frac))
+    ncpu = max(1, int(psutil.cpu_count() * cpu_frac))
     if mem_frac > 0.8:
         mem_frac = 0.8
     total_mem = (psutil.virtual_memory().available * mem_frac) / (1024**3)  # In GB
-    if npol==4:
-        njobs = min(total_cpu, 12)
-    else:
-        njobs = min(total_cpu, 6)
-   
-    ncpu = max(1, int(total_cpu / njobs))
-    per_job_mem = total_mem / njobs
-    max_scan_size=max(scan_sizes)      
-    frac_chunk=min(1,per_job_mem/max_scan_size)
-    nchunk=int(nrow*frac_chunk)
-    
-    #########################
-    # Preparing parallel runs
-    #########################
-    dask_cluster = None
-    if dask_client is None:
-        workdir = os.path.dirname(os.path.abspath(msname))
-        dask_client, dask_cluster, dask_dir = get_local_dask_cluster(
-            2,
-            dask_dir=workdir,
-            cpu_frac=cpu_frac,
-            mem_frac=mem_frac,
-        )
-        nworker = max(2, min(njobs, int(psutil.cpu_count() * cpu_frac)))
-        scale_worker_and_wait(dask_cluster, nworker)
-
+    max_scan_size = max(scan_sizes)
+    frac_chunk = min(1, total_mem / max_scan_size)
+    nchunk = int(nrow * frac_chunk)
+    output_pdf_list=[]
     try:
         #######################
         # Commands to run
         ######################
         cmds = []
-        ############################
-        # Amplitude of parallel hand
-        ############################
-        cmds.append(
-            f"shadems --no-lim-save --xaxis uv --yaxis amp --col CORRECTED_DATA -j {ncpu} -z {nchunk} --xlabel 'UV(m)' --ylabel 'Amplitude' --corr XX,YY --colour-by CORR --iter-scan --iter-field --dmap tab10 {msname}"
-        )
-        cmds.append(
-            f"shadems --no-lim-save --xaxis FREQ --yaxis amp --col CORRECTED_DATA -j {ncpu} -z {nchunk} --xlabel 'Frequency (GHz)' --ylabel 'Amplitude' --corr XX,YY --colour-by CORR --iter-scan --iter-field --dmap tab10 {msname}"
-        )
-        cmds.append(
-            f"shadems --no-lim-save --xaxis TIME --yaxis amp --col CORRECTED_DATA -j {ncpu} -z {nchunk} --xlabel 'Time' --ylabel 'Amplitude' --corr XX,YY --colour-by CORR --iter-scan --iter-field --dmap tab10 {msname}"
-        )
-        
-        ############################
-        # Amplitude of cross hand
-        ############################
-        if npol==4:
-            cmds.append(
-                f"shadems --no-lim-save --xaxis uv --yaxis amp --col CORRECTED_DATA -j {ncpu} -z {nchunk} --xlabel 'UV(m)' --ylabel 'Amplitude' --corr XY,YX --colour-by CORR --iter-scan --iter-field --dmap tab10 {msname}"
-            )
-            cmds.append(
-                f"shadems --no-lim-save --xaxis FREQ --yaxis amp --col CORRECTED_DATA -j {ncpu} -z {nchunk} --xlabel 'Frequency (GHz)' --ylabel 'Amplitude' --corr XY,YX --colour-by CORR --iter-scan --iter-field --dmap tab10 {msname}"
-            )
-            cmds.append(
-                f"shadems --no-lim-save --xaxis TIME --yaxis amp --col CORRECTED_DATA -j {ncpu} -z {nchunk} --xlabel 'Time' --ylabel 'Amplitude' --corr XY,YX --colour-by CORR --iter-scan --iter-field --dmap tab10 {msname}"
-            )
-            
-        ################################
-        # Phase plots of parallel hands
-        ################################
-        cmds.append(
-            f"shadems --no-lim-save --xaxis uv --yaxis phase --col CORRECTED_DATA -j {ncpu} -z {nchunk} --xlabel 'UV(m)' --ylabel 'Phase (deg)' --corr XX,YY --colour-by CORR --iter-scan --iter-field --dmap tab10 {msname}"
-        )
-        cmds.append(
-            f"shadems --no-lim-save --xaxis FREQ --yaxis phase --col CORRECTED_DATA -j {ncpu} -z {nchunk} --xlabel 'Frequency (GHz)' --ylabel 'Phase (deg)' --corr XX,YY --colour-by CORR --iter-scan --iter-field --dmap tab10 {msname}"
-        )
-        cmds.append(
-            f"shadems --no-lim-save --xaxis TIME --yaxis phase --col CORRECTED_DATA -j {ncpu} -z {nchunk} --xlabel 'Time' --ylabel 'Phase (deg)' --corr XX,YY --colour-by CORR --iter-scan --iter-field --dmap tab10 {msname}"
-        )
-        
-        if npol==4:
-            cmds.append(
-                f"shadems --no-lim-save --xaxis uv --yaxis phase --col CORRECTED_DATA -j {ncpu} -z {nchunk} --xlabel 'UV(m)' --ylabel 'Phase (deg)' --corr XY,YX --colour-by CORR --iter-scan --iter-field --dmap tab10 {msname}"
-            )
-            cmds.append(
-                f"shadems --no-lim-save --xaxis FREQ --yaxis phase --col CORRECTED_DATA -j {ncpu} -z {nchunk} --xlabel 'Frequency (GHz)' --ylabel 'Phase (deg)' --corr XY,YX --colour-by CORR --iter-scan --iter-field --dmap tab10 {msname}"
-            )
-            cmds.append(
-                f"shadems --no-lim-save --xaxis TIME --yaxis phase --col CORRECTED_DATA -j {ncpu} -z {nchunk} --xlabel 'Time' --ylabel 'Phase (deg)' --corr XY,YX --colour-by CORR --iter-scan --iter-field --dmap tab10 {msname}"
-            )          
-        tasks = []
+        # Define correlation groups
+        corr_sets = [
+            ("XX,YY", True),   # parallel hands, always plotted
+            ("XY,YX", npol == 4)  # cross hands, only if 4 pols
+        ]
+
+        # Define y-axis modes and labels
+        plot_types = {
+            "amp": "Amplitude",
+            "phase": "Phase (deg)",
+            "real": "Real",
+            "imag": "Imaginary",
+        }
+
+        # Define x-axis settings
+        xaxes = {
+            "uv": ("UV(m)",),
+            "FREQ": ("Frequency (GHz)",),
+            "TIME": ("Time",)
+        }
+
+        for corr, do_plot in corr_sets:
+            if not do_plot:
+                continue
+            for yaxis, ylabel in plot_types.items():
+                for xaxis, (xlabel,) in xaxes.items():
+                    for col in ["CORRECTED_DATA","CORRECTED_DATA-MODEL_DATA"]:
+                        cmds.append(
+                            f"shadems --no-lim-save --xaxis {xaxis} --yaxis {yaxis} "
+                            f"--col {col} -j {ncpu} -z {nchunk} "
+                            f"--xlabel '{xlabel}' --ylabel '{ylabel}' "
+                            f"--corr {corr} --colour-by CORR --iter-scan --iter-field "
+                            f"--dmap tab10 {msname}"
+                        )
+                    
+        print (f"Making plots of: {msname}")
         for cmd in cmds:
-            tasks.append(delayed(run_shadems)(cmd, verbose=False))
-        futures = dask_client.compute(tasks)
-        results = list(dask_client.gather(futures))
-        amp_pngs = glob.glob("*amp*.png")
-        phase_pngs = glob.glob("*phase*.png")
-        images = []
-        for image in amp_pngs:
-            images.append(Image.open(image).convert("RGB"))
-        for image in phase_pngs:
-            images.append(Image.open(image).convert("RGB"))
-        images[0].save(output_pdf, save_all=True, append_images=images[1:])
-        return 0, output_pdf
+            run_shadems(cmd, verbose=False)
+            
+        for yaxis, ylabel in plot_types.items():
+            #########################
+            # Making plots
+            #########################
+            pngs = glob.glob(f"*{yaxis}*.png")
+            outfile=f"{output_pdf}_{yaxis}.pdf"
+            if len(pngs)>0:
+                images = []
+                for image in pngs:
+                    images.append(Image.open(image).convert("RGB"))
+                images[0].save(outfile, save_all=True, append_images=images[1:])
+                output_pdf_list.append(outfile)
+                for png in pngs:
+                    os.system(f"rm -rf {png}")
+            else:
+                print (f"No plot for {ylabel} is made.")
+            
+        if len(output_pdf_list)>0:    
+            return 0, output_pdf_list
+        else:
+            print ("No plot is made.")
+            return 1, []
     except Exception:
         traceback.print_exc()
     finally:
         drop_cache(msname)
         os.system(f"rm -rf log-shadems.txt")
-        amp_pngs = glob.glob("*amp*.png")
-        phase_pngs = glob.glob("*phase*.png")
-        for png in amp_pngs:
-            os.system(f"rm -rf {png}")
-        for png in phase_pngs:
-            os.system(f"rm -rf {png}")
-        if dask_cluster is not None:
-            dask_client.close()
-            dask_cluster.close()
-            os.system(f"rm -rf {dask_dir}")
-
+        
 
 def plot_caltable_diagnostics(caltable, outdir=""):
     """
@@ -1170,8 +1136,10 @@ def make_ds_file_per_scan(msname, save_file, scan, datacolumn):
                 )
                 data_dic = mstool.getdata(datacolumn)
                 mstool.close()
-                if datacolumn == "CORRECTED_DATA":
-                    data = np.abs(data_dic["corrected_data"][0, ...])
+                if datacolumn == "CORRECTED_DATA,CORRECTED_DATA-MODEL_DATA":
+                    data = np.abs(
+                        data_dic["CORRECTED_DATA,CORRECTED_DATA-MODEL_DATA"][0, ...]
+                    )
                 else:
                     data = np.abs(data_dic["data"][0, ...])
                 del data_dic
@@ -1198,8 +1166,12 @@ def make_ds_file_per_scan(msname, save_file, scan, datacolumn):
                             )
                             data_dic = mstool.getdata(datacolumn)
                             mstool.close()
-                            if datacolumn == "CORRECTED_DATA":
-                                data = np.abs(data_dic["corrected_data"][0, ...])
+                            if datacolumn == "CORRECTED_DATA,CORRECTED_DATA-MODEL_DATA":
+                                data = np.abs(
+                                    data_dic[
+                                        "CORRECTED_DATA,CORRECTED_DATA-MODEL_DATA"
+                                    ][0, ...]
+                                )
                             else:
                                 data = np.abs(data_dic["data"][0, ...])
                             del data_dic
