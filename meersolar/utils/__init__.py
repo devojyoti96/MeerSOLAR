@@ -18,6 +18,7 @@ from .prefect_setup_utils import *
 import os
 from casatasks import casalog
 
+create_datadir()
 set_udocker_env()
 try:
     logfile = casalog.logfile()
