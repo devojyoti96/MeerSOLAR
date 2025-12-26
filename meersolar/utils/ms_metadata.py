@@ -12,7 +12,7 @@ from .resource_utils import *
 ##########################
 
 
-def get_phasecenter(msname, field):
+def get_phasecenter(msname, fieldID=0):
     """
     Get phasecenter of the measurement set
 
@@ -20,8 +20,8 @@ def get_phasecenter(msname, field):
     ----------
     msname : str
         Name of the measurement set
-    field : str
-        Field name
+    fieldID : int, optional
+        Zero based field ID
 
     Returns
     -------
@@ -32,7 +32,7 @@ def get_phasecenter(msname, field):
     """
     msmd = msmetadata()
     msmd.open(msname)
-    phasecenter = msmd.phasecenter()
+    phasecenter = msmd.phasecenter(fieldID)
     msmd.close()
     msmd.done()
     radeg = np.rad2deg(phasecenter["m0"]["value"])
