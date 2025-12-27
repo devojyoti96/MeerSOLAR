@@ -847,7 +847,7 @@ def single_round_cal_and_flag(
         ##############################
         # Apply calibration
         ##############################
-        if applysol and do_postcal_flag:
+        if applysol:
             all_mslist = copy.deepcopy(fluxcal_mslist)
             if len(phasecal_mslist) > 0:
                 all_mslist += phasecal_mslist
