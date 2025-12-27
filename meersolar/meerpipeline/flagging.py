@@ -338,7 +338,7 @@ def do_flagging(
         if flag_bad_spw:
             badspw = get_bad_chans(msname)
         else:
-            bandspw = ""
+            badspw = ""
         if flag_bad_ants:
             bad_ants, bad_ants_str = get_bad_ants(msname, fieldnames=fluxcal_field)
         else:
