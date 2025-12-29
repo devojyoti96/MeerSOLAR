@@ -252,7 +252,7 @@ def split_target_scans(
                         scan=scan,
                         width=chanwidth,
                         timebin=timebin,
-                        datacolumn="DATA",
+                        datacolumn=datacolumn,
                         spw="0:" + chanrange,
                         corr="",
                         timerange=timerange,
