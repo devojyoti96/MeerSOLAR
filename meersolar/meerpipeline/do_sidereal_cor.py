@@ -39,7 +39,7 @@ def cor_sidereal_motion(
         List of sidereal motion corrected measurement sets
     """
     try:
-        container_name = "meerwsclean"
+        container_name = "solarwsclean"
         container_present = check_udocker_container(container_name)
         if not container_present:
             container_name = initialize_wsclean_container(name=container_name)

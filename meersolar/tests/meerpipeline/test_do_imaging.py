@@ -118,7 +118,7 @@ def test_perform_imaging(
 )
 @patch(
     "meersolar.meerpipeline.do_imaging.initialize_wsclean_container",
-    return_value="meerwsclean",
+    return_value="solarwsclean",
 )
 @patch("meersolar.meerpipeline.do_imaging.check_udocker_container")
 @patch("meersolar.meerpipeline.do_imaging.check_datacolumn_valid")
