@@ -262,28 +262,33 @@ def calc_psf(msname, chan_number=-1):
 
 def calc_npix_in_psf(weight, robust=0.0):
     """
-    Calculate number of pixels in a PSF (could be in fraction)
+    Calculate number of pixels in a PSF (could be fractional)
 
     Parameters
     ----------
     weight : str
         Image weighting scheme
     robust : float, optional
-        Briggs weighting robust parameter (-1,1)
+        Briggs weighting robust parameter (-1 to +1)
 
     Returns
     -------
     float
         Number of pixels in a PSF
     """
-    if weight.upper() == "NATURAL":
-        npix = 3.0
-    elif weight.upper() == "UNIFORM":
+    weight = weight.upper()
+
+    if weight == "NATURAL":
         npix = 5.0
-    else:  # -1 to +1, uniform to natural
+    elif weight == "UNIFORM":
+        npix = 3.0
+    else:
+        # robust: -1 (uniform) → 3, +1 (natural) → 5
         robust = np.clip(robust, -1.0, 1.0)
-        npix = 5.0 - ((robust + 1.0) / 2.0) * (5.0 - 3.0)
+        npix = 3.0 + ((robust + 1.0) / 2.0) * (5.0 - 3.0)
+
     return round(npix, 1)
+
 
 
 def calc_cellsize(msname, num_pixel_in_psf):
