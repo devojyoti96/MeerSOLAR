@@ -1669,14 +1669,6 @@ def master_control(
                 solar_selfcal = False
             full_FoV = True
 
-        ##################################################
-        # Target spliting spectral and temporal chunks
-        ##################################################
-        if image_timeres > (2 * 3660):  # If more than 2 hours
-            print(
-                f"Image time integration is more than 2 hours, which may cause smearing due to solar differential rotation."
-            )
-
         #####################################################################
         # Checking if ms is full pol for polarization calibration and imaging
         #####################################################################
@@ -1713,6 +1705,10 @@ def master_control(
         else:
             max_timeres = min(
                 calc_time_smearing_timewidth(msname), max_time_solar_smearing(msname)
+            )
+        if image_timeres > (2 * 3660):  # If more than 2 hours
+            print(
+                f"Image time integration is more than 2 hours, which may cause smearing due to solar differential rotation."
             )
         if image_timeres > 0:
             timeavg = round(min(image_timeres, max_timeres), 1)
