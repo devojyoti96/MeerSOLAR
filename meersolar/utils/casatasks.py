@@ -13,45 +13,6 @@ from .resource_utils import *
 #############################
 # General CASA tasks
 #############################
-def flagsummary(msname, summary_file):
-    """
-    Save flag summary
-
-    Parameters
-    ----------
-    msname : str
-        Measurement set name
-    summary_file : str
-        Summary file name
-
-    Returns
-    -------
-    str
-        Summary file
-    """
-    from casatasks import flagdata
-
-    with suppress_output():
-        s = flagdata(vis=msname, mode="summary")
-    allkeys = s.keys()
-    with open(summary_file, "w") as f:
-        f.write(f"Flag summary of: {msname}\n")
-        for x in allkeys:
-            try:
-                for y in s[x].keys():
-                    try:
-                        flagged_percent = 100.0 * (
-                            s[x][y]["flagged"] / s[x][y]["total"]
-                        )
-                        logstring = f"{x} {y} {flagged_percent}\n"
-                        f.write(logstring)
-                    except:
-                        pass
-            except:
-                pass
-    return summary_file
-
-
 def check_scan_in_caltable(caltable, scan):
     """
     Check scan number available in caltable or not
