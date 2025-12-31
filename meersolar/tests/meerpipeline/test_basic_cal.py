@@ -7,7 +7,7 @@ from meersolar.meerpipeline.basic_cal import *
     "uvrange, expected_uvrange",
     [
         ("", ""),  # No uvrange
-        (">200lambda", ">200lambda"),  # With uvrange
+        (">1klambda", ">1klambda"),  # With uvrange
     ],
 )
 @patch("meersolar.meerpipeline.basic_cal.limit_threads")
@@ -28,6 +28,7 @@ def test_run_delaycal(
         msname=msname,
         field="0",
         scan="1",
+        spw="",
         refant="m001",
         refantmode="flex",
         solint="inf",
@@ -48,6 +49,7 @@ def test_run_delaycal(
             caltable="test.kcal",
             field="0",
             scan="1",
+            spw="",
             uvrange=expected_uvrange,
             refant="m001",
             refantmode="flex",
@@ -64,6 +66,7 @@ def test_run_delaycal(
             caltable="test.kcal",
             field="0",
             scan="1",
+            spw="",
             uvrange=expected_uvrange,
             refant="m001",
             refantmode="flex",
@@ -142,6 +145,7 @@ def test_run_gaincal(mock_gaincal, mock_suppress_output, mock_limit_threads):
         msname=msname,
         field="0",
         scan="1",
+        spw="",
         uvrange=">100lambda",
         refant="m000",
         gaintype="G",
@@ -166,6 +170,7 @@ def test_run_gaincal(mock_gaincal, mock_suppress_output, mock_limit_threads):
         caltable=expected_caltable,
         field="0",
         scan="1",
+        spw="",
         uvrange=">100lambda",
         refant="m000",
         refantmode="strict",
@@ -220,9 +225,10 @@ def test_run_leakagecal(
         scan="3",
         uvrange=">50lambda",
         refant="m001",
-        solint="inf,10MHz",
+        solint="inf,5MHz",
         combine="scan",
         poltype="Df",
+        preavg=60.0,
         gaintable=["target.gcal"],
         gainfield=["1"],
         interp=["linear"],
@@ -308,47 +314,22 @@ def test_run_applycal(
 
 
 @patch("meersolar.meerpipeline.basic_cal.traceback")
-@patch("meersolar.meerpipeline.basic_cal.suppress_output")
-@patch("meersolar.meerpipeline.basic_cal.msmetadata")
-@patch("meersolar.meerpipeline.basic_cal.get_chunk_size", return_value=2)
-@patch("meersolar.meerpipeline.basic_cal.check_datacolumn_valid", return_value=True)
-@patch("meersolar.meerpipeline.basic_cal.psutil.Process")
-@patch("casatasks.flagdata")
-@patch("meersolar.meerpipeline.basic_cal.limit_threads")
+@patch("meersolar.meerpipeline.basic_cal.single_ms_flag",return_value=0)
 def test_run_postcal_flag(
-    mock_limit_threads,
-    mock_flagdata,
-    mock_psutil_process,
-    mock_check_col_valid,
-    mock_get_chunk_size,
-    mock_msmetadata,
-    mock_suppress_output,
+    mock_single_ms_flag,
     mock_traceback,
 ):
     msname = "mock.ms"
     # Set up mock memory stats
     mock_proc = MagicMock()
-    mock_proc.memory_info.return_value.rss = 3 * 1024**3  # 3 GB
-    mock_psutil_process.return_value = mock_proc
-    # Set up mock metadata
-    mock_msmd = MagicMock()
-    mock_msmd.scannumbers.return_value = [1]
-    mock_msmd.timesforspws.return_value = np.array([0.0, 1.0, 2.0, 3.0])
-    mock_msmetadata.return_value = mock_msmd
     run_postcal_flag(
         msname=msname,
         datacolumn="corrected",
-        uvrange="",
-        mode="rflag",
+        threshold=5.0,
         n_threads=2,
         memory_limit=4,
     )
-    expected_calls = [call(n_threads=2)]
-    mock_limit_threads.assert_has_calls(expected_calls)
-    mock_flagdata.assert_called_once()
-    mock_suppress_output.assert_called_once()
-    mock_msmetadata.assert_called_once()
-    mock_get_chunk_size.assert_called_once_with(msname, memory_limit=4)
+    mock_single_ms_flag.assert_called_once()
 
 
 @patch("meersolar.meerpipeline.basic_cal.drop_cache")
@@ -395,7 +376,9 @@ def test_run_postcal_flag(
 @patch("meersolar.meerpipeline.basic_cal.os.system")
 @patch("meersolar.meerpipeline.basic_cal.os.makedirs")
 @patch("meersolar.meerpipeline.basic_cal.table")
+@patch("meersolar.meerpipeline.basic_cal.get_good_chans",return_value="0:0~50")
 def test_single_round_cal_and_flag(
+    mock_gooad_chan,
     mock_table,
     mock_makedirs,
     mock_system,
@@ -503,7 +486,9 @@ def test_single_round_cal_and_flag(
 @patch("meersolar.meerpipeline.basic_cal.get_refant", return_value="ant1")
 @patch("meersolar.meerpipeline.basic_cal.single_round_cal_and_flag")
 @patch("casatasks.flagdata")
+@patch("meersolar.meerpipeline.basic_cal.flagsummary")
 def test_run_basic_cal_rounds(
+    mock_flag_summary,
     mock_flagdata,
     mock_single_round,
     mock_get_refant,
@@ -569,7 +554,9 @@ def test_run_basic_cal_rounds(
     return_value=(0, ["/mock/caltable1", "/mock/caltable2"]),
 )
 @patch("meersolar.meerpipeline.basic_cal.os.system")
+@patch("meersolar.meerpipeline.basic_cal.flagsummary")
 def test_main(
+    mock_flag_summary,
     mock_system,
     mock_run_basic_cal_rounds,
     mock_save_pid,
@@ -589,14 +576,14 @@ def test_main(
     # Inputs
     msname = "/mock/data/test.ms"
     workdir = "/mock/data/workdir"
-    caldir = "/mock/data/caltables"
+    outdir = "/mock/data/"
     dask_client = MagicMock()
 
     # Call main
     result = main(
-        msname=msname,
-        workdir=workdir,
-        caldir=caldir,
+        msname,
+        workdir,
+        outdir,
         refant="m001",
         uvrange=">100lambda",
         perform_polcal=True,
@@ -617,6 +604,7 @@ def test_main(
         msname,
         dask_client,
         workdir,
+        outdir,
         refant="m001",
         uvrange=">100lambda",
         perform_polcal=True,
@@ -626,9 +614,9 @@ def test_main(
     )
 
     for caltable in ["/mock/caltable1", "/mock/caltable2"]:
-        dest = os.path.join(caldir, os.path.basename(caltable))
+        dest = os.path.join(f"{outdir}/caltables", os.path.basename(caltable))
         mock_system.assert_any_call(f"rm -rf {dest}")
-        mock_system.assert_any_call(f"mv {caltable} {caldir}")
+        mock_system.assert_any_call(f"mv {caltable} {outdir}/caltables")
 
 
 @pytest.mark.parametrize(
@@ -641,7 +629,7 @@ def test_main(
                 "test.ms",
                 "--workdir",
                 "/mock/work",
-                "--caldir",
+                "--outdir",
                 "/mock/cal",
             ],
             True,
@@ -653,7 +641,7 @@ def test_main(
                 "test.ms",
                 "--workdir",
                 "/mock/work",
-                "--caldir",
+                "--outdir",
                 "/mock/cal",
                 "--perform_polcal",
                 "--keep_backup",

@@ -39,6 +39,7 @@ def test_do_flagging(dummy_submsname):
         dummy_submsname,
         dask_client,
         workdir,
+        workdir,
         datacolumn="data",
         flag_bad_ants=True,
         flag_bad_spw=True,

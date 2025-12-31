@@ -179,6 +179,7 @@ def max_time_solar_smearing(msname):
 def delaycal(
     vis="",
     caltable="",
+    spw="",
     field="",
     scan="",
     uvrange="",
@@ -199,6 +200,8 @@ def delaycal(
         Measurement set
     caltable : str
         Caltable name
+    spw : str, optional
+        Spectral window
     field : str, optional
         Field name
     scan : str, optional
@@ -251,6 +254,7 @@ def delaycal(
         bandpass(
             vis=vis,
             caltable=caltable + ".tempbcal",
+            spw=spw,
             field=str(field),
             scan=str(scan),
             uvrange=uvrange,

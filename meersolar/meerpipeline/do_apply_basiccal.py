@@ -13,7 +13,6 @@ import os
 from casatasks import casalog
 from casatools import table
 from dask import delayed
-from scipy.interpolate import CubicSpline
 from scipy.ndimage import gaussian_filter1d
 from scipy.interpolate import interp1d
 from meersolar.utils import *

@@ -415,8 +415,7 @@ def get_bad_chans(msname):
             (-1, 879),
             (925, 960),
             (1166, 1186),
-            (1217, 1237),
-            (1242, 1249),
+            (1217, 1249),
             (1375, 1387),
             (1526, 1626),
             (1681, -1),
@@ -468,27 +467,50 @@ def get_good_chans(msname):
     msmd = msmetadata()
     msmd.open(msname)
     chanfreqs = msmd.chanfreqs(0) / 10**6
-    meanfreq = msmd.meanfreq(0) / 10**6
     msmd.close()
     msmd.done()
     bandname = get_band_name(msname)
     if bandname == "U":
-        good_freqs = [(580, 620)]  # For UHF band
+        good_freqs = [
+            (581, 924),
+            (959, 1009),
+        ]
     elif bandname == "L":
-        good_freqs = [(890, 920)]  # For L band
+        good_freqs = [
+            (880, 924),
+            (961, 1165),
+            (1187, 1216),
+            (1250, 1374),
+            (1388, 1525),
+            (1627, 1680),
+        ]
     else:
-        good_freqs = []  # For S band
+        print("MeerKAT data is not in UHF or L-band.")
+        good_freqs = []
     if min(chanfreqs) <= good_freqs[0][1] and max(chanfreqs) >= good_freqs[-1][0]:
         spw = "0:"
+        count = 0
         for freq_range in good_freqs:
             start_freq = freq_range[0]
             end_freq = freq_range[1]
-            start_chan = np.argmin(np.abs(start_freq - chanfreqs))
-            end_chan = np.argmin(np.abs(end_freq - chanfreqs))
-            spw += str(start_chan) + "~" + str(end_chan) + ";"
+            if start_freq == -1:
+                start_chan = 0
+            else:
+                start_chan = np.argmin(np.abs(start_freq - chanfreqs))
+            if count > 0 and start_chan <= end_chan:
+                break
+            if end_freq == -1:
+                end_chan = len(chanfreqs) - 1
+            else:
+                end_chan = np.argmin(np.abs(end_freq - chanfreqs))
+            if end_chan > start_chan:
+                spw += str(start_chan) + "~" + str(end_chan) + ";"
+            else:
+                spw += str(start_chan) + ";"
+            count += 1
         spw = spw[:-1]
     else:
-        spw = f"0:0~{len(chanfreqs)-1}"
+        spw = ""
     return spw
 
 

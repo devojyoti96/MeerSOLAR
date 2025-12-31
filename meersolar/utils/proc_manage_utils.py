@@ -14,7 +14,7 @@ import sys
 import tempfile
 import shutil
 from pathlib import Path
-from dask import delayed, compute, config
+from dask import delayed, config
 from dask.distributed import Client, LocalCluster
 from dask_jobqueue import SLURMCluster
 from datetime import datetime as dt, timedelta
