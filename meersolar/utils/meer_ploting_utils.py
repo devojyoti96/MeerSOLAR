@@ -14,6 +14,7 @@ from dask import delayed, compute
 from multiprocessing.pool import ThreadPool
 from sunpy.net import Fido, attrs as a
 from sunpy.map import Map
+from sunpy.timeseries import TimeSeries
 from astropy.visualization import ImageNormalize, PowerStretch, LogStretch
 from astropy.io import fits
 from astropy.time import Time
