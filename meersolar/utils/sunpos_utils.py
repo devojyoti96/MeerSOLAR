@@ -108,9 +108,7 @@ def radec_sun(msname):
     )
     sun_radec_string = "J2000 " + str(sun_ra) + " " + str(sun_dec)
     radeg = sun_coord.ra.deg
-    radeg = radeg % 360
     decdeg = sun_coord.dec.deg
-    decdeg = decdeg % 360
     return sun_radec_string, sun_ra, sun_dec, radeg, decdeg
 
 
