@@ -1,0 +1,9 @@
+**/__pycache__/
+meersolar/data/*.tar
+meersolar/data/*.tar.gz
+meersolar/data/*.npz
+meersolar/tests/testdata
+build/
+dist/
+*.egg.*/
+additional/

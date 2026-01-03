@@ -1,0 +1,23 @@
+[console_scripts]
+crystalball = meersolar.crystalball.crystalball:predict
+init-meersolar-prefect = meersolar.meerpipeline.prefect_server:cli
+init-meersolar-setup = meersolar.meerpipeline.init_data:cli
+kill-meersolar-job = meersolar.meerpipeline.kill_job:kill_meerjob
+run-meer-apply-basiccal = meersolar.meerpipeline.do_apply_basiccal:cli
+run-meer-apply-selfcal = meersolar.meerpipeline.do_apply_selfcal:cli
+run-meer-basic-cal = meersolar.meerpipeline.basic_cal:cli
+run-meer-flag = meersolar.meerpipeline.flagging:cli
+run-meer-fluxcal = meersolar.meerpipeline.do_fluxcal:cli
+run-meer-imaging = meersolar.meerpipeline.do_imaging:cli
+run-meer-import-model = meersolar.meerpipeline.import_model:cli
+run-meer-makeds = meersolar.meerpipeline.meer_make_ds:cli
+run-meer-meerlogger = meersolar.meerpipeline.viewer:cli
+run-meer-meerpbcor = meersolar.meerpipeline.meer_pbcor:cli
+run-meer-meersolar = meersolar.meerpipeline.master_flow:cli
+run-meer-partition = meersolar.meerpipeline.do_partition:cli
+run-meer-selfcal = meersolar.meerpipeline.do_selfcal:cli
+run-meer-singlepbcor = meersolar.meerpipeline.single_image_meerpbcor:cli
+run-meer-solar-siderealcor = meersolar.meerpipeline.do_sidereal_cor:cli
+run-meer-split = meersolar.meerpipeline.do_target_split:cli
+show-meersolar-ms = meersolar.meerpipeline.show_msdetails:cli
+show-meersolar-status = meersolar.meerpipeline.show_status:cli

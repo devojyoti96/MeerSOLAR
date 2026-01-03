@@ -1,0 +1,305 @@
+Metadata-Version: 2.4
+Name: meersolar
+Version: 3.3.0
+Summary: A package to calibrate MeerKAT solar observation
+Author-email: Devojyoti Kansabanik <devojyoti96@gmail.com>, Deepan Patra <dpatra@ncra.tifr.res.in>
+License-Expression: MIT
+Project-URL: Homepage, https://github.com/devojyoti96/MeerSOLAR
+Classifier: Programming Language :: Python :: 3
+Classifier: Operating System :: OS Independent
+Requires-Python: >=3.10
+Description-Content-Type: text/markdown
+License-File: LICENSE
+Requires-Dist: aiapy==0.10.1
+Requires-Dist: aiobotocore==2.21.1
+Requires-Dist: astroquery==0.4.10
+Requires-Dist: aioftp==0.23.1
+Requires-Dist: aiohappyeyeballs==2.4.3
+Requires-Dist: aiohttp==3.10.10
+Requires-Dist: aioitertools==0.12.0
+Requires-Dist: aiosignal==1.3.1
+Requires-Dist: antlr4-python3-runtime==4.9.3
+Requires-Dist: appdirs==1.4.4
+Requires-Dist: asciitree==0.3.3
+Requires-Dist: astLib==0.11.10
+Requires-Dist: astro-kittens==1.4.6
+Requires-Dist: astro-tigger-lsm==1.7.3
+Requires-Dist: astropy==6.1.4
+Requires-Dist: astropy-iers-data==0.2024.10.28.0.34.7
+Requires-Dist: astropy_healpix==1.1.2
+Requires-Dist: asttokens==2.4.1
+Requires-Dist: async-timeout==4.0.3
+Requires-Dist: attrs==24.2.0
+Requires-Dist: beautifulsoup4==4.13.4
+Requires-Dist: black==24.4.2
+Requires-Dist: bokeh==3.6.3
+Requires-Dist: botocore==1.37.1
+Requires-Dist: bs4==0.0.2
+Requires-Dist: casaconfig==1.0.0
+Requires-Dist: casadata==2024.5.22
+Requires-Dist: casatasks==6.6.0.20
+Requires-Dist: casatools==6.6.0.20
+Requires-Dist: certifi==2024.7.4
+Requires-Dist: charset-normalizer==3.4.1
+Requires-Dist: cli-ui==0.18.0
+Requires-Dist: click==8.1.7
+Requires-Dist: cloudpickle==3.0.0
+Requires-Dist: codex-africanus==0.3.7
+Requires-Dist: colorama==0.4.6
+Requires-Dist: Columnar==1.4.1
+Requires-Dist: configparser==7.1.0
+Requires-Dist: contourpy==1.2.1
+Requires-Dist: cycler==0.12.1
+Requires-Dist: dask==2024.7.1
+Requires-Dist: dask-jobqueue==0.9.0
+Requires-Dist: dask-mpi==2022.4.0
+Requires-Dist: dask-ms==0.2.21
+Requires-Dist: decorator==5.1.1
+Requires-Dist: dill==0.3.9
+Requires-Dist: distributed==2024.7.1
+Requires-Dist: docopt==0.6.2
+Requires-Dist: donfig==0.8.1.post1
+Requires-Dist: drms==0.8.0
+Requires-Dist: exceptiongroup==1.2.2
+Requires-Dist: executing==2.0.1
+Requires-Dist: fasteners==0.19
+Requires-Dist: fonttools==4.53.1
+Requires-Dist: frozenlist==1.5.0
+Requires-Dist: fsspec==2025.2.0
+Requires-Dist: future==1.0.0
+Requires-Dist: git-filter-repo==2.47.0
+Requires-Dist: idna==3.10
+Requires-Dist: importlib_metadata==8.2.0
+Requires-Dist: iniconfig==2.0.0
+Requires-Dist: ipython==8.26.0
+Requires-Dist: isodate==0.7.2
+Requires-Dist: jedi==0.19.1
+Requires-Dist: Jinja2==3.1.6
+Requires-Dist: jmespath==1.0.1
+Requires-Dist: joblib==1.4.2
+Requires-Dist: julian==0.14
+Requires-Dist: kiwisolver==1.4.5
+Requires-Dist: llvmlite==0.43.0
+Requires-Dist: locket==1.0.0
+Requires-Dist: loguru==0.7.2
+Requires-Dist: lxml==5.4.0
+Requires-Dist: markdown-it-py==3.0.0
+Requires-Dist: MarkupSafe==3.0.2
+Requires-Dist: matplotlib==3.5.2
+Requires-Dist: matplotlib-inline==0.1.7
+Requires-Dist: mdurl==0.1.2
+Requires-Dist: mpl_animators==1.2.1
+Requires-Dist: msgpack==1.1.0
+Requires-Dist: multidict==6.1.0
+Requires-Dist: munch==2.5.0
+Requires-Dist: mypy-extensions==1.0.0
+Requires-Dist: numba==0.60.0
+Requires-Dist: numcodecs==0.13.1
+Requires-Dist: numpy==1.26.4
+Requires-Dist: omegaconf==2.3.0
+Requires-Dist: packaging==24.1
+Requires-Dist: pandas==2.2.3
+Requires-Dist: parfive==2.1.0
+Requires-Dist: parso==0.8.4
+Requires-Dist: partd==1.4.2
+Requires-Dist: pathspec==0.12.1
+Requires-Dist: pexpect==4.9.0
+Requires-Dist: pillow==10.4.0
+Requires-Dist: platformdirs==4.2.2
+Requires-Dist: pluggy==1.5.0
+Requires-Dist: prompt_toolkit==3.0.47
+Requires-Dist: propcache==0.2.0
+Requires-Dist: psutil==5.9.8
+Requires-Dist: ptyprocess==0.7.0
+Requires-Dist: pure_eval==0.2.3
+Requires-Dist: pydantic>=2.10.1
+Requires-Dist: pyerfa==2.0.1.4
+Requires-Dist: Pygments==2.18.0
+Requires-Dist: pyparsing==3.1.2
+Requires-Dist: python-casacore==3.6.1
+Requires-Dist: python-dateutil==2.9.0.post0
+Requires-Dist: pytz==2024.2
+Requires-Dist: PyWavelets==1.8.0
+Requires-Dist: PyYAML==6.0.1
+Requires-Dist: regions==0.9
+Requires-Dist: reproject==0.14.1
+Requires-Dist: requests==2.32.3
+Requires-Dist: requests-file==2.1.0
+Requires-Dist: requests-toolbelt==1.0.0
+Requires-Dist: rich==13.9.4
+Requires-Dist: ruamel.yaml==0.18.6
+Requires-Dist: ruamel.yaml.clib==0.2.12
+Requires-Dist: s3fs==2025.2.0
+Requires-Dist: schema==0.7.7
+Requires-Dist: scipy==1.15.2
+Requires-Dist: six==1.16.0
+Requires-Dist: sortedcontainers==2.4.0
+Requires-Dist: soupsieve==2.6
+Requires-Dist: stack-data==0.6.3
+Requires-Dist: sunpy[all]==6.0.5
+Requires-Dist: tabulate==0.9.0
+Requires-Dist: tblib==3.0.0
+Requires-Dist: tbump==6.11.0
+Requires-Dist: threadpoolctl==3.5.0
+Requires-Dist: tomli==2.0.1
+Requires-Dist: tomlkit==0.11.8
+Requires-Dist: toolz==0.12.1
+Requires-Dist: tornado==6.4.2
+Requires-Dist: tqdm==4.66.6
+Requires-Dist: traitlets==5.14.3
+Requires-Dist: typeguard==4.4.2
+Requires-Dist: typing_extensions==4.12.2
+Requires-Dist: tzdata==2024.2
+Requires-Dist: udocker==1.3.17
+Requires-Dist: Unidecode==1.3.8
+Requires-Dist: urllib3==2.3.0
+Requires-Dist: wcwidth==0.2.13
+Requires-Dist: wrapt==1.17.2
+Requires-Dist: xarray==2025.1.2
+Requires-Dist: xyzservices==2025.1.0
+Requires-Dist: yarl==1.17.1
+Requires-Dist: zarr==2.18.3
+Requires-Dist: zeep==4.3.1
+Requires-Dist: zict==3.0.0
+Requires-Dist: zipp==3.19.2
+Requires-Dist: h5py==3.13.0
+Requires-Dist: moviepy==2.1.2
+Requires-Dist: h5netcdf==1.6.1
+Requires-Dist: gunicorn==23.0.0
+Requires-Dist: flask==3.1.1
+Requires-Dist: flask-session==0.8.0
+Requires-Dist: watchdog==6.0.0
+Requires-Dist: PyQT5==5.15.11
+Requires-Dist: prefect==3.4.9
+Requires-Dist: prefect-dask==0.3.6
+Requires-Dist: python-dotenv==1.1.1
+Provides-Extra: dev
+Requires-Dist: sphinx>=7.2.6; extra == "dev"
+Requires-Dist: furo>=2024.5.6; extra == "dev"
+Requires-Dist: sphinx_rtd_theme>=2.0.0; extra == "dev"
+Requires-Dist: sphinx-autodoc-typehints>=2.0.0; extra == "dev"
+Requires-Dist: sphinx-copybutton>=0.5.2; extra == "dev"
+Requires-Dist: sphinxcontrib-programoutput>=0.17; extra == "dev"
+Requires-Dist: sphinx-togglebutton>=0.3.2; extra == "dev"
+Requires-Dist: myst-parser>=2.0.0; extra == "dev"
+Requires-Dist: sphinxcontrib-apidoc>=0.4.0; extra == "dev"
+Requires-Dist: sphinx-automodapi>=0.15.0; extra == "dev"
+Requires-Dist: numpydoc>=1.6.0; extra == "dev"
+Requires-Dist: sphinxcontrib-mermaid>=0.9.2; extra == "dev"
+Requires-Dist: graphviz>=0.20.3; extra == "dev"
+Requires-Dist: sphinx-autobuild>=2021.3.14; extra == "dev"
+Requires-Dist: pytest==8.3.3; extra == "dev"
+Requires-Dist: pytest-mock>=3.14.0; extra == "dev"
+Dynamic: license-file
+
+<p align="center">
+  <img src="https://raw.githubusercontent.com/devojyoti96/MeerSOLAR/refs/heads/master/dark_logo.png" alt="MeerSOLAR Logo" width="200"/>
+</p>
+<p align="center">
+  <h1>MeerSOLAR</h1> An automated calibration and imaging pipeline designed for solar radio observations using <strong>MeerKAT</strong> radio telescope. It performs end-to-end calibration, flagging, and imaging with a focus on dynamic solar data, supporting both spectral and temporal flexibility in imaging products.
+</p>
+
+## Background
+
+<!-- start elevator-pitch -->
+
+Solar radio data presents unique challenges due to the high variability and brightness of the Sun, as well as the need for high time-frequency resolution. The **MeerSOLAR** pipeline addresses these challenges by:
+
+- Automating the calibration of interferometric data, including flux, phase, and polarization calibrations
+- Supporting time-sliced and frequency-sliced imaging workflows
+- Leveraging Dask for scalable parallel processing
+- Providing hooks for integration with contextual data from other wavelegths for enhanced solar analysis
+
+<!-- end elevator-pitch -->
+
+## Documentation
+
+MeerSOLAR documentation is available at: [meersolar.readthedocs.io]
+
+[meersolar.readthedocs.io]: https://meersolar.readthedocs.io 
+
+## Quickstart
+
+<!-- start quickstart -->
+
+**MeerSOLAR** is distributed on [PyPI]. To use it:
+
+1. Create conda environment with python 3.10
+
+    ```text
+    conda create -n meersolar_env python=3.10
+    conda activate meersolar_env
+    ```
+
+2. Install MeerSOLAR in conda environment
+
+   ```text
+   pip install meersolar
+   ```
+
+3. Initiate necessary metadata
+
+    ```text
+    init-meersolar-setup --init
+    ```
+    
+4. Run MeerSOLAR pipeline
+
+    ```text
+    run-meer-meersolar <path of measurement set> --workdir <path of work directory> --outdir <path of output products directory>
+    ```    
+
+That's all. You started MeerSOLAR pipeline for analysing your MeerKAT solar observation 🎉.
+
+5. To see all running MeerSOLAR jobs
+
+    ```text
+    show-meersolar-status --show
+    ```
+    
+6. To see prefect dashboard
+
+   ```text
+   run-meer-meerlogger
+   ```
+      
+7. To see local log of any job using the <jobid>
+
+   ```text
+   run-meer-meerlogger --jobid <jobid>
+   ```
+   
+7. Output products will be saved in : `<path of output products directory>`
+
+[pypi]: https://pypi.org/project/meersolar/
+
+<!-- end quickstart -->
+
+## Sample dataset
+User can download and test entire MeerSOLAR pipeline using the sample dataset available in Zenodo: https://doi.org/10.5281/zenodo.16068485. Do not use this sample dataset for any publication without permission from the developer.
+
+
+## Acknowledgements
+
+MeerSOLAR is developed by Devojyoti Kansabanik (CPAESS-UCAR, Boulder, USA) and Deepan Patra (NCRA-TIFR, Pune, India). If you use **MeerSOLAR** for analysing your MeerKAT solar observations, include the following statement in your paper
+
+```text
+This MeerKAT solar observations are analysed using MeerSOLAR pipeline.
+```
+
+1. MeerSOLAR software in zenodo: https://doi.org/10.5281/zenodo.16040507
+
+<!-- will be updated one published.
+and cite the following papers.
+
+
+1. [First MeerSOLAR paper] [kansabanik2025]
+[Kansabanik2025]: https://kansabanik-meersolar.org
+
+2. [Second MeerSOLAR paper] [Patra2025]
+[Patra2025]: https://patra-meersolar.org
+-->
+
+## License
+
+This project is licensed under the MIT License.
