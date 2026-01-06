@@ -220,7 +220,7 @@ def perform_imaging(
             "-scale " + str(cellsize) + "asec",
             "-size " + str(imsize) + " " + str(imsize),
             "-no-dirty",
-            "-gridder tuned-wgridder",
+            "-gridder wgridder",
             "-weight " + weight,
             "-name " + prefix,
             "-pol " + str(pol),

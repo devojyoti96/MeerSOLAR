@@ -239,7 +239,7 @@ def intensity_selfcal(
             "-scale " + str(cellsize) + "asec",
             "-size " + str(imsize) + " " + str(imsize),
             "-no-dirty",
-            "-gridder tuned-wgridder",
+            "-gridder wgridder",
             "-weight " + weight,
             "-niter 10000",
             "-mgain 0.85",
