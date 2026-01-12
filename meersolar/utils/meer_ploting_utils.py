@@ -20,6 +20,7 @@ from astropy.io import fits
 from astropy.time import Time
 from astropy.coordinates import EarthLocation, SkyCoord
 from astropy.wcs import FITSFixedWarning
+from astroquery.jplhorizons import Horizons
 from casatools import msmetadata, ms as casamstool, table
 from datetime import datetime as dt, timedelta
 from dask import delayed
