@@ -474,19 +474,35 @@ def intensity_selfcal(
         if os.path.exists(bpass_caltable):
             os.system("rm -rf " + bpass_caltable)
 
-        logger.info(
-            f"bandpass(vis='{msname}',caltable='{bpass_caltable}',uvrange='{uvrange}',refant='{refant}',solint='{solint},10MHz',minsnr=1,solnorm=True)\n"
-        )
-        with suppress_output():
-            bandpass(
-                vis=msname,
-                caltable=bpass_caltable,
-                uvrange=uvrange,
-                refant=refant,
-                minsnr=1,
-                solint=f"{solint},10MHz",
-                solnorm=True,
+        if calmode=="p":
+            logger.info(
+                f"gaincal(vis='{msname}',caltable='{bpass_caltable}',uvrange='{uvrange}',refant='{refant}',solint='{solint}',calmode='p',minsnr=1,solnorm=True)\n"
             )
+            with suppress_output():
+                bandpass(
+                    vis=msname,
+                    caltable=bpass_caltable,
+                    uvrange=uvrange,
+                    refant=refant,
+                    minsnr=1,
+                    solint=f"{solint}",
+                    calmode="p",
+                    solnorm=True,
+                )
+        else:
+            logger.info(
+                f"bandpass(vis='{msname}',caltable='{bpass_caltable}',uvrange='{uvrange}',refant='{refant}',solint='{solint},10MHz',minsnr=1,solnorm=True)\n"
+            )
+            with suppress_output():
+                bandpass(
+                    vis=msname,
+                    caltable=bpass_caltable,
+                    uvrange=uvrange,
+                    refant=refant,
+                    minsnr=1,
+                    solint=f"{solint},10MHz",
+                    solnorm=True,
+                )
         if os.path.exists(bpass_caltable) == False:
             logger.info(f"No gain solutions are found.\n")
             return 2, "", 0, 0, "", "", ""
@@ -494,24 +510,24 @@ def intensity_selfcal(
         #########################################
         # Flagging bad gains
         #########################################
-        with suppress_output():
-            flagdata(
-                vis=bpass_caltable, mode="rflag", datacolumn="CPARAM", flagbackup=False
-            )
-        tb = table()
-        tb.open(bpass_caltable, nomodify=False)
-        gain = tb.getcol("CPARAM")
-        if calmode == "p":
-            gain /= np.abs(gain)
-        flag = tb.getcol("FLAG")
-        gain[flag] = 1.0
-        pos = np.where(np.abs(gain) == 0.0)
-        gain[pos] = 1.0
-        flag *= False
-        tb.putcol("CPARAM", gain)
-        tb.putcol("FLAG", flag)
-        tb.flush()
-        tb.close()
+        if calmode=="ap":
+            with suppress_output():
+                flagdata(
+                    vis=bpass_caltable, mode="rflag", datacolumn="CPARAM", flagbackup=False
+                )
+            if applymode=="calonly":
+                tb = table()
+                tb.open(bpass_caltable, nomodify=False)
+                gain = tb.getcol("CPARAM")
+                flag = tb.getcol("FLAG")
+                gain[flag] = 1.0
+                pos = np.where(np.abs(gain) == 0.0)
+                gain[pos] = 1.0
+                flag *= False
+                tb.putcol("CPARAM", gain)
+                tb.putcol("FLAG", flag)
+                tb.flush()
+                tb.close()
 
         logger.info(
             f"applycal(vis={msname},gaintable=[{bpass_caltable}],interp=['linear,linearflag'],applymode='{applymode}',calwt=[False])\n"
