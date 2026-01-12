@@ -2388,7 +2388,7 @@ def master_control(
                     filtered_mslist.append(ms)
                 else:
                     print(f"Issue in : {ms}")
-                    os.system("rm -rf {ms}")
+                    os.system(f"rm -rf {ms}")
             target_mslist = filtered_mslist
             if len(target_mslist) == 0:
                 print("No filtered target scan ms are available in work directory.")
