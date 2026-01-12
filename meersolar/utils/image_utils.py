@@ -349,14 +349,13 @@ def make_timeavg_image(wsclean_images, outfile_name, keep_wsclean_images=True):
         Output image name.
     """
     timestamps = []
+    data=[]
     for i in range(len(wsclean_images)):
         image = wsclean_images[i]
-        if i == 0:
-            data = fits.getdata(image)
-        else:
-            data += fits.getdata(image)
+        data.append(fits.getdata(image))
         timestamps.append(fits.getheader(image)["DATE-OBS"])
-    data /= len(wsclean_images)
+    data=np.array(data)
+    data=np.nanmean(data,axis=0)
     avg_timestamp = average_timestamp(timestamps)
     header = fits.getheader(wsclean_images[0])
     header["DATE-OBS"] = avg_timestamp
