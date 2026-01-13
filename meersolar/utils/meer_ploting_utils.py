@@ -602,6 +602,7 @@ def plot_in_hpc(
         pixel_unit = meer_header["BUNIT"]
     except BaseException:
         pixel_nuit = ""
+    pixel_scale = abs(meer_header["CDELT1"])*3600.0 #In arcsec
     obstime = Time(meer_header["date-obs"])
     meer_map_rotate = get_meermap(fits_image, band=band)
     top_right = SkyCoord(
@@ -695,8 +696,8 @@ def plot_in_hpc(
             # Add ellipse patch
             beam_ellipse = Ellipse(
                 (beam_center.Tx.value, beam_center.Ty.value),  # center in arcsec
-                width=bmin,
-                height=bmaj,
+                width=bmin/pixel_scale,
+                height=bmaj/pixel_scale,
                 angle=bpa,
                 edgecolor="white",
                 facecolor="white",
@@ -704,7 +705,7 @@ def plot_in_hpc(
             )
             ax.add_patch(beam_ellipse)
             # Draw square box around the ellipse
-            box_size = 100  # slightly bigger than beam
+            box_size = max(0.2*(x1-x0),1.5*max(bmin,bmaj))/pixel_scale  # slightly bigger than beam # slightly bigger than beam
             rect = Rectangle(
                 (
                     beam_center.Tx.value - box_size / 2,
