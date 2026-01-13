@@ -8,8 +8,11 @@ import glob
 import dask
 import os
 import traceback
+import requests
 import matplotlib
 import matplotlib.pyplot as plt
+from parfive import Downloader
+from bs4 import BeautifulSoup
 from dask import delayed, compute
 from multiprocessing.pool import ThreadPool
 from sunpy.net import Fido, attrs as a
@@ -765,7 +768,75 @@ def plot_in_hpc(
     return output_image_list, cropped_map
 
 
-def get_suvi_map(obs_date, obs_time, workdir, wavelength=195):
+def get_aia_map(obs_date, obs_time, workdir, wavelength=193, keep_aia_fits=False):
+    """
+    Get SDO AIA map
+
+    Parameters
+    ----------
+    obs_date : str
+        Observation date in yyyy-mm-dd format
+    obs_time : str
+        Observation time in hh:mm format
+    workdir : str
+        Work directory
+    wavelength : float, optional
+        Wavelength, options: 94, 131, 171, 193, 211, 304, 335 Å
+    keep_aia_fits : bool, optional
+        Keep AIA fits file or not
+
+    Returns
+    -------
+    sunpy.map
+        Sunpy AIAMap
+    """
+    logging.getLogger("sunpy").setLevel(logging.ERROR)
+    warnings.filterwarnings(
+        "ignore",
+        message="This download has been started in a thread which is not the main thread",
+    )
+    aia_wavelengths = [94, 131, 171, 193, 211, 304, 335]
+    if wavelength not in aia_wavelengths:
+        print ("Please provide correct AIA wavelength from : {aia_wavelengths}.")
+        return
+    os.makedirs(workdir, exist_ok=True)
+    start_time = dt.fromisoformat(f"{obs_date}T{obs_time}")
+    t_start = (start_time - timedelta(minutes=2)).strftime("%Y-%m-%dT%H:%M")
+    t_end = (start_time + timedelta(minutes=2)).strftime("%Y-%m-%dT%H:%M")
+    time = a.Time(t_start, t_end)
+    instrument = a.Instrument("aia")
+    wavelength = a.Wavelength(wavelength * u.angstrom)
+    results = Fido.search(time, instrument, wavelength)
+    obs_times = results[0]['Start Time'].value.tolist()
+    times_dt = [dt.strptime(t, "%Y-%m-%d %H:%M:%S.%f") for t in obs_times]
+    closest_time = min(times_dt, key=lambda t: abs(t - start_time))
+    pos = times_dt.index(closest_time)
+    downloaded_files = Fido.fetch(results[0][pos], path=workdir, progress=False, overwrite=False)
+    final_image = downloaded_files[0]
+    aia_map = Map(final_image)
+    # Step 1: Pointing correction
+    try:    
+        pointing_corrected_map=update_pointing(aia_map)
+    except:
+        pointing_corrected_map=aia_map
+    # Step 2: register (we are skipping PSF deconvolution)
+    registered_map = register(pointing_corrected_map)
+    # Step 3: instrument degradation correction
+    try:
+        corrected_map=correct_degradation(registered_map)
+    except:
+        corrected_map=registered_map
+    # Step 4: Normalize by exposure time
+    normalized_data = (
+        corrected_map.data / corrected_map.exposure_time.to(u.s).value
+    )
+    normalized_map = Map(normalized_data, corrected_map.meta)
+    if keep_aia_fits is False:
+        os.system(f"rm -rf {final_image}")
+    return normalized_map
+    
+    
+def get_suvi_map(obs_date, obs_time, workdir, wavelength=195, keep_suvi_fits=False):
     """
     Get GOES SUVI map
 
@@ -779,40 +850,75 @@ def get_suvi_map(obs_date, obs_time, workdir, wavelength=195):
         Work directory
     wavelength : float, optional
         Wavelength, options: 94, 131, 171, 195, 284, 304 Å
+    keep_suvi_fits : bool, optional
+        Keep SUVI fits file or not
 
     Returns
     -------
     sunpy.map
         Sunpy SUVIMap
     """
+    def list_url_directory(url, ext=''):
+        page = requests.get(url).text
+        soup = BeautifulSoup(page, 'html.parser')
+        return [url + node.get('href') for node in soup.find_all('a') if node.get('href').endswith(ext)]
+        
     logging.getLogger("sunpy").setLevel(logging.ERROR)
     warnings.filterwarnings(
         "ignore",
         message="This download has been started in a thread which is not the main thread",
     )
+    suvi_wavelengths=[94,131,171,195,284,304]
+    if wavelength not in suvi_wavelengths:
+        print ("Please provide correct SUVI wavelength from : {suvi_wavelengths}.")
+        return
     os.makedirs(workdir, exist_ok=True)
-    start_time = dt.fromisoformat(f"{obs_date}T{obs_time}")
-    t_start = (start_time - timedelta(minutes=2)).strftime("%Y-%m-%dT%H:%M")
-    t_end = (start_time + timedelta(minutes=2)).strftime("%Y-%m-%dT%H:%M")
-    time = a.Time(t_start, t_end)
-    instrument = a.Instrument("suvi")
-    wavelength = a.Wavelength(wavelength * u.angstrom)
-    results = Fido.search(time, instrument, wavelength, a.Level(2))
-    downloaded_files = Fido.fetch(results, path=workdir, progress=False)
-    obs_times = []
-    for image in downloaded_files:
-        suvimap = Map(image)
-        dateobs = suvimap.meta["date-obs"].split(".")[0]
-        obs_times.append(dateobs)
-    times_dt = [dt.strptime(t, "%Y-%m-%dT%H:%M:%S") for t in obs_times]
-    closest_time = min(times_dt, key=lambda t: abs(t - start_time))
-    pos = times_dt.index(closest_time)
-    closest_time_str = closest_time.strftime("%Y-%m-%dT%H:%M")
-    final_image = downloaded_files[pos]
-    suvi_map = Map(final_image)
-    for f in downloaded_files:
-        os.system(f"rm -rf {f}")
-    return suvi_map
+
+    baseurl1 = 'https://data.ngdc.noaa.gov/platforms/solar-space-observing-satellites/goes/goes'
+    baseurl2 = 'l2/data'
+    ext = '.fits'
+
+    spacecraft_numbers = [16, 18]
+    wvln_path = dict({94:'suvi-l2-ci094', 131:'suvi-l2-ci131', 171:'suvi-l2-ci171', \
+                      195:'suvi-l2-ci195', 284:'suvi-l2-ci284', 304:'suvi-l2-ci304'})
+    date_str = "/".join(obs_date.split("-"))
+
+    urls=[]
+    for spacecraft in spacecraft_numbers:
+        url = f"{baseurl1}{spacecraft}/{baseurl2}/{wvln_path[wavelength]}/{date_str}/"
+        urls.append(url)
+        all_files  = []
+        start_times = []
+        out_files = []
+        for url in urls:
+            request = requests.get(url)
+            if not request.status_code == 200:
+                raise Exception('Website not found: '+url)
+            else:
+                for file_name in list_url_directory(url, ext):
+                    all_files.append(file_name)
+                    file_base = os.path.basename(file_name)
+                    out_files.append(file_base)
+                    start_times.append(file_base.split("_")[-3])
+        times_dt = [dt.strptime(t, "s%Y%m%dT%H%M%Sz") for t in start_times]
+        start_time = dt.fromisoformat(f"{obs_date}T{obs_time}")
+        closest_time = min(times_dt, key=lambda t: abs(t - start_time))
+        pos = times_dt.index(closest_time)
+        download_url = all_files[pos]
+        out_file = out_files[pos]
+        if os.path.exists(out_file) is False:
+            dl = Downloader()
+            dl.enqueue_file(download_url, path=out_file)
+            downloaded_files = dl.download()
+            if len(downloaded_files)>0:
+                final_image=downloaded_files[0]
+        else:
+            final_image = out_file
+        suvi_map = Map(final_image)
+        if keep_suvi_fits is False:
+            os.system(f"rm -rf {final_image}")
+        return suvi_map
+    return 
 
 
 def enhance_offlimb(sunpy_map, do_sharpen=True):
