@@ -221,6 +221,9 @@ def calc_dyn_range(imagename, modelname, residualname, fits_mask=""):
     use_mask = bool(fits_mask and os.path.exists(fits_mask))
     mask_data = fits.getdata(fits_mask).astype(bool) if use_mask else None
 
+    if mask_data is not None:
+        mask_data=mask_data[0,0,...]
+        
     model_flux, dr1, rmsvalue = 0, 0, 0
 
     for i in range(len(imagename)):
@@ -229,6 +232,8 @@ def calc_dyn_range(imagename, modelname, residualname, fits_mask=""):
         image = load_data(img)
         residual = load_data(res)
         rms = np.nanstd(residual)
+        image=image[0,0,...]
+        residual=residual[0,0,...]
         if use_mask:
             maxval = np.nanmax(image[mask_data])
         else:
@@ -238,6 +243,7 @@ def calc_dyn_range(imagename, modelname, residualname, fits_mask=""):
 
     for mod in modelname:
         model = load_data(mod)
+        model=model[0,0,...]
         model_flux += np.nansum(model[mask_data] if use_mask else model)
 
     rmsvalue = rmsvalue / np.sqrt(len(residualname))
