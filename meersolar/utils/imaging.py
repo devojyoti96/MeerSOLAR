@@ -321,14 +321,14 @@ def calc_multiscale_scales(msname, num_pixel_in_psf, chan_number=-1, max_scale=1
     msname : str
         Name of the measurement set
     num_pixel_in_psf : float
-            Number of pixels in one PSF
+        Number of pixels in one PSF
     max_scale : float, optional
         Maximum scale in arcmin
 
     Returns
     -------
     list
-            Multiscale scales in pixel units
+        Multiscale scales in pixel units
     """
     psf = calc_psf(msname, chan_number=chan_number)
     minuv, minuv_l = calc_minuv(msname, chan_number=chan_number)
@@ -337,15 +337,17 @@ def calc_multiscale_scales(msname, num_pixel_in_psf, chan_number=-1, max_scale=1
     )  # In arcmin, half of maximum scale
     max_interferometric_scale = min(max_scale, max_interferometric_scale)
     max_scale_pixel = int((max_interferometric_scale * 60.0) / (psf / num_pixel_in_psf))
-    multiscale_scales = [0]
     current_scale = num_pixel_in_psf
+    multiscale_scales = [0, current_scale]
     while True:
         current_scale = current_scale * 2
         if current_scale >= max_scale_pixel:
+            current_scale=max_scale_pixel
+            multiscale_scales.append(current_scale)
             break
         multiscale_scales.append(current_scale)
     return multiscale_scales
-
+    
 
 def get_multiscale_bias(freq, bias_min=0.6, bias_max=0.9, minfreq=1015, maxfreq=1670):
     """
