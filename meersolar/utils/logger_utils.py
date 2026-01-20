@@ -48,11 +48,14 @@ def get_remote_logger_link():
     cachedir = get_cachedir()
     username = os.getlogin()
     link_file = os.path.join(cachedir, f"remotelink_{username}.txt")
-    if os.path.isfile(link_file):
-        with open(link_file, "r") as f:
-            lines = [line.strip() for line in f if line.strip()]
-        remote_link = lines[0]
-    else:
+    try:
+        if os.path.isfile(link_file):
+            with open(link_file, "r") as f:
+                lines = [line.strip() for line in f if line.strip()]
+            remote_link = lines[0]
+        else:
+            return ""
+    except:
         return ""
     try:
         req = urllib.request.Request(remote_link, method="GET")
