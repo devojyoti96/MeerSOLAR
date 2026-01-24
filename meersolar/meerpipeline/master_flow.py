@@ -2754,9 +2754,10 @@ def cli():
         help="Clean threshold in sigma for final deconvolution (Note this is not auto-mask)",
     )
     advanced_image.add_argument(
-        "--do_pbcor",
-        action="store_true",
-        help="Apply primary beam correction after imaging",
+        "--no_pbcor",
+        action="store_false",
+        dest="do_pbcor",
+        help="Do not apply primary beam correction after imaging",
     )
     advanced_image.add_argument(
         "--no_apply_parang",
