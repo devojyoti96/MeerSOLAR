@@ -21,9 +21,7 @@ asdf_coordinates_schemas==0.4.0
 asdf_standard==1.3.0
 asdf_transform_schemas==0.6.0
 asgi-lifespan==2.1.0
-astLib==0.11.10
 astro-kittens==1.4.6
-astro-tigger-lsm==1.7.3
 astropy==6.1.4
 astropy-iers-data==0.2024.10.28.0.34.7
 astropy_healpix==1.1.2
