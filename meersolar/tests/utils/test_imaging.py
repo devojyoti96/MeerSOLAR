@@ -47,8 +47,8 @@ def test_calc_psf(dummy_msname):
 
 
 def test_calc_npix_in_psf():
-    assert calc_npix_in_psf("natural") == 3.0
-    assert calc_npix_in_psf("uniform") == 5.0
+    assert calc_npix_in_psf("natural") == 5.0
+    assert calc_npix_in_psf("uniform") == 3.0
     assert calc_npix_in_psf("briggs", robust=0.0) == 4.0
 
 
