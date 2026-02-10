@@ -38,7 +38,7 @@ def test_get_observatory_name(dummy_msname):
     assert get_observatory_name(dummy_msname) == "MEERKAT"
 
 
-def test_get_observatory_name(dummy_msname):
+def test_get_observatory_coord(dummy_msname):
     lat, lon, height = get_observatory_coord(dummy_msname)
     assert lat == -30.713
     assert lon == 21.444
