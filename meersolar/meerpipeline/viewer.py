@@ -342,7 +342,7 @@ def cli():
         "--no-prefect",
         action="store_false",
         dest="prefect",
-        help="Name of log directory",
+        help="Use prefect or not",
     )
     args = parser.parse_args()
 
