@@ -15,7 +15,7 @@ def get_zenodo_file_urls(record_id):
 
 def download_with_parfive(record_id, update=False, output_dir="zenodo_download"):
     print("####################################")
-    print("Downloading MeerSOLAR data files ...")
+    print("Downloading MeerSOLAR test data files ...")
     print("####################################")
     urls = get_zenodo_file_urls(record_id)
     os.makedirs(output_dir, exist_ok=True)
