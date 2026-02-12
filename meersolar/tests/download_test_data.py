@@ -36,7 +36,7 @@ def check_test_data(path):
         download_with_parfive(15999983, output_dir=path + "/testdata/")
         shutil.unpack_archive(
             path + "/testdata/meersolar_test_data.tar.gz",
-            extract_dir=path,
+            extract_dir=f"{path}/testdata",
         )
         os.system("rm -rf " + path + "/testdata/meersolar_test_data.tar.gz")
         os.system("touch " + path + "/testdata/.testdata")
