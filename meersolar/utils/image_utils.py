@@ -222,8 +222,8 @@ def calc_dyn_range(imagename, modelname, residualname, fits_mask=""):
     mask_data = fits.getdata(fits_mask).astype(bool) if use_mask else None
 
     if mask_data is not None:
-        mask_data=mask_data[0,0,...]
-        
+        mask_data = mask_data[0, 0, ...]
+
     model_flux, dr1, rmsvalue = 0, 0, 0
 
     for i in range(len(imagename)):
@@ -232,8 +232,8 @@ def calc_dyn_range(imagename, modelname, residualname, fits_mask=""):
         image = load_data(img)
         residual = load_data(res)
         rms = np.nanstd(residual)
-        image=image[0,0,...]
-        residual=residual[0,0,...]
+        image = image[0, 0, ...]
+        residual = residual[0, 0, ...]
         if use_mask:
             maxval = np.nanmax(image[mask_data])
         else:
@@ -243,7 +243,7 @@ def calc_dyn_range(imagename, modelname, residualname, fits_mask=""):
 
     for mod in modelname:
         model = load_data(mod)
-        model=model[0,0,...]
+        model = model[0, 0, ...]
         model_flux += np.nansum(model[mask_data] if use_mask else model)
 
     rmsvalue = rmsvalue / np.sqrt(len(residualname))
@@ -355,13 +355,13 @@ def make_timeavg_image(wsclean_images, outfile_name, keep_wsclean_images=True):
         Output image name.
     """
     timestamps = []
-    data=[]
+    data = []
     for i in range(len(wsclean_images)):
         image = wsclean_images[i]
         data.append(fits.getdata(image))
         timestamps.append(fits.getheader(image)["DATE-OBS"])
-    data=np.array(data)
-    data=np.nanmean(data,axis=0)
+    data = np.array(data)
+    data = np.nanmean(data, axis=0)
     avg_timestamp = average_timestamp(timestamps)
     header = fits.getheader(wsclean_images[0])
     header["DATE-OBS"] = avg_timestamp

@@ -57,7 +57,7 @@ def single_ms_flag(
         Number of OpenMP threads
     memory_limit : float, optional
         Memory limit in GB
-        
+
     Returns
     -------
     int
@@ -191,8 +191,8 @@ def single_ms_flag(
                         freqfit="poly",
                         extendflags=True,
                         flagdimension=flagdimension,
-                        timecutoff=max(4.0,threshold-1),
-                        freqcutoff=max(3.0,threshold-2),
+                        timecutoff=max(4.0, threshold - 1),
+                        freqcutoff=max(3.0, threshold - 2),
                         growaround=False,
                         action="apply",
                         flagbackup=False,
@@ -385,8 +385,10 @@ def do_flagging(
         ###############
         # Flag summary
         ###############
-        summary_file=f"{outdir}/{os.path.basename(msname).split('.ms')[0]}_basicflag.summary"
-        print (f"Flag summary: {summary_file}")
+        summary_file = (
+            f"{outdir}/{os.path.basename(msname).split('.ms')[0]}_basicflag.summary"
+        )
+        print(f"Flag summary: {summary_file}")
         flagsummary(msname, summary_file)
         return 0
     except Exception as e:
@@ -466,10 +468,10 @@ def main(
     if workdir == "":
         workdir = os.path.dirname(os.path.abspath(msname)) + "/workdir"
     os.makedirs(workdir, exist_ok=True)
-    if outdir=="":
-        outdir=workdir
-    os.makedirs(outdir,exist_ok=True)
-    
+    if outdir == "":
+        outdir = workdir
+    os.makedirs(outdir, exist_ok=True)
+
     ############
     # Logger
     ############

@@ -6,30 +6,30 @@
 # -- Project information -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 import os, sys
+
 sys.path.insert(0, os.path.abspath("../../meersolar"))  # Adjust path if needed
 
-project = 'MeerSOLAR'
-copyright = '2025, Devojyoti Kansabanik, Deepan Patra'
-author = 'Devojyoti Kansabanik, Deepan Patra'
-release = '1.0.0'
+project = "MeerSOLAR"
+copyright = "2025, Devojyoti Kansabanik, Deepan Patra"
+author = "Devojyoti Kansabanik, Deepan Patra"
+release = "1.0.0"
 
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
 
 extensions = [
     "sphinx.ext.autodoc",
-    "sphinx.ext.napoleon",          # For Google/NumPy-style docstrings
-    "sphinx.ext.viewcode",          # Add [source] links to functions
-    "sphinx_autodoc_typehints",     # Show type hints in docs
-    "sphinx_copybutton",            # Optional: copy-paste button for code blocks
+    "sphinx.ext.napoleon",  # For Google/NumPy-style docstrings
+    "sphinx.ext.viewcode",  # Add [source] links to functions
+    "sphinx_autodoc_typehints",  # Show type hints in docs
+    "sphinx_copybutton",  # Optional: copy-paste button for code blocks
     "sphinx.ext.autosummary",
     "sphinx.ext.doctest",
-    "sphinxcontrib.programoutput",  
+    "sphinxcontrib.programoutput",
     "sphinx_togglebutton",
     "myst_parser",
-    'sphinx.ext.graphviz',
+    "sphinx.ext.graphviz",
     "sphinxcontrib.mermaid",
-
 ]
 html_theme_options = {
     "source_repository": "https://github.com/devojyoti96/MeerSOLAR/",
@@ -41,13 +41,13 @@ html_theme_options = {
     "navigation_with_keys": True,
 }
 
-templates_path = ['_templates']
+templates_path = ["_templates"]
 exclude_patterns = []
 
 html_theme = "furo"
-html_static_path = ['_static']
+html_static_path = ["_static"]
 html_title = "MeerSOLAR"
-html_css_files = ['custom.css']
+html_css_files = ["custom.css"]
 sphinx_togglebutton_selector = ".toggle-this-element, #my-special-id"
 napoleon_google_docstring = True
 napoleon_numpy_docstring = True
@@ -60,7 +60,8 @@ myst_enable_extensions = [
     "colon_fence",
     "attrs_inline",
     "deflist",
-    "html_admonition", "html_image"
+    "html_admonition",
+    "html_image",
 ]
 
 source_suffix = {
@@ -68,7 +69,4 @@ source_suffix = {
     ".md": "markdown",
 }
 
-html_context = {
-    "display_github": False
-}
-
+html_context = {"display_github": False}

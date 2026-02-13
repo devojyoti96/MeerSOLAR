@@ -30,16 +30,17 @@ def test_plot_ms_diagnostics(
 ):
     mock_psutil.cpu_count.return_value = 4
     vm = MagicMock()
-    vm.available = 8 * 1024**3  
+    vm.available = 8 * 1024**3
     mock_psutil.virtual_memory.return_value = vm
     mstool = MagicMock()
     mstool.nrow.return_value = 1000
     mock_casamstool.return_value = mstool
     msmd = MagicMock()
-    msmd.ncorrforpol.return_value = [4]      
+    msmd.ncorrforpol.return_value = [4]
     msmd.scannumbers.return_value = [1, 2, 3]
     mock_msmetadata.return_value = msmd
     mock_get_ms_scan_size.side_effect = [300, 400, 300]
+
     def glob_side_effect(pattern):
         if pattern.endswith("_plots*.pdf"):
             return []
@@ -52,9 +53,11 @@ def test_plot_ms_diagnostics(
         if "imag" in pattern and pattern.endswith("*.png"):
             return []
         return []
+
     mock_glob.side_effect = glob_side_effect
-    mock_img_converted_primary = MagicMock()   
-    mock_img_converted_extra = MagicMock()    
+    mock_img_converted_primary = MagicMock()
+    mock_img_converted_extra = MagicMock()
+
     def image_open_side_effect(path):
         m = MagicMock()
         if os.path.basename(path) in {"amp1.png", "phase1.png"}:
@@ -62,13 +65,16 @@ def test_plot_ms_diagnostics(
         else:
             m.convert.return_value = mock_img_converted_extra
         return m
+
     mock_Image_open.side_effect = image_open_side_effect
     outdir = tmp_path / "out"
     outdir.mkdir()
-    code, output_pdf_list = plot_ms_diagnostics("test.ms", str(outdir), dask_client=None)
+    code, output_pdf_list = plot_ms_diagnostics(
+        "test.ms", str(outdir), dask_client=None
+    )
     assert code == 0
     assert isinstance(output_pdf_list, list)
-    assert len(output_pdf_list) >= 1  
+    assert len(output_pdf_list) >= 1
     assert mock_img_converted_primary.save.call_count >= 1
     assert mock_run_shadems.call_count > 0
     rm_calls = [c for c in mock_os_system.call_args_list if "rm -rf" in c.args[0]]

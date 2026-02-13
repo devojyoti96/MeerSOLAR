@@ -81,7 +81,7 @@ def get_timeranges_for_scan(
         times = times[1:-1]
     start_time = times[0]
     end_time = times[-1]
-    if time_interval < 0 or time_window < 0 or time_interval<=time_window:
+    if time_interval < 0 or time_window < 0 or time_interval <= time_window:
         t = (
             mjdsec_to_timestamp(start_time, str_format=1)
             + "~"
@@ -90,20 +90,18 @@ def get_timeranges_for_scan(
         time_ranges.append(t)
         return time_ranges
     total_time = end_time - start_time
-    timeres = times[1]-times[0]
-    ntime_chunk = int(time_interval/ timeres)
+    timeres = times[1] - times[0]
+    ntime_chunk = int(time_interval / timeres)
     ntime = int(time_window / timeres)
-    for i in range(0,len(times),ntime_chunk):
-        start_time=times[i]
-        end_time=times[i+ntime]
-        if end_time>start_time:
+    for i in range(0, len(times), ntime_chunk):
+        start_time = times[i]
+        end_time = times[i + ntime]
+        if end_time > start_time:
             time_ranges.append(
                 f"{mjdsec_to_timestamp(start_time, str_format=1)}~{mjdsec_to_timestamp(end_time, str_format=1)}"
-            ) 
-        elif start_time==end_time:
-            time_ranges.append(
-                f"{mjdsec_to_timestamp(start_time, str_format=1)}"
             )
+        elif start_time == end_time:
+            time_ranges.append(f"{mjdsec_to_timestamp(start_time, str_format=1)}")
         else:
             pass
     return time_ranges

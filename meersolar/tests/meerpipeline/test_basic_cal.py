@@ -314,7 +314,7 @@ def test_run_applycal(
 
 
 @patch("meersolar.meerpipeline.basic_cal.traceback")
-@patch("meersolar.meerpipeline.basic_cal.single_ms_flag",return_value=0)
+@patch("meersolar.meerpipeline.basic_cal.single_ms_flag", return_value=0)
 def test_run_postcal_flag(
     mock_single_ms_flag,
     mock_traceback,
@@ -376,7 +376,7 @@ def test_run_postcal_flag(
 @patch("meersolar.meerpipeline.basic_cal.os.system")
 @patch("meersolar.meerpipeline.basic_cal.os.makedirs")
 @patch("meersolar.meerpipeline.basic_cal.table")
-@patch("meersolar.meerpipeline.basic_cal.get_good_chans",return_value="0:0~50")
+@patch("meersolar.meerpipeline.basic_cal.get_good_chans", return_value="0:0~50")
 def test_single_round_cal_and_flag(
     mock_gooad_chan,
     mock_table,

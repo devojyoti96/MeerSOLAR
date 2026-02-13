@@ -290,7 +290,6 @@ def calc_npix_in_psf(weight, robust=0.0):
     return round(npix, 1)
 
 
-
 def calc_cellsize(msname, num_pixel_in_psf):
     """
     Calculate pixel size in arcsec
@@ -342,12 +341,12 @@ def calc_multiscale_scales(msname, num_pixel_in_psf, chan_number=-1, max_scale=1
     while True:
         current_scale = current_scale * 2
         if current_scale >= max_scale_pixel:
-            current_scale=max_scale_pixel
+            current_scale = max_scale_pixel
             multiscale_scales.append(current_scale)
             break
         multiscale_scales.append(current_scale)
     return multiscale_scales
-    
+
 
 def get_multiscale_bias(freq, bias_min=0.6, bias_max=0.9, minfreq=1015, maxfreq=1670):
     """

@@ -2489,7 +2489,7 @@ def master_control(
         #####################################
         # Target ms diagnostic plots
         #####################################
-        if do_apply_selfcal or do_imaging: 
+        if do_apply_selfcal or do_imaging:
             if len(target_mslist) > 0:
                 for targetms in target_mslist:
                     msg, ms_diag_plot = plot_ms_diagnostics(

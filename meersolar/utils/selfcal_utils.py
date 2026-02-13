@@ -474,7 +474,7 @@ def intensity_selfcal(
         if os.path.exists(bpass_caltable):
             os.system("rm -rf " + bpass_caltable)
 
-        if calmode=="p":
+        if calmode == "p":
             logger.info(
                 f"gaincal(vis='{msname}',caltable='{bpass_caltable}',uvrange='{uvrange}',refant='{refant}',solint='{solint}',calmode='p',minsnr=1,solnorm=True)\n"
             )
@@ -510,12 +510,15 @@ def intensity_selfcal(
         #########################################
         # Flagging bad gains
         #########################################
-        if calmode=="ap":
+        if calmode == "ap":
             with suppress_output():
                 flagdata(
-                    vis=bpass_caltable, mode="rflag", datacolumn="CPARAM", flagbackup=False
+                    vis=bpass_caltable,
+                    mode="rflag",
+                    datacolumn="CPARAM",
+                    flagbackup=False,
                 )
-            if applymode=="calonly":
+            if applymode == "calonly":
                 tb = table()
                 tb.open(bpass_caltable, nomodify=False)
                 gain = tb.getcol("CPARAM")

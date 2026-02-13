@@ -8,6 +8,7 @@ from datetime import datetime as dt, timezone
 from .basic_utils import *
 from .resource_utils import *
 
+
 ###############################
 # Flagging related functions
 ################################
@@ -48,6 +49,7 @@ def flagsummary(msname, summary_file):
             except:
                 pass
     return summary_file
+
 
 def do_flag_backup(msname, flagtype="flagdata"):
     """

@@ -778,7 +778,7 @@ def main(
                 print("#################################")
 
                 #####################################
-                os.makedirs(f"{workdir}/logs",exist_ok=True)
+                os.makedirs(f"{workdir}/logs", exist_ok=True)
                 tasks = []
                 for ms in mslist:
                     logfile = (

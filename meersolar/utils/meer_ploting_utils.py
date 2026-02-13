@@ -69,8 +69,8 @@ def plot_ms_diagnostics(
         outdir = os.getcwd()
     os.makedirs(outdir, exist_ok=True)
     output_pdf = f"{outdir}/{os.path.basename(msname).split('.ms')[0]}_plots"
-    output_pdf_list=glob.glob(f"{output_pdf}*.pdf")
-    if len(output_pdf_list)>0:
+    output_pdf_list = glob.glob(f"{output_pdf}*.pdf")
+    if len(output_pdf_list) > 0:
         return 0, output_pdf_list
 
     msname = msname.rstrip("/")
@@ -94,7 +94,7 @@ def plot_ms_diagnostics(
     max_scan_size = max(scan_sizes)
     frac_chunk = min(1, total_mem / max_scan_size)
     nchunk = int(nrow * frac_chunk)
-    output_pdf_list=[]
+    output_pdf_list = []
     try:
         #######################
         # Commands to run
@@ -102,8 +102,8 @@ def plot_ms_diagnostics(
         cmds = []
         # Define correlation groups
         corr_sets = [
-            ("XX,YY", True),   # parallel hands, always plotted
-            ("XY,YX", npol == 4)  # cross hands, only if 4 pols
+            ("XX,YY", True),  # parallel hands, always plotted
+            ("XY,YX", npol == 4),  # cross hands, only if 4 pols
         ]
 
         # Define y-axis modes and labels
@@ -115,18 +115,14 @@ def plot_ms_diagnostics(
         }
 
         # Define x-axis settings
-        xaxes = {
-            "uv": ("UV(m)",),
-            "FREQ": ("Frequency (GHz)",),
-            "TIME": ("Time",)
-        }
+        xaxes = {"uv": ("UV(m)",), "FREQ": ("Frequency (GHz)",), "TIME": ("Time",)}
 
         for corr, do_plot in corr_sets:
             if not do_plot:
                 continue
             for yaxis, ylabel in plot_types.items():
                 for xaxis, (xlabel,) in xaxes.items():
-                    for col in ["CORRECTED_DATA","CORRECTED_DATA-MODEL_DATA"]:
+                    for col in ["CORRECTED_DATA", "CORRECTED_DATA-MODEL_DATA"]:
                         cmds.append(
                             f"shadems --no-lim-save --xaxis {xaxis} --yaxis {yaxis} "
                             f"--col {col} -j {ncpu} -z {nchunk} "
@@ -134,18 +130,18 @@ def plot_ms_diagnostics(
                             f"--corr {corr} --colour-by CORR --iter-scan --iter-field "
                             f"--dmap tab10 {msname}"
                         )
-                    
-        print (f"Making plots of: {msname}")
+
+        print(f"Making plots of: {msname}")
         for cmd in cmds:
             run_shadems(cmd, verbose=False)
-            
+
         for yaxis, ylabel in plot_types.items():
             #########################
             # Making plots
             #########################
             pngs = glob.glob(f"*{yaxis}*.png")
-            outfile=f"{output_pdf}_{yaxis}.pdf"
-            if len(pngs)>0:
+            outfile = f"{output_pdf}_{yaxis}.pdf"
+            if len(pngs) > 0:
                 images = []
                 for image in pngs:
                     images.append(Image.open(image).convert("RGB"))
@@ -154,19 +150,19 @@ def plot_ms_diagnostics(
                 for png in pngs:
                     os.system(f"rm -rf {png}")
             else:
-                print (f"No plot for {ylabel} is made.")
-            
-        if len(output_pdf_list)>0:    
+                print(f"No plot for {ylabel} is made.")
+
+        if len(output_pdf_list) > 0:
             return 0, output_pdf_list
         else:
-            print ("No plot is made.")
+            print("No plot is made.")
             return 1, []
     except Exception:
         traceback.print_exc()
     finally:
         drop_cache(msname)
         os.system(f"rm -rf log-shadems.txt")
-        
+
 
 def plot_caltable_diagnostics(caltable, outdir=""):
     """
@@ -605,7 +601,7 @@ def plot_in_hpc(
         pixel_unit = meer_header["BUNIT"]
     except BaseException:
         pixel_nuit = ""
-    pixel_scale = abs(meer_header["CDELT1"])*3600.0 #In arcsec
+    pixel_scale = abs(meer_header["CDELT1"]) * 3600.0  # In arcsec
     obstime = Time(meer_header["date-obs"])
     meer_map_rotate = get_meermap(fits_image, band=band)
     top_right = SkyCoord(
@@ -699,8 +695,8 @@ def plot_in_hpc(
             # Add ellipse patch
             beam_ellipse = Ellipse(
                 (beam_center.Tx.value, beam_center.Ty.value),  # center in arcsec
-                width=bmin/pixel_scale,
-                height=bmaj/pixel_scale,
+                width=bmin / pixel_scale,
+                height=bmaj / pixel_scale,
                 angle=bpa,
                 edgecolor="white",
                 facecolor="white",
@@ -708,7 +704,9 @@ def plot_in_hpc(
             )
             ax.add_patch(beam_ellipse)
             # Draw square box around the ellipse
-            box_size = max(0.2*(x1-x0),1.5*max(bmin,bmaj))/pixel_scale  # slightly bigger than beam # slightly bigger than beam
+            box_size = (
+                max(0.2 * (x1 - x0), 1.5 * max(bmin, bmaj)) / pixel_scale
+            )  # slightly bigger than beam # slightly bigger than beam
             rect = Rectangle(
                 (
                     beam_center.Tx.value - box_size / 2,
@@ -797,7 +795,7 @@ def get_aia_map(obs_date, obs_time, workdir, wavelength=193, keep_aia_fits=False
     )
     aia_wavelengths = [94, 131, 171, 193, 211, 304, 335]
     if wavelength not in aia_wavelengths:
-        print ("Please provide correct AIA wavelength from : {aia_wavelengths}.")
+        print("Please provide correct AIA wavelength from : {aia_wavelengths}.")
         return
     os.makedirs(workdir, exist_ok=True)
     start_time = dt.fromisoformat(f"{obs_date}T{obs_time}")
@@ -807,35 +805,35 @@ def get_aia_map(obs_date, obs_time, workdir, wavelength=193, keep_aia_fits=False
     instrument = a.Instrument("aia")
     wavelength = a.Wavelength(wavelength * u.angstrom)
     results = Fido.search(time, instrument, wavelength)
-    obs_times = results[0]['Start Time'].value.tolist()
+    obs_times = results[0]["Start Time"].value.tolist()
     times_dt = [dt.strptime(t, "%Y-%m-%d %H:%M:%S.%f") for t in obs_times]
     closest_time = min(times_dt, key=lambda t: abs(t - start_time))
     pos = times_dt.index(closest_time)
-    downloaded_files = Fido.fetch(results[0][pos], path=workdir, progress=False, overwrite=False)
+    downloaded_files = Fido.fetch(
+        results[0][pos], path=workdir, progress=False, overwrite=False
+    )
     final_image = downloaded_files[0]
     aia_map = Map(final_image)
     # Step 1: Pointing correction
-    try:    
-        pointing_corrected_map=update_pointing(aia_map)
+    try:
+        pointing_corrected_map = update_pointing(aia_map)
     except:
-        pointing_corrected_map=aia_map
+        pointing_corrected_map = aia_map
     # Step 2: register (we are skipping PSF deconvolution)
     registered_map = register(pointing_corrected_map)
     # Step 3: instrument degradation correction
     try:
-        corrected_map=correct_degradation(registered_map)
+        corrected_map = correct_degradation(registered_map)
     except:
-        corrected_map=registered_map
+        corrected_map = registered_map
     # Step 4: Normalize by exposure time
-    normalized_data = (
-        corrected_map.data / corrected_map.exposure_time.to(u.s).value
-    )
+    normalized_data = corrected_map.data / corrected_map.exposure_time.to(u.s).value
     normalized_map = Map(normalized_data, corrected_map.meta)
     if keep_aia_fits is False:
         os.system(f"rm -rf {final_image}")
     return normalized_map
-    
-    
+
+
 def get_suvi_map(obs_date, obs_time, workdir, wavelength=195, keep_suvi_fits=False):
     """
     Get GOES SUVI map
@@ -858,42 +856,55 @@ def get_suvi_map(obs_date, obs_time, workdir, wavelength=195, keep_suvi_fits=Fal
     sunpy.map
         Sunpy SUVIMap
     """
-    def list_url_directory(url, ext=''):
+
+    def list_url_directory(url, ext=""):
         page = requests.get(url).text
-        soup = BeautifulSoup(page, 'html.parser')
-        return [url + node.get('href') for node in soup.find_all('a') if node.get('href').endswith(ext)]
-        
+        soup = BeautifulSoup(page, "html.parser")
+        return [
+            url + node.get("href")
+            for node in soup.find_all("a")
+            if node.get("href").endswith(ext)
+        ]
+
     logging.getLogger("sunpy").setLevel(logging.ERROR)
     warnings.filterwarnings(
         "ignore",
         message="This download has been started in a thread which is not the main thread",
     )
-    suvi_wavelengths=[94,131,171,195,284,304]
+    suvi_wavelengths = [94, 131, 171, 195, 284, 304]
     if wavelength not in suvi_wavelengths:
-        print ("Please provide correct SUVI wavelength from : {suvi_wavelengths}.")
+        print("Please provide correct SUVI wavelength from : {suvi_wavelengths}.")
         return
     os.makedirs(workdir, exist_ok=True)
 
-    baseurl1 = 'https://data.ngdc.noaa.gov/platforms/solar-space-observing-satellites/goes/goes'
-    baseurl2 = 'l2/data'
-    ext = '.fits'
+    baseurl1 = "https://data.ngdc.noaa.gov/platforms/solar-space-observing-satellites/goes/goes"
+    baseurl2 = "l2/data"
+    ext = ".fits"
 
     spacecraft_numbers = [16, 18]
-    wvln_path = dict({94:'suvi-l2-ci094', 131:'suvi-l2-ci131', 171:'suvi-l2-ci171', \
-                      195:'suvi-l2-ci195', 284:'suvi-l2-ci284', 304:'suvi-l2-ci304'})
+    wvln_path = dict(
+        {
+            94: "suvi-l2-ci094",
+            131: "suvi-l2-ci131",
+            171: "suvi-l2-ci171",
+            195: "suvi-l2-ci195",
+            284: "suvi-l2-ci284",
+            304: "suvi-l2-ci304",
+        }
+    )
     date_str = "/".join(obs_date.split("-"))
 
-    urls=[]
+    urls = []
     for spacecraft in spacecraft_numbers:
         url = f"{baseurl1}{spacecraft}/{baseurl2}/{wvln_path[wavelength]}/{date_str}/"
         urls.append(url)
-        all_files  = []
+        all_files = []
         start_times = []
         out_files = []
         for url in urls:
             request = requests.get(url)
             if not request.status_code == 200:
-                raise Exception('Website not found: '+url)
+                raise Exception("Website not found: " + url)
             else:
                 for file_name in list_url_directory(url, ext):
                     all_files.append(file_name)
@@ -910,15 +921,15 @@ def get_suvi_map(obs_date, obs_time, workdir, wavelength=195, keep_suvi_fits=Fal
             dl = Downloader()
             dl.enqueue_file(download_url, path=out_file)
             downloaded_files = dl.download()
-            if len(downloaded_files)>0:
-                final_image=downloaded_files[0]
+            if len(downloaded_files) > 0:
+                final_image = downloaded_files[0]
         else:
             final_image = out_file
         suvi_map = Map(final_image)
         if keep_suvi_fits is False:
             os.system(f"rm -rf {final_image}")
         return suvi_map
-    return 
+    return
 
 
 def enhance_offlimb(sunpy_map, do_sharpen=True):

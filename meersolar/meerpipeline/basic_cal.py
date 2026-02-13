@@ -364,8 +364,8 @@ def run_postcal_flag(
         n_threads=n_threads,
         memory_limit=memory_limit,
     )
-    if msg>0:
-        print (f"Issue in post-calibration flagging in ms: {msname}")
+    if msg > 0:
+        print(f"Issue in post-calibration flagging in ms: {msname}")
     return
 
 
@@ -435,7 +435,7 @@ def single_round_cal_and_flag(
     do_postcal_flag : bool, optional
         Peform post-calibration flagging
     flag_threshold : float, optional
-        Flag threshold 
+        Flag threshold
     cpu_frac : float, optional
         CPU fraction to use
     mem_frac : float, optional
@@ -461,7 +461,7 @@ def single_round_cal_and_flag(
         npol = msmd.ncorrforpol()[0]
         msmd.close()
         parang = False
-        good_chans=get_good_chans(msname)
+        good_chans = get_good_chans(msname)
         ######################################
         # Removing previous rounds caltables
         ######################################
@@ -887,9 +887,13 @@ def single_round_cal_and_flag(
                 print(f"Memory per worker: {round(mem_limit,2)} GB")
                 print("#################################")
                 if len(all_mslist) > 0:
-                    print(f"Performing post-calibration flagging - MS: {msname}, threshold: {flag_threshold}")
+                    print(
+                        f"Performing post-calibration flagging - MS: {msname}, threshold: {flag_threshold}"
+                    )
                     for sub_msname in all_mslist:
-                        if sub_msname in fluxcal_mslist or (sub_msname in polcal_mslist and do_polcal):
+                        if sub_msname in fluxcal_mslist or (
+                            sub_msname in polcal_mslist and do_polcal
+                        ):
                             datacolumn = "residual"
                         else:
                             datacolumn = "corrected"
@@ -902,7 +906,7 @@ def single_round_cal_and_flag(
                                 memory_limit=mem_limit,
                             )
                         )
-                
+
                 results = list(dask_client.gather(dask_client.compute(tasks)))
 
         ###############################
@@ -1007,6 +1011,7 @@ def run_basic_cal_rounds(
     """
     try:
         from casatasks import flagdata
+
         os.chdir(workdir)
         print(f"Measurement set : {msname}")
         print("Extracting metadata from measurement set ....")
@@ -1054,7 +1059,7 @@ def run_basic_cal_rounds(
         do_leakagecal = False
         do_postcal_flag = True
         applysol = True
-        flag_threshold=6.0
+        flag_threshold = 6.0
         if refant == "":
             refant = get_refant(msname)
         if uvrange == "":
@@ -1078,7 +1083,7 @@ def run_basic_cal_rounds(
                     do_polcal = True
                 if perform_leakagecal:
                     do_leakagecal = True
-                flag_threshold=5.0
+                flag_threshold = 5.0
             msg, caltables = single_round_cal_and_flag(
                 msname,
                 dask_client,
@@ -1118,7 +1123,7 @@ def run_basic_cal_rounds(
             ###############
             # Flag summary
             ###############
-            summary_file=f"{outdir}/{os.path.basename(msname).split('.ms')[0]}_calflag_{cal_round}.summary"
+            summary_file = f"{outdir}/{os.path.basename(msname).split('.ms')[0]}_calflag_{cal_round}.summary"
             flagsummary(msname, summary_file)
             if msg == 1:
                 print("##################")
@@ -1195,8 +1200,8 @@ def main(
     os.makedirs(workdir, exist_ok=True)
 
     if outdir == "":
-        outdir=workdir
-    os.makedirs(outdir,exist_ok=True)
+        outdir = workdir
+    os.makedirs(outdir, exist_ok=True)
     caldir = f"{outdir}/caltables"
     os.makedirs(caldir, exist_ok=True)
 
