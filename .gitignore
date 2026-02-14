@@ -5,6 +5,7 @@ meersolar/data/*.npz
 meersolar/tests/testdata
 build/
 dist/
-*.egg-*/
+*.egg*/
 additional/
 docs/build
+
