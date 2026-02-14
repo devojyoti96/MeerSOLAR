@@ -2,9 +2,14 @@ import types
 import astropy.units as u
 import glob
 import os
-from astroquery.jplhorizons import Horizons
 from astropy.time import Time
-from astropy.coordinates import EarthLocation, SkyCoord, AltAz
+from astropy.coordinates import (
+    EarthLocation,
+    SkyCoord,
+    AltAz,
+    get_sun,
+    solar_system_ephemeris,
+)
 from casatools import msmetadata
 from .basic_utils import *
 from .udocker_utils import *
@@ -13,6 +18,11 @@ from .ms_metadata import *
 #####################################
 # Sun position related
 #####################################
+datadir = get_datadir()
+try:
+    solar_system_ephemeris.set(f"{datadir}/de440s")
+except:
+    solar_system_ephemeris.set("builtin")
 
 
 def get_solar_elevation(lat, lon, elev, date_time):
@@ -57,7 +67,7 @@ def get_solar_elevation(lat, lon, elev, date_time):
 
 def radec_sun(msname):
     """
-    RA DEC of the Sun at the start of the scan
+    RA DEC of the Sun at the midpoint of scan (offline version)
 
     Parameters
     ----------
@@ -85,31 +95,25 @@ def radec_sun(msname):
     mid_time = times[int(len(times) / 2)]
     mid_timestamp = mjdsec_to_timestamp(mid_time)
     astro_time = Time(mid_timestamp, scale="utc")
-    sun_jpl = Horizons(id="10", location="500", epochs=astro_time.jd)
-    eph = sun_jpl.ephemerides()
-    sun_coord = SkyCoord(
-        ra=eph["RA"][0] * u.deg, dec=eph["DEC"][0] * u.deg, frame="icrs"
-    )
+    sun_coord = get_sun(astro_time)  # In GCRS (geocentric frame)
     sun_ra = (
-        str(int(sun_coord.ra.hms.h))
-        + "h"
-        + str(int(sun_coord.ra.hms.m))
-        + "m"
-        + str(round(sun_coord.ra.hms.s, 2))
-        + "s"
+        f"{int(sun_coord.ra.hms.h)}h"
+        f"{int(sun_coord.ra.hms.m)}m"
+        f"{round(sun_coord.ra.hms.s, 2)}s"
     )
     sun_dec = (
-        str(int(sun_coord.dec.dms.d))
-        + "d"
-        + str(abs(int(sun_coord.dec.dms.m)))
-        + "m"
-        + str(abs(round(sun_coord.dec.dms.s, 2)))
-        + "s"
+        f"{int(sun_coord.dec.dms.d)}d"
+        f"{abs(int(sun_coord.dec.dms.m))}m"
+        f"{abs(round(sun_coord.dec.dms.s, 2))}s"
     )
-    sun_radec_string = "J2000 " + str(sun_ra) + " " + str(sun_dec)
-    radeg = sun_coord.ra.deg
-    decdeg = sun_coord.dec.deg
-    return sun_radec_string, sun_ra, sun_dec, radeg, decdeg
+    sun_radec_string = f"J2000 {sun_ra} {sun_dec}"
+    return (
+        sun_radec_string,
+        sun_ra,
+        sun_dec,
+        sun_coord.ra.deg,
+        sun_coord.dec.deg,
+    )
 
 
 def move_to_sun(msname, only_uvw=False):

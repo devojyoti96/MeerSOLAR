@@ -23,6 +23,7 @@ all_filenames = [
     "MeerKAT_antavg_Uband.npz",
     "J0408-6545_L_model.txt",
     "MeerKAT_antavg_Lband.npz",
+    "de440s.bsp",
 ]
 
 
@@ -87,7 +88,7 @@ def init_meersolar_data(update=False, remote_link=None, emails=None):
     ]
 
     if unavailable_files or update:
-        record_id = "15691548"
+        record_id = "18640490"
         download_with_parfive(record_id, update=update, output_dir=datadir)
         timestr = dt.utcnow().strftime("%Y-%m-%d %H:%M:%S")
         print(f"MeeSOLAR data are updated in: {datadir} at time: {timestr}")
