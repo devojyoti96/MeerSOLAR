@@ -8,7 +8,6 @@ from astropy.coordinates import (
     SkyCoord,
     AltAz,
     get_sun,
-    solar_system_ephemeris,
 )
 from casatools import msmetadata
 from .basic_utils import *
@@ -18,12 +17,6 @@ from .ms_metadata import *
 #####################################
 # Sun position related
 #####################################
-datadir = get_datadir()
-try:
-    solar_system_ephemeris.set(f"{datadir}/de440s")
-except:
-    solar_system_ephemeris.set("builtin")
-
 
 def get_solar_elevation(lat, lon, elev, date_time):
     """
@@ -40,7 +33,6 @@ def get_solar_elevation(lat, lon, elev, date_time):
     date_time : str
         Date time in YYYY-MM-DDThh:mm:ss (ISOT) format, default : present time
 
-
     Returns
     -------
     float
@@ -54,11 +46,7 @@ def get_solar_elevation(lat, lon, elev, date_time):
     else:
         astro_time = Time(date_time)
     location = EarthLocation(lat=latitude, lon=longitude, height=elevation)
-    sun_jpl = Horizons(id="10", location="500", epochs=astro_time.jd)
-    eph = sun_jpl.ephemerides()
-    sun_coords = SkyCoord(
-        ra=eph["RA"][0] * u.deg, dec=eph["DEC"][0] * u.deg, frame="icrs"
-    )
+    sun_coords = get_sun(astro_time)  # In GCRS (geocentric frame)
     altaz_frame = AltAz(obstime=astro_time, location=location)
     sun_altaz = sun_coords.transform_to(altaz_frame)
     solar_elevation = sun_altaz.alt.deg
