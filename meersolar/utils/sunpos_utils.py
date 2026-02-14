@@ -8,6 +8,7 @@ from astropy.coordinates import (
     SkyCoord,
     AltAz,
     get_sun,
+    solar_system_ephemeris
 )
 from casatools import msmetadata
 from .basic_utils import *
@@ -17,7 +18,13 @@ from .ms_metadata import *
 #####################################
 # Sun position related
 #####################################
-
+datadir = get_datadir()
+try:
+    solar_system_ephemeris.set(f"{datadir}/de440s")
+except:
+    solar_system_ephemeris.set("builtin")
+    
+    
 def get_solar_elevation(lat, lon, elev, date_time):
     """
     Get solar elevation
